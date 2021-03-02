@@ -1217,6 +1217,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   uint64_t last_sequence = versions_->LastSequence();
   Writer* last_writer = &w;
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
+    // TODO: Remove all the lock, use fettch and add to atomically increase the
+    // TODO: sequence num. Use concurrent write in the Rocks DB to write
+    // TODO:  skiplist concurrently. NO log is needed as well.
     WriteBatch* write_batch = BuildBatchGroup(&last_writer);
     WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
     last_sequence += WriteBatchInternal::Count(write_batch);
