@@ -8,7 +8,7 @@
 #include <string>
 
 #include "db/dbformat.h"
-#include "db/skiplist.h"
+#include "db/inlineskiplist.h"
 #include "leveldb/db.h"
 #include "util/arena.h"
 
@@ -67,12 +67,21 @@ class MemTable {
   friend class MemTableBackwardIterator;
 
   struct KeyComparator {
+    typedef Slice DecodedType;
+
+    virtual DecodedType decode_key(const char* key) const {
+      // The format of key is frozen and can be terated as a part of the API
+      // contract. Refer to MemTable::Add for details.
+      return GetLengthPrefixedSlice(key);
+    }
     const InternalKeyComparator comparator;
     explicit KeyComparator(const InternalKeyComparator& c) : comparator(c) {}
     int operator()(const char* a, const char* b) const;
+    int operator()(const char* prefix_len_key,
+                           const DecodedType& key) const;
   };
 
-  typedef SkipList<const char*, KeyComparator> Table;
+  typedef InlineSkipList<KeyComparator> Table;
 
   ~MemTable();  // Private since only Unref() should be used to delete it
 

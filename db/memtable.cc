@@ -11,12 +11,7 @@
 
 namespace leveldb {
 
-static Slice GetLengthPrefixedSlice(const char* data) {
-  uint32_t len;
-  const char* p = data;
-  p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
-  return Slice(p, len);
-}
+
 
 MemTable::MemTable(const InternalKeyComparator& comparator)
     : comparator_(comparator), refs_(0), table_(comparator_, &arena_) {}
@@ -32,6 +27,15 @@ int MemTable::KeyComparator::operator()(const char* aptr,
   Slice b = GetLengthPrefixedSlice(bptr);
   return comparator.Compare(a, b);
 }
+int MemTable::KeyComparator::operator()(const char* prefix_len_key,
+                                        const KeyComparator::DecodedType& key)
+const {
+  // Internal keys are encoded as length-prefixed strings.
+  Slice a = GetLengthPrefixedSlice(prefix_len_key);
+  //Here used to be CompareKeySeq which will drop the value type only keep sequence
+  return comparator.Compare(a, key);
+}
+
 
 // Encode a suitable internal key target for "target" and return it.
 // Uses *scratch as scratch space, and the returned pointer will point
