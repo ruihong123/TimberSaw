@@ -1230,24 +1230,24 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     // into mem_.
     {
       mutex_.Unlock();
-      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
-      bool sync_error = false;
-      if (status.ok() && options.sync) {
-        status = logfile_->Sync();
-        if (!status.ok()) {
-          sync_error = true;
-        }
-      }
+//      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
+//      bool sync_error = false;
+//      if (status.ok() && options.sync) {
+//        status = logfile_->Sync();
+//        if (!status.ok()) {
+//          sync_error = true;
+//        }
+//      }
       if (status.ok()) {
         status = WriteBatchInternal::InsertInto(write_batch, mem_);
       }
       mutex_.Lock();
-      if (sync_error) {
-        // The state of the log file is indeterminate: the log record we
-        // just added may or may not show up when the DB is re-opened.
-        // So we force the DB into a mode where all future writes fail.
-        RecordBackgroundError(status);
-      }
+//      if (sync_error) {
+//        // The state of the log file is indeterminate: the log record we
+//        // just added may or may not show up when the DB is re-opened.
+//        // So we force the DB into a mode where all future writes fail.
+//        RecordBackgroundError(status);
+//      }
     }
     if (write_batch == tmp_batch_) tmp_batch_->Clear();
 
@@ -1351,37 +1351,37 @@ Status DBImpl::MakeRoomForWrite(bool force) {
                (mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
       // There is room in current memtable
       break;
-    } else if (imm_ != nullptr) {
-      // We have filled up the current memtable, but the previous
-      // one is still being compacted, so we wait.
-      Log(options_.info_log, "Current memtable full; waiting...\n");
-      background_work_finished_signal_.Wait();
-    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-      // There are too many level-0 files.
-      Log(options_.info_log, "Too many L0 files; waiting...\n");
-      background_work_finished_signal_.Wait();
+//    } else if (imm_ != nullptr) {
+//      // We have filled up the current memtable, but the previous
+//      // one is still being compacted, so we wait.
+//      Log(options_.info_log, "Current memtable full; waiting...\n");
+//      background_work_finished_signal_.Wait();
+//    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+//      // There are too many level-0 files.
+//      Log(options_.info_log, "Too many L0 files; waiting...\n");
+//      background_work_finished_signal_.Wait();
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
       assert(versions_->PrevLogNumber() == 0);
-      uint64_t new_log_number = versions_->NewFileNumber();
-      WritableFile* lfile = nullptr;
-      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-      if (!s.ok()) {
-        // Avoid chewing through file number space in a tight loop.
-        versions_->ReuseFileNumber(new_log_number);
-        break;
-      }
-      delete log_;
-      delete logfile_;
-      logfile_ = lfile;
-      logfile_number_ = new_log_number;
-      log_ = new log::Writer(lfile);
+//      uint64_t new_log_number = versions_->NewFileNumber();
+//      WritableFile* lfile = nullptr;
+//      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+//      if (!s.ok()) {
+//        // Avoid chewing through file number space in a tight loop.
+//        versions_->ReuseFileNumber(new_log_number);
+//        break;
+//      }
+//      delete log_;
+//      delete logfile_;
+//      logfile_ = lfile;
+//      logfile_number_ = new_log_number;
+//      log_ = new log::Writer(lfile);
       imm_ = mem_;
       has_imm_.store(true, std::memory_order_release);
       mem_ = new MemTable(internal_comparator_);
       mem_->Ref();
       force = false;  // Do not force another compaction if have room
-      MaybeScheduleCompaction();
+//      MaybeScheduleCompaction();
     }
   }
   return s;
