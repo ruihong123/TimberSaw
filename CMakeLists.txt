@@ -105,6 +105,9 @@ configure_file(
 
 include_directories(
   "${PROJECT_BINARY_DIR}/include"
+  "${PROJECT_BINARY_DIR}/db"
+  "${PROJECT_BINARY_DIR}/port"
+  "${PROJECT_BINARY_DIR}/util"
   "."
 )
 
@@ -151,7 +154,7 @@ target_sources(leveldb
     "db/version_set.h"
     "db/write_batch_internal.h"
     "db/write_batch.cc"
-    "port/allocator.h"
+    "util/allocator.h"
     "port/port_posix.h"
     "port/port_posix.cc"
     "port/port.h"
@@ -174,6 +177,9 @@ target_sources(leveldb
     "table/two_level_iterator.h"
     "util/arena.cc"
     "util/arena.h"
+    "util/concurrent_arena.cc"
+    "util/concurrent_arena.h"
+    "util/core_local.h"
     "util/bloom.cc"
     "util/cache.cc"
     "util/coding.cc"
@@ -190,6 +196,7 @@ target_sources(leveldb
     "util/mutexlock.h"
     "util/no_destructor.h"
     "util/options.cc"
+    "util/random.cc"
     "util/random.h"
     "util/status.cc"
 

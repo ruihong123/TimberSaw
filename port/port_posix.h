@@ -82,7 +82,7 @@
 // when targeting older platforms.
 #define fdatasync fsync
 #endif
-
+#include "port/thread_annotations.h"
 namespace leveldb {
 
 extern const bool kDefaultToAdaptiveMutex;

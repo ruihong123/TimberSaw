@@ -5,12 +5,13 @@
 #ifndef STORAGE_LEVELDB_DB_MEMTABLE_H_
 #define STORAGE_LEVELDB_DB_MEMTABLE_H_
 
-#include <string>
-
 #include "db/dbformat.h"
 #include "db/inlineskiplist.h"
+#include <string>
+
 #include "leveldb/db.h"
-#include "util/arena.h"
+
+//#include "util/arena_old.h"
 
 namespace leveldb {
 
@@ -87,7 +88,7 @@ class MemTable {
 
   KeyComparator comparator_;
   int refs_;
-  Arena arena_;
+  ConcurrentArena arena_;
   Table table_;
 };
 

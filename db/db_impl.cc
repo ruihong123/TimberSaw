@@ -1282,28 +1282,14 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
   // May temporarily unlock and wait.
   Status status = MakeRoomForWrite(updates == nullptr);
-  uint64_t last_sequence = versions_->LastSequence();
+  size_t kv_num = WriteBatchInternal::Count(updates);
+  uint64_t last_sequence = versions_->AssignSequnceNumbers(kv_num);
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-    // TODO: Remove all the lock, use fettch and add to atomically increase the
-    // TODO: sequence num. Use concurrent write in the Rocks DB to write
-    // TODO:  skiplist concurrently. NO log is needed as well.
-//    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
     WriteBatchInternal::SetSequence(updates, last_sequence + 1);
-    last_sequence += WriteBatchInternal::Count(updates);
 
-    // Add to log and apply to memtable.  We can release the lock
-    // during this phase since &w is currently responsible for logging
-    // and protects against concurrent loggers and concurrent writes
-    // into mem_.
-    {
-
-      if (status.ok()) {
-        status = WriteBatchInternal::InsertInto(updates, mem_);
-      }
-
+    if (status.ok()) {
+      status = WriteBatchInternal::InsertInto(updates, mem_);
     }
-
-    versions_->SetLastSequence(last_sequence);
   }
 
   return status;
@@ -1362,8 +1348,8 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
 Status DBImpl::MakeRoomForWrite(bool force) {
-  mutex_.AssertHeld();
-  assert(!writers_.empty());
+//  mutex_.AssertHeld();
+//  assert(!writers_.empty());
   bool allow_delay = !force;
   Status s;
   while (true) {
@@ -1399,19 +1385,19 @@ Status DBImpl::MakeRoomForWrite(bool force) {
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
       assert(versions_->PrevLogNumber() == 0);
-      uint64_t new_log_number = versions_->NewFileNumber();
-      WritableFile* lfile = nullptr;
-      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-      if (!s.ok()) {
-        // Avoid chewing through file number space in a tight loop.
-        versions_->ReuseFileNumber(new_log_number);
-        break;
-      }
-      delete log_;
-      delete logfile_;
-      logfile_ = lfile;
-      logfile_number_ = new_log_number;
-      log_ = new log::Writer(lfile);
+//      uint64_t new_log_number = versions_->NewFileNumber();
+//      WritableFile* lfile = nullptr;
+//      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+//      if (!s.ok()) {
+//        // Avoid chewing through file number space in a tight loop.
+//        versions_->ReuseFileNumber(new_log_number);
+//        break;
+//      }
+//      delete log_;
+//      delete logfile_;
+//      logfile_ = lfile;
+//      logfile_number_ = new_log_number;
+//      log_ = new log::Writer(lfile);
       imm_ = mem_;
       has_imm_.store(true, std::memory_order_release);
       mem_ = new MemTable(internal_comparator_);

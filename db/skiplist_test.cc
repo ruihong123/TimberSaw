@@ -7,14 +7,16 @@
 #include <atomic>
 #include <set>
 
-#include "gtest/gtest.h"
 #include "leveldb/env.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
-#include "util/arena.h"
+#include "util/arena_old.h"
 #include "util/hash.h"
 #include "util/random.h"
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
 
 namespace leveldb {
 

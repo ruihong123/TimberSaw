@@ -29,29 +29,29 @@ class Allocator {
 
   virtual size_t BlockSize() const = 0;
 };
+// The AllocatorTracker below is a ugly coded dummy function.
+class AllocTracker {
+ public:
+  AllocTracker();
+  // No copying allowed
+  AllocTracker(const AllocTracker&) = delete;
+  void operator=(const AllocTracker&) = delete;
 
-//class AllocTracker {
-// public:
-//  explicit AllocTracker(WriteBufferManager* write_buffer_manager);
-//  // No copying allowed
-//  AllocTracker(const AllocTracker&) = delete;
-//  void operator=(const AllocTracker&) = delete;
-//
-//  ~AllocTracker();
-//  void Allocate(size_t bytes);
-//  // Call when we're finished allocating memory so we can free it from
-//  // the write buffer's limit.
-//  void DoneAllocating();
-//
-//  void FreeMem();
-//
-//  bool is_freed() const { return write_buffer_manager_ == nullptr || freed_; }
-//
-// private:
+  ~AllocTracker();
+  void Allocate(size_t bytes);
+  // Call when we're finished allocating memory so we can free it from
+  // the write buffer's limit.
+  void DoneAllocating();
+
+  void FreeMem();
+
+  bool is_freed() const { return false; }
+
+ private:
 //  WriteBufferManager* write_buffer_manager_;
-//  std::atomic<size_t> bytes_allocated_;
-//  bool done_allocating_;
-//  bool freed_;
-//};
+  std::atomic<size_t> bytes_allocated_;
+  bool done_allocating_;
+  bool freed_;
+};
 
 }  // namespace ROCKSDB_NAMESPACE

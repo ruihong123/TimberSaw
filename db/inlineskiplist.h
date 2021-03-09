@@ -41,17 +41,19 @@
 //
 
 #pragma once
-#include <assert.h>
-#include <stdlib.h>
 #include <algorithm>
+#include <assert.h>
 #include <atomic>
+#include <stdlib.h>
 #include <type_traits>
-#include "port/allocator.h"
-#include "util/arena.h"
+
+#include "leveldb/slice.h"
+
 #include "port/likely.h"
 #include "port/port.h"
-#include "leveldb//slice.h"
+#include "util/allocator.h"
 #include "util/coding.h"
+#include "util/concurrent_arena.h"
 #include "util/random.h"
 
 namespace leveldb {
@@ -76,7 +78,7 @@ class InlineSkipList {
   // keys, and will allocate memory using "*arena".  Objects allocated
   // in the arena must remain allocated for the lifetime of the
   // skiplist object.
-  explicit InlineSkipList(Comparator cmp, Arena* arena,
+  explicit InlineSkipList(Comparator cmp, ConcurrentArena* arena,
                           int32_t max_height = 12,
                           int32_t branching_factor = 4);
   // No copying allowed
@@ -201,7 +203,7 @@ class InlineSkipList {
   const uint16_t kBranching_;
   const uint32_t kScaledInverseBranching_;
 
-  Arena* const arena_;  // Allocator used for allocations of nodes
+  ConcurrentArena* const arena_;  // Allocator used for allocations of nodes
   // Immutable after construction
   Comparator const compare_;
   Node* const head_;
@@ -593,7 +595,7 @@ uint64_t InlineSkipList<Comparator>::EstimateCount(const char* key) const {
 
 template <class Comparator>
 InlineSkipList<Comparator>::InlineSkipList(const Comparator cmp,
-                                           Arena* arena,
+                                           ConcurrentArena* arena,
                                            int32_t max_height,
                                            int32_t branching_factor)
     : kMaxHeight_(static_cast<uint16_t>(max_height)),
