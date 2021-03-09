@@ -1230,24 +1230,24 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     // into mem_.
     {
       mutex_.Unlock();
-      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
-      bool sync_error = false;
-      if (status.ok() && options.sync) {
-        status = logfile_->Sync();
-        if (!status.ok()) {
-          sync_error = true;
-        }
-      }
+//      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
+//      bool sync_error = false;
+//      if (status.ok() && options.sync) {
+//        status = logfile_->Sync();
+//        if (!status.ok()) {
+//          sync_error = true;
+//        }
+//      }
       if (status.ok()) {
         status = WriteBatchInternal::InsertInto(write_batch, mem_);
       }
       mutex_.Lock();
-      if (sync_error) {
-        // The state of the log file is indeterminate: the log record we
-        // just added may or may not show up when the DB is re-opened.
-        // So we force the DB into a mode where all future writes fail.
-        RecordBackgroundError(status);
-      }
+//      if (sync_error) {
+//        // The state of the log file is indeterminate: the log record we
+//        // just added may or may not show up when the DB is re-opened.
+//        // So we force the DB into a mode where all future writes fail.
+//        RecordBackgroundError(status);
+//      }
     }
     if (write_batch == tmp_batch_) tmp_batch_->Clear();
 
@@ -1381,7 +1381,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       mem_ = new MemTable(internal_comparator_);
       mem_->Ref();
       force = false;  // Do not force another compaction if have room
-      MaybeScheduleCompaction();
+//      MaybeScheduleCompaction();
     }
   }
   return s;
