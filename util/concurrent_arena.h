@@ -89,7 +89,6 @@ class ConcurrentArena : public Allocator {
 
   size_t BlockSize() const override { return arena_.BlockSize(); }
 
- private:
   struct Shard {
     char padding[40] ROCKSDB_FIELD_UNUSED;
     mutable SpinMutex mutex;
@@ -98,7 +97,7 @@ class ConcurrentArena : public Allocator {
 
     Shard() : free_begin_(nullptr), allocated_and_unused_(0) {}
   };
-
+ private:
 #ifdef ROCKSDB_SUPPORT_THREAD_LOCAL
   static __thread size_t tls_cpuid;
 #else
@@ -110,6 +109,7 @@ class ConcurrentArena : public Allocator {
   size_t shard_block_size_;
 
   CoreLocalArray<Shard> shards_;
+  static __thread Shard* thread_local_shard;
 
   Arena arena_;
   mutable SpinMutex arena_mutex_;
@@ -139,11 +139,12 @@ class ConcurrentArena : public Allocator {
     // with no waiting.  This keeps the fragmentation penalty of
     // concurrency zero unless it might actually confer an advantage.
     std::unique_lock<SpinMutex> arena_lock(arena_mutex_, std::defer_lock);
-    if (bytes > shard_block_size_ / 4 || force_arena ||
-        ((cpu = tls_cpuid) == 0 &&
-         !shards_.AccessAtCore(0)->allocated_and_unused_.load(
-             std::memory_order_relaxed) &&
-         arena_lock.try_lock())) {
+    if (bytes > shard_block_size_ / 4 || force_arena //||
+//        ((cpu = tls_cpuid) == 0 &&
+//         !shards_.AccessAtCore(0)->allocated_and_unused_.load(
+//             std::memory_order_relaxed) &&
+//         arena_lock.try_lock())
+                 ) {
       if (!arena_lock.owns_lock()) {
         arena_lock.lock();
       }
@@ -153,12 +154,17 @@ class ConcurrentArena : public Allocator {
     }
 
     // pick a shard from which to allocate
-    Shard* s = shards_.AccessAtCore(cpu & (shards_.Size() - 1));
-    if (!s->mutex.try_lock()) {
-      s = Repick();
-      s->mutex.lock();
+//    Shard* s = shards_.AccessAtCore(cpu & (shards_.Size() - 1));
+    if (thread_local_shard == nullptr){
+      thread_local_shard = new Shard();
     }
-    std::unique_lock<SpinMutex> lock(s->mutex, std::adopt_lock);
+
+    Shard* s = (Shard*) thread_local_shard;
+//    if (!s->mutex.try_lock()) {
+//      s = Repick();
+//      s->mutex.lock();
+//    }
+//    std::unique_lock<SpinMutex> lock(s->mutex, std::adopt_lock);
 
     size_t avail = s->allocated_and_unused_.load(std::memory_order_relaxed);
     if (avail < bytes) {

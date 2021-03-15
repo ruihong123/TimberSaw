@@ -1281,8 +1281,13 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
 
   // May temporarily unlock and wait.
+//  Status status = Status::OK();
   Status status = MakeRoomForWrite(updates == nullptr);
   size_t kv_num = WriteBatchInternal::Count(updates);
+//  spin_mutex.lock();
+//  uint64_t last_sequence = versions_->LastSequence_nonatomic();
+//  versions_->SetLastSequence_nonatomic(last_sequence+kv_num);
+//  spin_mutex.unlock();
   uint64_t last_sequence = versions_->AssignSequnceNumbers(kv_num);
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
     WriteBatchInternal::SetSequence(updates, last_sequence + 1);
@@ -1351,24 +1356,24 @@ Status DBImpl::MakeRoomForWrite(bool force) {
 //  mutex_.AssertHeld();
 //  assert(!writers_.empty());
   bool allow_delay = !force;
-  Status s;
+  Status s = Status::OK();
   while (true) {
     if (!bg_error_.ok()) {
       // Yield previous error
       s = bg_error_;
       break;
-    } else if (allow_delay && versions_->NumLevelFiles(0) >=
-                                  config::kL0_SlowdownWritesTrigger) {
-      // We are getting close to hitting a hard limit on the number of
-      // L0 files.  Rather than delaying a single write by several
-      // seconds when we hit the hard limit, start delaying each
-      // individual write by 1ms to reduce latency variance.  Also,
-      // this delay hands over some CPU to the compaction thread in
-      // case it is sharing the same core as the writer.
-      mutex_.Unlock();
-      env_->SleepForMicroseconds(1000);
-      allow_delay = false;  // Do not delay a single write more than once
-      mutex_.Lock();
+//    } else if (allow_delay && versions_->NumLevelFiles(0) >=
+//                                  config::kL0_SlowdownWritesTrigger) {
+//      // We are getting close to hitting a hard limit on the number of
+//      // L0 files.  Rather than delaying a single write by several
+//      // seconds when we hit the hard limit, start delaying each
+//      // individual write by 1ms to reduce latency variance.  Also,
+//      // this delay hands over some CPU to the compaction thread in
+//      // case it is sharing the same core as the writer.
+////      mutex_.Unlock();
+////      env_->SleepForMicroseconds(1000);
+////      allow_delay = false;  // Do not delay a single write more than once
+////      mutex_.Lock();
     } else if (!force &&
                (mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
       // There is room in current memtable

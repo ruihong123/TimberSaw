@@ -17,7 +17,9 @@ namespace leveldb {
 #ifdef ROCKSDB_SUPPORT_THREAD_LOCAL
 __thread size_t ConcurrentArena::tls_cpuid = 0;
 #endif
-
+// In order to initialize the thread local variable you need to initialize it
+// outside the class.
+__thread ConcurrentArena::Shard* ConcurrentArena::thread_local_shard = nullptr;
 namespace {
 // If the shard block size is too large, in the worst case, every core
 // allocates a block without populate it. If the shared block size is
@@ -31,6 +33,7 @@ ConcurrentArena::ConcurrentArena(size_t block_size, AllocTracker* tracker,
     : shard_block_size_(std::min(kMaxShardBlockSize, block_size / 8)),
       shards_(),
       arena_(block_size, tracker, huge_page_size) {
+//  thread_local_shard = 0;
   Fixup();
 }
 

@@ -211,7 +211,7 @@ class VersionSet {
 
   // Return the last sequence number.
   uint64_t LastSequence() const { return last_sequence_.load(); }
-
+  uint64_t LastSequence_nonatomic() const { return last_sequence_; }
   uint64_t AssignSequnceNumbers(size_t n){
     return last_sequence_.fetch_add(n);
   }
@@ -220,6 +220,10 @@ class VersionSet {
   void SetLastSequence(uint64_t s) {
     assert(s >= last_sequence_.load());
     last_sequence_.store(s);
+  }
+  void SetLastSequence_nonatomic(uint64_t s) {
+    assert(s >= last_sequence_.load());
+    last_sequence_ = s;
   }
 
   // Mark the specified file number as used.

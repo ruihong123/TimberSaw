@@ -25,7 +25,7 @@ namespace leveldb {
 const size_t Arena::kInlineSize;
 #endif
 
-const size_t Arena::kMinBlockSize = 4096;
+const size_t Arena::kMinBlockSize = 1u << 20;
 const size_t Arena::kMaxBlockSize = 2u << 30;
 static const int kAlignUnit = alignof(max_align_t);
 
