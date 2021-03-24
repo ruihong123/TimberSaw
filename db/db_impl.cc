@@ -1284,13 +1284,15 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  Status status = Status::OK();
   Status status = MakeRoomForWrite(updates == nullptr);
   size_t kv_num = WriteBatchInternal::Count(updates);
+//    size_t kv_num = 1;
 //  spin_mutex.lock();
 //  uint64_t last_sequence = versions_->LastSequence_nonatomic();
 //  versions_->SetLastSequence_nonatomic(last_sequence+kv_num);
 //  spin_mutex.unlock();
   uint64_t last_sequence = versions_->AssignSequnceNumbers(kv_num);
+//  uint64_t last_sequence = 10;
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-    WriteBatchInternal::SetSequence(updates, last_sequence + 1);
+    WriteBatchInternal::SetSequence(updates, last_sequence - kv_num + 1);
 
     if (status.ok()) {
       status = WriteBatchInternal::InsertInto(updates, mem_);
