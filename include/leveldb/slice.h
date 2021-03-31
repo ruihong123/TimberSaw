@@ -23,9 +23,10 @@
 #include "leveldb/export.h"
 
 namespace leveldb {
-
+//TODO: make the size of slice extensible from outside.
 class LEVELDB_EXPORT Slice {
  public:
+  static size_t buffer_limit;
   // Create an empty slice.
   Slice() : data_(""), size_(0) {}
 
@@ -84,7 +85,10 @@ class LEVELDB_EXPORT Slice {
   bool starts_with(const Slice& x) const {
     return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0));
   }
-
+  void append(const char* p, size_t size){
+    assert(size_+size <= buffer_limit);
+    memcpy((void*)(data_ + size_), (void*)p , size);
+  }
  private:
   const char* data_;
   size_t size_;

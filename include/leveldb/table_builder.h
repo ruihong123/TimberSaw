@@ -19,6 +19,8 @@
 #include "leveldb/options.h"
 #include "leveldb/status.h"
 
+#include "dumpfile.h"
+
 namespace leveldb {
 
 class BlockBuilder;
@@ -30,7 +32,7 @@ class LEVELDB_EXPORT TableBuilder {
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder(const Options& options, WritableFile* file);
+  TableBuilder(const Options& options, ibv_mr* mr_l);
 
   TableBuilder(const TableBuilder&) = delete;
   TableBuilder& operator=(const TableBuilder&) = delete;
@@ -51,11 +53,12 @@ class LEVELDB_EXPORT TableBuilder {
   // REQUIRES: Finish(), Abandon() have not been called
   void Add(const Slice& key, const Slice& value);
 
-  // Advanced operation: flush any buffered key/value pairs to file.
+  // Advanced operation: flush any buffered key/value pairs to remote memory.
   // Can be used to ensure that two adjacent entries never live in
   // the same data block.  Most clients should not need to use this method.
   // REQUIRES: Finish(), Abandon() have not been called
   void Flush();
+  void CreateNewBlock();
 
   // Return non-ok iff some error has been detected.
   Status status() const;

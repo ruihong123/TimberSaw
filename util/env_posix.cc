@@ -715,7 +715,7 @@ class PosixEnv : public Env {
   void SleepForMicroseconds(int micros) override {
     std::this_thread::sleep_for(std::chrono::microseconds(micros));
   }
-
+  std::unique_ptr<RDMA_Manager> rdma_mg;
  private:
   void BackgroundThreadMain();
 
@@ -776,12 +776,33 @@ PosixEnv::PosixEnv()
     : background_work_cv_(&background_work_mutex_),
       started_background_thread_(false),
       mmap_limiter_(MaxMmaps()),
-      fd_limiter_(MaxOpenFiles()) {}
+      fd_limiter_(MaxOpenFiles()) {
+  struct config_t config = {
+      NULL,  /* dev_name */
+      NULL,  /* server_name */
+      19875, /* tcp_port */
+      1,	 /* ib_port */ //physical
+      1, /* gid_idx */
+      4*10*1024*1024 /*initial local buffer size*/
+  };
+  size_t remote_block_size = 4*1024;
+  //Initialize the rdma manager, the remote block size will be configured in the beggining.
+  // remote block size will always be the same.
+  rdma_mg = std::make_unique<RDMA_Manager>(config, remote_block_size);
+  // Unlike the remote block size, the local block size is adjustable, and there could be different
+  // local memory pool with different size. each size of memory pool will have an ID below is "4k"
+  rdma_mg->Mempool_initialize(std::string("4k"), 4*1024);
+
+  //client will try to connect to the remote memory, now there is only one remote memory.
+  rdma_mg->Client_Set_Up_Resources();
+
+      }
 
 void PosixEnv::Schedule(
     void (*background_work_function)(void* background_work_arg),
     void* background_work_arg) {
   background_work_mutex_.Lock();
+  //TOTHINK: why there is a lock limiting one thread to do the compaction at the same time
 
   // Start the background thread, if we haven't done so already.
   if (!started_background_thread_) {

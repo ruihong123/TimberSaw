@@ -681,6 +681,7 @@ void DBImpl::BGWork(void* db) {
 }
 
 void DBImpl::BackgroundCall() {
+  //Tothink: why there is a lock, which data structure is this mutex protecting
   MutexLock l(&mutex_);
   assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
@@ -1410,7 +1411,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       mem_ = new MemTable(internal_comparator_);
       mem_->Ref();
       force = false;  // Do not force another compaction if have room
-//      MaybeScheduleCompaction();
+      MaybeScheduleCompaction();
     }
   }
   return s;

@@ -5,14 +5,14 @@
 #include "util/coding.h"
 
 namespace leveldb {
-
-void PutFixed32(std::string* dst, uint32_t value) {
+//TODO accellerate the Encoding process, avoid the data copy, put the encoded data directly onto Slice
+void PutFixed32(Slice* dst, uint32_t value) {
   char buf[sizeof(value)];
   EncodeFixed32(buf, value);
   dst->append(buf, sizeof(buf));
 }
 
-void PutFixed64(std::string* dst, uint64_t value) {
+void PutFixed64(Slice* dst, uint64_t value) {
   char buf[sizeof(value)];
   EncodeFixed64(buf, value);
   dst->append(buf, sizeof(buf));
@@ -46,7 +46,7 @@ char* EncodeVarint32(char* dst, uint32_t v) {
   return reinterpret_cast<char*>(ptr);
 }
 
-void PutVarint32(std::string* dst, uint32_t v) {
+void PutVarint32(Slice* dst, uint32_t v) {
   char buf[5];
   char* ptr = EncodeVarint32(buf, v);
   dst->append(buf, ptr - buf);
@@ -63,13 +63,13 @@ char* EncodeVarint64(char* dst, uint64_t v) {
   return reinterpret_cast<char*>(ptr);
 }
 
-void PutVarint64(std::string* dst, uint64_t v) {
+void PutVarint64(Slice* dst, uint64_t v) {
   char buf[10];
   char* ptr = EncodeVarint64(buf, v);
   dst->append(buf, ptr - buf);
 }
 
-void PutLengthPrefixedSlice(std::string* dst, const Slice& value) {
+void PutLengthPrefixedSlice(Slice* dst, const Slice& value) {
   PutVarint32(dst, value.size());
   dst->append(value.data(), value.size());
 }

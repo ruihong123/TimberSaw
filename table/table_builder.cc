@@ -17,15 +17,15 @@
 #include "util/crc32c.h"
 
 namespace leveldb {
-
+//TOthink: how to save the remote mr?
 struct TableBuilder::Rep {
-  Rep(const Options& opt, WritableFile* f)
+  Rep(const Options& opt, ibv_mr* mr_l)
       : options(opt),
         index_block_options(opt),
-        file(f),
+        local_mr(mr_l),
         offset(0),
-        data_block(&options),
-        index_block(&index_block_options),
+        data_block(&options, nullptr),
+        index_block(&index_block_options, nullptr),
         num_entries(0),
         closed(false),
         filter_block(opt.filter_policy == nullptr
@@ -38,6 +38,7 @@ struct TableBuilder::Rep {
   Options options;
   Options index_block_options;
   WritableFile* file;
+  ibv_mr* local_mr;
   uint64_t offset;
   Status status;
   BlockBuilder data_block;
@@ -62,8 +63,8 @@ struct TableBuilder::Rep {
   std::string compressed_output;
 };
 
-TableBuilder::TableBuilder(const Options& options, WritableFile* file)
-    : rep_(new Rep(options, file)) {
+TableBuilder::TableBuilder(const Options& options, ibv_mr* mr_l)
+    : rep_(new Rep(options, mr_l)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->StartBlock(0);
   }
@@ -90,7 +91,8 @@ Status TableBuilder::ChangeOptions(const Options& options) {
   rep_->index_block_options.block_restart_interval = 1;
   return Status::OK();
 }
-
+//TODO: make it create a block every blocksize, flush every 1M. When flushing do not poll completion
+// pool the completion at the same time in the end
 void TableBuilder::Add(const Slice& key, const Slice& value) {
   Rep* r = rep_;
   assert(!r->closed);
@@ -98,7 +100,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   if (r->num_entries > 0) {
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
-
+  //Create a new index entry but never flush it
   if (r->pending_index_entry) {
     assert(r->data_block.empty());
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
@@ -117,12 +119,17 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   r->data_block.Add(key, value);
 
   const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
+  //todo: MAKE IT a remote block size which could be 1M
   if (estimated_block_size >= r->options.block_size) {
-    Flush();
+    CreateNewBlock();
   }
 }
+//TODO make flushing flush the data to the remote memory flushing to remote memory
+void Flush(){
 
-void TableBuilder::Flush() {
+}
+void TableBuilder::CreateNewBlock() {
+
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
@@ -204,6 +211,9 @@ Status TableBuilder::Finish() {
   BlockHandle filter_block_handle, metaindex_block_handle, index_block_handle;
 
   // Write filter block
+  //TODO:
+  // i found that it could have many bloom filters for each data block but there will be only one filter block.
+  // the result_ will append many bloom filters.
   if (ok() && r->filter_block != nullptr) {
     WriteRawBlock(r->filter_block->Finish(), kNoCompression,
                   &filter_block_handle);
@@ -211,7 +221,7 @@ Status TableBuilder::Finish() {
 
   // Write metaindex block
   if (ok()) {
-    BlockBuilder meta_index_block(&r->options);
+    BlockBuilder meta_index_block(&r->options, nullptr);
     if (r->filter_block != nullptr) {
       // Add mapping from "filter.Name" to location of filter data
       std::string key = "filter.";

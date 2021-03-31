@@ -16,7 +16,7 @@ struct Options;
 
 class BlockBuilder {
  public:
-  explicit BlockBuilder(const Options* options);
+  explicit BlockBuilder(const Options* options, const char* buffer_start);
 
   BlockBuilder(const BlockBuilder&) = delete;
   BlockBuilder& operator=(const BlockBuilder&) = delete;
@@ -42,7 +42,7 @@ class BlockBuilder {
 
  private:
   const Options* options_;
-  std::string buffer_;              // Destination buffer
+  Slice buffer_;              // Destination buffer
   std::vector<uint32_t> restarts_;  // Restart points
   int counter_;                     // Number of entries emitted since restart
   bool finished_;                   // Has Finish() been called?

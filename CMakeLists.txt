@@ -17,7 +17,7 @@ endif(NOT CMAKE_C_STANDARD)
 # C++ standard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_CXX_STANDARD)
   # This project requires C++11.
-  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif(NOT CMAKE_CXX_STANDARD)
@@ -181,11 +181,13 @@ target_sources(leveldb
     "table/two_level_iterator.h"
     "util/arena.cc"
     "util/arena.h"
+    "util/autovector.h"
     "util/concurrent_arena.cc"
     "util/concurrent_arena.h"
     "util/core_local.h"
     "util/bloom.cc"
     "util/cache.cc"
+#    "util/clock.cc"
     "util/coding.cc"
     "util/coding.h"
     "util/comparator.cc"
@@ -202,6 +204,10 @@ target_sources(leveldb
     "util/options.cc"
     "util/random.cc"
     "util/random.h"
+    "util/rdma.cc"
+    "util/rdma.h"
+    "util/thread_local.cc"
+    "util/thread_local.h"
     "util/status.cc"
 
   # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".

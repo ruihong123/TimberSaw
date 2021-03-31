@@ -181,7 +181,7 @@ class BlockConstructor : public Constructor {
   Status FinishImpl(const Options& options, const KVMap& data) override {
     delete block_;
     block_ = nullptr;
-    BlockBuilder builder(&options);
+    BlockBuilder builder(&options, nullptr);
 
     for (const auto& kvp : data) {
       builder.Add(kvp.first, kvp.second);

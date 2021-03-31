@@ -22,6 +22,7 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
 
   std::string fname = TableFileName(dbname, meta->number);
   if (iter->Valid()) {
+    //TODO: Make it write to the remote mr rather than file.
     WritableFile* file;
     s = env->NewWritableFile(fname, &file);
     if (!s.ok()) {
