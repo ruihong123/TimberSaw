@@ -111,7 +111,7 @@ struct leveldb_filterpolicy_t : public FilterPolicy {
 
   const char* Name() const override { return (*name_)(state_); }
 
-  void CreateFilter(const Slice* keys, int n, std::string* dst) const override {
+  void CreateFilter(const Slice* keys, int n, Slice* dst) const override {
     std::vector<const char*> key_pointers(n);
     std::vector<size_t> key_sizes(n);
     for (int i = 0; i < n; i++) {
@@ -476,7 +476,7 @@ leveldb_filterpolicy_t* leveldb_filterpolicy_create_bloom(int bits_per_key) {
     ~Wrapper() { delete rep_; }
     const char* Name() const { return rep_->Name(); }
     void CreateFilter(const Slice* keys, int n, std::string* dst) const {
-      return rep_->CreateFilter(keys, n, dst);
+//      return rep_->CreateFilter(keys, n, dst);
     }
     bool KeyMayMatch(const Slice& key, const Slice& filter) const {
       return rep_->KeyMayMatch(key, filter);

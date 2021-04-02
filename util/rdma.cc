@@ -415,15 +415,15 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       //      // Here could be some problem.
       //      dbname = std::string(recv_buff);
       //      std::cout << "retrieve db_name is: " << dbname <<std::endl;
-      //      ibv_mr* local_mr;
+      //      ibv_mr* local_data_mr;
       //      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
       //      if (fs_image.find(dbname)!= fs_image.end()){
-      //        local_mr = fs_image.at(dbname);
+      //        local_data_mr = fs_image.at(dbname);
       //        l.unlock();
-      //        *(reinterpret_cast<size_t*>(send_buff)) = local_mr->length;
+      //        *(reinterpret_cast<size_t*>(send_buff)) = local_data_mr->length;
       //        post_send<size_t>(send_mr,client_ip);
       //        post_receive<char>(recv_mr,client_ip);
-      //        post_send(local_mr,client_ip, local_mr->length);
+      //        post_send(local_data_mr,client_ip, local_data_mr->length);
       //        poll_completion(wc, 3, client_ip);
       //      }else{
       //        l.unlock();
@@ -440,15 +440,15 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       //      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
       //
       //      char* buff = static_cast<char*>(malloc(buff_size));
-      //      ibv_mr* local_mr;
+      //      ibv_mr* local_data_mr;
       //      int mr_flags =
       //          IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-      //      local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); post_receive(local_mr,client_ip, buff_size);
+      //      local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); post_receive(local_data_mr,client_ip, buff_size);
       //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       //      post_send<char>(recv_mr,client_ip);
       //      poll_completion(wc, 2, client_ip);
       //
-      //      char* temp = static_cast<char*>(local_mr->addr);
+      //      char* temp = static_cast<char*>(local_data_mr->addr);
       //      size_t namenumber_net;
       //      memcpy(&namenumber_net, temp, sizeof(size_t));
       //      size_t namenumber = htonl(namenumber_net);
@@ -464,9 +464,9 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       //        void* to_delete = fs_image.at(db_name)->addr;
       //        ibv_dereg_mr(fs_image.at(db_name));
       //        free(to_delete);
-      //        fs_image.at(db_name) = local_mr;
+      //        fs_image.at(db_name) = local_data_mr;
       //      }else{
-      //        fs_image[db_name] = local_mr;
+      //        fs_image[db_name] = local_data_mr;
       //      }
       //
       //
@@ -488,16 +488,16 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       //      // Here could be some problem.
       //      dbname = std::string(recv_buff);
       //      std::cout << "retrieve db_name is: " << dbname <<std::endl;
-      //      ibv_mr* local_mr;
+      //      ibv_mr* local_data_mr;
       //      if (log_image.find(dbname) == log_image.end()){
       //        void* buff = malloc(1024*1024);
       //        int mr_flags =
       //            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-      //        local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); log_image.insert({dbname, local_mr});
+      //        local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); log_image.insert({dbname, local_data_mr});
       //      }else{
-      //        local_mr = log_image.at(dbname);
+      //        local_data_mr = log_image.at(dbname);
       //      }
-      //      post_receive(local_mr, client_ip, buff_size);
+      //      post_receive(local_data_mr, client_ip, buff_size);
       //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       //      post_send<int>(send_mr,client_ip);
       //      poll_completion(wc, 2, client_ip);
@@ -511,15 +511,15 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
       ////      // Here could be some problem.
       ////      dbname = std::string(recv_buff);
       ////      std::cout << "retrieve db_name is: " << dbname <<std::endl;
-      ////      ibv_mr* local_mr;
+      ////      ibv_mr* local_data_mr;
       ////      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
       ////      if (log_image.find(dbname)!= fs_image.end()){
-      ////        local_mr = fs_image.at(dbname);
+      ////        local_data_mr = fs_image.at(dbname);
       ////        l.unlock();
-      ////        *(reinterpret_cast<size_t*>(send_buff)) = local_mr->length;
+      ////        *(reinterpret_cast<size_t*>(send_buff)) = local_data_mr->length;
       ////        post_send<size_t>(send_mr,client_ip);
       ////        post_receive<char>(recv_mr,client_ip);
-      ////        post_send(local_mr,client_ip, local_mr->length);
+      ////        post_send(local_data_mr,client_ip, local_data_mr->length);
       ////        poll_completion(wc, 3, client_ip);
       ////      }else{
       ////        l.unlock();
@@ -1840,11 +1840,11 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr) {
       remote_mr->addr = static_cast<void*>(static_cast<char*>(remote_mr->addr) +
                                            sst_index * Table_Size);
       remote_mr->length = Table_Size;
-//        remote_mr->fname = file_name;
-//        remote_mr->map_pointer =
+//        remote_data_mrs->fname = file_name;
+//        remote_data_mrs->map_pointer =
 //          (ptr->second).get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
 // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
-//      remote_mr->file_size = 0;
+//      remote_data_mrs->file_size = 0;
 #ifndef NDEBUG
 //      std::cout <<"Chunk allocate at" << sst_meta->mr->addr <<"index :" << sst_index << "name: " << sst_meta->fname << std::endl;
 #endif
@@ -1867,8 +1867,8 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr) {
   remote_mr->addr = static_cast<void*>(static_cast<char*>(remote_mr->addr) +
                                        sst_index * Table_Size);
   remote_mr->length = Table_Size;
-  //    remote_mr->fname = file_name;
-  //    remote_mr->map_pointer = mr_last;
+  //    remote_data_mrs->fname = file_name;
+  //    remote_data_mrs->map_pointer = mr_last;
   return;
 }
 // A function try to allocate RDMA registered local memory
@@ -2386,13 +2386,13 @@ void RDMA_Manager::fs_deserilization(
 // bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
 //                                               char* buff, size_t buff_size,
 //                                               file_type type,
-//                                               ibv_mr* local_mr) {
+//                                               ibv_mr* local_data_mr) {
 //  auto start = std::chrono::high_resolution_clock::now();
 //  bool destroy_flag;
-//  if (local_mr == nullptr){
+//  if (local_data_mr == nullptr){
 //    int mr_flags =
 //        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-//    local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); destroy_flag = true;
+//    local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); destroy_flag = true;
 //  }else
 //    destroy_flag = false;
 //
@@ -2411,7 +2411,7 @@ void RDMA_Manager::fs_deserilization(
 //    ibv_wc wc[2] = {};
 //    ibv_mr* remote_pointer;
 //    if (!poll_completion(wc, 2, std::string("main"))) {
-//      post_send(local_mr, std::string("main"), buff_size);
+//      post_send(local_data_mr, std::string("main"), buff_size);
 //    }else
 //      fprintf(stderr, "failed to poll receive for serialized message\n");
 //    if (!poll_completion(wc, 1, std::string("main")))
@@ -2436,11 +2436,11 @@ void RDMA_Manager::fs_deserilization(
 //    memcpy(static_cast<char*>(res->send_buf)+db_name.size(), "\0", 1);
 //    //receive the size of the serialized data
 //    post_send(res->mr_send,"main", db_name.size()+1);
-//    post_send(local_mr, std::string("main"), buff_size);
+//    post_send(local_data_mr, std::string("main"), buff_size);
 //    poll_completion(wc, 2, std::string("main"));
 //  }
 //  if (destroy_flag){
-//    ibv_dereg_mr(local_mr);
+//    ibv_dereg_mr(local_data_mr);
 //    free(buff);
 //  }
 //
@@ -2449,7 +2449,7 @@ void RDMA_Manager::fs_deserilization(
 // bool RDMA_Manager::client_retrieve_serialized_data(const std::string& db_name,
 //                                                   char*& buff,
 //                                                   size_t& buff_size,
-//                                                   ibv_mr*& local_mr,
+//                                                   ibv_mr*& local_data_mr,
 //                                                   file_type type) {
 //  auto start = std::chrono::high_resolution_clock::now();
 //  int mr_flags =
@@ -2479,7 +2479,7 @@ void RDMA_Manager::fs_deserilization(
 //    buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
 //    if (buff_size!=0){
 //      buff = static_cast<char*>(malloc(buff_size));
-//      local_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); post_receive(local_mr,"main", buff_size);
+//      local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); post_receive(local_data_mr,"main", buff_size);
 //      // send a char to tell the shared memory that this computing node is ready to receive the data post_send<char>(res->mr_send, std::string("main"));
 //    }
 //    else
@@ -2512,8 +2512,8 @@ void RDMA_Manager::fs_deserilization(
 //    buff_size = *reinterpret_cast<size_t*>(res->receive_buf);
 //    if (buff_size!=0){
 //
-//      local_mr = log_image_mr.get();
-//      post_receive(local_mr,"main", buff_size);
+//      local_data_mr = log_image_mr.get();
+//      post_receive(local_data_mr,"main", buff_size);
 //      // send a char to tell the shared memory that this computing node is ready to receive the data post_send<char>(res->mr_send, std::string("main"));
 //    }
 //    else

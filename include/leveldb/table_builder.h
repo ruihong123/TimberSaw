@@ -18,21 +18,29 @@
 #include "leveldb/export.h"
 #include "leveldb/options.h"
 #include "leveldb/status.h"
-
+#include "leveldb/comparator.h"
+#include "leveldb/env.h"
+#include "leveldb/filter_policy.h"
+#include "leveldb/options.h"
+#include "table/block_builder.h"
+#include "table/filter_block.h"
+#include "table/format.h"
+#include "util/coding.h"
+#include "util/crc32c.h"
 #include "dumpfile.h"
 
 namespace leveldb {
 
-class BlockBuilder;
+//class BlockBuilder;
 class BlockHandle;
-class WritableFile;
+//class WritableFile;
 
 class LEVELDB_EXPORT TableBuilder {
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder(const Options& options, ibv_mr* mr_l);
+  TableBuilder(const Options& options, ibv_mr** mr_l);
 
   TableBuilder(const TableBuilder&) = delete;
   TableBuilder& operator=(const TableBuilder&) = delete;
@@ -57,8 +65,11 @@ class LEVELDB_EXPORT TableBuilder {
   // Can be used to ensure that two adjacent entries never live in
   // the same data block.  Most clients should not need to use this method.
   // REQUIRES: Finish(), Abandon() have not been called
-  void Flush();
-  void CreateNewBlock();
+  void FlushData();
+  void FlushDataIndex(size_t msg_size);
+  void FlushFilter(size_t& msg_size);
+  // add element into index block and filters for this data block.
+  void UpdateFunctionBLock();
 
   // Return non-ok iff some error has been detected.
   Status status() const;
@@ -84,12 +95,20 @@ class LEVELDB_EXPORT TableBuilder {
 
  private:
   bool ok() const { return status().ok(); }
-  void WriteBlock(BlockBuilder* block, BlockHandle* handle);
+  void FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
+                       CompressionType compressiontype);
+  void FinishDataIndexBlock(BlockBuilder* block, BlockHandle* handle,
+                            CompressionType compressiontype,
+                            size_t& block_size);
+  void FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* handle,
+                            CompressionType compressiontype,
+                            size_t& block_size);
   void WriteRawBlock(const Slice& data, CompressionType, BlockHandle* handle);
 
   struct Rep;
   Rep* rep_;
 };
+
 
 }  // namespace leveldb
 

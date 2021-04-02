@@ -715,7 +715,7 @@ class PosixEnv : public Env {
   void SleepForMicroseconds(int micros) override {
     std::this_thread::sleep_for(std::chrono::microseconds(micros));
   }
-  std::unique_ptr<RDMA_Manager> rdma_mg;
+
  private:
   void BackgroundThreadMain();
 

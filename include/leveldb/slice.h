@@ -26,7 +26,6 @@ namespace leveldb {
 //TODO: make the size of slice extensible from outside.
 class LEVELDB_EXPORT Slice {
  public:
-  static size_t buffer_limit;
   // Create an empty slice.
   Slice() : data_(""), size_(0) {}
 
@@ -64,7 +63,15 @@ class LEVELDB_EXPORT Slice {
     data_ = "";
     size_ = 0;
   }
-
+  // Move the data pointer to the end of this slice
+  void ResetNext() {
+    data_ = data_+size_;
+    size_ = 0;
+  }
+  void Reset(const char* data, size_t size) {
+    data_ = data;
+    size_ = size;
+  }
   // Drop the first "n" bytes from this slice.
   void remove_prefix(size_t n) {
     assert(n <= size());
@@ -86,7 +93,7 @@ class LEVELDB_EXPORT Slice {
     return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0));
   }
   void append(const char* p, size_t size){
-    assert(size_+size <= buffer_limit);
+//    assert(size_+size <= buffer_limit);
     memcpy((void*)(data_ + size_), (void*)p , size);
   }
  private:

@@ -18,7 +18,7 @@ class TestHashFilter : public FilterPolicy {
  public:
   const char* Name() const override { return "TestHashFilter"; }
 
-  void CreateFilter(const Slice* keys, int n, std::string* dst) const override {
+  void CreateFilter(const Slice* keys, int n, Slice* dst) const override {
     for (int i = 0; i < n; i++) {
       uint32_t h = Hash(keys[i].data(), keys[i].size(), 1);
       PutFixed32(dst, h);
@@ -42,7 +42,8 @@ class FilterBlockTest : public testing::Test {
 };
 
 TEST_F(FilterBlockTest, EmptyBuilder) {
-  FilterBlockBuilder builder(&policy_);
+  FilterBlockBuilder builder(&policy_, nullptr, std::map<int, ibv_mr*>(),
+                             nullptr);
   Slice block = builder.Finish();
   ASSERT_EQ("\\x00\\x00\\x00\\x00\\x0b", EscapeString(block));
   FilterBlockReader reader(&policy_, block);
@@ -51,7 +52,8 @@ TEST_F(FilterBlockTest, EmptyBuilder) {
 }
 
 TEST_F(FilterBlockTest, SingleChunk) {
-  FilterBlockBuilder builder(&policy_);
+  FilterBlockBuilder builder(&policy_, nullptr, std::map<int, ibv_mr*>(),
+                             nullptr);
   builder.StartBlock(100);
   builder.AddKey("foo");
   builder.AddKey("bar");
@@ -72,7 +74,8 @@ TEST_F(FilterBlockTest, SingleChunk) {
 }
 
 TEST_F(FilterBlockTest, MultiChunk) {
-  FilterBlockBuilder builder(&policy_);
+  FilterBlockBuilder builder(&policy_, nullptr, std::map<int, ibv_mr*>(),
+                             nullptr);
 
   // First filter
   builder.StartBlock(0);

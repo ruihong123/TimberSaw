@@ -289,12 +289,12 @@ class RDMA_Manager {
   bool Client_Connect_to_Server_RDMA();
   // client function to retrieve serialized data.
   //  bool client_retrieve_serialized_data(const std::string& db_name, char*& buff,
-  //                                       size_t& buff_size, ibv_mr*& local_mr,
+  //                                       size_t& buff_size, ibv_mr*& local_data_mr,
   //                                       file_type type);
   //  // client function to save serialized data.
   //  bool client_save_serialized_data(const std::string& db_name, char* buff,
   //                                   size_t buff_size, file_type type,
-  //                                   ibv_mr* local_mr);
+  //                                   ibv_mr* local_data_mr);
   // this function is for the server.
   void Server_to_Client_Communication();
   void server_communication_thread(std::string client_ip, int socket_fd);
@@ -422,5 +422,6 @@ class RDMA_Manager {
   int post_receive(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
   int post_send(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
 };
-#endif
+
 }
+#endif

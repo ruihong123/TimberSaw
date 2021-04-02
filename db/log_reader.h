@@ -81,7 +81,7 @@ class Reader {
   unsigned int ReadPhysicalRecord(Slice* result);
 
   // Reports dropped bytes to the reporter.
-  // buffer_ must be updated to remove the dropped bytes prior to invocation.
+  // buffer must be updated to remove the dropped bytes prior to invocation.
   void ReportCorruption(uint64_t bytes, const char* reason);
   void ReportDrop(uint64_t bytes, const Status& reason);
 
@@ -94,7 +94,7 @@ class Reader {
 
   // Offset of the last record returned by ReadRecord.
   uint64_t last_record_offset_;
-  // Offset of the first location past the end of buffer_.
+  // Offset of the first location past the end of buffer.
   uint64_t end_of_buffer_offset_;
 
   // Offset at which to start looking for the first record to return
