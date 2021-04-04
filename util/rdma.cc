@@ -49,6 +49,7 @@ RDMA_Manager::RDMA_Manager(
       fs_mutex_(fs_mutex)
 
 {
+  setbuf(stdout, NULL);
 //  assert(read_block_size <table_size);
   res = new resources();
   //  res->sock = -1;
@@ -215,7 +216,7 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
 }
 // connection code for server side, will get prepared for multiple connection
 // on the same port.
-int RDMA_Manager::server_sock_connect(const char* servername, int port) {
+int RDMA_Manager::  server_sock_connect(const char* servername, int port) {
   struct addrinfo* resolved_addr = NULL;
   struct addrinfo* iterator;
   char service[6];
@@ -237,6 +238,8 @@ int RDMA_Manager::server_sock_connect(const char* servername, int port) {
   for (iterator = resolved_addr; iterator; iterator = iterator->ai_next) {
     sockfd = socket(iterator->ai_family, iterator->ai_socktype,
                     iterator->ai_protocol);
+    int option = 1;
+    setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&option,sizeof(int));
     if (sockfd >= 0) {
       /* Server mode. Set up listening socket an accept a connection */
       listenfd = sockfd;
@@ -517,7 +520,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 
   /* register the memory buffer */
   mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE | IBV_ACCESS_REMOTE_ATOMIC;
 //  auto start = std::chrono::high_resolution_clock::now();
   *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
 //  auto stop = std::chrono::high_resolution_clock::now();
@@ -525,8 +528,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 //  std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
   local_mem_pool.push_back(*p2mrpointer);
   if (!*p2mrpointer) {
-    fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
-            mr_flags, size, local_mem_pool.size());
+    fprintf(stderr, "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu, erron=%d \n",
+            mr_flags, size, local_mem_pool.size(),errno);
     return false;
   } else if (rdma_config.server_name && pool_name != "") {  // for the send buffer and receive buffer they will not be
     // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
@@ -546,8 +549,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 //    printf("RDMA bitmap insert error");
   fprintf(
       stdout,
-      "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
-      (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
+      "MR was registered with addr=%p, length=%zu, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
+      (*p2mrpointer)->addr, (*p2mrpointer)->length, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
       mr_flags);
 
   return true;
@@ -697,9 +700,9 @@ int RDMA_Manager::resources_create() {
             << std::endl;
   std::cout << "maximum completion queue number is" << res->device_attr.max_cq
             << std::endl;
-  std::cout << "maximum memory region number is" << res->device_attr.max_mr
+  std::cout << "maximum memory region continuous size is" << res->device_attr.max_mr_size
             << std::endl;
-  std::cout << "maximum memory region size is" << res->device_attr.max_mr_size
+  std::cout << "maximum memory region number is" << res->device_attr.max_mr
             << std::endl;
 
   return rc;
@@ -1604,7 +1607,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
     int placeholder_num =static_cast<int>(temp_pointer->length) /(Table_Size);  // here we supposing the SSTables are 4 megabytes
     In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
 //    std::unique_lock l(remote_pool_mutex);
-    Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
+      Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
 //    l.unlock();
 
     // NOTICE: Couold be problematic because the pushback may not an absolute
@@ -1696,7 +1699,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
     if (Remote_Mem_Bitmap->empty()) {
       Remote_Memory_Register(1 * 1024 * 1024 * 1024);
-      fs_meta_save();
+//      fs_meta_save();
     }
     mem_write_lock.unlock();
   }
@@ -1726,11 +1729,12 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
     } else
       ptr++;
   }
+  printf("not find empty slot in remote chunk bit map");
   mem_read_lock.unlock();
   // If not find remote buffers are all used, allocate another remote memory region.
   std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
   Remote_Memory_Register(1 * 1024 * 1024 * 1024);
-  fs_meta_save();
+//  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
   int sst_index = Remote_Mem_Bitmap->at(mr_last->addr).allocate_memory_slot();
@@ -1745,7 +1749,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(const std::string& file_name,
   sst_meta->map_pointer = mr_last;
   return;
 }
-// A function try to allocat
+// A function try to allocate
 void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
                                             std::string pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
@@ -1855,6 +1859,7 @@ bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
 //  std::cout <<"Chunk deallocate at" << sst_meta->mr->addr << "index: " << buff_offset/Table_Size << std::endl;
 #endif
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
+  printf("Deallocate remote chuck for %s", sst_meta->fname.c_str());
   return Remote_Mem_Bitmap->at(sst_meta->map_pointer->addr)
       .deallocate_memory_slot(buff_offset / Table_Size);
 }

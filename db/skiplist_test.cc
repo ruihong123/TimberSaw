@@ -11,7 +11,7 @@
 
 #include "port/port.h"
 #include "port/thread_annotations.h"
-#include "util/arena_old.h"
+#include "util/arena.h"
 #include "util/hash.h"
 #include "util/random.h"
 #include "util/testutil.h"

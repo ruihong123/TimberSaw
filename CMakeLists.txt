@@ -299,15 +299,17 @@ endif(HAVE_TCMALLOC)
 
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)
-target_link_libraries(leveldb Threads::Threads)
+find_package(ibverbs REQUIRED)
+target_link_libraries(leveldb Threads::Threads ibverbs::ibverbs)
+#link_libraries(${IBVERBS_LIBRARIES})
 
 add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
 
-find_package(ibverbs REQUIRED)
-link_libraries(${IBVERBS_LIBRARIES})
+add_executable(Server server.cc)
+target_link_libraries(Server leveldb)
 
 if(LEVELDB_BUILD_TESTS)
   enable_testing()

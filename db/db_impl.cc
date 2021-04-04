@@ -1196,40 +1196,40 @@ Status DBImpl::Put(const WriteOptions& o, const Slice& key, const Slice& val) {
 Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
   return DB::Delete(options, key);
 }
-//
-//Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-//  Writer w(&mutex_);
-//  w.batch = updates;
-//  w.sync = options.sync;
-//  w.done = false;
-//
-//  MutexLock l(&mutex_);
-//  writers_.push_back(&w);
-//  while (!w.done && &w != writers_.front()) {
-//    w.cv.Wait();
-//  }
-//  if (w.done) {
-//    return w.status;
-//  }
-//
-//  // May temporarily unlock and wait.
-//  Status status = MakeRoomForWrite(updates == nullptr);
-//  uint64_t last_sequence = versions_->LastSequence();
-//  Writer* last_writer = &w;
-//  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-//    // TODO: Remove all the lock, use fettch and add to atomically increase the
-//    // TODO: sequence num. Use concurrent write in the Rocks DB to write
-//    // TODO:  skiplist concurrently. NO log is needed as well.
-//    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
-//    WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
-//    last_sequence += WriteBatchInternal::Count(write_batch);
-//
-//    // Add to log and apply to memtable.  We can release the lock
-//    // during this phase since &w is currently responsible for logging
-//    // and protects against concurrent loggers and concurrent writes
-//    // into mem_.
-//    {
-//      mutex_.Unlock();
+
+Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
+  Writer w(&mutex_);
+  w.batch = updates;
+  w.sync = options.sync;
+  w.done = false;
+
+  MutexLock l(&mutex_);
+  writers_.push_back(&w);
+  while (!w.done && &w != writers_.front()) {
+    w.cv.Wait();
+  }
+  if (w.done) {
+    return w.status;
+  }
+
+  // May temporarily unlock and wait.
+  Status status = MakeRoomForWrite(updates == nullptr);
+  uint64_t last_sequence = versions_->LastSequence();
+  Writer* last_writer = &w;
+  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
+    // TODO: Remove all the lock, use fettch and add to atomically increase the
+    // TODO: sequence num. Use concurrent write in the Rocks DB to write
+    // TODO:  skiplist concurrently. NO log is needed as well.
+    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
+    WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
+    last_sequence += WriteBatchInternal::Count(write_batch);
+
+    // Add to log and apply to memtable.  We can release the lock
+    // during this phase since &w is currently responsible for logging
+    // and protects against concurrent loggers and concurrent writes
+    // into mem_.
+    {
+      mutex_.Unlock();
 //      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
 //      bool sync_error = false;
 //      if (status.ok() && options.sync) {
@@ -1238,69 +1238,69 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 //          sync_error = true;
 //        }
 //      }
-//      if (status.ok()) {
-//        status = WriteBatchInternal::InsertInto(write_batch, mem_);
-//      }
-//      mutex_.Lock();
+      if (status.ok()) {
+        status = WriteBatchInternal::InsertInto(write_batch, mem_);
+      }
+      mutex_.Lock();
 //      if (sync_error) {
 //        // The state of the log file is indeterminate: the log record we
 //        // just added may or may not show up when the DB is re-opened.
 //        // So we force the DB into a mode where all future writes fail.
 //        RecordBackgroundError(status);
 //      }
-//    }
-//    if (write_batch == tmp_batch_) tmp_batch_->Clear();
-//
-//    versions_->SetLastSequence(last_sequence);
-//  }
-//
-//  while (true) {
-//    Writer* ready = writers_.front();
-//    writers_.pop_front();
-//    if (ready != &w) {
-//      ready->status = status;
-//      ready->done = true;
-//      ready->cv.Signal();
-//    }
-//    if (ready == last_writer) break;
-//  }
-//
-//  // Notify new head of write queue
-//  if (!writers_.empty()) {
-//    writers_.front()->cv.Signal();
-//  }
-//
-//  return status;
-//}
-Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-//  Writer w(&mutex_);
-//  w.batch = updates;
-//  w.sync = options.sync;
-//  w.done = false;
-
-
-
-  // May temporarily unlock and wait.
-//  Status status = Status::OK();
-  Status status = MakeRoomForWrite(updates == nullptr);
-  size_t kv_num = WriteBatchInternal::Count(updates);
-//    size_t kv_num = 1;
-//  spin_mutex.lock();
-//  uint64_t last_sequence = versions_->LastSequence_nonatomic();
-//  versions_->SetLastSequence_nonatomic(last_sequence+kv_num);
-//  spin_mutex.unlock();
-  uint64_t last_sequence = versions_->AssignSequnceNumbers(kv_num);
-//  uint64_t last_sequence = 10;
-  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-    WriteBatchInternal::SetSequence(updates, last_sequence - kv_num + 1);
-
-    if (status.ok()) {
-      status = WriteBatchInternal::InsertInto(updates, mem_);
     }
+    if (write_batch == tmp_batch_) tmp_batch_->Clear();
+
+    versions_->SetLastSequence(last_sequence);
+  }
+
+  while (true) {
+    Writer* ready = writers_.front();
+    writers_.pop_front();
+    if (ready != &w) {
+      ready->status = status;
+      ready->done = true;
+      ready->cv.Signal();
+    }
+    if (ready == last_writer) break;
+  }
+
+  // Notify new head of write queue
+  if (!writers_.empty()) {
+    writers_.front()->cv.Signal();
   }
 
   return status;
 }
+//Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
+////  Writer w(&mutex_);
+////  w.batch = updates;
+////  w.sync = options.sync;
+////  w.done = false;
+//
+//
+//
+//  // May temporarily unlock and wait.
+////  Status status = Status::OK();
+//  Status status = MakeRoomForWrite(updates == nullptr);
+//  size_t kv_num = WriteBatchInternal::Count(updates);
+////    size_t kv_num = 1;
+////  spin_mutex.lock();
+////  uint64_t last_sequence = versions_->LastSequence_nonatomic();
+////  versions_->SetLastSequence_nonatomic(last_sequence+kv_num);
+////  spin_mutex.unlock();
+//  uint64_t last_sequence = versions_->AssignSequnceNumbers(kv_num);
+////  uint64_t last_sequence = 10;
+//  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
+//    WriteBatchInternal::SetSequence(updates, last_sequence - kv_num + 1);
+//
+//    if (status.ok()) {
+//      status = WriteBatchInternal::InsertInto(updates, mem_);
+//    }
+//  }
+//
+//  return status;
+//}
 
 // REQUIRES: Writer list must be non-empty
 // REQUIRES: First writer must have a non-null batch
@@ -1364,31 +1364,31 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       // Yield previous error
       s = bg_error_;
       break;
-//    } else if (allow_delay && versions_->NumLevelFiles(0) >=
-//                                  config::kL0_SlowdownWritesTrigger) {
-//      // We are getting close to hitting a hard limit on the number of
-//      // L0 files.  Rather than delaying a single write by several
-//      // seconds when we hit the hard limit, start delaying each
-//      // individual write by 1ms to reduce latency variance.  Also,
-//      // this delay hands over some CPU to the compaction thread in
-//      // case it is sharing the same core as the writer.
-////      mutex_.Unlock();
-////      env_->SleepForMicroseconds(1000);
-////      allow_delay = false;  // Do not delay a single write more than once
-////      mutex_.Lock();
+    } else if (allow_delay && versions_->NumLevelFiles(0) >=
+                                  config::kL0_SlowdownWritesTrigger) {
+      // We are getting close to hitting a hard limit on the number of
+      // L0 files.  Rather than delaying a single write by several
+      // seconds when we hit the hard limit, start delaying each
+      // individual write by 1ms to reduce latency variance.  Also,
+      // this delay hands over some CPU to the compaction thread in
+      // case it is sharing the same core as the writer.
+      mutex_.Unlock();
+      env_->SleepForMicroseconds(1000);
+      allow_delay = false;  // Do not delay a single write more than once
+      mutex_.Lock();
     } else if (!force &&
                (mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
       // There is room in current memtable
       break;
-//    } else if (imm_ != nullptr) {
-//      // We have filled up the current memtable, but the previous
-//      // one is still being compacted, so we wait.
-//      Log(options_.info_log, "Current memtable full; waiting...\n");
-//      background_work_finished_signal_.Wait();
-//    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-//      // There are too many level-0 files.
-//      Log(options_.info_log, "Too many L0 files; waiting...\n");
-//      background_work_finished_signal_.Wait();
+    } else if (imm_ != nullptr) {
+      // We have filled up the current memtable, but the previous
+      // one is still being compacted, so we wait.
+      Log(options_.info_log, "Current memtable full; waiting...\n");
+      background_work_finished_signal_.Wait();
+    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+      // There are too many level-0 files.
+      Log(options_.info_log, "Too many L0 files; waiting...\n");
+      background_work_finished_signal_.Wait();
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
       assert(versions_->PrevLogNumber() == 0);
@@ -1410,7 +1410,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       mem_ = new MemTable(internal_comparator_);
       mem_->Ref();
       force = false;  // Do not force another compaction if have room
-//      MaybeScheduleCompaction();
+      MaybeScheduleCompaction();
     }
   }
   return s;

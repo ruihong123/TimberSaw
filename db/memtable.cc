@@ -11,14 +11,19 @@
 
 namespace leveldb {
 
-
+static Slice GetLengthPrefixedSlice(const char* data) {
+  uint32_t len;
+  const char* p = data;
+  p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
+  return Slice(p, len);
+}
 
 MemTable::MemTable(const InternalKeyComparator& comparator)
     : comparator_(comparator), refs_(0), table_(comparator_, &arena_) {}
 
 MemTable::~MemTable() { assert(refs_ == 0); }
 
-size_t MemTable::ApproximateMemoryUsage() { return arena_.ApproximateMemoryUsage(); }
+size_t MemTable::ApproximateMemoryUsage() { return arena_.MemoryUsage(); }
 
 int MemTable::KeyComparator::operator()(const char* aptr,
                                         const char* bptr) const {
@@ -27,15 +32,6 @@ int MemTable::KeyComparator::operator()(const char* aptr,
   Slice b = GetLengthPrefixedSlice(bptr);
   return comparator.Compare(a, b);
 }
-int MemTable::KeyComparator::operator()(const char* prefix_len_key,
-                                        const KeyComparator::DecodedType& key)
-const {
-  // Internal keys are encoded as length-prefixed strings.
-  Slice a = GetLengthPrefixedSlice(prefix_len_key);
-  //Here used to be CompareKeySeq which will drop the value type only keep sequence
-  return comparator.Compare(a, key);
-}
-
 
 // Encode a suitable internal key target for "target" and return it.
 // Uses *scratch as scratch space, and the returned pointer will point
@@ -90,8 +86,7 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
   const size_t encoded_len = VarintLength(internal_key_size) +
                              internal_key_size + VarintLength(val_size) +
                              val_size;
-  char* buf = nullptr;
-  buf = table_.AllocateKey(encoded_len);
+  char* buf = arena_.Allocate(encoded_len);
   char* p = EncodeVarint32(buf, internal_key_size);
   std::memcpy(p, key.data(), key_size);
   p += key_size;
@@ -100,7 +95,7 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
   p = EncodeVarint32(p, val_size);
   std::memcpy(p, value.data(), val_size);
   assert(p + val_size == buf + encoded_len);
-  table_.InsertConcurrently(buf);
+  table_.Insert(buf);
 }
 
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {

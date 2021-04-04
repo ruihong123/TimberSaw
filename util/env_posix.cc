@@ -659,7 +659,7 @@ class RDMAWritableFile final : public WritableFile {
     if(!rdma_mg_->Mempool_exist("write"))
       rdma_mg->Mempool_initialize(std::string("write"), kWritableFileBufferSize);
 
-    rdma_mg_->Allocate_Local_RDMA_Slot(local_mr, std::string());
+    rdma_mg_->Allocate_Local_RDMA_Slot(local_mr, std::string("write"));
     buf_ = static_cast<char*>(local_mr->addr);
   }
 
@@ -1377,7 +1377,7 @@ class PosixEnv : public Env {
     if (!s.ok())
       std::cerr << s.ToString() << std::endl;
     if (!s.ok()){
-      printf("Sequential file open not found", "");
+      printf("Sequential file open not found");
       return s;
     }else{
       *result = (new RDMASequentialFile(meta_data, rdma_mg));

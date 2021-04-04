@@ -32,6 +32,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include "util/thread_local.h"
+#include "port/thread_annotations.h"
 #include "limits.h"
 
 //#ifdef __cplusplus
@@ -43,7 +44,7 @@
 #define MAX_POLL_CQ_TIMEOUT 1000000
 #define MSG "SEND operation "
 
-
+namespace leveldb {
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 template <typename T>
 static inline T hton(T u) {
@@ -172,7 +173,7 @@ class In_Use_Array{
   bool deallocate_memory_slot(int index) {
     bool temp = true;
     assert(in_use_[index] == true);
-//    std::cout << "chunk" <<index << "was changed to false" << std::endl;
+    std::cout << "chunk" <<index << "was changed to false" << std::endl;
 
     return in_use_[index].compare_exchange_strong(temp, false);
 
@@ -227,7 +228,7 @@ struct resources
 
 };
 
-namespace leveldb {
+
 /* structure of test parameters */
 class RDMA_Manager{
  public:
@@ -285,14 +286,14 @@ class RDMA_Manager{
                                   std::string buffer_type);
   bool Deallocate_Local_RDMA_Slot(void* p, std::string buff_type);
   bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
-  void fs_meta_save(){
-    std::shared_lock<std::shared_mutex> read_lock(*fs_mutex_);
-    //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow.
-    char* buff = static_cast<char*>(malloc(1024*1024));
-    size_t size_dummy;
-    fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap));
-    printf("Serialized data size: %zu", size_dummy);
-    client_save_serialized_data(*db_name_, buff, size_dummy);}
+//  void fs_meta_save(){
+//    std::shared_lock<std::shared_mutex> read_lock(*fs_mutex_);
+//    //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow.
+//    char* buff = static_cast<char*>(malloc(1024*1024));
+//    size_t size_dummy;
+//    fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap));
+//    printf("Serialized data size: %zu", size_dummy);
+//    client_save_serialized_data(*db_name_, buff, size_dummy);}
   //Allocate an empty remote SST, return the index for the memory slot
   void Allocate_Remote_RDMA_Slot(const std::string &file_name,
                                  SST_Metadata*& sst_meta);
