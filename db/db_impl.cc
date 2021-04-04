@@ -1363,19 +1363,19 @@ Status DBImpl::MakeRoomForWrite(bool force) {
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
       assert(versions_->PrevLogNumber() == 0);
-      uint64_t new_log_number = versions_->NewFileNumber();
-      WritableFile* lfile = nullptr;
-      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-      if (!s.ok()) {
-        // Avoid chewing through file number space in a tight loop.
-        versions_->ReuseFileNumber(new_log_number);
-        break;
-      }
-      delete log_;
-      delete logfile_;
-      logfile_ = lfile;
-      logfile_number_ = new_log_number;
-      log_ = new log::Writer(lfile);
+//      uint64_t new_log_number = versions_->NewFileNumber();
+//      WritableFile* lfile = nullptr;
+//      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+//      if (!s.ok()) {
+//        // Avoid chewing through file number space in a tight loop.
+//        versions_->ReuseFileNumber(new_log_number);
+//        break;
+//      }
+//      delete log_;
+//      delete logfile_;
+//      logfile_ = lfile;
+//      logfile_number_ = new_log_number;
+//      log_ = new log::Writer(lfile);
       imm_ = mem_;
       has_imm_.store(true, std::memory_order_release);
       mem_ = new MemTable(internal_comparator_);
