@@ -20,6 +20,7 @@
 
 #include "leveldb/export.h"
 #include "leveldb/status.h"
+#include <util/rdma.h>
 
 // This workaround can be removed when leveldb::Env::DeleteFile is removed.
 #if defined(_WIN32)
@@ -54,7 +55,35 @@ class LEVELDB_EXPORT Env {
 
   Env(const Env&) = delete;
   Env& operator=(const Env&) = delete;
+  RDMA_Manager* rdma_mg;
+  std::string db_name = "LSM_RDMA";
+  std::shared_mutex fs_mutex;
+  std::unordered_map<std::string, SST_Metadata*> file_to_sst_meta;
 
+  std::map<void*, In_Use_Array>* Remote_Bitmap;
+  void fs_initialization(){
+    char* buff;
+    size_t size;
+    ibv_mr* local_mr;
+
+    if(rdma_mg->client_retrieve_serialized_data(db_name, buff, size,
+                                                local_mr)){
+      rdma_mg->fs_deserilization(buff, size, db_name, file_to_sst_meta,
+                                 *Remote_Bitmap, local_mr);
+      printf("Serialized data size: %zu", size);
+    }
+    return;
+  }
+  void fs_meta_save(){
+    std::shared_lock<std::shared_mutex> read_lock(fs_mutex);
+    //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow.
+    char* buff = static_cast<char*>(malloc(1024*1024));
+    size_t size;
+    rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
+    printf("Serialized data size: %zu", size);
+    rdma_mg->client_save_serialized_data(db_name, buff, size);
+    return;
+  }
   virtual ~Env();
 
   // Return a default environment suitable for the current operating
@@ -71,7 +100,7 @@ class LEVELDB_EXPORT Env {
   // NotFound status when the file does not exist.
   //
   // The returned file will only be accessed by one thread at a time.
-  virtual Status NewSequentialFile(const std::string& fname,
+  virtual Status NewSequentialFile_RDMA(const std::string& fname,
                                    SequentialFile** result) = 0;
 
   // Create an object supporting random-access reads from the file with the
@@ -82,7 +111,7 @@ class LEVELDB_EXPORT Env {
   // not exist.
   //
   // The returned file may be concurrently accessed by multiple threads.
-  virtual Status NewRandomAccessFile(const std::string& fname,
+  virtual Status NewRandomAccessFile_RDMA(const std::string& fname,
                                      RandomAccessFile** result) = 0;
 
   // Create an object that writes to a new file with the specified
@@ -342,12 +371,12 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   Env* target() const { return target_; }
 
   // The following text is boilerplate that forwards all methods to target().
-  Status NewSequentialFile(const std::string& f, SequentialFile** r) override {
-    return target_->NewSequentialFile(f, r);
+  Status NewSequentialFile_RDMA(const std::string& f, SequentialFile** r) override {
+    return target_->NewSequentialFile_RDMA(f, r);
   }
-  Status NewRandomAccessFile(const std::string& f,
+  Status NewRandomAccessFile_RDMA(const std::string& f,
                              RandomAccessFile** r) override {
-    return target_->NewRandomAccessFile(f, r);
+    return target_->NewRandomAccessFile_RDMA(f, r);
   }
   Status NewWritableFile(const std::string& f, WritableFile** r) override {
     return target_->NewWritableFile(f, r);

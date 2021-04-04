@@ -55,7 +55,7 @@ Status Truncate(const std::string& filename, uint64_t length) {
   leveldb::Env* env = leveldb::Env::Default();
 
   SequentialFile* orig_file;
-  Status s = env->NewSequentialFile(filename, &orig_file);
+  Status s = env->NewSequentialFile_RDMA(filename, &orig_file);
   if (!s.ok()) return s;
 
   char* scratch = new char[length];

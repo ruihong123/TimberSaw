@@ -52,7 +52,8 @@ TEST_F(EnvTest, ReadWrite) {
 
   // Read all data using a sequence of randomly sized reads.
   SequentialFile* sequential_file;
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile(test_file_name, &sequential_file));
+  ASSERT_LEVELDB_OK(
+      env_->NewSequentialFile_RDMA(test_file_name, &sequential_file));
   std::string read_result;
   std::string scratch;
   while (read_result.size() < data.size()) {
@@ -176,11 +177,11 @@ TEST_F(EnvTest, TestOpenNonExistentFile) {
 
   RandomAccessFile* random_access_file;
   Status status =
-      env_->NewRandomAccessFile(non_existent_file, &random_access_file);
+      env_->NewRandomAccessFile_RDMA(non_existent_file, &random_access_file);
   ASSERT_TRUE(status.IsNotFound());
 
   SequentialFile* sequential_file;
-  status = env_->NewSequentialFile(non_existent_file, &sequential_file);
+  status = env_->NewSequentialFile_RDMA(non_existent_file, &sequential_file);
   ASSERT_TRUE(status.IsNotFound());
 }
 

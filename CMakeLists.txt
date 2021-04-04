@@ -17,7 +17,7 @@ endif(NOT CMAKE_C_STANDARD)
 # C++ standard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_CXX_STANDARD)
   # This project requires C++11.
-  set(CMAKE_CXX_STANDARD 11)
+  set(CMAKE_CXX_STANDARD 17)
   set(CMAKE_CXX_STANDARD_REQUIRED ON)
   set(CMAKE_CXX_EXTENSIONS OFF)
 endif(NOT CMAKE_CXX_STANDARD)
@@ -76,7 +76,8 @@ else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL")
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 
 
 
@@ -181,6 +182,7 @@ target_sources(leveldb
     "table/two_level_iterator.h"
     "util/arena.cc"
     "util/arena.h"
+    "util/autovector.h"
     "util/concurrent_arena.cc"
     "util/concurrent_arena.h"
     "util/core_local.h"
@@ -202,6 +204,10 @@ target_sources(leveldb
     "util/options.cc"
     "util/random.cc"
     "util/random.h"
+    "util/rdma.cc"
+    "util/rdma.h"
+    "util/thread_local.cc"
+    "util/thread_local.h"
     "util/status.cc"
 
   # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".
@@ -299,6 +305,9 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
+
+find_package(ibverbs REQUIRED)
+link_libraries(${IBVERBS_LIBRARIES})
 
 if(LEVELDB_BUILD_TESTS)
   enable_testing()

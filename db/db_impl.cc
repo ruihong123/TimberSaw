@@ -403,7 +403,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   // Open the log file
   std::string fname = LogFileName(dbname_, log_number);
   SequentialFile* file;
-  Status status = env_->NewSequentialFile(fname, &file);
+  Status status = env_->NewSequentialFile_RDMA(fname, &file);
   if (!status.ok()) {
     MaybeIgnoreError(&status);
     return status;
@@ -1514,7 +1514,8 @@ DB::~DB() = default;
 
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
-
+  options.env->rdma_mg->Mempool_initialize(std::string("read"), options.block_size);
+  options.env->fs_initialization();
   DBImpl* impl = new DBImpl(options, dbname);
   impl->mutex_.Lock();
   VersionEdit edit;

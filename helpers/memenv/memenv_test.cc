@@ -77,9 +77,9 @@ TEST_F(MemEnvTest, Basics) {
   // Check that opening non-existent file fails.
   SequentialFile* seq_file;
   RandomAccessFile* rand_file;
-  ASSERT_TRUE(!env_->NewSequentialFile("/dir/non_existent", &seq_file).ok());
+  ASSERT_TRUE(!env_->NewSequentialFile_RDMA("/dir/non_existent", &seq_file).ok());
   ASSERT_TRUE(!seq_file);
-  ASSERT_TRUE(!env_->NewRandomAccessFile("/dir/non_existent", &rand_file).ok());
+  ASSERT_TRUE(!env_->NewRandomAccessFile_RDMA("/dir/non_existent", &rand_file).ok());
   ASSERT_TRUE(!rand_file);
 
   // Check that deleting works.
@@ -106,7 +106,7 @@ TEST_F(MemEnvTest, ReadWrite) {
   delete writable_file;
 
   // Read sequentially.
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile("/dir/f", &seq_file));
+  ASSERT_LEVELDB_OK(env_->NewSequentialFile_RDMA("/dir/f", &seq_file));
   ASSERT_LEVELDB_OK(seq_file->Read(5, &result, scratch));  // Read "hello".
   ASSERT_EQ(0, result.compare("hello"));
   ASSERT_LEVELDB_OK(seq_file->Skip(1));
@@ -121,7 +121,7 @@ TEST_F(MemEnvTest, ReadWrite) {
   delete seq_file;
 
   // Random reads.
-  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile("/dir/f", &rand_file));
+  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile_RDMA("/dir/f", &rand_file));
   ASSERT_LEVELDB_OK(rand_file->Read(6, 5, &result, scratch));  // Read "world".
   ASSERT_EQ(0, result.compare("world"));
   ASSERT_LEVELDB_OK(rand_file->Read(0, 5, &result, scratch));  // Read "hello".
@@ -174,7 +174,7 @@ TEST_F(MemEnvTest, LargeWrite) {
 
   SequentialFile* seq_file;
   Slice result;
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile("/dir/f", &seq_file));
+  ASSERT_LEVELDB_OK(env_->NewSequentialFile_RDMA("/dir/f", &seq_file));
   ASSERT_LEVELDB_OK(seq_file->Read(3, &result, scratch));  // Read "foo".
   ASSERT_EQ(0, result.compare("foo"));
 
@@ -198,7 +198,7 @@ TEST_F(MemEnvTest, OverwriteOpenFile) {
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, kWrite1Data, kTestFileName));
 
   RandomAccessFile* rand_file;
-  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(kTestFileName, &rand_file));
+  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile_RDMA(kTestFileName, &rand_file));
 
   const char kWrite2Data[] = "Write #2 data";
   ASSERT_LEVELDB_OK(WriteStringToFile(env_, kWrite2Data, kTestFileName));

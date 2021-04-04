@@ -156,7 +156,7 @@ class Repairer {
     // Open the log file
     std::string logname = LogFileName(dbname_, log);
     SequentialFile* lfile;
-    Status status = env_->NewSequentialFile(logname, &lfile);
+    Status status = env_->NewSequentialFile_RDMA(logname, &lfile);
     if (!status.ok()) {
       return status;
     }

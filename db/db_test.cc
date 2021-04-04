@@ -203,7 +203,7 @@ class SpecialEnv : public EnvWrapper {
     return s;
   }
 
-  Status NewRandomAccessFile(const std::string& f, RandomAccessFile** r) {
+  Status NewRandomAccessFile_RDMA(const std::string& f, RandomAccessFile** r) {
     class CountingFile : public RandomAccessFile {
      private:
       RandomAccessFile* target_;
@@ -220,7 +220,7 @@ class SpecialEnv : public EnvWrapper {
       }
     };
 
-    Status s = target()->NewRandomAccessFile(f, r);
+    Status s = target()->NewRandomAccessFile_RDMA(f, r);
     if (s.ok() && count_random_reads_) {
       *r = new CountingFile(*r, &random_read_counter_);
     }

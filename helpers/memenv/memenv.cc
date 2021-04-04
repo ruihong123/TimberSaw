@@ -229,7 +229,7 @@ class InMemoryEnv : public EnvWrapper {
   }
 
   // Partial implementation of the Env interface.
-  Status NewSequentialFile(const std::string& fname,
+  Status NewSequentialFile_RDMA(const std::string& fname,
                            SequentialFile** result) override {
     MutexLock lock(&mutex_);
     if (file_map_.find(fname) == file_map_.end()) {
@@ -241,7 +241,7 @@ class InMemoryEnv : public EnvWrapper {
     return Status::OK();
   }
 
-  Status NewRandomAccessFile(const std::string& fname,
+  Status NewRandomAccessFile_RDMA(const std::string& fname,
                              RandomAccessFile** result) override {
     MutexLock lock(&mutex_);
     if (file_map_.find(fname) == file_map_.end()) {

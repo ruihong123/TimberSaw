@@ -198,7 +198,7 @@ TEST_F(EnvPosixTest, TestOpenOnRead) {
   const int kNumFiles = kReadOnlyFileLimit + kMMapLimit + 5;
   leveldb::RandomAccessFile* files[kNumFiles] = {0};
   for (int i = 0; i < kNumFiles; i++) {
-    ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(test_file, &files[i]));
+    ASSERT_LEVELDB_OK(env_->NewRandomAccessFile_RDMA(test_file, &files[i]));
   }
   char scratch;
   Slice read_result;
