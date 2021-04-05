@@ -82,6 +82,9 @@ class LEVELDB_EXPORT Env {
     rdma_mg->fs_serialization(buff, size, db_name, file_to_sst_meta, *(Remote_Bitmap));
     printf("Serialized data size: %zu", size);
     rdma_mg->client_save_serialized_data(db_name, buff, size);
+//    for(auto iter = file_to_sst_meta.begin(); iter != file_to_sst_meta.end(); iter++){
+//      printf("the length of the file %s is %u", iter->second->fname.c_str(), iter->second->file_size);
+//    }
     return;
   }
   virtual ~Env();

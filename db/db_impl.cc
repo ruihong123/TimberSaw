@@ -176,6 +176,8 @@ DBImpl::~DBImpl() {
   if (owns_cache_) {
     delete options_.block_cache;
   }
+  if (env_)
+  env_->fs_meta_save();
 }
 
 Status DBImpl::NewDB() {
