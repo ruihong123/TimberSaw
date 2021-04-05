@@ -173,7 +173,7 @@ class In_Use_Array{
   bool deallocate_memory_slot(int index) {
     bool temp = true;
     assert(in_use_[index] == true);
-    std::cout << "chunk" <<index << "was changed to false" << std::endl;
+//    std::cout << "chunk" <<index << "was changed to false" << std::endl;
 
     return in_use_[index].compare_exchange_strong(temp, false);
 
