@@ -1843,11 +1843,13 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
       return false;
   }else{
     size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
-//      assert(buff_offset>=0);
+    assert(buff_offset>=0);
     if (buff_offset < mr_iter->second.get_mr_ori()->length)
       return mr_iter->second.deallocate_memory_slot(buff_offset / mr_iter->second.get_chunk_size());
+    else
+      return false;
   }
-  return false;
+
 }
 
 bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
