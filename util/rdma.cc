@@ -549,7 +549,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 //    printf("RDMA bitmap insert error");
   fprintf(
       stdout,
-      "MR was registered with addr=%p, length=%zu, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
+      "Local MR was registered with addr=%p, length=%zu, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
       (*p2mrpointer)->addr, (*p2mrpointer)->length, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
       mr_flags);
 
