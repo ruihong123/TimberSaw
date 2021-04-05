@@ -1842,6 +1842,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
     else
       return false;
   }else{
+    mr_iter--;
     size_t buff_offset = static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
     assert(buff_offset>=0);
     if (buff_offset < mr_iter->second.get_mr_ori()->length)
