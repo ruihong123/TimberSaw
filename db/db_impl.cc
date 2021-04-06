@@ -278,6 +278,8 @@ void DBImpl::RemoveObsoleteFiles() {
         Log(options_.info_log, "Delete type=%d #%lld\n", static_cast<int>(type),
             static_cast<unsigned long long>(number));
       }
+    }else{
+      printf("file name incorrect!!!!!!!!!!!!!!!");
     }
   }
 
