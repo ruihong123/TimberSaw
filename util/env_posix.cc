@@ -1491,7 +1491,13 @@ class PosixEnv : public Env {
     // First search in the remote memory
     auto iter = file_to_sst_meta.begin();
     while (iter != file_to_sst_meta.end() ) {
-      result->push_back(iter->first);
+      std::string s = iter->first;
+      // Find position of ':' using find()
+      int pos = s.find_last_of("/");
+
+      // Copy substring after pos
+      std::string sub = s.substr(pos + 1);
+      result->push_back(sub);
       iter++;
     }
     //Then search in disk file system
