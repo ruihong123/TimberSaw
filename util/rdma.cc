@@ -1862,7 +1862,7 @@ bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta)  {
 //  std::cout <<"Chunk deallocate at" << sst_meta->mr->addr << "index: " << buff_offset/Table_Size << std::endl;
 #endif
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-  printf("Deallocate remote chuck for %s", sst_meta->fname.c_str());
+//  printf("Deallocate remote chuck for %s", sst_meta->fname.c_str());
   return Remote_Mem_Bitmap->at(sst_meta->map_pointer->addr)
       .deallocate_memory_slot(buff_offset / Table_Size);
 }

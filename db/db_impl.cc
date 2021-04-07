@@ -279,7 +279,7 @@ void DBImpl::RemoveObsoleteFiles() {
             static_cast<unsigned long long>(number));
       }
     }else{
-      printf("file name incorrect!!!!!!!!!!!!!!!");
+//      printf("file name incorrect!!!!!!!!!!!!!!!");
     }
   }
 
