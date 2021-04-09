@@ -35,30 +35,19 @@ struct Table::Rep {
   Block* index_block;
 };
 
-Status Table::Open(const Options& options, RandomAccessFile* file,
-                   uint64_t size, Table** table) {
+Status Table::Open(const Options& options, Table** table) {
   *table = nullptr;
-  if (size < Footer::kEncodedLength) {
-    return Status::Corruption("file is too short to be an sstable");
-  }
 
-  char footer_space[Footer::kEncodedLength];
-  Slice footer_input;
-  Status s = file->Read(size - Footer::kEncodedLength, Footer::kEncodedLength,
-                        &footer_input, footer_space);
-  if (!s.ok()) return s;
-
-  Footer footer;
-  s = footer.DecodeFrom(&footer_input);
-  if (!s.ok()) return s;
 
   // Read the index block
+  Status s = Status::OK();
   BlockContents index_block_contents;
   ReadOptions opt;
   if (options.paranoid_checks) {
     opt.verify_checksums = true;
   }
-  s = ReadBlock(file, opt, footer.index_handle(), &index_block_contents);
+//  s = ReadDataIndexBlock(std::map<int, ibv_mr>(), opt, footer.index_handle(),
+//                    &index_block_contents);
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
@@ -66,14 +55,14 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
     Block* index_block = new Block(index_block_contents);
     Rep* rep = new Table::Rep;
     rep->options = options;
-    rep->file = file;
-    rep->metaindex_handle = footer.metaindex_handle();
+//    rep->file = file;
+//    rep->metaindex_handle = footer.metaindex_handle();
     rep->index_block = index_block;
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
     rep->filter_data = nullptr;
     rep->filter = nullptr;
     *table = new Table(rep);
-    (*table)->ReadMeta(footer);
+//    (*table)->ReadMeta(footer);
   }
 
   return s;
@@ -91,10 +80,12 @@ void Table::ReadMeta(const Footer& footer) {
     opt.verify_checksums = true;
   }
   BlockContents contents;
-  if (!ReadBlock(rep_->file, opt, footer.metaindex_handle(), &contents).ok()) {
-    // Do not propagate errors since meta info is not needed for operation
-    return;
-  }
+//  if (!ReadDataBlock(std::map<int, ibv_mr>(), opt, footer.metaindex_handle(),
+//                     &contents)
+//           .ok()) {
+//    // Do not propagate errors since meta info is not needed for operation
+//    return;
+//  }
   Block* meta = new Block(contents);
 
   Iterator* iter = meta->NewIterator(BytewiseComparator());
@@ -115,16 +106,16 @@ void Table::ReadFilter(const Slice& filter_handle_value) {
     return;
   }
 
-  // We might want to unify with ReadBlock() if we start
+  // We might want to unify with ReadDataBlock() if we start
   // requiring checksum verification in Table::Open.
   ReadOptions opt;
   if (rep_->options.paranoid_checks) {
     opt.verify_checksums = true;
   }
   BlockContents block;
-  if (!ReadBlock(rep_->file, opt, filter_handle, &block).ok()) {
-    return;
-  }
+//  if (!ReadDataBlock(std::map<int, ibv_mr>(), opt, filter_handle, &block).ok()) {
+//    return;
+//  }
   if (block.heap_allocated) {
     rep_->filter_data = block.data.data();  // Will need to delete later
   }
@@ -174,7 +165,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
       } else {
-        s = ReadBlock(table->rep_->file, options, handle, &contents);
+//        s = ReadDataBlock(std::map<int, ibv_mr>(), options, handle, &contents);
         if (s.ok()) {
           block = new Block(contents);
           if (contents.cachable && options.fill_cache) {
@@ -184,7 +175,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
-      s = ReadBlock(table->rep_->file, options, handle, &contents);
+//      s = ReadDataBlock(std::map<int, ibv_mr>(), options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents);
       }

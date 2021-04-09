@@ -300,7 +300,8 @@ endif(HAVE_TCMALLOC)
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
-
+find_package(ibverbs REQUIRED)
+link_libraries(${IBVERBS_LIBRARIES})
 add_executable(leveldbutil
   "db/leveldbutil.cc"
 )

@@ -91,7 +91,7 @@ class Repairer {
 
  private:
   struct TableInfo {
-    FileMetaData meta;
+    RemoteMemTableMetaData meta;
     SequenceNumber max_sequence;
   };
 
@@ -200,7 +200,7 @@ class Repairer {
 
     // Do not record a version edit for this conversion to a Table
     // since ExtractMetaData() will also generate edits.
-    FileMetaData meta;
+    RemoteMemTableMetaData meta;
     meta.number = next_file_number_++;
     Iterator* iter = mem->NewIterator();
     status = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
@@ -224,7 +224,7 @@ class Repairer {
     }
   }
 
-  Iterator* NewTableIterator(const FileMetaData& meta) {
+  Iterator* NewTableIterator(const RemoteMemTableMetaData& meta) {
     // Same as compaction iterators: if paranoid_checks are on, turn
     // on checksum verification.
     ReadOptions r;
@@ -302,7 +302,7 @@ class Repairer {
     if (!s.ok()) {
       return;
     }
-    TableBuilder* builder = new TableBuilder(options_, file);
+    TableBuilder* builder = new TableBuilder(options_);
 
     // Copy data.
     Iterator* iter = NewTableIterator(t.meta);

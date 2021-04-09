@@ -9,6 +9,12 @@
 
 namespace leveldb {
 
-Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {}
+Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
+  env->rdma_mg->Mempool_initialize(std::string("DataBlock"), block_size);
+  env->rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), write_buffer_size);
+  env->rdma_mg->Mempool_initialize(std::string("FilterBlock"), write_buffer_size);
+  env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"), write_buffer_size);
+
+}
 
 }  // namespace leveldb

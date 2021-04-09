@@ -44,7 +44,7 @@ class WritableFile;
 // Return files.size() if there is no such file.
 // REQUIRES: "files" contains a sorted list of non-overlapping files.
 int FindFile(const InternalKeyComparator& icmp,
-             const std::vector<FileMetaData*>& files, const Slice& key);
+             const std::vector<RemoteMemTableMetaData*>& files, const Slice& key);
 
 // Returns true iff some file in "files" overlaps the user key range
 // [*smallest,*largest].
@@ -54,7 +54,7 @@ int FindFile(const InternalKeyComparator& icmp,
 //           in sorted order.
 bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            bool disjoint_sorted_files,
-                           const std::vector<FileMetaData*>& files,
+                           const std::vector<RemoteMemTableMetaData*>& files,
                            const Slice* smallest_user_key,
                            const Slice* largest_user_key);
 
@@ -64,7 +64,7 @@ class Version {
   // return OK.  Else return a non-OK status.  Fills *stats.
   // REQUIRES: lock is not held
   struct GetStats {
-    FileMetaData* seek_file;
+    RemoteMemTableMetaData* seek_file;
     int seek_file_level;
   };
 
@@ -96,7 +96,7 @@ class Version {
       int level,
       const InternalKey* begin,  // nullptr means before all keys
       const InternalKey* end,    // nullptr means after all keys
-      std::vector<FileMetaData*>* inputs);
+      std::vector<RemoteMemTableMetaData*>* inputs);
 
   // Returns true iff some file in the specified level overlaps
   // some part of [*smallest_user_key,*largest_user_key].
@@ -144,7 +144,7 @@ class Version {
   //
   // REQUIRES: user portion of internal_key == user_key.
   void ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
-                          bool (*func)(void*, int, FileMetaData*));
+                          bool (*func)(void*, int, RemoteMemTableMetaData*));
 
   VersionSet* vset_;  // VersionSet to which this Version belongs
   Version* next_;     // Next version in linked list
@@ -152,10 +152,10 @@ class Version {
   int refs_;          // Number of live refs to this version
 
   // List of files per level
-  std::vector<FileMetaData*> files_[config::kNumLevels];
+  std::vector<RemoteMemTableMetaData*> files_[config::kNumLevels];
 
   // Next file to compact based on seek stats.
-  FileMetaData* file_to_compact_;
+  RemoteMemTableMetaData* file_to_compact_;
   int file_to_compact_level_;
 
   // Level that should be compacted next and its compaction score.
@@ -288,11 +288,11 @@ class VersionSet {
 
   void Finalize(Version* v);
 
-  void GetRange(const std::vector<FileMetaData*>& inputs, InternalKey* smallest,
+  void GetRange(const std::vector<RemoteMemTableMetaData*>& inputs, InternalKey* smallest,
                 InternalKey* largest);
 
-  void GetRange2(const std::vector<FileMetaData*>& inputs1,
-                 const std::vector<FileMetaData*>& inputs2,
+  void GetRange2(const std::vector<RemoteMemTableMetaData*>& inputs1,
+                 const std::vector<RemoteMemTableMetaData*>& inputs2,
                  InternalKey* smallest, InternalKey* largest);
 
   void SetupOtherInputs(Compaction* c);
@@ -341,7 +341,7 @@ class Compaction {
   int num_input_files(int which) const { return inputs_[which].size(); }
 
   // Return the ith input file at "level()+which" ("which" must be 0 or 1).
-  FileMetaData* input(int which, int i) const { return inputs_[which][i]; }
+  RemoteMemTableMetaData* input(int which, int i) const { return inputs_[which][i]; }
 
   // Maximum size of files to build during this compaction.
   uint64_t MaxOutputFileSize() const { return max_output_file_size_; }
@@ -378,11 +378,11 @@ class Compaction {
   VersionEdit edit_;
 
   // Each compaction reads inputs from "level_" and "level_+1"
-  std::vector<FileMetaData*> inputs_[2];  // The two sets of inputs
+  std::vector<RemoteMemTableMetaData*> inputs_[2];  // The two sets of inputs
 
   // State used to check for number of overlapping grandparent files
   // (parent == level_ + 1, grandparent == level_ + 2)
-  std::vector<FileMetaData*> grandparents_;
+  std::vector<RemoteMemTableMetaData*> grandparents_;
   size_t grandparent_index_;  // Index in grandparent_starts_
   bool seen_key_;             // Some output key has been seen
   int64_t overlapped_bytes_;  // Bytes of overlap between current output

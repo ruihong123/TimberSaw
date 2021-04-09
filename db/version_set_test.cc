@@ -23,7 +23,7 @@ class FindFileTest : public testing::Test {
   void Add(const char* smallest, const char* largest,
            SequenceNumber smallest_seq = 100,
            SequenceNumber largest_seq = 100) {
-    FileMetaData* f = new FileMetaData;
+    RemoteMemTableMetaData* f = new RemoteMemTableMetaData;
     f->number = files_.size() + 1;
     f->smallest = InternalKey(smallest, smallest_seq, kTypeValue);
     f->largest = InternalKey(largest, largest_seq, kTypeValue);
@@ -48,7 +48,7 @@ class FindFileTest : public testing::Test {
   bool disjoint_sorted_files_;
 
  private:
-  std::vector<FileMetaData*> files_;
+  std::vector<RemoteMemTableMetaData*> files_;
 };
 
 TEST_F(FindFileTest, Empty) {
@@ -175,14 +175,14 @@ TEST_F(FindFileTest, OverlappingFiles) {
 }
 
 void AddBoundaryInputs(const InternalKeyComparator& icmp,
-                       const std::vector<FileMetaData*>& level_files,
-                       std::vector<FileMetaData*>* compaction_files);
+                       const std::vector<RemoteMemTableMetaData*>& level_files,
+                       std::vector<RemoteMemTableMetaData*>* compaction_files);
 
 class AddBoundaryInputsTest : public testing::Test {
  public:
-  std::vector<FileMetaData*> level_files_;
-  std::vector<FileMetaData*> compaction_files_;
-  std::vector<FileMetaData*> all_files_;
+  std::vector<RemoteMemTableMetaData*> level_files_;
+  std::vector<RemoteMemTableMetaData*> compaction_files_;
+  std::vector<RemoteMemTableMetaData*> all_files_;
   InternalKeyComparator icmp_;
 
   AddBoundaryInputsTest() : icmp_(BytewiseComparator()) {}
@@ -194,9 +194,9 @@ class AddBoundaryInputsTest : public testing::Test {
     all_files_.clear();
   }
 
-  FileMetaData* CreateFileMetaData(uint64_t number, InternalKey smallest,
+  RemoteMemTableMetaData* CreateFileMetaData(uint64_t number, InternalKey smallest,
                                    InternalKey largest) {
-    FileMetaData* f = new FileMetaData();
+    RemoteMemTableMetaData* f = new RemoteMemTableMetaData();
     f->number = number;
     f->smallest = smallest;
     f->largest = largest;
@@ -212,7 +212,7 @@ TEST_F(AddBoundaryInputsTest, TestEmptyFileSets) {
 }
 
 TEST_F(AddBoundaryInputsTest, TestEmptyLevelFiles) {
-  FileMetaData* f1 =
+  RemoteMemTableMetaData* f1 =
       CreateFileMetaData(1, InternalKey("100", 2, kTypeValue),
                          InternalKey(InternalKey("100", 1, kTypeValue)));
   compaction_files_.push_back(f1);
@@ -224,7 +224,7 @@ TEST_F(AddBoundaryInputsTest, TestEmptyLevelFiles) {
 }
 
 TEST_F(AddBoundaryInputsTest, TestEmptyCompactionFiles) {
-  FileMetaData* f1 =
+  RemoteMemTableMetaData* f1 =
       CreateFileMetaData(1, InternalKey("100", 2, kTypeValue),
                          InternalKey(InternalKey("100", 1, kTypeValue)));
   level_files_.push_back(f1);
@@ -236,13 +236,13 @@ TEST_F(AddBoundaryInputsTest, TestEmptyCompactionFiles) {
 }
 
 TEST_F(AddBoundaryInputsTest, TestNoBoundaryFiles) {
-  FileMetaData* f1 =
+  RemoteMemTableMetaData* f1 =
       CreateFileMetaData(1, InternalKey("100", 2, kTypeValue),
                          InternalKey(InternalKey("100", 1, kTypeValue)));
-  FileMetaData* f2 =
+  RemoteMemTableMetaData* f2 =
       CreateFileMetaData(1, InternalKey("200", 2, kTypeValue),
                          InternalKey(InternalKey("200", 1, kTypeValue)));
-  FileMetaData* f3 =
+  RemoteMemTableMetaData* f3 =
       CreateFileMetaData(1, InternalKey("300", 2, kTypeValue),
                          InternalKey(InternalKey("300", 1, kTypeValue)));
 
@@ -257,13 +257,13 @@ TEST_F(AddBoundaryInputsTest, TestNoBoundaryFiles) {
 }
 
 TEST_F(AddBoundaryInputsTest, TestOneBoundaryFiles) {
-  FileMetaData* f1 =
+  RemoteMemTableMetaData* f1 =
       CreateFileMetaData(1, InternalKey("100", 3, kTypeValue),
                          InternalKey(InternalKey("100", 2, kTypeValue)));
-  FileMetaData* f2 =
+  RemoteMemTableMetaData* f2 =
       CreateFileMetaData(1, InternalKey("100", 1, kTypeValue),
                          InternalKey(InternalKey("200", 3, kTypeValue)));
-  FileMetaData* f3 =
+  RemoteMemTableMetaData* f3 =
       CreateFileMetaData(1, InternalKey("300", 2, kTypeValue),
                          InternalKey(InternalKey("300", 1, kTypeValue)));
 
@@ -279,13 +279,13 @@ TEST_F(AddBoundaryInputsTest, TestOneBoundaryFiles) {
 }
 
 TEST_F(AddBoundaryInputsTest, TestTwoBoundaryFiles) {
-  FileMetaData* f1 =
+  RemoteMemTableMetaData* f1 =
       CreateFileMetaData(1, InternalKey("100", 6, kTypeValue),
                          InternalKey(InternalKey("100", 5, kTypeValue)));
-  FileMetaData* f2 =
+  RemoteMemTableMetaData* f2 =
       CreateFileMetaData(1, InternalKey("100", 2, kTypeValue),
                          InternalKey(InternalKey("300", 1, kTypeValue)));
-  FileMetaData* f3 =
+  RemoteMemTableMetaData* f3 =
       CreateFileMetaData(1, InternalKey("100", 4, kTypeValue),
                          InternalKey(InternalKey("100", 3, kTypeValue)));
 
@@ -302,16 +302,16 @@ TEST_F(AddBoundaryInputsTest, TestTwoBoundaryFiles) {
 }
 
 TEST_F(AddBoundaryInputsTest, TestDisjoinFilePointers) {
-  FileMetaData* f1 =
+  RemoteMemTableMetaData* f1 =
       CreateFileMetaData(1, InternalKey("100", 6, kTypeValue),
                          InternalKey(InternalKey("100", 5, kTypeValue)));
-  FileMetaData* f2 =
+  RemoteMemTableMetaData* f2 =
       CreateFileMetaData(1, InternalKey("100", 6, kTypeValue),
                          InternalKey(InternalKey("100", 5, kTypeValue)));
-  FileMetaData* f3 =
+  RemoteMemTableMetaData* f3 =
       CreateFileMetaData(1, InternalKey("100", 2, kTypeValue),
                          InternalKey(InternalKey("300", 1, kTypeValue)));
-  FileMetaData* f4 =
+  RemoteMemTableMetaData* f4 =
       CreateFileMetaData(1, InternalKey("100", 4, kTypeValue),
                          InternalKey(InternalKey("100", 3, kTypeValue)));
 

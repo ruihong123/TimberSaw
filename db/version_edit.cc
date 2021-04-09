@@ -8,7 +8,7 @@
 #include "util/coding.h"
 
 namespace leveldb {
-
+std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
 // Tag numbers for serialized VersionEdit.  These numbers are written to
 // disk and should not be changed.
 enum Tag {
@@ -73,7 +73,7 @@ void VersionEdit::EncodeTo(std::string* dst) const {
   }
 
   for (size_t i = 0; i < new_files_.size(); i++) {
-    const FileMetaData& f = new_files_[i].second;
+    const RemoteMemTableMetaData& f = new_files_[i].second;
     PutVarint32(dst, kNewFile);
     PutVarint32(dst, new_files_[i].first);  // level
     PutVarint64(dst, f.number);
@@ -111,7 +111,7 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
   // Temporary storage for parsing
   int level;
   uint64_t number;
-  FileMetaData f;
+  RemoteMemTableMetaData f;
   Slice str;
   InternalKey key;
 
@@ -238,7 +238,7 @@ std::string VersionEdit::DebugString() const {
     AppendNumberTo(&r, deleted_files_kvp.second);
   }
   for (size_t i = 0; i < new_files_.size(); i++) {
-    const FileMetaData& f = new_files_[i].second;
+    const RemoteMemTableMetaData& f = new_files_[i].second;
     r.append("\n  AddFile: ");
     AppendNumberTo(&r, new_files_[i].first);
     r.append(" ");

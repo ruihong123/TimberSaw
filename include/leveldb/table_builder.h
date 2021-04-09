@@ -40,7 +40,7 @@ class LEVELDB_EXPORT TableBuilder {
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder(const Options& options, ibv_mr** mr_l);
+  TableBuilder(const Options& options);
 
   TableBuilder(const TableBuilder&) = delete;
   TableBuilder& operator=(const TableBuilder&) = delete;
@@ -92,7 +92,9 @@ class LEVELDB_EXPORT TableBuilder {
   // Size of the file generated so far.  If invoked after a successful
   // Finish() call, returns the size of the final generated file.
   uint64_t FileSize() const;
-
+  void get_datablocks_map(std::map<int, ibv_mr *>& map);
+  void get_dataindexblocks_map(std::map<int, ibv_mr *>& map);
+  void get_filter_map(std::map<int, ibv_mr *>& map);
  private:
   bool ok() const { return status().ok(); }
   void FinishDataBlock(BlockBuilder* block, BlockHandle* handle,

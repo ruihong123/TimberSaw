@@ -20,6 +20,8 @@ FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy, ibv_mr* mr,
                                        std::shared_ptr<RDMA_Manager> rdma_mg)
     : policy_(policy), rdma_mg_(rdma_mg), local_mr(mr), remote_mrs_(remote_mrs) {}
 
+//TOTHINK: One block per bloom filter, then why there is a design for the while loop?
+// Is it a bad design?
 void FilterBlockBuilder::StartBlock(uint64_t block_offset) {
   uint64_t filter_index = (block_offset / kFilterBase);
   assert(filter_index >= filter_offsets_.size());

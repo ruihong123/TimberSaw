@@ -12,20 +12,22 @@ namespace leveldb {
 //TOthink: how to save the remote mr?
 //TOFIX : now we suppose the index and filter block will not over the write buffer.
 struct TableBuilder::Rep {
-  Rep(const Options& opt, ibv_mr **mr_l)
+  Rep(const Options& opt)
       : options(opt),
         index_block_options(opt),
-        local_data_mr(mr_l[0]),
-        local_filter_mr(mr_l[1]),
-        local_index_mr(mr_l[2]),
         offset(0),
         offset_last_flushed(0),
-        data_block(&options, local_data_mr),
-        index_block(&index_block_options, local_index_mr),
+
         num_entries(0),
         closed(false),
         pending_index_filter_entry(false) {
     index_block_options.block_restart_interval = 1;
+    std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
+    rdma_mg->Allocate_Local_RDMA_Slot(local_data_mr, "write");
+    rdma_mg->Allocate_Local_RDMA_Slot(local_index_mr, "write");
+    rdma_mg->Allocate_Local_RDMA_Slot(local_filter_mr, "write");
+    data_block = new BlockBuilder(&index_block_options, local_data_mr);
+    index_block = new BlockBuilder(&index_block_options, local_index_mr);
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
                     : new FilterBlockBuilder(opt.filter_policy, local_filter_mr,
@@ -46,8 +48,8 @@ struct TableBuilder::Rep {
   uint64_t offset_last_flushed;
   uint64_t offset;
   Status status;
-  BlockBuilder data_block;
-  BlockBuilder index_block;
+  BlockBuilder* data_block;
+  BlockBuilder* index_block;
   std::string last_key;
   int64_t num_entries;
   bool closed;  // Either Finish() or Abandon() has been called.
@@ -67,8 +69,7 @@ struct TableBuilder::Rep {
 
   std::string compressed_output;
 };
-TableBuilder::TableBuilder(const Options& options, ibv_mr** mr_l)
-    : rep_(new Rep(options, mr_l)) {
+TableBuilder::TableBuilder(const Options& options) : rep_(new Rep(options)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->StartBlock(0);
   }
@@ -77,6 +78,8 @@ TableBuilder::TableBuilder(const Options& options, ibv_mr** mr_l)
 TableBuilder::~TableBuilder() {
   assert(rep_->closed);  // Catch errors where caller forgot to call Finish()
   delete rep_->filter_block;
+  delete rep_->data_block;
+  delete rep_->index_block;
   delete rep_;
 }
 
@@ -111,7 +114,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   // *   if so then finish the old data to a block make it insert to a new block
   // *   Second, if new block finished, check whether the write buffer can hold a new block size.
   // *           if not, the flush temporal buffer content to the remote memory.
-  const size_t estimated_block_size = r->data_block.CurrentSizeEstimate();
+  const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
   if (estimated_block_size + key.size() + value.size() +sizeof (uint32_t) + kBlockTrailerSize >= r->options.block_size) {
     UpdateFunctionBLock();
     if (r->offset - r->offset_last_flushed < r->options.block_size) {
@@ -122,18 +125,19 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   //Create a new index entry but never flush it
   // when write a index entry, the data block offset and data block size will be attached
   if (r->pending_index_filter_entry) {
-    assert(r->data_block.empty());
+    assert(r->data_block->empty());
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
     std::string handle_encoding;
+    //Note that the handle block size does not contain CRC!
     r->pending_data_handle.EncodeTo(&handle_encoding);
-    if (r->index_block.CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
+    if (r->index_block->CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
         sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr->length){
       BlockHandle dummy_handle;
       size_t msg_size;
-      FinishDataIndexBlock(&r->index_block, &dummy_handle, r->options.compression, msg_size);
+      FinishDataIndexBlock(r->index_block, &dummy_handle, r->options.compression, msg_size);
       FlushDataIndex(msg_size);
     }
-    r->index_block.Add(r->last_key, Slice(handle_encoding));
+    r->index_block->Add(r->last_key, Slice(handle_encoding));
     if (r->filter_block != nullptr) {
       if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr->length){
         // Tofix: Finish itself contain Reset and Flush, Modify the filter block make
@@ -158,7 +162,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
 
   r->last_key.assign(key.data(), key.size());
   r->num_entries++;
-  r->data_block.Add(key, value);
+  r->data_block->Add(key, value);
 
 
 
@@ -170,19 +174,20 @@ void TableBuilder::UpdateFunctionBLock() {
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
-  if (r->data_block.empty()) return;
+  if (r->data_block->empty()) return;
   assert(!r->pending_index_filter_entry);
-  FinishDataBlock(&r->data_block, &r->pending_data_handle, r->options.compression);
+  FinishDataBlock(r->data_block, &r->pending_data_handle, r->options.compression);
   //set data block pointer to next one, clear the block state
-//  r->data_block.Reset();
+//  r->data_block->Reset();
   if (ok()) {
     r->pending_index_filter_entry = true;
 //    r->status = r->file->FlushData();
   }
 
 }
-//TOFIX the block has been reset, but the data has not been flush, we should let
-// outside know the size of this block. The none datablock should not increase the offset.
+//Note: there are three types of finish function for different blocks, the main
+//difference is whether update the offset which will record the size of the data block.
+//And the filter blocks has a different way to reset the block.
 void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
                                    CompressionType compressiontype) {
   // File format contains a sequence of blocks where each block has:
@@ -193,7 +198,7 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
   Rep* r = rep_;
   block->Finish();
 
-  Slice* raw = &(r->data_block.buffer);
+  Slice* raw = &(r->data_block->buffer);
   Slice* block_contents;
 //  CompressionType compressiontype = r->options.compression;
   //TOTHINK: temporally disable the compression, because it can increase the latency but it could
@@ -248,7 +253,7 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
   Rep* r = rep_;
   block->Finish();
 
-  Slice* raw = &(r->index_block.buffer);
+  Slice* raw = &(r->index_block->buffer);
   Slice* block_contents;
   switch (compressiontype) {
     case kNoCompression:
@@ -291,7 +296,7 @@ void TableBuilder::FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* han
   Rep* r = rep_;
   block->Finish();
 
-  Slice* raw = &(r->index_block.buffer);
+  Slice* raw = &(r->index_block->buffer);
   Slice* block_contents;
   switch (compressiontype) {
     case kNoCompression:
@@ -343,7 +348,7 @@ void TableBuilder::FlushData(){
   r->offset_last_flushed = r->offset;
   // Move the datablock pointer to the start of the write buffer, the other state of the data_block
   // has already reseted before
-  r->data_block.Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr->addr)));
+  r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr->addr)));
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
 void TableBuilder::FlushDataIndex(size_t msg_size) {
@@ -395,6 +400,8 @@ Status TableBuilder::Finish() {
   //TOthink why not compress the block here.
   if (ok() && r->filter_block != nullptr) {
 //    r->filter_block->Finish();
+    assert(r->pending_index_filter_entry);
+    r->filter_block->StartBlock(r->offset);
     size_t msg_size;
     FinishFilterBlock(r->filter_block, &filter_block_handle, kNoCompression, msg_size);
     FlushFilter(msg_size);
@@ -410,7 +417,7 @@ Status TableBuilder::Finish() {
 //      key.append(r->options.filter_policy->Name());
 //      std::string handle_encoding;
 //      filter_block_handle.EncodeTo(&handle_encoding);
-//      meta_index_block.Add(key, handle_encoding);
+//      meta_index_block->Add(key, handle_encoding);
 //    }
 //
 //    // TODO(postrelease): Add stats and other meta blocks
@@ -419,19 +426,23 @@ Status TableBuilder::Finish() {
 
   // Write index block
   if (ok()) {
-    if (r->pending_index_filter_entry) {
+    assert(r->pending_index_filter_entry);
+    {
       r->options.comparator->FindShortSuccessor(&r->last_key);
       std::string handle_encoding;
       r->pending_data_handle.EncodeTo(&handle_encoding);
-      r->index_block.Add(r->last_key, Slice(handle_encoding));
+      r->index_block->Add(r->last_key, Slice(handle_encoding));
       r->pending_index_filter_entry = false;
     }
     size_t msg_size;
-    FinishDataIndexBlock(&r->index_block, &index_block_handle,
+    FinishDataIndexBlock(r->index_block, &index_block_handle,
                     r->options.compression, msg_size);
     FlushDataIndex(msg_size);
   }
-
+  int num_of_poll = r->remote_filter_mrs.size() + r->remote_data_mrs.size()
+                    + r->remote_dataindex_mrs.size();
+  ibv_wc wc[num_of_poll];
+  r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "");
 //  // Write footer
 //  if (ok()) {
 //    Footer footer;
@@ -456,6 +467,14 @@ void TableBuilder::Abandon() {
 uint64_t TableBuilder::NumEntries() const { return rep_->num_entries; }
 
 uint64_t TableBuilder::FileSize() const { return rep_->offset; }
-
+void TableBuilder::get_datablocks_map(std::map<int, ibv_mr*>& map) {
+  map = rep_->remote_data_mrs;
+}
+void TableBuilder::get_dataindexblocks_map(std::map<int, ibv_mr*>& map) {
+  map = rep_->remote_dataindex_mrs;
+}
+void TableBuilder::get_filter_map(std::map<int, ibv_mr*>& map) {
+  map = rep_->remote_filter_mrs;
+}
 
 }  // namespace leveldb

@@ -10,17 +10,33 @@
 #include <vector>
 
 #include "db/dbformat.h"
-
+#include "util/rdma.h"
 namespace leveldb {
 
 class VersionSet;
+class RDMA_Manager;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
-struct FileMetaData {
-  FileMetaData() : refs(0), allowed_seeks(1 << 30), file_size(0) {}
+struct RemoteMemTableMetaData {
+  RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
+  virtual ~RemoteMemTableMetaData() {
+    Remote_blocks_deallocate(remote_data_mrs);
+    Remote_blocks_deallocate(remote_dataindex_mrs);
+    Remote_blocks_deallocate(remote_filter_mrs);
+  }
+  void Remote_blocks_deallocate(std::map<int, ibv_mr*> map){
+    std::map<int, ibv_mr*>::iterator it;
 
+    for (it = map.begin(); it != map.end(); it++){
+      rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer");
+    }
+  }
+  static std::shared_ptr<RDMA_Manager> rdma_mg;
   int refs;
   int allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
+  std::map<int, ibv_mr*> remote_data_mrs;
+  std::map<int, ibv_mr*> remote_dataindex_mrs;
+  std::map<int, ibv_mr*> remote_filter_mrs;
   //std::vector<ibv_mr*> remote_data_mrs
   uint64_t file_size;    // File size in bytes
   InternalKey smallest;  // Smallest internal key served by table
@@ -63,7 +79,7 @@ class VersionEdit {
   // REQUIRES: "smallest" and "largest" are smallest and largest keys in file
   void AddFile(int level, uint64_t file, uint64_t file_size,
                const InternalKey& smallest, const InternalKey& largest) {
-    FileMetaData f;
+    RemoteMemTableMetaData f;
     f.number = file;
     f.file_size = file_size;
     f.smallest = smallest;
@@ -99,7 +115,7 @@ class VersionEdit {
 
   std::vector<std::pair<int, InternalKey>> compact_pointers_;
   DeletedFileSet deleted_files_;
-  std::vector<std::pair<int, FileMetaData>> new_files_;
+  std::vector<std::pair<int, RemoteMemTableMetaData>> new_files_;
 };
 
 }  // namespace leveldb

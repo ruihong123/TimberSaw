@@ -13,6 +13,7 @@
 #include "db/dbformat.h"
 #include "leveldb/cache.h"
 #include "leveldb/table.h"
+#include "db/version_edit.h"
 #include "port/port.h"
 
 namespace leveldb {
@@ -44,7 +45,8 @@ class TableCache {
   void Evict(uint64_t file_number);
 
  private:
-  Status FindTable(uint64_t file_number, uint64_t file_size, Cache::Handle**);
+  Status FindTable(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
+                   Cache::Handle** handle);
 
   Env* const env_;
   const std::string dbname_;

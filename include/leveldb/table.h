@@ -37,8 +37,7 @@ class LEVELDB_EXPORT Table {
   // for the duration of the returned table's lifetime.
   //
   // *file must remain live while this Table is in use.
-  static Status Open(const Options& options, RandomAccessFile* file,
-                     uint64_t file_size, Table** table);
+  static Status Open(const Options& options, Table** table);
 
   Table(const Table&) = delete;
   Table& operator=(const Table&) = delete;
