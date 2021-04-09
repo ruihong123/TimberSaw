@@ -306,7 +306,8 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
-
+add_executable(Server server.cc)
+target_link_libraries(Server leveldb)
 if(LEVELDB_BUILD_TESTS)
   enable_testing()
 
