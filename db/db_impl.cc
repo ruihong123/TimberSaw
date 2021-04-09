@@ -660,7 +660,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
 }
 
 void DBImpl::MaybeScheduleCompaction() {
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
   if (background_compaction_scheduled_) {
     // Already scheduled
   } else if (shutting_down_.load(std::memory_order_acquire)) {
