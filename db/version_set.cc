@@ -1241,6 +1241,7 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
         }
       } else {
         // Create concatenating iterator for the files from this level
+        // one iterator will responsible for multiple remote memtables.
         list[num++] = NewTwoLevelIterator(
             new Version::LevelFileNumIterator(icmp_, &c->inputs_[which]),
             &GetFileIterator, table_cache_, options);
@@ -1500,6 +1501,8 @@ Compaction::~Compaction() {
 
 bool Compaction::IsTrivialMove() const {
   const VersionSet* vset = input_version_->vset_;
+  //TOTHINK: why the statement below is true.
+
   // Avoid a move if there is lots of overlapping grandparent data.
   // Otherwise, the move could create a parent file that will require
   // a very expensive merge later on.

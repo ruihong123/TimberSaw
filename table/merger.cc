@@ -64,6 +64,7 @@ class MergingIterator : public Iterator {
       for (int i = 0; i < n_; i++) {
         IteratorWrapper* child = &children_[i];
         if (child != current_) {
+          //TODO: Make the iterator not seek again, it should suppose to stay at the old position.
           child->Seek(key());
           if (child->Valid() &&
               comparator_->Compare(key(), child->key()) == 0) {
