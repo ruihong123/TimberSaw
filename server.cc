@@ -20,9 +20,7 @@ int main()
 //  size_t write_block_size = 4*1024*1024;
 //  size_t read_block_size = 4*1024;
   size_t table_size = 10*1024*1024;
-  leveldb::RDMA_Manager  RDMA_manager(config, Remote_Bitmap, table_size, &db_name,
-                                      &file_to_sst_meta,
-                                      &fs_mutex);
+  leveldb::RDMA_Manager  RDMA_manager(config, table_size);
 
   RDMA_manager.Server_to_Client_Communication();
 

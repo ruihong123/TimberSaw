@@ -301,7 +301,7 @@ list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
 find_package(ibverbs REQUIRED)
-link_libraries(${IBVERBS_LIBRARIES})
+target_link_libraries(leveldb Threads::Threads ibverbs::ibverbs)
 add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
