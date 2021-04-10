@@ -117,7 +117,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
   if (estimated_block_size + key.size() + value.size() +sizeof (uint32_t) + kBlockTrailerSize >= r->options.block_size) {
     UpdateFunctionBLock();
-    if (r->offset - r->offset_last_flushed < r->options.block_size) {
+    if (r->local_data_mr->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
       FlushData();
     }
   }
