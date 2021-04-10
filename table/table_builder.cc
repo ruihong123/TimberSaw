@@ -78,7 +78,9 @@ TableBuilder::TableBuilder(const Options& options) : rep_(new Rep(options)) {
 
 TableBuilder::~TableBuilder() {
   assert(rep_->closed);  // Catch errors where caller forgot to call Finish()
-  delete rep_->filter_block;
+  if (rep_->filter_block != nullptr){
+    delete rep_->filter_block;
+  }
   delete rep_->data_block;
   delete rep_->index_block;
   delete rep_;
