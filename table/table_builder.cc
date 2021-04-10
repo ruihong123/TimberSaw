@@ -33,6 +33,7 @@ struct TableBuilder::Rep {
                     : new FilterBlockBuilder(opt.filter_policy, local_filter_mr,
                                              &remote_filter_mrs,
                                              options.env->rdma_mg));
+    status = Status::OK();
   }
 
   Options options;
