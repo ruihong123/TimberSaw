@@ -840,8 +840,8 @@ bool RDMA_Manager::create_qp(std::string& id) {
   qp_init_attr.sq_sig_all = 0;
   qp_init_attr.send_cq = cq;
   qp_init_attr.recv_cq = cq;
-  qp_init_attr.cap.max_send_wr = 2500;
-  qp_init_attr.cap.max_recv_wr = 2500;
+  qp_init_attr.cap.max_send_wr = 8192;
+  qp_init_attr.cap.max_recv_wr = 8192;
   qp_init_attr.cap.max_send_sge = 30;
   qp_init_attr.cap.max_recv_sge = 30;
   //  qp_init_attr.cap.max_inline_data = -1;
