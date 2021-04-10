@@ -392,8 +392,8 @@ Status TableBuilder::Finish() {
   Rep* r = rep_;
   UpdateFunctionBLock();
   FlushData();
-//  assert(!r->closed);
-//  r->closed = true;
+  assert(!r->closed);
+  r->closed = true;
 
   BlockHandle filter_block_handle, metaindex_block_handle, index_block_handle;
 
