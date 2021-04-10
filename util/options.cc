@@ -10,10 +10,11 @@
 namespace leveldb {
 
 Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
+  size_t RDMA_write_block = 1024*1024;
   env->rdma_mg->Mempool_initialize(std::string("DataBlock"), block_size);
-  env->rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), write_buffer_size);
-  env->rdma_mg->Mempool_initialize(std::string("FilterBlock"), write_buffer_size);
-  env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"), write_buffer_size);
+  env->rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_write_block);
+  env->rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_write_block);
+  env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"), RDMA_write_block);
 
 }
 
