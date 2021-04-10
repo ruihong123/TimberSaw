@@ -95,6 +95,7 @@ class LEVELDB_EXPORT Slice {
   void append(const char* p, size_t size){
 //    assert(size_+size <= buffer_limit);
     memcpy((void*)(data_ + size_), (void*)p , size);
+    size_+= size;
   }
  private:
   const char* data_;
