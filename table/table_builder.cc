@@ -23,9 +23,9 @@ struct TableBuilder::Rep {
         pending_index_filter_entry(false) {
     index_block_options.block_restart_interval = 1;
     std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
-    rdma_mg->Allocate_Local_RDMA_Slot(local_data_mr, "write");
-    rdma_mg->Allocate_Local_RDMA_Slot(local_index_mr, "write");
-    rdma_mg->Allocate_Local_RDMA_Slot(local_filter_mr, "write");
+    rdma_mg->Allocate_Local_RDMA_Slot(local_data_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(local_index_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(local_filter_mr, "FlushBuffer");
     data_block = new BlockBuilder(&index_block_options, local_data_mr);
     index_block = new BlockBuilder(&index_block_options, local_index_mr);
     filter_block = (opt.filter_policy == nullptr
