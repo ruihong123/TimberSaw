@@ -1202,7 +1202,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   }
 
   //  start = std::chrono::high_resolution_clock::now();
-  if (rc) fprintf(stderr, "failed to post SR\n");
+  if (rc) fprintf(stderr, "failed to post SR, return is %d\n", rc);
   //  else
   //  {
   //    fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
