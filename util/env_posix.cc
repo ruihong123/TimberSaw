@@ -822,9 +822,10 @@ void PosixEnv::Schedule(
 void PosixEnv::BackgroundThreadMain() {
   while (true) {
     background_work_mutex_.Lock();
-
+    printf("create a new thread");
     // Wait until there is work to be done.
     while (background_work_queue_.empty()) {
+
       background_work_cv_.Wait();
     }
 

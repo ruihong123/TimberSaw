@@ -1411,7 +1411,7 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       mem_ = new MemTable(internal_comparator_);
       mem_->Ref();
       force = false;  // Do not force another compaction if have room
-//      MaybeScheduleCompaction();
+      MaybeScheduleCompaction();
     }
   }
   return s;
