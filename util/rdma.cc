@@ -1606,7 +1606,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
     cq = static_cast<ibv_cq*>(cq_local->Get());
   l.unlock();
   do {
-    poll_result = ibv_poll_cq(cq, num_entries, wc_p);
+    poll_result = ibv_poll_cq(cq, num_entries, &wc_p[poll_num]);
     if (poll_result < 0)
       break;
     else
@@ -1656,7 +1656,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
 * Description
 * Print out config information
 ******************************************************************************/
-void RDMA_Manager::print_config(void) {
+void RDMA_Manager::print_config() {
   fprintf(stdout, " ------------------------------------------------\n");
   fprintf(stdout, " Device name : \"%s\"\n", rdma_config.dev_name);
   fprintf(stdout, " IB port : %u\n", rdma_config.ib_port);

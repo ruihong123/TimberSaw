@@ -759,6 +759,7 @@ bool InlineSkipList<Comparator>::Insert(const char* key, Splice* splice,
   assert(height >= 1 && height <= kMaxHeight_);
 
   int max_height = max_height_.load(std::memory_order_relaxed);
+  //Update the max height
   while (height > max_height) {
     if (max_height_.compare_exchange_weak(max_height, height)) {
       // successfully updated it
