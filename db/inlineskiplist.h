@@ -614,6 +614,7 @@ InlineSkipList<Comparator>::InlineSkipList(const Comparator cmp,
   for (int i = 0; i < kMaxHeight_; ++i) {
     head_->SetNext(i, nullptr);
   }
+  printf("head_address is %p", head_);
 }
 
 template <class Comparator>
@@ -864,7 +865,8 @@ bool InlineSkipList<Comparator>::Insert(const char* key, Splice* splice,
   }
   assert(recompute_height <= max_height);
   if (recompute_height > 0) {
-    printf("splice print %p", splice->prev_[8]->Next(1));
+//    printf("head_ address is %p", head_);
+    printf("splice print %p", splice->prev_[recompute_height]->Next(recompute_height));
     RecomputeSpliceLevels(key_decoded, splice, recompute_height);
 
   }
