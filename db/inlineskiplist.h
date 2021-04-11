@@ -809,6 +809,15 @@ bool InlineSkipList<Comparator>::Insert(const char* key, Splice* splice,
     // A good strategy is probably to be pessimistic for seq_splice_,
     // optimistic if the caller actually went to the work of providing
     // a Splice.
+
+    // Ruihong NOte: All the steps below is to accelerate the search when a
+    // cas is failed. The splice can remeber the place that the inserter find in
+    // the last iteration. However, during this new iteration, the place your remember
+    // could be incorrect. As a result, we check from the bottom to top to see whether
+    // the next[i] is still connected to prev[i]. If it is then it means there is no
+    // key inserted between. Generally, the first level should be changed. (That's why CAS failed)
+    // the above layer of the splice should be unchanged, which means we should just search in
+    // the very bottom level and then we can find it very quick.
     while (recompute_height < max_height) {
       if (splice->prev_[recompute_height]->Next(recompute_height) !=
           splice->next_[recompute_height]) {
