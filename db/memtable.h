@@ -4,7 +4,7 @@
 
 #ifndef STORAGE_LEVELDB_DB_MEMTABLE_H_
 #define STORAGE_LEVELDB_DB_MEMTABLE_H_
-
+#define MEMTABLE_SEQ_SIZE 10000
 #include "db/dbformat.h"
 #include "db/inlineskiplist.h"
 #include <string>
@@ -20,19 +20,20 @@ class MemTableIterator;
 
 class MemTable {
  public:
+  enum FlushStateEnum { FLUSH_NOT_REQUESTED, FLUSH_REQUESTED, FLUSH_SCHEDULED };
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
   explicit MemTable(const InternalKeyComparator& comparator);
-
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
+  ~MemTable();
 
   // Increase reference count.
-  void Ref() { ++refs_; }
+  void Ref() { refs_.fetch_add(1); }
 
   // Drop reference count.  Delete if no more references exist.
   void Unref() {
-    --refs_;
+    refs_.fetch_sub(1);
     assert(refs_ >= 0);
     if (refs_ <= 0) {
       delete this;
@@ -62,7 +63,27 @@ class MemTable {
   // in *status and return true.
   // Else, return false.
   bool Get(const LookupKey& key, std::string* value, Status* s);
-
+  void SetLargestSeqSupposed(uint64_t seq){
+    largest_seq_supposed = seq;
+  }
+  void SetFirstSeq(uint64_t seq){
+    first_seq = seq;
+  }
+//  void SetLargestSeqTillNow(uint64_t seq){
+//
+//  }
+  bool CheckFlushScheduled(){
+    return flush_state_ == FLUSH_SCHEDULED;
+  }
+  void SetFlushState(FlushStateEnum state){
+    flush_state_.store(state);
+  }
+  uint64_t Getlargest_seq_supposed() const{
+    return largest_seq_supposed;
+  }
+  uint64_t GetFirstseq() const{
+    return first_seq;
+  }
  private:
   friend class MemTableIterator;
   friend class MemTableBackwardIterator;
@@ -84,12 +105,16 @@ class MemTable {
 
   typedef InlineSkipList<KeyComparator> Table;
 
-  ~MemTable();  // Private since only Unref() should be used to delete it
 
   KeyComparator comparator_;
-  int refs_;
+  std::atomic<int> refs_;
   ConcurrentArena arena_;
   Table table_;
+  std::atomic<FlushStateEnum> flush_state_ = FLUSH_NOT_REQUESTED;
+  int64_t first_seq;
+  std::atomic<int64_t> largest_seq_till_now = 0;
+  int64_t largest_seq_supposed;
+
 };
 
 }  // namespace leveldb

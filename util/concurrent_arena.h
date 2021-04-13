@@ -9,7 +9,9 @@
 
 #pragma once
 #include <atomic>
+#include <map>
 #include <memory>
+#include <sstream>
 #include <utility>
 
 #include "util/arena.h"
@@ -69,8 +71,8 @@ class ConcurrentArena : public Allocator {
   }
 
   size_t ApproximateMemoryUsage() const {
-//    std::unique_lock<SpinMutex> lock(arena_mutex_, std::defer_lock);
-//    lock.lock();
+    std::unique_lock<SpinMutex> lock(arena_mutex_, std::defer_lock);
+    lock.lock();
     return arena_.ApproximateMemoryUsage() - ShardAllocatedAndUnused();
   }
 
@@ -99,7 +101,7 @@ class ConcurrentArena : public Allocator {
   };
  private:
 #ifdef ROCKSDB_SUPPORT_THREAD_LOCAL
-  static __thread size_t tls_cpuid;
+//  static __thread size_t tls_cpuid;
 #else
   enum ZeroFirstEnum : size_t { tls_cpuid = 0 };
 #endif
@@ -108,9 +110,10 @@ class ConcurrentArena : public Allocator {
 
   size_t shard_block_size_;
 
-  CoreLocalArray<Shard> shards_;
+//  CoreLocalArray<Shard> shards_;
   static __thread Shard* thread_local_shard;
-
+  std::map<std::string, Shard*> Threadlocal_Shardmap;
+  static __thread std::string thread_id;
   Arena arena_;
   mutable SpinMutex arena_mutex_;
   std::atomic<size_t> arena_allocated_and_unused_;
@@ -119,12 +122,15 @@ class ConcurrentArena : public Allocator {
 
   char padding1[56] ROCKSDB_FIELD_UNUSED;
 
-  Shard* Repick();
+//  Shard* Repick();
 
   size_t ShardAllocatedAndUnused() const {
     size_t total = 0;
-    for (size_t i = 0; i < shards_.Size(); ++i) {
-      total += shards_.AccessAtCore(i)->allocated_and_unused_.load(
+    // Note: here we don't need the lock to control the access to map, because iterator
+    // will not be invalidated by insert. BEsides, there is no delete at all in our design,
+    // we should be safe.
+    for (auto e :Threadlocal_Shardmap) {
+      total += e.second->allocated_and_unused_.load(
           std::memory_order_relaxed);
     }
     return total;
@@ -157,6 +163,11 @@ class ConcurrentArena : public Allocator {
 //    Shard* s = shards_.AccessAtCore(cpu & (shards_.Size() - 1));
     if (thread_local_shard == nullptr){
       thread_local_shard = new Shard();
+      auto myid = std::this_thread::get_id();
+      std::stringstream ss;
+      ss << myid;
+      std::string thread_id = std::string(ss.str());
+      Threadlocal_Shardmap.insert({thread_id, thread_local_shard});
     }
 
     Shard* s = (Shard*) thread_local_shard;

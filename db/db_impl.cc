@@ -163,8 +163,8 @@ DBImpl::~DBImpl() {
   }
 
   delete versions_;
-  if (mem_ != nullptr) mem_->Unref();
-  if (imm_ != nullptr) imm_->Unref();
+  if (mem_ != nullptr) mem_.load()->Unref();
+  if (imm_ != nullptr) imm_.load()->Unref();
   delete tmp_batch_;
   delete log_;
   delete logfile_;
@@ -480,12 +480,12 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
       log_ = new log::Writer(logfile_, lfile_size);
       logfile_number_ = log_number;
       if (mem != nullptr) {
-        mem_ = mem;
+        mem_.store(mem);
         mem = nullptr;
       } else {
         // mem can be nullptr if lognum exists but was empty.
-        mem_ = new MemTable(internal_comparator_);
-        mem_->Ref();
+        mem_.store(new MemTable(internal_comparator_));
+        mem_.load()->Ref();
       }
     }
   }
@@ -553,6 +553,7 @@ void DBImpl::CompactMemTable() {
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
   Version* base = versions_->current();
+  usleep(1);
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
@@ -570,8 +571,8 @@ void DBImpl::CompactMemTable() {
 
   if (s.ok()) {
     // Commit to the new state
-    imm_->Unref();
-    imm_ = nullptr;
+    imm_.load()->Unref();
+    imm_.store(nullptr);
     has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
   } else {
@@ -703,7 +704,7 @@ void DBImpl::BackgroundCall() {
 void DBImpl::BackgroundCompaction() {
   mutex_.AssertHeld();
 
-  if (imm_ != nullptr) {
+  if (imm_.load() != nullptr) {
     CompactMemTable();
     return;
   }
@@ -1078,16 +1079,18 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
 Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
                                       SequenceNumber* latest_snapshot,
                                       uint32_t* seed) {
-  mutex_.Lock();
+//  mutex_.Lock();
   *latest_snapshot = versions_->LastSequence();
-
+  //TODO: use read wirte spin lock to concurrent control the get of the imm and mem
+  MemTable* mem = mem_.load();
+  MemTable* imm = imm_.load();
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
-  list.push_back(mem_->NewIterator());
-  mem_->Ref();
-  if (imm_ != nullptr) {
-    list.push_back(imm_->NewIterator());
-    imm_->Ref();
+  list.push_back(mem->NewIterator());
+  mem->Ref();
+  if (imm != nullptr) {
+    list.push_back(imm->NewIterator());
+    imm->Ref();
   }
   versions_->current()->AddIterators(options, &list);
   Iterator* internal_iter =
@@ -1098,7 +1101,7 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
 
   *seed = ++seed_;
-  mutex_.Unlock();
+//  mutex_.Unlock();
   return internal_iter;
 }
 
@@ -1283,24 +1286,111 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
   // May temporarily unlock and wait.
 //  Status status = Status::OK();
-  Status status = MakeRoomForWrite(updates == nullptr);
   size_t kv_num = WriteBatchInternal::Count(updates);
+  uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
+
+  Status status = MakeRoomForWrite(updates == nullptr, sequence);
+
 //    size_t kv_num = 1;
 //  spin_mutex.lock();
-//  uint64_t last_sequence = versions_->LastSequence_nonatomic();
-//  versions_->SetLastSequence_nonatomic(last_sequence+kv_num);
+//  uint64_t sequence = versions_->LastSequence_nonatomic();
+//  versions_->SetLastSequence_nonatomic(sequence+kv_num);
 //  spin_mutex.unlock();
-  uint64_t last_sequence = versions_->AssignSequnceNumbers(kv_num);
-//  uint64_t last_sequence = 10;
-  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-    WriteBatchInternal::SetSequence(updates, last_sequence - kv_num + 1);
+//  uint64_t sequence = 10;
+  //TOTHINK: what if a write with a higher seq first go outside MakeRoomForwrite,
+  // and it is supposed to write to the new memtable which has not been created yet.
+  // hint how about set the metable barrier as seq_num rather than memory size?
 
-    if (status.ok()) {
+  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
+    WriteBatchInternal::SetSequence(updates, sequence);
+
+    if (sequence >= mem_.load()->GetFirstseq()) {
       status = WriteBatchInternal::InsertInto(updates, mem_);
+    }else{
+      // TODO: some write may have write to immtable, the immutable need to be notified
+      // when all the outgoing write on this table have finished and flush to storage
+      status = WriteBatchInternal::InsertInto(updates, imm_);
     }
   }
-
+//  if (mem_switching){}
+//  thread_ready_num++;
+//  printf("thread ready %d\n", thread_ready_num);
+//  if (thread_ready_num >= thread_num) {
+//    cv.notify_all();
+//  }
   return status;
+}
+// REQUIRES: mutex_ is held
+// REQUIRES: this thread is currently at the front of the writer queue
+Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
+//  mutex_.AssertHeld();
+//  assert(!writers_.empty());
+  bool allow_delay = !force;
+  Status s = Status::OK();
+
+  while (true) {
+    MemTable* mem = mem_.load();
+    if (!bg_error_.ok()) {
+      // Yield previous error
+      s = bg_error_;
+      break;
+//    } else if (allow_delay && versions_->NumLevelFiles(0) >=
+//                                  config::kL0_SlowdownWritesTrigger) {
+//      // We are getting close to hitting a hard limit on the number of
+//      // L0 files.  Rather than delaying a single write by several
+//      // seconds when we hit the hard limit, start delaying each
+//      // individual write by 1ms to reduce latency variance.  Also,
+//      // this delay hands over some CPU to the compaction thread in
+//      // case it is sharing the same core as the writer.
+////      mutex_.Unlock();
+////      env_->SleepForMicroseconds(1000);
+////      allow_delay = false;  // Do not delay a single write more than once
+////      mutex_.Lock();
+    } else if (!force &&
+               (seq_num <= mem->Getlargest_seq_supposed())) {
+      // There is room in current memtable
+      break;
+    } else if (imm_.load() != nullptr) {
+      // We have filled up the current memtable, but the previous
+      // one is still being compacted, so we wait.
+      Log(options_.info_log, "Current memtable full; waiting...\n");
+      background_work_finished_signal_.Wait();
+    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+      // There are too many level-0 files.
+      Log(options_.info_log, "Too many L0 files; waiting...\n");
+      background_work_finished_signal_.Wait();
+    } else {
+      // Attempt to switch to a new memtable and trigger compaction of old
+      assert(versions_->PrevLogNumber() == 0);
+
+
+//      mem_switching.store(true);
+
+      MemTable* temp_mem = new MemTable(internal_comparator_);
+
+      //CAS strong means that one thread will definitedly win under the concurrent,
+      // if it is weak then after the metable is full all the threads may gothrough the while
+      // loop multiple times.
+      if(mem_.compare_exchange_strong(mem, temp_mem)){
+        has_imm_.store(true, std::memory_order_release);
+        temp_mem->Ref();
+        force = false;  // Do not force another compaction if have room
+        temp_mem->SetFirstSeq(seq_num);
+        // starting from this sequenctial number, the data should write the the new memtable
+        // set the immutable as seq_num - 1
+        temp_mem->SetLargestSeqSupposed(seq_num - 1 + MEMTABLE_SEQ_SIZE);
+        mem->SetLargestSeqSupposed(seq_num-1);
+        //set the flush flag for imm
+        mem->SetFlushState(MemTable::FLUSH_REQUESTED);
+        imm_.store(mem);
+        MaybeScheduleCompaction();
+      }else{
+        delete temp_mem;
+      };
+
+    }
+  }
+  return s;
 }
 
 // REQUIRES: Writer list must be non-empty
@@ -1353,74 +1443,14 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
   return result;
 }
 
-// REQUIRES: mutex_ is held
-// REQUIRES: this thread is currently at the front of the writer queue
-Status DBImpl::MakeRoomForWrite(bool force) {
-//  mutex_.AssertHeld();
-//  assert(!writers_.empty());
-  bool allow_delay = !force;
-  Status s = Status::OK();
-  while (true) {
-    if (!bg_error_.ok()) {
-      // Yield previous error
-      s = bg_error_;
-      break;
-//    } else if (allow_delay && versions_->NumLevelFiles(0) >=
-//                                  config::kL0_SlowdownWritesTrigger) {
-//      // We are getting close to hitting a hard limit on the number of
-//      // L0 files.  Rather than delaying a single write by several
-//      // seconds when we hit the hard limit, start delaying each
-//      // individual write by 1ms to reduce latency variance.  Also,
-//      // this delay hands over some CPU to the compaction thread in
-//      // case it is sharing the same core as the writer.
-////      mutex_.Unlock();
-////      env_->SleepForMicroseconds(1000);
-////      allow_delay = false;  // Do not delay a single write more than once
-////      mutex_.Lock();
-    } else if (!force &&
-               (mem_->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
-      // There is room in current memtable
-      break;
-//    } else if (imm_ != nullptr) {
-//      // We have filled up the current memtable, but the previous
-//      // one is still being compacted, so we wait.
-//      Log(options_.info_log, "Current memtable full; waiting...\n");
-//      background_work_finished_signal_.Wait();
-//    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-//      // There are too many level-0 files.
-//      Log(options_.info_log, "Too many L0 files; waiting...\n");
-//      background_work_finished_signal_.Wait();
-    } else {
-      // Attempt to switch to a new memtable and trigger compaction of old
-      assert(versions_->PrevLogNumber() == 0);
-//      uint64_t new_log_number = versions_->NewFileNumber();
-//      WritableFile* lfile = nullptr;
-//      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-//      if (!s.ok()) {
-//        // Avoid chewing through file number space in a tight loop.
-//        versions_->ReuseFileNumber(new_log_number);
-//        break;
-//      }
-//      delete log_;
-//      delete logfile_;
-//      logfile_ = lfile;
-//      logfile_number_ = new_log_number;
-//      log_ = new log::Writer(lfile);
-      imm_ = mem_;
-      has_imm_.store(true, std::memory_order_release);
-      mem_ = new MemTable(internal_comparator_);
-      mem_->Ref();
-      force = false;  // Do not force another compaction if have room
-      MaybeScheduleCompaction();
-    }
-  }
-  return s;
-}
+
 
 bool DBImpl::GetProperty(const Slice& property, std::string* value) {
   value->clear();
 
-  MutexLock l(&mutex_);
+//  MutexLock l(&mutex_);
+  MemTable* mem = mem_.load();
+  MemTable* imm = imm_.load();
   Slice in = property;
   Slice prefix("leveldb.");
   if (!in.starts_with(prefix)) return false;
@@ -1463,11 +1493,11 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
     return true;
   } else if (in == "approximate-memory-usage") {
     size_t total_usage = options_.block_cache->TotalCharge();
-    if (mem_) {
-      total_usage += mem_->ApproximateMemoryUsage();
+    if (mem) {
+      total_usage += mem->ApproximateMemoryUsage();
     }
-    if (imm_) {
-      total_usage += imm_->ApproximateMemoryUsage();
+    if (imm) {
+      total_usage += imm->ApproximateMemoryUsage();
     }
     char buf[50];
     std::snprintf(buf, sizeof(buf), "%llu",
@@ -1534,7 +1564,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       impl->logfile_number_ = new_log_number;
       impl->log_ = new log::Writer(lfile);
       impl->mem_ = new MemTable(impl->internal_comparator_);
-      impl->mem_->Ref();
+      impl->mem_.load()->Ref();
     }
   }
   if (s.ok() && save_manifest) {

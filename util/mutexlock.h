@@ -130,6 +130,9 @@ class SpinMutex {
  private:
   std::atomic<bool> locked_;
 };
+//TODO: implement a spin read wirte lock to control some short synchronization more
+// efficiently.
+
 
 // We want to prevent false sharing
 template <class T>

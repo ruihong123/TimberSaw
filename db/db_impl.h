@@ -26,7 +26,9 @@ class TableCache;
 class Version;
 class VersionEdit;
 class VersionSet;
-
+class Memtable_keeper{
+  std::deque<MemTable> memtables;
+};
 class DBImpl : public DB {
  public:
   DBImpl(const Options& options, const std::string& dbname);
@@ -131,7 +133,7 @@ class DBImpl : public DB {
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Status MakeRoomForWrite(bool force /* compact even if there is room? */)
+  Status MakeRoomForWrite(bool force, uint64_t seq_num)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -170,14 +172,15 @@ class DBImpl : public DB {
 
   // Lock over the persistent DB state.  Non-null iff successfully acquired.
   FileLock* db_lock_;
-
+  std::atomic<bool> mem_switching;
+  int thread_ready_num;
   // State below is protected by mutex_
   port::Mutex mutex_;
   SpinMutex spin_mutex;
   std::atomic<bool> shutting_down_;
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
-  MemTable* mem_;
-  MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
+  std::atomic<MemTable*> mem_;
+  std::atomic<MemTable*> imm_;  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
   uint64_t logfile_number_ GUARDED_BY(mutex_);
