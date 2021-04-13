@@ -554,6 +554,7 @@ void DBImpl::CompactMemTable() {
   VersionEdit edit;
   Version* base = versions_->current();
   usleep(1);
+  mutex_.AssertHeld();
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
@@ -1564,6 +1565,8 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       impl->logfile_number_ = new_log_number;
       impl->log_ = new log::Writer(lfile);
       impl->mem_ = new MemTable(impl->internal_comparator_);
+      impl->mem_.load()->SetFirstSeq(0);
+      impl->mem_.load()->SetLargestSeqSupposed(MEMTABLE_SEQ_SIZE-1);
       impl->mem_.load()->Ref();
     }
   }
