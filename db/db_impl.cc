@@ -515,9 +515,9 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 
   Status s;
   {
-    mutex_.Unlock();
+//    mutex_.Unlock();
     s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
-    mutex_.Lock();
+//    mutex_.Lock();
   }
 
 //  Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
@@ -1351,15 +1351,15 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
                (seq_num <= mem->Getlargest_seq_supposed())) {
       // There is room in current memtable
       break;
-    } else if (imm_.load() != nullptr) {
-      // We have filled up the current memtable, but the previous
-      // one is still being compacted, so we wait.
-      Log(options_.info_log, "Current memtable full; waiting...\n");
-      background_work_finished_signal_.Wait();
-    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-      // There are too many level-0 files.
-      Log(options_.info_log, "Too many L0 files; waiting...\n");
-      background_work_finished_signal_.Wait();
+//    } else if (imm_.load() != nullptr) {
+//      // We have filled up the current memtable, but the previous
+//      // one is still being compacted, so we wait.
+//      Log(options_.info_log, "Current memtable full; waiting...\n");
+//      background_work_finished_signal_.Wait();
+//    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+//      // There are too many level-0 files.
+//      Log(options_.info_log, "Too many L0 files; waiting...\n");
+//      background_work_finished_signal_.Wait();
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
       assert(versions_->PrevLogNumber() == 0);
