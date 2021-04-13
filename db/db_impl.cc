@@ -1384,7 +1384,7 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
         //set the flush flag for imm
         mem->SetFlushState(MemTable::FLUSH_REQUESTED);
         imm_.store(mem);
-        MaybeScheduleCompaction();
+//        MaybeScheduleCompaction();
       }else{
         delete temp_mem;
       };
