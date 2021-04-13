@@ -865,9 +865,9 @@ bool InlineSkipList<Comparator>::Insert(const char* key, Splice* splice,
   }
   assert(recompute_height <= max_height);
   if (recompute_height > 0) {
-    printf("recompute_height is %d", recompute_height);
-    printf("head_ Next(0) address is %p", head_->Next(0));
-    printf("head_ Next(recompute) address is %p", head_->Next(recompute_height));
+//    printf("recompute_height is %d", recompute_height);
+//    printf("head_ Next(0) address is %p", head_->Next(0));
+//    printf("head_ Next(recompute) address is %p", head_->Next(recompute_height));
 //    printf("splice print %p", splice->prev_[recompute_height]->Next(recompute_height));
     RecomputeSpliceLevels(key_decoded, splice, recompute_height);
 
