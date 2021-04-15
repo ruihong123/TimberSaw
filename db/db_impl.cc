@@ -504,7 +504,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   RemoteMemTableMetaData meta;
   meta.number = versions_->NewFileNumber();
