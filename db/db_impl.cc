@@ -573,7 +573,7 @@ void DBImpl::CompactMemTable() {
 
   if (s.ok()) {
     // Commit to the new state
-    imm_.load()->Unref();
+//    imm_.load()->Unref();
     imm_.store(nullptr);
     has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
@@ -1388,7 +1388,7 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
         imm_.store(mem);
         MaybeScheduleCompaction();
       }else{
-        delete temp_mem;
+        temp_mem->Unref();
       };
 
     }
