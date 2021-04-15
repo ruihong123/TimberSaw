@@ -547,14 +547,15 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 }
 
 void DBImpl::CompactMemTable() {
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
   assert(imm_ != nullptr);
 
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
   Version* base = versions_->current();
+  // wait for the ongoing writes for 1 millisecond.
   usleep(1);
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
@@ -1368,19 +1369,20 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
 //      mem_switching.store(true);
 
       MemTable* temp_mem = new MemTable(internal_comparator_);
-
+      uint64_t last_mem_seq = mem->Getlargest_seq_supposed();
+      temp_mem->SetFirstSeq(last_mem_seq);
+      // starting from this sequenctial number, the data should write the the new memtable
+      // set the immutable as seq_num - 1
+      temp_mem->SetLargestSeq(last_mem_seq - 1 + MEMTABLE_SEQ_SIZE);
+      temp_mem->Ref();
       //CAS strong means that one thread will definitedly win under the concurrent,
       // if it is weak then after the metable is full all the threads may gothrough the while
       // loop multiple times.
       if(mem_.compare_exchange_strong(mem, temp_mem)){
         has_imm_.store(true, std::memory_order_release);
-        temp_mem->Ref();
+
         force = false;  // Do not force another compaction if have room
-        temp_mem->SetFirstSeq(seq_num);
-        // starting from this sequenctial number, the data should write the the new memtable
-        // set the immutable as seq_num - 1
-        temp_mem->SetLargestSeqSupposed(seq_num - 1 + MEMTABLE_SEQ_SIZE);
-        mem->SetLargestSeqSupposed(seq_num-1);
+
         //set the flush flag for imm
         mem->SetFlushState(MemTable::FLUSH_REQUESTED);
         imm_.store(mem);

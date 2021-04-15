@@ -63,7 +63,7 @@ class MemTable {
   // in *status and return true.
   // Else, return false.
   bool Get(const LookupKey& key, std::string* value, Status* s);
-  void SetLargestSeqSupposed(uint64_t seq){
+  void SetLargestSeq(uint64_t seq){
     largest_seq_supposed = seq;
   }
   void SetFirstSeq(uint64_t seq){
