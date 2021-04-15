@@ -447,6 +447,7 @@ Status TableBuilder::Finish() {
                     + r->remote_dataindex_mrs.size();
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "");
+  printf("A table finsihed flushing\n");
 //  // Write footer
 //  if (ok()) {
 //    Footer footer;
