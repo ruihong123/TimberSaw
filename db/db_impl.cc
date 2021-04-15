@@ -512,7 +512,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   Iterator* iter = mem->NewIterator();
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta.number);
-  printf("now system start to serializae mem %p", mem);
+  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
 //    mutex_.Unlock();
@@ -575,7 +575,7 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     // Commit to the new state
     imm_.load()->Unref();
-    printf("mem %p has been deleted", imm);
+    printf("mem %p has been deleted\n", imm);
     imm_.store(nullptr);
     has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
