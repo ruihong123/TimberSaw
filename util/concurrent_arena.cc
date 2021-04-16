@@ -19,7 +19,7 @@ namespace leveldb {
 #endif
 // In order to initialize the thread local variable you need to initialize it
 // outside the class.
-__thread ConcurrentArena::Shard* ConcurrentArena::thread_local_shard = nullptr;
+__thread std::string* ConcurrentArena::thread_id = nullptr;
 namespace {
 // If the shard block size is too large, in the worst case, every core
 // allocates a block without populate it. If the shared block size is

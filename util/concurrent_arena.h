@@ -70,7 +70,7 @@ class ConcurrentArena : public Allocator {
                         });
   }
 
-  size_t ApproximateMemoryUsage() const {
+  size_t ApproximateMemoryUsage() {
     std::unique_lock<SpinMutex> lock(arena_mutex_, std::defer_lock);
     lock.lock();
     return arena_.ApproximateMemoryUsage() - ShardAllocatedAndUnused();
@@ -80,7 +80,7 @@ class ConcurrentArena : public Allocator {
     return memory_allocated_bytes_.load(std::memory_order_relaxed);
   }
 
-  size_t AllocatedAndUnused() const {
+  size_t AllocatedAndUnused() {
     return arena_allocated_and_unused_.load(std::memory_order_relaxed) +
            ShardAllocatedAndUnused();
   }
@@ -111,9 +111,13 @@ class ConcurrentArena : public Allocator {
   size_t shard_block_size_;
 
 //  CoreLocalArray<Shard> shards_;
-  static __thread Shard* thread_local_shard;
-  std::map<std::string, Shard*> Threadlocal_Shardmap;
-  static __thread std::string thread_id;
+//  static __thread Shard* thread_local_shard;
+  port::RWMutex shr_mutex;
+  // Here we use a string pointer rather that a real string, actually, here can be
+  // a unique pointer pointing to any location in the memory, as long as it is
+  // unique in the life of the thread
+  std::map<std::string*, Shard*> Threadlocal_Shardmap;
+  static __thread std::string* thread_id;
   Arena arena_;
   mutable SpinMutex arena_mutex_;
   std::atomic<size_t> arena_allocated_and_unused_;
@@ -124,15 +128,17 @@ class ConcurrentArena : public Allocator {
 
 //  Shard* Repick();
 
-  size_t ShardAllocatedAndUnused() const {
+  size_t ShardAllocatedAndUnused() {
     size_t total = 0;
     // Note: here we don't need the lock to control the access to map, because iterator
     // will not be invalidated by insert. BEsides, there is no delete at all in our design,
     // we should be safe.
+    shr_mutex.ReadLock();
     for (auto e :Threadlocal_Shardmap) {
       total += e.second->allocated_and_unused_.load(
           std::memory_order_relaxed);
     }
+    shr_mutex.ReadUnlock();
     return total;
   }
 
@@ -161,16 +167,25 @@ class ConcurrentArena : public Allocator {
 
     // pick a shard from which to allocate
 //    Shard* s = shards_.AccessAtCore(cpu & (shards_.Size() - 1));
-    if (thread_local_shard == nullptr){
-      thread_local_shard = new Shard();
-      auto myid = std::this_thread::get_id();
+
+    if(thread_id == nullptr){
+      std::thread::id myid = std::this_thread::get_id();
       std::stringstream ss;
       ss << myid;
-      std::string thread_id = std::string(ss.str());
-      Threadlocal_Shardmap.insert({thread_id, thread_local_shard});
+      thread_id = new std::string(ss.str());
     }
 
-    Shard* s = (Shard*) thread_local_shard;
+    auto check_result = Threadlocal_Shardmap.find(thread_id);
+    if (check_result == Threadlocal_Shardmap.end()){
+      shr_mutex.WriteLock();
+      auto this_shard = new Shard();
+      Threadlocal_Shardmap.insert({thread_id, this_shard});
+      shr_mutex.WriteUnlock();
+    }
+
+    shr_mutex.ReadLock();
+    Shard* s = (Shard*) Threadlocal_Shardmap.at(thread_id);
+    shr_mutex.ReadUnlock();
 //    if (!s->mutex.try_lock()) {
 //      s = Repick();
 //      s->mutex.lock();
