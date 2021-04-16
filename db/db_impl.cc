@@ -1363,10 +1363,18 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) 
     } else if (imm_.load() != nullptr) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
+      // the wait will never get signalled.
+
+      // We check the imm again in the while loop, because the state may have already
+      // been changed before you aquire the lock
       mutex_.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
-      background_work_finished_signal_.Wait();
+      while (imm_.load() != nullptr){
+        background_work_finished_signal_.Wait();
+      }
       mutex_.Unlock();
+
+
 //    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
 //      // There are too many level-0 files.
 //      Log(options_.info_log, "Too many L0 files; waiting...\n");

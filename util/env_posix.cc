@@ -809,14 +809,14 @@ void PosixEnv::Schedule(
     std::thread background_thread(PosixEnv::BackgroundThreadEntryPoint, this);
     background_thread.detach();
   }
-  background_work_queue_.emplace(background_work_function, background_work_arg);
-  background_work_mutex_.Unlock();
+
   // If the queue is empty, the background thread may be waiting for work.
   if (background_work_queue_.empty()) {
     background_work_cv_.Signal();
   }
 
-
+  background_work_queue_.emplace(background_work_function, background_work_arg);
+  background_work_mutex_.Unlock();
 }
 
 void PosixEnv::BackgroundThreadMain() {
