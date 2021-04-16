@@ -27,7 +27,24 @@ class MemTable {
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
   ~MemTable();
+  struct KeyComparator {
+    typedef Slice DecodedType;
 
+    virtual DecodedType decode_key(const char* key) const {
+      // The format of key is frozen and can be terated as a part of the API
+      // contract. Refer to MemTable::Add for details.
+      return GetLengthPrefixedSlice(key);
+    }
+    const InternalKeyComparator comparator;
+    explicit KeyComparator(const InternalKeyComparator& c) : comparator(c) {}
+    int operator()(const char* a, const char* b) const;
+    int operator()(const char* prefix_len_key,
+                   const DecodedType& key) const;
+  };
+  typedef InlineSkipList<KeyComparator> Table;
+  Table* GetTable(){
+    return &table_;
+  }
   // Increase reference count.
   void Ref() { refs_.fetch_add(1); }
 
@@ -88,22 +105,8 @@ class MemTable {
   friend class MemTableIterator;
   friend class MemTableBackwardIterator;
 
-  struct KeyComparator {
-    typedef Slice DecodedType;
 
-    virtual DecodedType decode_key(const char* key) const {
-      // The format of key is frozen and can be terated as a part of the API
-      // contract. Refer to MemTable::Add for details.
-      return GetLengthPrefixedSlice(key);
-    }
-    const InternalKeyComparator comparator;
-    explicit KeyComparator(const InternalKeyComparator& c) : comparator(c) {}
-    int operator()(const char* a, const char* b) const;
-    int operator()(const char* prefix_len_key,
-                           const DecodedType& key) const;
-  };
 
-  typedef InlineSkipList<KeyComparator> Table;
 
 
   KeyComparator comparator_;
