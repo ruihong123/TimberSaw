@@ -1312,13 +1312,15 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
     WriteBatchInternal::SetSequence(updates, sequence);
 
-    if (sequence >= mem_.load()->GetFirstseq()) {
-      status = WriteBatchInternal::InsertInto(updates, mem_);
-    }else{
-      // TODO: some write may have write to immtable, the immutable need to be notified
-      // when all the outgoing write on this table have finished and flush to storage
-      status = WriteBatchInternal::InsertInto(updates, imm_);
-    }
+//    if (sequence >= mem_.load()->GetFirstseq()) {
+//      status = WriteBatchInternal::InsertInto(updates, mem_);
+//    }else{
+//      // TODO: some write may have write to immtable, the immutable need to be notified
+//      // when all the outgoing write on this table have finished and flush to storage
+//      status = WriteBatchInternal::InsertInto(updates, imm_);
+//    }
+    status = WriteBatchInternal::InsertInto(updates, mem);
+
   }
 //  if (mem_switching){}
 //  thread_ready_num++;
