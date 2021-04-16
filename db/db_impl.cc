@@ -1296,8 +1296,8 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  Status status = Status::OK();
   size_t kv_num = WriteBatchInternal::Count(updates);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
-
-  Status status = MakeRoomForWrite(updates == nullptr, sequence);
+  MemTable* mem;
+  Status status = MakeRoomForWrite(updates == nullptr, sequence, mem);
 
 //    size_t kv_num = 1;
 //  spin_mutex.lock();
@@ -1330,14 +1330,14 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 }
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
-Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
+Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
 //  mutex_.AssertHeld();
 //  assert(!writers_.empty());
   bool allow_delay = !force;
   Status s = Status::OK();
 
   while (true) {
-    MemTable* mem = mem_.load();
+    mem_r = mem_.load();
     if (!bg_error_.ok()) {
       // Yield previous error
       s = bg_error_;
@@ -1355,7 +1355,7 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
 ////      allow_delay = false;  // Do not delay a single write more than once
 ////      mutex_.Lock();
     } else if (!force &&
-               (seq_num <= mem->Getlargest_seq_supposed())) {
+               (seq_num <= mem_r->Getlargest_seq_supposed())) {
       // There is room in current memtable
       break;
     } else if (imm_.load() != nullptr) {
@@ -1375,23 +1375,24 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num) {
 //      mem_switching.store(true);
 
       MemTable* temp_mem = new MemTable(internal_comparator_);
-      uint64_t last_mem_seq = mem->Getlargest_seq_supposed();
+      uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
       temp_mem->SetFirstSeq(last_mem_seq);
       // starting from this sequenctial number, the data should write the the new memtable
       // set the immutable as seq_num - 1
       temp_mem->SetLargestSeq(last_mem_seq - 1 + MEMTABLE_SEQ_SIZE);
       temp_mem->Ref();
+      mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
+
       //CAS strong means that one thread will definitedly win under the concurrent,
       // if it is weak then after the metable is full all the threads may gothrough the while
       // loop multiple times.
-      if(mem_.compare_exchange_strong(mem, temp_mem)){
+      if(mem_.compare_exchange_strong(mem_r, temp_mem)){
         has_imm_.store(true, std::memory_order_release);
 
         force = false;  // Do not force another compaction if have room
 
         //set the flush flag for imm
-        mem->SetFlushState(MemTable::FLUSH_REQUESTED);
-        imm_.store(mem);
+        imm_.store(mem_r);
         MaybeScheduleCompaction();
       }else{
         temp_mem->Unref();

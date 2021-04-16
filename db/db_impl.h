@@ -133,7 +133,7 @@ class DBImpl : public DB {
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Status MakeRoomForWrite(bool force, uint64_t seq_num)
+  Status MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
@@ -179,6 +179,7 @@ class DBImpl : public DB {
   SpinMutex spin_mutex;
   std::atomic<bool> shutting_down_;
   port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
+  SpinMutex switch_mtx;
   std::atomic<MemTable*> mem_;
   std::atomic<MemTable*> imm_;  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
