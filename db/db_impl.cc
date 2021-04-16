@@ -670,9 +670,9 @@ void DBImpl::RecordBackgroundError(const Status& s) {
 
 void DBImpl::MaybeScheduleCompaction() {
 //  mutex_.AssertHeld();
-  if (background_compaction_scheduled_) {
-    // Already scheduled
-  } else if (shutting_down_.load(std::memory_order_acquire)) {
+// In my implementation the Maybeschedule Compaction will only be triggered once
+// by the thread which CAS the memtable successfully.
+ if (shutting_down_.load(std::memory_order_acquire)) {
     // DB is being deleted; no more background compactions
   } else if (!bg_error_.ok()) {
     // Already got an error; no more changes
@@ -680,7 +680,7 @@ void DBImpl::MaybeScheduleCompaction() {
              !versions_->NeedsCompaction()) {
     // No work to be done
   } else {
-    background_compaction_scheduled_ = true;
+//    background_compaction_scheduled_ = true;
     env_->Schedule(&DBImpl::BGWork, this);
   }
 }
@@ -692,7 +692,7 @@ void DBImpl::BGWork(void* db) {
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a lock, which data structure is this mutex protecting
   MutexLock l(&mutex_);
-  assert(background_compaction_scheduled_);
+//  assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {
@@ -701,7 +701,7 @@ void DBImpl::BackgroundCall() {
     BackgroundCompaction();
   }
 
-  background_compaction_scheduled_ = false;
+//  background_compaction_scheduled_ = false;
 
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
@@ -1366,7 +1366,7 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) 
       // the wait will never get signalled.
 
       // We check the imm again in the while loop, because the state may have already
-      // been changed before you aquire the lock
+      // been changed before you acquire the lock.
       mutex_.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       while (imm_.load() != nullptr){

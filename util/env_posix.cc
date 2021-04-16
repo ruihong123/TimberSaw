@@ -802,6 +802,14 @@ void PosixEnv::Schedule(
     void* background_work_arg) {
   background_work_mutex_.Lock();
   //TOTHINK: why there is a lock limiting one thread to do the compaction at the same time
+  // Can we simply create a pool of threads and then every time we signal all the
+  // pool threads, the thread check whether there is available job to do.
+  // There are two options:
+  // 1.The scheduled job should not picked by the thread itself (eg which table to
+  // flush or which tables to compact), the job should be confirmed out side the thread.
+  // 2. the thread itself pick the job and that needs a mutex, or lock free method. potentially you
+  // can decide the job when you are inserting the job to the queue. so that there is no
+  // lock inside the thread execution.
 
   // Start the background thread, if we haven't done so already.
   if (!started_background_thread_) {
