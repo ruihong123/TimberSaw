@@ -10,8 +10,13 @@
 #include "util/coding.h"
 
 namespace leveldb {
-
-
+//
+//static Slice GetLengthPrefixedSlice(const char* data) {
+//  uint32_t len;
+//  const char* p = data;
+//  p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
+//  return Slice(p, len);
+//}
 
 MemTable::MemTable(const InternalKeyComparator& comparator)
     : comparator_(comparator), refs_(0), table_(comparator_, &arena_) {}
@@ -77,7 +82,7 @@ class MemTableIterator : public Iterator {
 
 Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 
-void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
+  void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
                    const Slice& value) {
   // Format of an entry is concatenation of:
   //  key_size     : varint32 of internal_key.size()
@@ -91,6 +96,8 @@ void MemTable::Add(SequenceNumber s, ValueType type, const Slice& key,
                              internal_key_size + VarintLength(val_size) +
                              val_size;
   char* buf = nullptr;
+  // TODO this is not correct since, the key and value should write to 1
+  //  sizeof(Node) larger than the buf now!
   buf = table_.AllocateKey(encoded_len);
   char* p = EncodeVarint32(buf, internal_key_size);
   std::memcpy(p, key.data(), key_size);

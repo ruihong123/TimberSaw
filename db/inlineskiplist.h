@@ -477,7 +477,7 @@ InlineSkipList<Comparator>::FindGreaterOrEqual(const char* key) const {
   Node* x = head_;
   int level = GetMaxHeight() - 1;
   Node* last_bigger = nullptr;
-  const DecodedKey key_decoded = GetLengthPrefixedSlice(key);
+  const DecodedKey key_decoded = compare_.decode_key(key);
   while (true) {
     Node* next = x->Next(level);
     if (next != nullptr) {
@@ -756,8 +756,10 @@ template <class Comparator>
 template <bool UseCAS>
 bool InlineSkipList<Comparator>::Insert(const char* key, Splice* splice,
                                         bool allow_partial_splice_fix) {
+  //TOTHINK Does key contain both key and value?
   Node* x = reinterpret_cast<Node*>(const_cast<char*>(key)) - 1;
   const DecodedKey key_decoded = compare_.decode_key(key);
+  std::string key_snapshot = key_decoded.ToString();
   int height = x->UnstashHeight();
   assert(height >= 1 && height <= kMaxHeight_);
 
@@ -965,6 +967,7 @@ bool InlineSkipList<Comparator>::Insert(const char* key, Splice* splice,
   } else {
     splice->height_ = 0;
   }
+  assert(key_snapshot == key_decoded.ToString());
   return true;
 }
 

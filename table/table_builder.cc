@@ -81,6 +81,10 @@ TableBuilder::~TableBuilder() {
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
   }
+  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->options.env->rdma_mg;
+  rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr, "FlushBuffer");
+  rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr, "FlushBuffer");
+  rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr, "FlushBuffer");
   delete rep_->data_block;
   delete rep_->index_block;
   delete rep_;

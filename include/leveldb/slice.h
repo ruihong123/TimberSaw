@@ -120,7 +120,14 @@ inline int Slice::compare(const Slice& b) const {
   }
   return r;
 }
+struct SliceParts {
+  SliceParts(const Slice* _parts, int _num_parts)
+      : parts(_parts), num_parts(_num_parts) {}
+  SliceParts() : parts(nullptr), num_parts(0) {}
 
+  const Slice* parts;
+  int num_parts;
+};
 }  // namespace leveldb
 
 #endif  // STORAGE_LEVELDB_INCLUDE_SLICE_H_

@@ -548,9 +548,13 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 
 void DBImpl::CompactMemTable() {
   mutex_.AssertHeld();
-  assert(imm_ != nullptr);
+  //TOTHINK What will happen if we remove the mutex in the future?
   MemTable* mem = mem_.load();
   MemTable* imm = imm_.load();
+  assert(imm != nullptr);
+  assert(!imm->CheckFlushScheduled());
+  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
+
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
   Version* base = versions_->current();
