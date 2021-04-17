@@ -23,6 +23,7 @@ class MemTable {
   enum FlushStateEnum { FLUSH_NOT_REQUESTED, FLUSH_REQUESTED, FLUSH_SCHEDULED };
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
+  std::atomic<bool> able_to_flush = false;
   explicit MemTable(const InternalKeyComparator& comparator);
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
@@ -101,6 +102,12 @@ class MemTable {
   uint64_t GetFirstseq() const{
     return first_seq;
   }
+  void increase_kv_num(int num){
+    kv_num.fetch_add(num);
+    if (kv_num >= MEMTABLE_SEQ_SIZE){
+      able_to_flush.store(true);
+    }
+  }
  private:
   friend class MemTableIterator;
   friend class MemTableBackwardIterator;
@@ -111,6 +118,8 @@ class MemTable {
 
   KeyComparator comparator_;
   std::atomic<int> refs_;
+  std::atomic<int> kv_num = 0;
+
   ConcurrentArena arena_;
   Table table_;
   std::atomic<FlushStateEnum> flush_state_ = FLUSH_NOT_REQUESTED;

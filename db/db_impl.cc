@@ -559,7 +559,9 @@ void DBImpl::CompactMemTable() {
   VersionEdit edit;
   Version* base = versions_->current();
   // wait for the ongoing writes for 1 millisecond.
-  usleep(1);
+  while(!imm->able_to_flush){
+    usleep(1);
+  }
   mutex_.AssertHeld();
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
@@ -579,12 +581,13 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     // Commit to the new state
     printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
+    MemTable* imm = imm_.load();
 
-    imm_.load()->Unref();
+    imm->Unref();
     printf("mem %p has been deleted\n", imm);
     printf("mem %p has is still alive\n", mem);
     printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
-    imm_.store(nullptr);
+    imm = nullptr;
     has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
   } else {
@@ -1324,7 +1327,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //      status = WriteBatchInternal::InsertInto(updates, imm_);
 //    }
     status = WriteBatchInternal::InsertInto(updates, mem);
-
+    mem->increase_kv_num(kv_num);
   }
 //  if (mem_switching){}
 //  thread_ready_num++;
@@ -1363,6 +1366,10 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) 
     } else if (!force &&
                (seq_num <= mem_r->Getlargest_seq_supposed())) {
       // There is room in current memtable
+      break;
+    } else if (seq_num <= mem_r->GetFirstseq()) {
+      assert(imm_.load()!= nullptr);
+      mem_r = imm_.load();
       break;
     } else if (imm_.load() != nullptr) {
       // We have filled up the current memtable, but the previous
