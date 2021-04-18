@@ -1376,6 +1376,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // if it is weak then after the metable is full all the threads may gothrough the while
       // loop multiple times.
       if(mem_.compare_exchange_strong(mem_r, temp_mem)){
+        memtable_counter.fetch_add(1);
         has_imm_.store(true, std::memory_order_release);
 
         force = false;  // Do not force another compaction if have room
