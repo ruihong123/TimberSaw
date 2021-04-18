@@ -1317,7 +1317,8 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   // and it is supposed to write to the new memtable which has not been created yet.
   // hint how about set the metable barrier as seq_num rather than memory size?
 
-  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
+  if (status.ok()) {  // nullptr batch is for compactions
+    assert(updates != nullptr);
     WriteBatchInternal::SetSequence(updates, sequence);
 
 //    if (sequence >= mem_.load()->GetFirstseq()) {
@@ -1328,7 +1329,6 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //      status = WriteBatchInternal::InsertInto(updates, imm_);
 //    }
     status = WriteBatchInternal::InsertInto(updates, mem);
-    //
     mem->increase_kv_num(kv_num);
   }
 //  if (mem_switching){}
@@ -1667,8 +1667,8 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       impl->logfile_number_ = new_log_number;
       impl->log_ = new log::Writer(lfile);
       impl->mem_ = new MemTable(impl->internal_comparator_);
-      impl->mem_.load()->SetFirstSeq(0);
-      impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE-1);
+      impl->mem_.load()->SetFirstSeq(1);
+      impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE);
       impl->mem_.load()->Ref();
     }
   }

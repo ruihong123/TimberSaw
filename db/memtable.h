@@ -102,8 +102,9 @@ class MemTable {
   uint64_t GetFirstseq() const{
     return first_seq;
   }
-  void increase_kv_num(int num){
+  void increase_kv_num(size_t num){
     kv_num.fetch_add(num);
+    assert(kv_num == 1);
     //TODO; For a write batch you the write may cross the boder, we need to modify
     // the boder of the next table
     if (kv_num >= MEMTABLE_SEQ_SIZE){
@@ -120,7 +121,7 @@ class MemTable {
 
   KeyComparator comparator_;
   std::atomic<int> refs_;
-  std::atomic<int> kv_num = 0;
+  std::atomic<size_t> kv_num = 0;
 
   ConcurrentArena arena_;
   Table table_;
