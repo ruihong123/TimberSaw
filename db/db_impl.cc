@@ -568,7 +568,6 @@ void DBImpl::CompactMemTable() {
     }
   }
   imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
-  mutex_.AssertHeld();
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
@@ -587,6 +586,7 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     // Commit to the new state
 //    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
+    mutex_.Lock();
     MemTable* imm = imm_.load();
 
     imm->Unref();
@@ -594,6 +594,8 @@ void DBImpl::CompactMemTable() {
 //    printf("mem %p has is still alive\n", mem);
 //    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
     imm_.store(nullptr);
+    mutex_.Unlock();
+    Memtable_full_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
   } else {
@@ -704,7 +706,7 @@ void DBImpl::BGWork(void* db) {
 
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a lock, which data structure is this mutex protecting
-  mutex_.Lock();
+//  mutex_.Lock();
 //  assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
@@ -719,12 +721,11 @@ void DBImpl::BackgroundCall() {
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
   MaybeScheduleCompaction();
-  mutex_.Unlock();
-  Memtable_full_cv.SignalAll();
+//  mutex_.Unlock();
 }
 
 void DBImpl::BackgroundCompaction() {
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
 
   if (imm_.load() != nullptr) {
     CompactMemTable();
