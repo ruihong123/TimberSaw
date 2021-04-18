@@ -1382,6 +1382,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         //set the flush flag for imm
         imm_.store(mem_r);
         MaybeScheduleCompaction();
+        mem_r = temp_mem;
         return s;
       }else{
         temp_mem->Unref();
