@@ -1304,7 +1304,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   size_t kv_num = WriteBatchInternal::Count(updates);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
   MemTable* mem;
-  Status status = MakeRoomForWrite(updates == nullptr, sequence, mem);
+  Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
 
 //    size_t kv_num = 1;
 //  spin_mutex.lock();
@@ -1338,67 +1338,25 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  }
   return status;
 }
-// REQUIRES: mutex_ is held
-// REQUIRES: this thread is currently at the front of the writer queue
-Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
-//  mutex_.AssertHeld();
-//  assert(!writers_.empty());
-  bool allow_delay = !force;
+Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
   Status s = Status::OK();
-
-  while (true) {
-    mem_r = mem_.load();
-    if (!bg_error_.ok()) {
-      // Yield previous error
-      s = bg_error_;
-      break;
-//    } else if (allow_delay && versions_->NumLevelFiles(0) >=
-//                                  config::kL0_SlowdownWritesTrigger) {
-//      // We are getting close to hitting a hard limit on the number of
-//      // L0 files.  Rather than delaying a single write by several
-//      // seconds when we hit the hard limit, start delaying each
-//      // individual write by 1ms to reduce latency variance.  Also,
-//      // this delay hands over some CPU to the compaction thread in
-//      // case it is sharing the same core as the writer.
-////      mutex_.Unlock();
-////      env_->SleepForMicroseconds(1000);
-////      allow_delay = false;  // Do not delay a single write more than once
-////      mutex_.Lock();
-    } else if (seq_num <= mem_r->GetFirstseq()) {
-      assert(imm_.load()!= nullptr);
-      mem_r = imm_.load();
-      break;
-    } else if (!force &&
-               (seq_num <= mem_r->Getlargest_seq_supposed())) {
-      // There is room in current memtable
-      break;
-
-    } else if (imm_.load() != nullptr) {
+  mem_r = mem_.load();
+  // First check whether we need to switch the table.
+  while(seq_num > mem_r->Getlargest_seq_supposed()){
+    if (imm_.load() != nullptr) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
       // the wait will never get signalled.
 
-      // We check the imm again in the while loop, because the state may have already
-      // been changed before you acquire the lock.
+      // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
       mutex_.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
-      while (imm_.load() != nullptr){
+      while (imm_.load() != nullptr) {
         background_work_finished_signal_.Wait();
       }
       mutex_.Unlock();
-
-
-//    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
-//      // There are too many level-0 files.
-//      Log(options_.info_log, "Too many L0 files; waiting...\n");
-//      background_work_finished_signal_.Wait();
-    } else {
-      // Attempt to switch to a new memtable and trigger compaction of old
+    }else{
       assert(versions_->PrevLogNumber() == 0);
-
-
-//      mem_switching.store(true);
-
       MemTable* temp_mem = new MemTable(internal_comparator_);
       uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
       temp_mem->SetFirstSeq(last_mem_seq);
@@ -1408,7 +1366,7 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) 
       temp_mem->Ref();
       mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
 
-      //CAS strong means that one thread will definitedly win under the concurrent,
+      // CAS strong means that one thread will definitedly win under the concurrent,
       // if it is weak then after the metable is full all the threads may gothrough the while
       // loop multiple times.
       if(mem_.compare_exchange_strong(mem_r, temp_mem)){
@@ -1419,14 +1377,115 @@ Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) 
         //set the flush flag for imm
         imm_.store(mem_r);
         MaybeScheduleCompaction();
+        return s;
       }else{
         temp_mem->Unref();
+        mem_r = mem_.load();
       };
-
     }
   }
-  return s;
+  //if not which table should this writer need to write?
+  while(true){
+    if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()){
+      return s;
+    }else {
+      mem_r = imm_.load();
+      assert(imm_.load()!= nullptr);
+      if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
+        return s;
+      }
+    }
+  }
 }
+// REQUIRES: mutex_ is held
+// REQUIRES: this thread is currently at the front of the writer queue
+//Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
+////  mutex_.AssertHeld();
+////  assert(!writers_.empty());
+//  bool allow_delay = !force;
+//  Status s = Status::OK();
+//
+//  while (true) {
+//    mem_r = mem_.load();
+//    if (!bg_error_.ok()) {
+//      // Yield previous error
+//      s = bg_error_;
+//      break;
+////    } else if (allow_delay && versions_->NumLevelFiles(0) >=
+////                                  config::kL0_SlowdownWritesTrigger) {
+////      // We are getting close to hitting a hard limit on the number of
+////      // L0 files.  Rather than delaying a single write by several
+////      // seconds when we hit the hard limit, start delaying each
+////      // individual write by 1ms to reduce latency variance.  Also,
+////      // this delay hands over some CPU to the compaction thread in
+////      // case it is sharing the same core as the writer.
+//////      mutex_.Unlock();
+//////      env_->SleepForMicroseconds(1000);
+//////      allow_delay = false;  // Do not delay a single write more than once
+//////      mutex_.Lock();
+//    } else if (seq_num <= mem_r->GetFirstseq()) {
+//      assert(imm_.load()!= nullptr);
+//      mem_r = imm_.load();
+//      break;
+//    } else if (!force &&
+//               (seq_num <= mem_r->Getlargest_seq_supposed())) {
+//      // There is room in current memtable
+//      break;
+//
+//    } else if (imm_.load() != nullptr) {
+//      // We have filled up the current memtable, but the previous
+//      // one is still being compacted, so we wait.
+//      // the wait will never get signalled.
+//
+//      // We check the imm again in the while loop, because the state may have already
+//      // been changed before you acquire the lock.
+//      mutex_.Lock();
+//      Log(options_.info_log, "Current memtable full; waiting...\n");
+//      while (imm_.load() != nullptr){
+//        background_work_finished_signal_.Wait();
+//      }
+//      mutex_.Unlock();
+//
+//
+////    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+////      // There are too many level-0 files.
+////      Log(options_.info_log, "Too many L0 files; waiting...\n");
+////      background_work_finished_signal_.Wait();
+//    } else {
+//      // Attempt to switch to a new memtable and trigger compaction of old
+//      assert(versions_->PrevLogNumber() == 0);
+//
+//
+////      mem_switching.store(true);
+//
+//      MemTable* temp_mem = new MemTable(internal_comparator_);
+//      uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
+//      temp_mem->SetFirstSeq(last_mem_seq);
+//      // starting from this sequenctial number, the data should write the the new memtable
+//      // set the immutable as seq_num - 1
+//      temp_mem->SetLargestSeq(last_mem_seq - 1 + MEMTABLE_SEQ_SIZE);
+//      temp_mem->Ref();
+//      mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
+//
+//      //CAS strong means that one thread will definitedly win under the concurrent,
+//      // if it is weak then after the metable is full all the threads may gothrough the while
+//      // loop multiple times.
+//      if(mem_.compare_exchange_strong(mem_r, temp_mem)){
+//        has_imm_.store(true, std::memory_order_release);
+//
+//        force = false;  // Do not force another compaction if have room
+//
+//        //set the flush flag for imm
+//        imm_.store(mem_r);
+//        MaybeScheduleCompaction();
+//      }else{
+//        temp_mem->Unref();
+//      };
+//
+//    }
+//  }
+//  return s;
+//}
 
 // REQUIRES: Writer list must be non-empty
 // REQUIRES: First writer must have a non-null batch
