@@ -135,7 +135,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
       db_lock_(nullptr),
       shutting_down_(false),
-      background_work_finished_signal_(&mutex_),
+      Memtable_full_cv(&mutex_),
       mem_(nullptr),
       imm_(nullptr),
       has_imm_(false),
@@ -154,7 +154,7 @@ DBImpl::~DBImpl() {
   mutex_.Lock();
   shutting_down_.store(true, std::memory_order_release);
   while (background_compaction_scheduled_) {
-    background_work_finished_signal_.Wait();
+    Memtable_full_cv.Wait();
   }
   mutex_.Unlock();
 
@@ -720,7 +720,7 @@ void DBImpl::BackgroundCall() {
   // so reschedule another compaction if needed.
   MaybeScheduleCompaction();
   mutex_.Unlock();
-  background_work_finished_signal_.SignalAll();
+  Memtable_full_cv.SignalAll();
 }
 
 void DBImpl::BackgroundCompaction() {
@@ -950,7 +950,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       if (imm_ != nullptr) {
         CompactMemTable();
         // Wake up MakeRoomForWrite() if necessary.
-        background_work_finished_signal_.SignalAll();
+        Memtable_full_cv.SignalAll();
       }
       mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
