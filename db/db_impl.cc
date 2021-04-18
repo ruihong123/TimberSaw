@@ -553,7 +553,6 @@ void DBImpl::CompactMemTable() {
   MemTable* imm = imm_.load();
   assert(imm != nullptr);
   assert(!imm->CheckFlushScheduled());
-  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
 
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
@@ -562,6 +561,7 @@ void DBImpl::CompactMemTable() {
   while(!imm->able_to_flush){
     usleep(1);
   }
+  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
   mutex_.AssertHeld();
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
@@ -1338,6 +1338,8 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  }
   return status;
 }
+// TOTHINK The write batch should not too large. other wise the wait function may
+// memtable could overflow even before the actual write.
 Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
   Status s = Status::OK();
   mem_r = mem_.load();
@@ -1380,15 +1382,21 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         return s;
       }else{
         temp_mem->Unref();
-        mem_r = mem_.load();
-      };
+
+      }
     }
+    mem_r = mem_.load();
+    // For the safety concern (such as the thread get context switch)
+    // the mem_ may not be the one this table should write, need to go through
+    // the table searching procedure below.
   }
   //if not which table should this writer need to write?
   while(true){
     if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()){
       return s;
     }else {
+      // get the snapshot for imm then check it so that this memtable pointer is guarantee
+      // to be the one this thread want.
       mem_r = imm_.load();
       assert(imm_.load()!= nullptr);
       if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
