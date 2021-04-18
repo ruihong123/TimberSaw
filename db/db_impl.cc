@@ -1381,6 +1381,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         assert(seq_num > mem_r->GetFirstseq());
         Memtable_full_cv.Wait();
         printf("thread was waked up\n");
+        mem_r = mem_.load();
       }
       mutex_.Unlock();
     }else{
@@ -1401,6 +1402,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         assert(imm_.load() == nullptr);
         imm_.store(mem_r);
         MaybeScheduleCompaction();
+        // if we have create a new table then the new table will definite be
+        // the table we will write.
         mem_r = temp_mem;
         mutex_.Unlock();
         return s;
