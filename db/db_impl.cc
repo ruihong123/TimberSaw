@@ -1359,10 +1359,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       assert(versions_->PrevLogNumber() == 0);
       MemTable* temp_mem = new MemTable(internal_comparator_);
       uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
-      temp_mem->SetFirstSeq(last_mem_seq);
+      temp_mem->SetFirstSeq(last_mem_seq+1);
       // starting from this sequenctial number, the data should write the the new memtable
       // set the immutable as seq_num - 1
-      temp_mem->SetLargestSeq(last_mem_seq - 1 + MEMTABLE_SEQ_SIZE);
+      temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
       temp_mem->Ref();
       mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
 
