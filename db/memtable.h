@@ -104,6 +104,8 @@ class MemTable {
   }
   void increase_kv_num(int num){
     kv_num.fetch_add(num);
+    //TODO; For a write batch you the write may cross the boder, we need to modify
+    // the boder of the next table
     if (kv_num >= MEMTABLE_SEQ_SIZE){
       able_to_flush.store(true);
     }
