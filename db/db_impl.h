@@ -210,6 +210,7 @@ class DBImpl : public DB {
 
   CompactionStats stats_[config::kNumLevels] GUARDED_BY(mutex_);
   std::atomic<size_t> memtable_counter = 0;
+  std::atomic<size_t> kv_counter = 0;
 };
 
 // Sanitize db options.  The caller should delete result.info_log if
