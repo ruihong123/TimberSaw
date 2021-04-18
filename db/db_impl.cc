@@ -1391,6 +1391,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         imm_.store(mem_r);
         MaybeScheduleCompaction();
         mem_r = temp_mem;
+        mutex_.Unlock();
         return s;
       }
       mutex_.Unlock();
