@@ -1667,8 +1667,8 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       impl->logfile_number_ = new_log_number;
       impl->log_ = new log::Writer(lfile);
       impl->mem_ = new MemTable(impl->internal_comparator_);
-      impl->mem_.load()->SetFirstSeq(1);
-      impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE);
+      impl->mem_.load()->SetFirstSeq(0);
+      impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE-1);
       impl->mem_.load()->Ref();
     }
   }
