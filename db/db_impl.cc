@@ -1306,7 +1306,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   assert(kv_num == 1);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
   //todo: remove
-//  kv_counter0.fetch_add(1);
+  kv_counter0.fetch_add(1);
   MemTable* mem;
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
 
@@ -1338,7 +1338,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     printf("Weird status not OK");
     assert(0==1);
   }
-//  kv_counter1.fetch_add(1);
+  kv_counter1.fetch_add(1);
 //  if (mem_switching){}
 //  thread_ready_num++;
 //  printf("thread ready %d\n", thread_ready_num);
@@ -1353,7 +1353,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   Status s = Status::OK();
   //Get a snapshot it is vital for the CAS but not vital for the wait logic.
   mem_r = mem_.load();
-  // First check whether we need to switch the table.
+  // First check whether we need to switch the table, we do not lock here, because
+  // most of the time the memtable will not be switched. we will lock inside and
+  // get the table
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
     // for a new table.
@@ -1372,37 +1374,26 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
       mutex_.Unlock();
     }else{
-      assert(versions_->PrevLogNumber() == 0);
-      MemTable* temp_mem = new MemTable(internal_comparator_);
-      uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
-      temp_mem->SetFirstSeq(last_mem_seq+1);
-      // starting from this sequenctial number, the data should write the the new memtable
-      // set the immutable as seq_num - 1
-      temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
-      temp_mem->Ref();
-      mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
-
-      // CAS strong means that one thread will definitedly win under the concurrent,
-      // if it is weak then after the metable is full all the threads may gothrough the while
-      // loop multiple times.
-      if(mem_.compare_exchange_strong(mem_r, temp_mem)){
-        memtable_counter.fetch_add(1);
-        has_imm_.store(true, std::memory_order_release);
-
-        force = false;  // Do not force another compaction if have room
-
+      mutex_.Lock();
+      mem_r = mem_.load();
+      if (imm_.load() == nullptr && seq_num > mem_r->Getlargest_seq_supposed()){
+        assert(versions_->PrevLogNumber() == 0);
+        MemTable* temp_mem = new MemTable(internal_comparator_);
+        uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
+        temp_mem->SetFirstSeq(last_mem_seq+1);
+        // starting from this sequenctial number, the data should write the the new memtable
+        // set the immutable as seq_num - 1
+        temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
+        temp_mem->Ref();
+        mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
         //set the flush flag for imm
-//        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
-//        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
         assert(imm_.load() == nullptr);
         imm_.store(mem_r);
         MaybeScheduleCompaction();
         mem_r = temp_mem;
         return s;
-      }else{
-        temp_mem->Unref();
-
       }
+      mutex_.Unlock();
     }
     mem_r = mem_.load();
     // For the safety concern (such as the thread get context switch)
@@ -1426,6 +1417,85 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
     }
   }
 }
+//// TOTHINK The write batch should not too large. other wise the wait function may
+//// memtable could overflow even before the actual write.
+//Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
+//  Status s = Status::OK();
+//  //Get a snapshot it is vital for the CAS but not vital for the wait logic.
+//  mem_r = mem_.load();
+//  // First check whether we need to switch the table.
+//  while(seq_num > mem_r->Getlargest_seq_supposed()){
+//    //before switch the table we need to check whether there is enough room
+//    // for a new table.
+//    if (imm_.load() != nullptr) {
+//      // We have filled up the current memtable, but the previous
+//      // one is still being compacted, so we wait.
+//      // the wait will never get signalled.
+//
+//      // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
+//      mutex_.Lock();
+//      Log(options_.info_log, "Current memtable full; waiting...\n");
+//      mem_r = mem_.load();
+//      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
+//        assert(seq_num > mem_r->GetFirstseq());
+//        background_work_finished_signal_.Wait();
+//      }
+//      mutex_.Unlock();
+//    }else{
+//      assert(versions_->PrevLogNumber() == 0);
+//      MemTable* temp_mem = new MemTable(internal_comparator_);
+//      uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
+//      temp_mem->SetFirstSeq(last_mem_seq+1);
+//      // starting from this sequenctial number, the data should write the the new memtable
+//      // set the immutable as seq_num - 1
+//      temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
+//      temp_mem->Ref();
+//      mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
+//
+//      // CAS strong means that one thread will definitedly win under the concurrent,
+//      // if it is weak then after the metable is full all the threads may gothrough the while
+//      // loop multiple times.
+//      if(mem_.compare_exchange_strong(mem_r, temp_mem)){
+//        memtable_counter.fetch_add(1);
+//        has_imm_.store(true, std::memory_order_release);
+//
+//        force = false;  // Do not force another compaction if have room
+//
+//        //set the flush flag for imm
+////        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+////        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+//        assert(imm_.load() == nullptr);
+//        imm_.store(mem_r);
+//        MaybeScheduleCompaction();
+//        mem_r = temp_mem;
+//        return s;
+//      }else{
+//        temp_mem->Unref();
+//
+//      }
+//    }
+//    mem_r = mem_.load();
+//    // For the safety concern (such as the thread get context switch)
+//    // the mem_ may not be the one this table should write, need to go through
+//    // the table searching procedure below.
+//  }
+//  //if not which table should this writer need to write?
+//  while(true){
+//    if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()){
+//      return s;
+//    }else {
+//      // get the snapshot for imm then check it so that this memtable pointer is guarantee
+//      // to be the one this thread want.
+//      mem_r = imm_.load();
+//      assert(imm_.load()!= nullptr);
+//      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
+//      printf("write to imm table");
+//      if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
+//        return s;
+//      }
+//    }
+//  }
+//}
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
 //Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
