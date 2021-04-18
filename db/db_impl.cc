@@ -563,6 +563,7 @@ void DBImpl::CompactMemTable() {
     usleep(1);
     counter++;
     if (counter==10){
+      printf("signal all the wait threads");
       Memtable_full_cv.SignalAll();
       counter = 0;
     }
@@ -1379,6 +1380,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
         Memtable_full_cv.Wait();
+        printf("thread wake up");
       }
       mutex_.Unlock();
     }else{
