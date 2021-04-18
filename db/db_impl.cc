@@ -1305,6 +1305,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   size_t kv_num = WriteBatchInternal::Count(updates);
   assert(kv_num == 1);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
+  //todo: remove
   kv_counter0.fetch_add(1);
   MemTable* mem;
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
@@ -1337,6 +1338,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     printf("Weird status not OK");
     assert(0==1);
   }
+  //TODO remove
   kv_counter1.fetch_add(1);
 //  if (mem_switching){}
 //  thread_ready_num++;
@@ -1350,6 +1352,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 // memtable could overflow even before the actual write.
 Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
   Status s = Status::OK();
+  //Get a snapshot it is vital for the CAS but not vital for the wait logic.
   mem_r = mem_.load();
   // First check whether we need to switch the table.
   while(seq_num > mem_r->Getlargest_seq_supposed()){
@@ -1361,7 +1364,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
       mutex_.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
-      while (imm_.load() != nullptr) {
+      mem_r = mem_.load();
+      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
+        assert(seq_num > mem_r->GetFirstseq());
         background_work_finished_signal_.Wait();
       }
       mutex_.Unlock();
