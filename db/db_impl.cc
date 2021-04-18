@@ -563,7 +563,7 @@ void DBImpl::CompactMemTable() {
     usleep(1);
     counter++;
     if (counter==10){
-      printf("signal all the wait threads");
+      printf("signal all the wait threads\n");
       Memtable_full_cv.SignalAll();
       counter = 0;
     }
