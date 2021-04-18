@@ -558,8 +558,14 @@ void DBImpl::CompactMemTable() {
   VersionEdit edit;
   Version* base = versions_->current();
   // wait for the ongoing writes for 1 millisecond.
+  size_t counter = 0;
   while(!imm->able_to_flush){
     usleep(1);
+    counter++;
+    if (counter==10){
+      Memtable_full_cv.SignalAll();
+      counter = 0;
+    }
   }
   imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
   mutex_.AssertHeld();
@@ -642,7 +648,7 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
       manual_compaction_ = &manual;
       MaybeScheduleCompaction();
     } else {  // Running either my compaction or another compaction.
-      background_work_finished_signal_.Wait();
+      Memtable_full_cv.Wait();
     }
   }
   if (manual_compaction_ == &manual) {
@@ -658,7 +664,7 @@ Status DBImpl::TEST_CompactMemTable() {
     // Wait until the compaction completes
     MutexLock l(&mutex_);
     while (imm_ != nullptr && bg_error_.ok()) {
-      background_work_finished_signal_.Wait();
+      Memtable_full_cv.Wait();
     }
     if (imm_ != nullptr) {
       s = bg_error_;
@@ -671,7 +677,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
   mutex_.AssertHeld();
   if (bg_error_.ok()) {
     bg_error_ = s;
-    background_work_finished_signal_.SignalAll();
+    Memtable_full_cv.SignalAll();
   }
 }
 
@@ -1370,7 +1376,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       mem_r = mem_.load();
       while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
-        background_work_finished_signal_.Wait();
+        Memtable_full_cv.Wait();
       }
       mutex_.Unlock();
     }else{
