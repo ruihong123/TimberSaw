@@ -1386,6 +1386,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
         temp_mem->Ref();
         mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
+        mem_.store(temp_mem);
         //set the flush flag for imm
         assert(imm_.load() == nullptr);
         imm_.store(mem_r);
