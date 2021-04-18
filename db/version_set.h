@@ -213,6 +213,7 @@ class VersionSet {
   uint64_t LastSequence() const { return last_sequence_.load(); }
   uint64_t LastSequence_nonatomic() const { return last_sequence_; }
   uint64_t AssignSequnceNumbers(size_t n){
+    assert(n == 1);
     return last_sequence_.fetch_add(n);
   }
 

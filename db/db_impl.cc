@@ -1330,6 +1330,8 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //    }
     status = WriteBatchInternal::InsertInto(updates, mem);
     mem->increase_kv_num(kv_num);
+  }else{
+    assert(0==1);
   }
 //  if (mem_switching){}
 //  thread_ready_num++;
