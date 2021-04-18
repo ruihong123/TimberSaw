@@ -597,7 +597,8 @@ void DBImpl::CompactMemTable() {
     mutex_.Unlock();
     Memtable_full_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
-    RemoveObsoleteFiles();
+    // TODO how to remove the obsoleted remote memtable?
+//    RemoveObsoleteFiles();
   } else {
     RecordBackgroundError(s);
   }
