@@ -580,13 +580,13 @@ void DBImpl::CompactMemTable() {
 
   if (s.ok()) {
     // Commit to the new state
-    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
+//    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
     MemTable* imm = imm_.load();
 
     imm->Unref();
-    printf("mem %p has been deleted\n", imm);
-    printf("mem %p has is still alive\n", mem);
-    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
+//    printf("mem %p has been deleted\n", imm);
+//    printf("mem %p has is still alive\n", mem);
+//    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
     imm_.store(nullptr);
     has_imm_.store(false, std::memory_order_release);
     RemoveObsoleteFiles();
