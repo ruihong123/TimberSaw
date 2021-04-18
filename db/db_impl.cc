@@ -1305,6 +1305,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   size_t kv_num = WriteBatchInternal::Count(updates);
   assert(kv_num == 1);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
+  kv_counter0.fetch_add(1);
   MemTable* mem;
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
 
@@ -1333,9 +1334,10 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     status = WriteBatchInternal::InsertInto(updates, mem);
     mem->increase_kv_num(kv_num);
   }else{
+    printf("Weird status not OK");
     assert(0==1);
   }
-  kv_counter.fetch_add(1);
+  kv_counter1.fetch_add(1);
 //  if (mem_switching){}
 //  thread_ready_num++;
 //  printf("thread ready %d\n", thread_ready_num);
