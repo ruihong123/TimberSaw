@@ -104,7 +104,7 @@ class MemTable {
   }
   void increase_kv_num(size_t num){
     kv_num.fetch_add(num);
-    assert(kv_num == 1);
+    assert(num == 1);
     //TODO; For a write batch you the write may cross the boder, we need to modify
     // the boder of the next table
     if (kv_num >= MEMTABLE_SEQ_SIZE){
