@@ -504,7 +504,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   RemoteMemTableMetaData meta;
   meta.number = versions_->NewFileNumber();
@@ -547,7 +547,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 }
 
 void DBImpl::CompactMemTable() {
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
   //TOTHINK What will happen if we remove the mutex in the future?
   MemTable* mem = mem_.load();
   MemTable* imm = imm_.load();
@@ -698,7 +698,7 @@ void DBImpl::BGWork(void* db) {
 
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a lock, which data structure is this mutex protecting
-  MutexLock l(&mutex_);
+  mutex_.Lock();
 //  assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
@@ -713,6 +713,7 @@ void DBImpl::BackgroundCall() {
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
   MaybeScheduleCompaction();
+  mutex_.Unlock();
   background_work_finished_signal_.SignalAll();
 }
 
