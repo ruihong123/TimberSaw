@@ -512,7 +512,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   Iterator* iter = mem->NewIterator();
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta.number);
-  printf("now system start to serializae mem %p\n", mem);
+//  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
 //    mutex_.Unlock();
@@ -1408,6 +1408,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       mem_r = imm_.load();
       assert(imm_.load()!= nullptr);
       assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
+      printf("write to imm table");
       if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
         return s;
       }

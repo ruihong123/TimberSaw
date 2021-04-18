@@ -616,7 +616,7 @@ InlineSkipList<Comparator>::InlineSkipList(const Comparator cmp,
   for (int i = 0; i < kMaxHeight_; ++i) {
     head_->SetNext(i, nullptr);
   }
-  printf("head_address is %p", head_);
+//  printf("head_address is %p", head_);
 }
 
 template <class Comparator>
