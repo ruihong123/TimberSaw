@@ -1306,7 +1306,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   assert(kv_num == 1);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
   //todo: remove
-  kv_counter0.fetch_add(1);
+//  kv_counter0.fetch_add(1);
   MemTable* mem;
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
 
@@ -1338,8 +1338,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     printf("Weird status not OK");
     assert(0==1);
   }
-  //TODO remove
-  kv_counter1.fetch_add(1);
+//  kv_counter1.fetch_add(1);
 //  if (mem_switching){}
 //  thread_ready_num++;
 //  printf("thread ready %d\n", thread_ready_num);
@@ -1356,6 +1355,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   mem_r = mem_.load();
   // First check whether we need to switch the table.
   while(seq_num > mem_r->Getlargest_seq_supposed()){
+    //before switch the table we need to check whether there is enough room
+    // for a new table.
     if (imm_.load() != nullptr) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
