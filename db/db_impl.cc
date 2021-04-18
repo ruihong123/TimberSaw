@@ -1381,6 +1381,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         force = false;  // Do not force another compaction if have room
 
         //set the flush flag for imm
+//        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+        assert(imm_.load() == nullptr);
         imm_.store(mem_r);
         MaybeScheduleCompaction();
         mem_r = temp_mem;
