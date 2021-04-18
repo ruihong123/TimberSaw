@@ -112,6 +112,9 @@ class MemTable {
       able_to_flush.store(true);
     }
   }
+  size_t Get_kv_num(){
+    return kv_num;
+  }
  private:
   friend class MemTableIterator;
   friend class MemTableBackwardIterator;
