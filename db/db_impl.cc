@@ -1382,7 +1382,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 
         //set the flush flag for imm
 //        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
-        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+//        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
         assert(imm_.load() == nullptr);
         imm_.store(mem_r);
         MaybeScheduleCompaction();
@@ -1407,6 +1407,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // to be the one this thread want.
       mem_r = imm_.load();
       assert(imm_.load()!= nullptr);
+      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
       if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
         return s;
       }
