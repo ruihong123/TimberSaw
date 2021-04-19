@@ -1499,7 +1499,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         mem_r = temp_mem;
         return s;
       }else{
-        temp_mem->Unref();
+        temp_mem->SimpleDelete();
 
       }
     }

@@ -59,6 +59,7 @@ class MemTable {
       delete this;
     }
   }
+  //Simple Delete here means that the memtable is not full but it was deleted.
   void SimpleDelete(){
     refs_--;
     delete this;
