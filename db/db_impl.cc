@@ -1460,10 +1460,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //      mem_r = mem_.load();
 //      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
-        usleep(1);
+//        usleep(1);
         counter++;
-        if (counter>5){
-          usleep(500);
+        if (counter>200){
+          usleep(10);
           counter = 0;
         }
 
