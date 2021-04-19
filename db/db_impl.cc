@@ -563,11 +563,12 @@ void DBImpl::CompactMemTable() {
   // the case that the thread this immutable is under the control of conditional
   // variable.
   while(!imm->able_to_flush){
-    usleep(1);
+
     counter++;
-    if (counter==10){
+    if (counter==500){
 //      printf("signal all the wait threads\n");
 //      Memtable_full_cv.SignalAll();
+      usleep(1);
       counter = 0;
     }
   }
