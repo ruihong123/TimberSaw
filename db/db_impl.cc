@@ -559,12 +559,15 @@ void DBImpl::CompactMemTable() {
   Version* base = versions_->current();
   // wait for the ongoing writes for 1 millisecond.
   size_t counter = 0;
+  // wait for the immutable to get ready to flush. the signal here is prepare for
+  // the case that the thread this immutable is under the control of conditional
+  // variable.
   while(!imm->able_to_flush){
     usleep(1);
     counter++;
     if (counter==10){
-      printf("signal all the wait threads\n");
-      Memtable_full_cv.SignalAll();
+//      printf("signal all the wait threads\n");
+//      Memtable_full_cv.SignalAll();
       counter = 0;
     }
   }
@@ -596,7 +599,7 @@ void DBImpl::CompactMemTable() {
 //    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
     imm_.store(nullptr);
 //    mutex_.Unlock();
-    Memtable_full_cv.SignalAll();
+//    Memtable_full_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
     // TODO how to remove the obsoleted remote memtable?
 //    RemoveObsoleteFiles();
@@ -1441,6 +1444,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   Status s = Status::OK();
   //Get a snapshot it is vital for the CAS but not vital for the wait logic.
   mem_r = mem_.load();
+  size_t counter = 0;
   // First check whether we need to switch the table.
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
@@ -1456,8 +1460,13 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //      mem_r = mem_.load();
 //      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
-        Memtable_full_cv.Wait();
-        printf("thread wake up!\n");
+        usleep(1);
+        counter++;
+        if (counter>5){
+          usleep(500);
+          counter = 0;
+        }
+
 //        mem_r = mem_.load();
 //      }
 //      mutex_.Unlock();
