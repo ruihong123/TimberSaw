@@ -587,7 +587,7 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     // Commit to the new state
 //    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-    mutex_.Lock();
+//    mutex_.Lock();
     MemTable* imm = imm_.load();
 
     imm->Unref();
@@ -595,7 +595,7 @@ void DBImpl::CompactMemTable() {
 //    printf("mem %p has is still alive\n", mem);
 //    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
     imm_.store(nullptr);
-    mutex_.Unlock();
+//    mutex_.Unlock();
     Memtable_full_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
     // TODO how to remove the obsoleted remote memtable?
