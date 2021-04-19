@@ -49,13 +49,13 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
 
 //TOFIX: temporarily disable the verification of index block.
 
-//    if (s.ok()) {
-//      // Verify that the table is usable
-//      Iterator* it = table_cache->NewIterator(ReadOptions(), meta->number,
-//                                              meta->file_size);
-//      s = it->status();
-//      delete it;
-//    }
+    if (s.ok()) {
+      // Verify that the table is usable
+      Iterator* it = table_cache->NewIterator(ReadOptions(), meta->number,
+                                              meta->file_size);
+      s = it->status();
+      delete it;
+    }
   }
 
   // Check for input iterator errors
