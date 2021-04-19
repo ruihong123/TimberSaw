@@ -60,6 +60,7 @@ class MemTable {
     }
   }
   void SimpleDelete(){
+    refs_--;
     delete this;
   }
 
