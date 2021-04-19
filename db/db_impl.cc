@@ -163,8 +163,8 @@ DBImpl::~DBImpl() {
   }
 
   delete versions_;
-  if (mem_ != nullptr) mem_.load()->Unref();
-  if (imm_ != nullptr) imm_.load()->Unref();
+  if (mem_ != nullptr) mem_.load()->SimpleDelete();
+  if (imm_ != nullptr) imm_.load()->SimpleDelete();
   delete tmp_batch_;
   delete log_;
   delete logfile_;
