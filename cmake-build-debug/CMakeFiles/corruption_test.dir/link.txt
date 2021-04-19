@@ -1,1 +1,0 @@
-/usr/bin/c++   -fno-exceptions -fno-rtti -g   CMakeFiles/corruption_test.dir/util/testutil.cc.o CMakeFiles/corruption_test.dir/db/corruption_test.cc.o  -o corruption_test  libleveldb.a lib/libgmockd.a lib/libgtestd.a third_party/benchmark/src/libbenchmark.a -lsnappy -lpthread -pthread /usr/lib/x86_64-linux-gnu/librt.so 
