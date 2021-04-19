@@ -1457,6 +1457,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
         Memtable_full_cv.Wait();
+        printf("thread wake up!\n");
 //        mem_r = mem_.load();
 //      }
 //      mutex_.Unlock();
