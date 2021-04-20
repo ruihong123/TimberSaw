@@ -50,7 +50,7 @@ Status TableCache::FindTable(
     Table* table = nullptr;
 
     if (s.ok()) {
-      s = Table::Open(options_, &table);
+      s = Table::Open(options_, &table, Remote_memtable_meta);
     }
     //TODO: add remotememtablemeta and Table to the cache entry.
     if (!s.ok()) {

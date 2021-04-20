@@ -6,9 +6,11 @@
 #define STORAGE_LEVELDB_INCLUDE_TABLE_H_
 
 #include <cstdint>
+#include <memory>
 
 #include "leveldb/export.h"
 #include "leveldb/iterator.h"
+#include "db/version_edit.h"
 
 namespace leveldb {
 
@@ -37,7 +39,8 @@ class LEVELDB_EXPORT Table {
   // for the duration of the returned table's lifetime.
   //
   // *file must remain live while this Table is in use.
-  static Status Open(const Options& options, Table** table);
+  static Status Open(const Options& options, Table** table,
+                     std::shared_ptr<RemoteMemTableMetaData> Remote_table_meta);
 
   Table(const Table&) = delete;
   Table& operator=(const Table&) = delete;

@@ -79,6 +79,8 @@ class HandleTable {
   LRUHandle* Insert(LRUHandle* h) {
     LRUHandle** ptr = FindPointer(h->key(), h->hash);
     LRUHandle* old = *ptr;
+    // if we find a LRUhandle whose key is same as h, we replace that LRUhandle
+    // with h, if not find, we just put the h at the end of the list.
     h->next_hash = (old == nullptr ? nullptr : old->next_hash);
     *ptr = h;
     if (old == nullptr) {
@@ -291,6 +293,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
     // next is read by key() in an assert, so it must be initialized
     e->next = nullptr;
   }
+  // This will remove some entry from LRU if the cache over size.
   while (usage_ > capacity_ && lru_.next != &lru_) {
     LRUHandle* old = lru_.next;
     assert(old->refs == 1);

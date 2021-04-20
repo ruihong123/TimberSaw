@@ -26,7 +26,7 @@ struct Table::Rep {
 
   Options options;
   Status status;
-  RandomAccessFile* file;
+  std::shared_ptr<RemoteMemTableMetaData> remote_table;
   uint64_t cache_id;
   FilterBlockReader* filter;
   const char* filter_data;
@@ -35,7 +35,8 @@ struct Table::Rep {
   Block* index_block;
 };
 
-Status Table::Open(const Options& options, Table** table) {
+Status Table::Open(const Options& options, Table** table,
+                   std::shared_ptr<RemoteMemTableMetaData> Remote_table_meta) {
   *table = nullptr;
 
 
@@ -46,58 +47,31 @@ Status Table::Open(const Options& options, Table** table) {
   if (options.paranoid_checks) {
     opt.verify_checksums = true;
   }
-//  s = ReadDataIndexBlock(std::map<int, ibv_mr>(), opt, footer.index_handle(),
-//                    &index_block_contents);
+  s = ReadDataIndexBlock(Remote_table_meta->remote_dataindex_mrs.begin()->second,
+                         opt, index_block_contents);
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
-    Block* index_block = new Block(index_block_contents);
+    Block* index_block = new Block(index_block_contents, IndexBlock);
     Rep* rep = new Table::Rep;
     rep->options = options;
 //    rep->file = file;
+    rep->remote_table = Remote_table_meta;
 //    rep->metaindex_handle = footer.metaindex_handle();
     rep->index_block = index_block;
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
     rep->filter_data = nullptr;
     rep->filter = nullptr;
     *table = new Table(rep);
+    *table->ReadFilter();
 //    (*table)->ReadMeta(footer);
   }
 
   return s;
 }
 
-void Table::ReadMeta(const Footer& footer) {
-  if (rep_->options.filter_policy == nullptr) {
-    return;  // Do not need any metadata
-  }
 
-  // TODO(sanjay): Skip this if footer.metaindex_handle() size indicates
-  // it is an empty block.
-  ReadOptions opt;
-  if (rep_->options.paranoid_checks) {
-    opt.verify_checksums = true;
-  }
-  BlockContents contents;
-//  if (!ReadDataBlock(std::map<int, ibv_mr>(), opt, footer.metaindex_handle(),
-//                     &contents)
-//           .ok()) {
-//    // Do not propagate errors since meta info is not needed for operation
-//    return;
-//  }
-  Block* meta = new Block(contents);
-
-  Iterator* iter = meta->NewIterator(BytewiseComparator());
-  std::string key = "filter.";
-  key.append(rep_->options.filter_policy->Name());
-  iter->Seek(key);
-  if (iter->Valid() && iter->key() == Slice(key)) {
-    ReadFilter(iter->value());
-  }
-  delete iter;
-  delete meta;
-}
 
 void Table::ReadFilter(const Slice& filter_handle_value) {
   Slice v = filter_handle_value;
@@ -113,9 +87,9 @@ void Table::ReadFilter(const Slice& filter_handle_value) {
     opt.verify_checksums = true;
   }
   BlockContents block;
-//  if (!ReadDataBlock(std::map<int, ibv_mr>(), opt, filter_handle, &block).ok()) {
-//    return;
-//  }
+  if (!ReadFilterBlock(rep_->remote_table->remote_filter_mrs.begin()->second, opt, &block).ok()) {
+    return;
+  }
   if (block.heap_allocated) {
     rep_->filter_data = block.data.data();  // Will need to delete later
   }
@@ -165,9 +139,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
       } else {
-//        s = ReadDataBlock(std::map<int, ibv_mr>(), options, handle, &contents);
+        s = ReadDataBlock(table->rep_->remote_table->remote_data_mrs, options, handle, &contents);
         if (s.ok()) {
-          block = new Block(contents);
+          block = new Block(contents, );
           if (contents.cachable && options.fill_cache) {
             cache_handle = block_cache->Insert(key, block, block->size(),
                                                &DeleteCachedBlock);
@@ -175,7 +149,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
-//      s = ReadDataBlock(std::map<int, ibv_mr>(), options, handle, &contents);
+      s = ReadDataBlock(std::map<int, ibv_mr>(), options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents);
       }

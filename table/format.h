@@ -88,7 +88,10 @@ struct BlockContents {
 // return non-OK.  On success fill *result and return OK.
 Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result);
-
+Status ReadDataIndexBlock(ibv_mr* remote_mr,
+                          const ReadOptions& options, BlockContents* result);
+Status ReadFilterBlock(ibv_mr* remote_mr,
+                       const ReadOptions& options, BlockContents* result);
 // Implementation details follow.  Clients should ignore,
 
 inline BlockHandle::BlockHandle()

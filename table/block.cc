@@ -22,10 +22,11 @@ inline uint32_t Block::NumRestarts() const {
   return DecodeFixed32(data_ + size_ - sizeof(uint32_t));
 }
 
-Block::Block(const BlockContents& contents)
+Block::Block(const BlockContents& contents, BlockType type)
     : data_(contents.data.data()),
       size_(contents.data.size()),
-      owned_(contents.heap_allocated) {
+      RDMA_Regiested(true),
+      type_(type) {
   if (size_ < sizeof(uint32_t)) {
     size_ = 0;  // Error marker
   } else {
@@ -40,8 +41,13 @@ Block::Block(const BlockContents& contents)
 }
 
 Block::~Block() {
-  if (owned_) {
-    delete[] data_;
+  if (RDMA_Regiested) {
+    if (type_ == DataBlock)
+      rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataBlock");
+    else if (type_ == IndexBlock)
+      rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataIndexBlock");
+    else if (type_ == FilterBlock)
+      rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock");
   }
 }
 

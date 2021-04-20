@@ -9,16 +9,16 @@
 #include <cstdint>
 
 #include "leveldb/iterator.h"
-
+#include "util/rdma.h"
 namespace leveldb {
 
 struct BlockContents;
 class Comparator;
-
+enum BlockType {DataBlock, IndexBlock, FilterBlock};
 class Block {
  public:
   // Initialize the block with the specified contents.
-  explicit Block(const BlockContents& contents);
+  explicit Block(const BlockContents& contents, BlockType type);
 
   Block(const Block&) = delete;
   Block& operator=(const Block&) = delete;
@@ -37,6 +37,9 @@ class Block {
   size_t size_;
   uint32_t restart_offset_;  // Offset in data_ of restart array
   bool owned_;               // Block owns data_[]
+  bool RDMA_Regiested;
+  BlockType type_;
+  std::shared_ptr<RDMA_Manager> rdma_mg_;
 };
 
 }  // namespace leveldb
