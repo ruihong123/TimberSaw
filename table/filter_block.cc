@@ -113,7 +113,9 @@ FilterBlockReader::FilterBlockReader(const FilterPolicy* policy,
   offset_ = data_ + last_word;
   num_ = (n - 5 - last_word) / 4;
 }
+~FilterBlockReader(){
 
+}
 bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
   uint64_t index = block_offset >> base_lg_;
   if (index < num_) {

@@ -20,7 +20,7 @@ namespace leveldb {
 struct Table::Rep {
   ~Rep() {
     delete filter;
-    delete[] filter_data;
+//    delete[] filter_data;
     delete index_block;
   }
 
@@ -48,7 +48,7 @@ Status Table::Open(const Options& options, Table** table,
     opt.verify_checksums = true;
   }
   s = ReadDataIndexBlock(Remote_table_meta->remote_dataindex_mrs.begin()->second,
-                         opt, index_block_contents);
+                         opt, &index_block_contents);
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
@@ -71,14 +71,7 @@ Status Table::Open(const Options& options, Table** table,
   return s;
 }
 
-
-
-void Table::ReadFilter(const Slice& filter_handle_value) {
-  Slice v = filter_handle_value;
-  BlockHandle filter_handle;
-  if (!filter_handle.DecodeFrom(&v).ok()) {
-    return;
-  }
+void Table::ReadFilter() {
 
   // We might want to unify with ReadDataBlock() if we start
   // requiring checksum verification in Table::Open.

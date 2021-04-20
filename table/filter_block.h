@@ -66,6 +66,7 @@ class FilterBlockReader {
  public:
   // REQUIRES: "contents" and *policy must stay live while *this is live.
   FilterBlockReader(const FilterPolicy* policy, const Slice& contents);
+  ~FilterBlockReader();
   bool KeyMayMatch(uint64_t block_offset, const Slice& key);
 
  private:
