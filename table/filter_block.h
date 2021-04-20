@@ -65,7 +65,8 @@ class FilterBlockBuilder {
 class FilterBlockReader {
  public:
   // REQUIRES: "contents" and *policy must stay live while *this is live.
-  FilterBlockReader(const FilterPolicy* policy, const Slice& contents);
+  FilterBlockReader(const FilterPolicy* policy, const Slice& contents,
+                    std::shared_ptr<RDMA_Manager> rdma_mg);
   ~FilterBlockReader();
   bool KeyMayMatch(uint64_t block_offset, const Slice& key);
 
@@ -75,6 +76,7 @@ class FilterBlockReader {
   const char* offset_;  // Pointer to beginning of offset array (at block-end)
   size_t num_;          // Number of entries in offset array
   size_t base_lg_;      // Encoding parameter (see kFilterBaseLg in .cc file)
+  std::shared_ptr<RDMA_Manager> rdma_mg_;
 };
 
 }  // namespace leveldb

@@ -100,10 +100,10 @@ void FilterBlockBuilder::GenerateFilter() {
   start_.clear();
 }
 
-
 FilterBlockReader::FilterBlockReader(const FilterPolicy* policy,
-                                     const Slice& contents)
-    : policy_(policy), data_(nullptr), offset_(nullptr), num_(0), base_lg_(0) {
+                                     const Slice& contents,
+                                     std::shared_ptr<RDMA_Manager> rdma_mg)
+    : policy_(policy), data_(nullptr), offset_(nullptr), num_(0), base_lg_(0), rdma_mg_(rdma_mg) {
   size_t n = contents.size();
   if (n < 5) return;  // 1 byte for base_lg_ and 4 for start of offset array
   base_lg_ = contents[n - 1];
@@ -112,9 +112,6 @@ FilterBlockReader::FilterBlockReader(const FilterPolicy* policy,
   data_ = contents.data();
   offset_ = data_ + last_word;
   num_ = (n - 5 - last_word) / 4;
-}
-~FilterBlockReader(){
-
 }
 bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
   uint64_t index = block_offset >> base_lg_;
@@ -130,6 +127,11 @@ bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
     }
   }
   return true;  // Errors are treated as potential matches
+}
+FilterBlockReader::~FilterBlockReader() {
+  if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){
+    printf("Filter Block deregisteration failed");
+  }
 }
 
 }  // namespace leveldb

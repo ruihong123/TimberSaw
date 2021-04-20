@@ -64,7 +64,7 @@ Status Table::Open(const Options& options, Table** table,
     rep->filter_data = nullptr;
     rep->filter = nullptr;
     *table = new Table(rep);
-    *table->ReadFilter();
+    (*table)->ReadFilter();
 //    (*table)->ReadMeta(footer);
   }
 
@@ -86,7 +86,7 @@ void Table::ReadFilter() {
   if (block.heap_allocated) {
     rep_->filter_data = block.data.data();  // Will need to delete later
   }
-  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data);
+  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data, rep_->remote_table->rdma_mg);
 }
 
 Table::~Table() { delete rep_; }
@@ -134,7 +134,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       } else {
         s = ReadDataBlock(table->rep_->remote_table->remote_data_mrs, options, handle, &contents);
         if (s.ok()) {
-          block = new Block(contents, );
+          block = new Block(contents, DataBlock);
           if (contents.cachable && options.fill_cache) {
             cache_handle = block_cache->Insert(key, block, block->size(),
                                                &DeleteCachedBlock);
@@ -142,9 +142,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
-      s = ReadDataBlock(std::map<int, ibv_mr>(), options, handle, &contents);
+      s = ReadDataBlock(table->rep_->remote_table->remote_data_mrs, options, handle, &contents);
       if (s.ok()) {
-        block = new Block(contents);
+        block = new Block(contents, DataBlock);
       }
     }
   }
