@@ -77,14 +77,9 @@ class VersionEdit {
   // Add the specified file at the specified number.
   // REQUIRES: This version has not been saved (see VersionSet::SaveTo)
   // REQUIRES: "smallest" and "largest" are smallest and largest keys in file
-  void AddFile(int level, uint64_t file, uint64_t file_size,
-               const InternalKey& smallest, const InternalKey& largest) {
-    RemoteMemTableMetaData f;
-    f.number = file;
-    f.file_size = file_size;
-    f.smallest = smallest;
-    f.largest = largest;
-    new_files_.push_back(std::make_pair(level, f));
+  void AddFile(int level,
+               std::shared_ptr<RemoteMemTableMetaData> remote_table) {
+    new_files_.push_back(std::make_pair(level, remote_table));
   }
 
   // Delete the specified "file" from the specified "level".
@@ -115,7 +110,7 @@ class VersionEdit {
 
   std::vector<std::pair<int, InternalKey>> compact_pointers_;
   DeletedFileSet deleted_files_;
-  std::vector<std::pair<int, RemoteMemTableMetaData>> new_files_;
+  std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>> new_files_;
 };
 
 }  // namespace leveldb

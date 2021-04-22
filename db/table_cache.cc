@@ -2,6 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
+#include <utility>
+
 #include "db/table_cache.h"
 
 #include "db/filename.h"
@@ -53,7 +55,7 @@ Status TableCache::FindTable(
     if (s.ok()) {
       s = Table::Open(options_, &table, Remote_memtable_meta);
     }
-    //TODO: add remotememtablemeta and Table to the cache entry.
+    //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
     if (!s.ok()) {
       assert(table == nullptr);
 //      delete file;
@@ -70,15 +72,15 @@ Status TableCache::FindTable(
   return s;
 }
 
-Iterator* TableCache::NewIterator(const ReadOptions& options,
-                                  uint64_t file_number, uint64_t file_size,
-                                  Table** tableptr) {
+Iterator* TableCache::NewIterator(
+    const ReadOptions& options,
+    std::shared_ptr<RemoteMemTableMetaData> remote_table, Table** tableptr) {
   if (tableptr != nullptr) {
     *tableptr = nullptr;
   }
 
   Cache::Handle* handle = nullptr;
-  Status s = FindTable(std::shared_ptr<RemoteMemTableMetaData>(), &handle);
+  Status s = FindTable(std::move(remote_table), &handle);
   if (!s.ok()) {
     return NewErrorIterator(s);
   }

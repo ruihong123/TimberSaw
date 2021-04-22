@@ -56,7 +56,7 @@ static uint64_t MaxFileSizeForLevel(const Options* options, int level) {
   return TargetFileSize(options);
 }
 
-static int64_t TotalFileSize(const std::vector<RemoteMemTableMetaData*>& files) {
+static int64_t TotalFileSize(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files) {
   int64_t sum = 0;
   for (size_t i = 0; i < files.size(); i++) {
     sum += files[i]->file_size;
@@ -72,25 +72,25 @@ Version::~Version() {
   next_->prev_ = prev_;
 
   // Drop references to files
-  for (int level = 0; level < config::kNumLevels; level++) {
-    for (size_t i = 0; i < files_[level].size(); i++) {
-      RemoteMemTableMetaData* f = files_[level][i];
-      assert(f->refs > 0);
-      f->refs--;
-      if (f->refs <= 0) {
-        delete f;
-      }
-    }
-  }
+//  for (int level = 0; level < config::kNumLevels; level++) {
+//    for (size_t i = 0; i < files_[level].size(); i++) {
+//      std::shared_ptr<RemoteMemTableMetaData> f = files_[level][i];
+//      assert(f->refs > 0);
+//      f->refs--;
+//      if (f->refs <= 0) {
+//        delete f;
+//      }
+//    }
+//  }
 }
 
 int FindFile(const InternalKeyComparator& icmp,
-             const std::vector<RemoteMemTableMetaData*>& files, const Slice& key) {
+             const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files, const Slice& key) {
   uint32_t left = 0;
   uint32_t right = files.size();
   while (left < right) {
     uint32_t mid = (left + right) / 2;
-    const RemoteMemTableMetaData* f = files[mid];
+    const std::shared_ptr<RemoteMemTableMetaData> f = files[mid];
     if (icmp.InternalKeyComparator::Compare(f->largest.Encode(), key) < 0) {
       // Key at "mid.largest" is < "target".  Therefore all
       // files at or before "mid" are uninteresting.
@@ -105,14 +105,14 @@ int FindFile(const InternalKeyComparator& icmp,
 }
 
 static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
-                      const RemoteMemTableMetaData* f) {
+                      const std::shared_ptr<RemoteMemTableMetaData> f) {
   // null user_key occurs before all keys and is therefore never after *f
   return (user_key != nullptr &&
           ucmp->Compare(*user_key, f->largest.user_key()) > 0);
 }
 
 static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
-                       const RemoteMemTableMetaData* f) {
+                       const std::shared_ptr<RemoteMemTableMetaData> f) {
   // null user_key occurs after all keys and is therefore never before *f
   return (user_key != nullptr &&
           ucmp->Compare(*user_key, f->smallest.user_key()) < 0);
@@ -120,14 +120,14 @@ static bool BeforeFile(const Comparator* ucmp, const Slice* user_key,
 
 bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            bool disjoint_sorted_files,
-                           const std::vector<RemoteMemTableMetaData*>& files,
+                           const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files,
                            const Slice* smallest_user_key,
                            const Slice* largest_user_key) {
   const Comparator* ucmp = icmp.user_comparator();
   if (!disjoint_sorted_files) {
     // Need to check against all files
     for (size_t i = 0; i < files.size(); i++) {
-      const RemoteMemTableMetaData* f = files[i];
+      const std::shared_ptr<RemoteMemTableMetaData> f = files[i];
       if (AfterFile(ucmp, smallest_user_key, f) ||
           BeforeFile(ucmp, largest_user_key, f)) {
         // No overlap
@@ -155,73 +155,18 @@ bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
   return !BeforeFile(ucmp, largest_user_key, files[index]);
 }
 
-// An internal iterator.  For a given version/level pair, yields
-// information about the files in the level.  For a given entry, key()
-// is the largest key that occurs in the file, and value() is an
-// 16-byte value containing the file number and file size, both
-// encoded using EncodeFixed64.
-class Version::LevelFileNumIterator : public Iterator {
- public:
-  LevelFileNumIterator(const InternalKeyComparator& icmp,
-                       const std::vector<RemoteMemTableMetaData*>* flist)
-      : icmp_(icmp), flist_(flist), index_(flist->size()) {  // Marks as invalid
-  }
-  bool Valid() const override { return index_ < flist_->size(); }
-  void Seek(const Slice& target) override {
-    index_ = FindFile(icmp_, *flist_, target);
-  }
-  void SeekToFirst() override { index_ = 0; }
-  void SeekToLast() override {
-    index_ = flist_->empty() ? 0 : flist_->size() - 1;
-  }
-  void Next() override {
-    assert(Valid());
-    index_++;
-  }
-  void Prev() override {
-    assert(Valid());
-    if (index_ == 0) {
-      index_ = flist_->size();  // Marks as invalid
-    } else {
-      index_--;
-    }
-  }
-  Slice key() const override {
-    assert(Valid());
-    return (*flist_)[index_]->largest.Encode();
-  }
-  Slice value() const override {
-    assert(Valid());
-    EncodeFixed64(value_buf_, (*flist_)[index_]->number);
-    EncodeFixed64(value_buf_ + 8, (*flist_)[index_]->file_size);
-    return Slice(value_buf_, sizeof(value_buf_));
-  }
-  Status status() const override { return Status::OK(); }
 
- private:
-  const InternalKeyComparator icmp_;
-  const std::vector<RemoteMemTableMetaData*>* const flist_;
-  uint32_t index_;
 
-  // Backing store for value().  Holds the file number and size.
-  mutable char value_buf_[16];
-};
-
-static Iterator* GetFileIterator(void* arg, const ReadOptions& options,
-                                 const Slice& file_value) {
+static Iterator* GetFileIterator(
+    void* arg, const ReadOptions& options,
+    std::shared_ptr<RemoteMemTableMetaData> remote_table) {
   TableCache* cache = reinterpret_cast<TableCache*>(arg);
-  if (file_value.size() != 16) {
-    return NewErrorIterator(
-        Status::Corruption("FileReader invoked with unexpected value"));
-  } else {
-    return cache->NewIterator(options, DecodeFixed64(file_value.data()),
-                              DecodeFixed64(file_value.data() + 8));
-  }
+    return cache->NewIterator(options, remote_table);
 }
 
 Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
                                             int level) const {
-  return NewTwoLevelIterator(
+  return NewTwoLevelFileIterator(
       new LevelFileNumIterator(vset_->icmp_, &files_[level]), &GetFileIterator,
       vset_->table_cache_, options);
 }
@@ -231,7 +176,7 @@ void Version::AddIterators(const ReadOptions& options,
   // Merge all level zero files together since they may overlap
   for (size_t i = 0; i < files_[0].size(); i++) {
     iters->push_back(vset_->table_cache_->NewIterator(
-        options, files_[0][i]->number, files_[0][i]->file_size));
+        options, files_[0][i]));
   }
 
   // For levels > 0, we can use a concatenating iterator that sequentially
@@ -274,20 +219,20 @@ static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
   }
 }
 
-static bool NewestFirst(RemoteMemTableMetaData* a, RemoteMemTableMetaData* b) {
+static bool NewestFirst(std::shared_ptr<RemoteMemTableMetaData> a, std::shared_ptr<RemoteMemTableMetaData> b) {
   return a->number > b->number;
 }
 
 void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
                                  bool (*func)(void*, int,
-                                              RemoteMemTableMetaData*)) {
+                                              std::shared_ptr<RemoteMemTableMetaData>)) {
   const Comparator* ucmp = vset_->icmp_.user_comparator();
 
   // Search level-0 in order from newest to oldest.
-  std::vector<RemoteMemTableMetaData*> tmp;
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> tmp;
   tmp.reserve(files_[0].size());
   for (uint32_t i = 0; i < files_[0].size(); i++) {
-    RemoteMemTableMetaData* f = files_[0][i];
+    std::shared_ptr<RemoteMemTableMetaData> f = files_[0][i];
     if (ucmp->Compare(user_key, f->smallest.user_key()) >= 0 &&
         ucmp->Compare(user_key, f->largest.user_key()) <= 0) {
       tmp.push_back(f);
@@ -310,7 +255,7 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
     // Binary search to find earliest index whose largest key >= internal_key.
     uint32_t index = FindFile(vset_->icmp_, files_[level], internal_key);
     if (index < num_files) {
-      RemoteMemTableMetaData* f = files_[level][index];
+      std::shared_ptr<RemoteMemTableMetaData> f = files_[level][index];
       if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
         // All of "f" is past any data for user_key
       } else {
@@ -332,14 +277,14 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
     GetStats* stats;
     const ReadOptions* options;
     Slice ikey;
-    RemoteMemTableMetaData* last_file_read;
+    std::shared_ptr<RemoteMemTableMetaData> last_file_read;
     int last_file_read_level;
 
     VersionSet* vset;
     Status s;
     bool found;
 
-    static bool Match(void* arg, int level, RemoteMemTableMetaData* f) {
+    static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
       State* state = reinterpret_cast<State*>(arg);
 
       if (state->stats->seek_file == nullptr &&
@@ -401,7 +346,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
 }
 
 bool Version::UpdateStats(const GetStats& stats) {
-  RemoteMemTableMetaData* f = stats.seek_file;
+  std::shared_ptr<RemoteMemTableMetaData> f = stats.seek_file;
   if (f != nullptr) {
     f->allowed_seeks--;
     if (f->allowed_seeks <= 0 && file_to_compact_ == nullptr) {
@@ -423,7 +368,7 @@ bool Version::RecordReadSample(Slice internal_key) {
     GetStats stats;  // Holds first matching file
     int matches;
 
-    static bool Match(void* arg, int level, RemoteMemTableMetaData* f) {
+    static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
       State* state = reinterpret_cast<State*>(arg);
       state->matches++;
       if (state->matches == 1) {
@@ -476,7 +421,7 @@ int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
     // and the #bytes overlapping in the level after that are limited.
     InternalKey start(smallest_user_key, kMaxSequenceNumber, kValueTypeForSeek);
     InternalKey limit(largest_user_key, 0, static_cast<ValueType>(0));
-    std::vector<RemoteMemTableMetaData*> overlaps;
+    std::vector<std::shared_ptr<RemoteMemTableMetaData>> overlaps;
     while (level < config::kMaxMemCompactLevel) {
       if (OverlapInLevel(level + 1, &smallest_user_key, &largest_user_key)) {
         break;
@@ -498,7 +443,7 @@ int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
 // Store in "*inputs" all files in "level" that overlap [begin,end]
 void Version::GetOverlappingInputs(int level, const InternalKey* begin,
                                    const InternalKey* end,
-                                   std::vector<RemoteMemTableMetaData*>* inputs) {
+                                   std::vector<std::shared_ptr<RemoteMemTableMetaData>>* inputs) {
   assert(level >= 0);
   assert(level < config::kNumLevels);
   inputs->clear();
@@ -511,7 +456,7 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
   }
   const Comparator* user_cmp = vset_->icmp_.user_comparator();
   for (size_t i = 0; i < files_[level].size();) {
-    RemoteMemTableMetaData* f = files_[level][i++];
+    std::shared_ptr<RemoteMemTableMetaData> f = files_[level][i++];
     const Slice file_start = f->smallest.user_key();
     const Slice file_limit = f->largest.user_key();
     if (begin != nullptr && user_cmp->Compare(file_limit, user_begin) < 0) {
@@ -548,7 +493,7 @@ std::string Version::DebugString() const {
     r.append("--- level ");
     AppendNumberTo(&r, level);
     r.append(" ---\n");
-    const std::vector<RemoteMemTableMetaData*>& files = files_[level];
+    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = files_[level];
     for (size_t i = 0; i < files.size(); i++) {
       r.push_back(' ');
       AppendNumberTo(&r, files[i]->number);
@@ -573,8 +518,8 @@ class VersionSet::Builder {
   struct BySmallestKey {
     const InternalKeyComparator* internal_comparator;
 
-    bool operator()(RemoteMemTableMetaData* f1,
-                    RemoteMemTableMetaData* f2) const {
+    bool operator()(std::shared_ptr<RemoteMemTableMetaData> f1,
+                    std::shared_ptr<RemoteMemTableMetaData> f2) const {
       int r = internal_comparator->Compare(f1->smallest, f2->smallest);
       if (r != 0) {
         return (r < 0);
@@ -585,7 +530,7 @@ class VersionSet::Builder {
     }
   };
 
-  typedef std::set<RemoteMemTableMetaData*, BySmallestKey> FileSet;
+  typedef std::set<std::shared_ptr<RemoteMemTableMetaData>, BySmallestKey> FileSet;
   struct LevelState {
     std::set<uint64_t> deleted_files;
     FileSet* added_files;
@@ -609,20 +554,20 @@ class VersionSet::Builder {
   ~Builder() {
     for (int level = 0; level < config::kNumLevels; level++) {
       const FileSet* added = levels_[level].added_files;
-      std::vector<RemoteMemTableMetaData*> to_unref;
+      std::vector<std::shared_ptr<RemoteMemTableMetaData>> to_unref;
       to_unref.reserve(added->size());
       for (FileSet::const_iterator it = added->begin(); it != added->end();
            ++it) {
         to_unref.push_back(*it);
       }
       delete added;
-      for (uint32_t i = 0; i < to_unref.size(); i++) {
-        RemoteMemTableMetaData* f = to_unref[i];
-        f->refs--;
-        if (f->refs <= 0) {
-          delete f;
-        }
-      }
+//      for (uint32_t i = 0; i < to_unref.size(); i++) {
+//        std::shared_ptr<RemoteMemTableMetaData> f = to_unref[i];
+//        f->refs--;
+//        if (f->refs <= 0) {
+//          delete f;
+//        }
+//      }
     }
     base_->Unref();
   }
@@ -646,7 +591,7 @@ class VersionSet::Builder {
     // Add new files
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
-      RemoteMemTableMetaData* f = new RemoteMemTableMetaData(edit->new_files_[i].second);
+      std::shared_ptr<RemoteMemTableMetaData> f = edit->new_files_[i].second;
       f->refs = 1;
 
       // We arrange to automatically compact this file after
@@ -677,14 +622,14 @@ class VersionSet::Builder {
     for (int level = 0; level < config::kNumLevels; level++) {
       // Merge the set of added files with the set of pre-existing files.
       // Drop any deleted files.  Store the result in *v.
-      const std::vector<RemoteMemTableMetaData*>& base_files = base_->files_[level];
-      std::vector<RemoteMemTableMetaData*>::const_iterator base_iter = base_files.begin();
-      std::vector<RemoteMemTableMetaData*>::const_iterator base_end = base_files.end();
+      const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& base_files = base_->files_[level];
+      std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator base_iter = base_files.begin();
+      std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator base_end = base_files.end();
       const FileSet* added_files = levels_[level].added_files;
       v->files_[level].reserve(base_files.size() + added_files->size());
       for (const auto& added_file : *added_files) {
         // Add all smaller files listed in base_
-        for (std::vector<RemoteMemTableMetaData*>::const_iterator bpos =
+        for (std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator bpos =
                  std::upper_bound(base_iter, base_end, added_file, cmp);
              base_iter != bpos; ++base_iter) {
           MaybeAddFile(v, level, *base_iter);
@@ -716,11 +661,11 @@ class VersionSet::Builder {
     }
   }
 
-  void MaybeAddFile(Version* v, int level, RemoteMemTableMetaData* f) {
+  void MaybeAddFile(Version* v, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
     if (levels_[level].deleted_files.count(f->number) > 0) {
       // File is deleted: do nothing
     } else {
-      std::vector<RemoteMemTableMetaData*>* files = &v->files_[level];
+      std::vector<std::shared_ptr<RemoteMemTableMetaData>>* files = &v->files_[level];
       if (level > 0 && !files->empty()) {
         // Must not overlap
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
@@ -1088,10 +1033,10 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
 
   // Save files
   for (int level = 0; level < config::kNumLevels; level++) {
-    const std::vector<RemoteMemTableMetaData*>& files = current_->files_[level];
+    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = current_->files_[level];
     for (size_t i = 0; i < files.size(); i++) {
-      const RemoteMemTableMetaData* f = files[i];
-      edit.AddFile(level, f->number, f->file_size, f->smallest, f->largest);
+      const std::shared_ptr<RemoteMemTableMetaData> f = files[i];
+      edit.AddFile(level, f);
     }
   }
 
@@ -1121,7 +1066,7 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
 uint64_t VersionSet::ApproximateOffsetOf(Version* v, const InternalKey& ikey) {
   uint64_t result = 0;
   for (int level = 0; level < config::kNumLevels; level++) {
-    const std::vector<RemoteMemTableMetaData*>& files = v->files_[level];
+    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = v->files_[level];
     for (size_t i = 0; i < files.size(); i++) {
       if (icmp_.Compare(files[i]->largest, ikey) <= 0) {
         // Entire file is before "ikey", so just add the file size
@@ -1139,7 +1084,7 @@ uint64_t VersionSet::ApproximateOffsetOf(Version* v, const InternalKey& ikey) {
         // approximate offset of "ikey" within the table.
         Table* tableptr;
         Iterator* iter = table_cache_->NewIterator(
-            ReadOptions(), files[i]->number, files[i]->file_size, &tableptr);
+            ReadOptions(), files[i], &tableptr);
         if (tableptr != nullptr) {
           result += tableptr->ApproximateOffsetOf(ikey.Encode());
         }
@@ -1154,7 +1099,7 @@ void VersionSet::AddLiveFiles(std::set<uint64_t>* live) {
   for (Version* v = dummy_versions_.next_; v != &dummy_versions_;
        v = v->next_) {
     for (int level = 0; level < config::kNumLevels; level++) {
-      const std::vector<RemoteMemTableMetaData*>& files = v->files_[level];
+      const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = v->files_[level];
       for (size_t i = 0; i < files.size(); i++) {
         live->insert(files[i]->number);
       }
@@ -1170,10 +1115,10 @@ int64_t VersionSet::NumLevelBytes(int level) const {
 
 int64_t VersionSet::MaxNextLevelOverlappingBytes() {
   int64_t result = 0;
-  std::vector<RemoteMemTableMetaData*> overlaps;
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> overlaps;
   for (int level = 1; level < config::kNumLevels - 1; level++) {
     for (size_t i = 0; i < current_->files_[level].size(); i++) {
-      const RemoteMemTableMetaData* f = current_->files_[level][i];
+      const std::shared_ptr<RemoteMemTableMetaData> f = current_->files_[level][i];
       current_->GetOverlappingInputs(level + 1, &f->smallest, &f->largest,
                                      &overlaps);
       const int64_t sum = TotalFileSize(overlaps);
@@ -1188,13 +1133,13 @@ int64_t VersionSet::MaxNextLevelOverlappingBytes() {
 // Stores the minimal range that covers all entries in inputs in
 // *smallest, *largest.
 // REQUIRES: inputs is not empty
-void VersionSet::GetRange(const std::vector<RemoteMemTableMetaData*>& inputs,
+void VersionSet::GetRange(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs,
                           InternalKey* smallest, InternalKey* largest) {
   assert(!inputs.empty());
   smallest->Clear();
   largest->Clear();
   for (size_t i = 0; i < inputs.size(); i++) {
-    RemoteMemTableMetaData* f = inputs[i];
+    std::shared_ptr<RemoteMemTableMetaData> f = inputs[i];
     if (i == 0) {
       *smallest = f->smallest;
       *largest = f->largest;
@@ -1212,10 +1157,10 @@ void VersionSet::GetRange(const std::vector<RemoteMemTableMetaData*>& inputs,
 // Stores the minimal range that covers all entries in inputs1 and inputs2
 // in *smallest, *largest.
 // REQUIRES: inputs is not empty
-void VersionSet::GetRange2(const std::vector<RemoteMemTableMetaData*>& inputs1,
-                           const std::vector<RemoteMemTableMetaData*>& inputs2,
+void VersionSet::GetRange2(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs1,
+                           const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs2,
                            InternalKey* smallest, InternalKey* largest) {
-  std::vector<RemoteMemTableMetaData*> all = inputs1;
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> all = inputs1;
   all.insert(all.end(), inputs2.begin(), inputs2.end());
   GetRange(all, smallest, largest);
 }
@@ -1234,15 +1179,14 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
   for (int which = 0; which < 2; which++) {
     if (!c->inputs_[which].empty()) {
       if (c->level() + which == 0) {
-        const std::vector<RemoteMemTableMetaData*>& files = c->inputs_[which];
+        const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = c->inputs_[which];
         for (size_t i = 0; i < files.size(); i++) {
-          list[num++] = table_cache_->NewIterator(options, files[i]->number,
-                                                  files[i]->file_size);
+          list[num++] = table_cache_->NewIterator(options, files[i]);
         }
       } else {
         // Create concatenating iterator for the files from this level
         // one iterator will responsible for multiple remote memtables.
-        list[num++] = NewTwoLevelIterator(
+        list[num++] = NewTwoLevelFileIterator(
             new Version::LevelFileNumIterator(icmp_, &c->inputs_[which]),
             &GetFileIterator, table_cache_, options);
       }
@@ -1270,7 +1214,7 @@ Compaction* VersionSet::PickCompaction() {
 
     // Pick the first file that comes after compact_pointer_[level]
     for (size_t i = 0; i < current_->files_[level].size(); i++) {
-      RemoteMemTableMetaData* f = current_->files_[level][i];
+      std::shared_ptr<RemoteMemTableMetaData> f = current_->files_[level][i];
       if (compact_pointer_[level].empty() ||
           icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
         c->inputs_[0].push_back(f);
@@ -1311,14 +1255,14 @@ Compaction* VersionSet::PickCompaction() {
 // Finds the largest key in a vector of files. Returns true if files it not
 // empty.
 bool FindLargestKey(const InternalKeyComparator& icmp,
-                    const std::vector<RemoteMemTableMetaData*>& files,
+                    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files,
                     InternalKey* largest_key) {
   if (files.empty()) {
     return false;
   }
   *largest_key = files[0]->largest;
   for (size_t i = 1; i < files.size(); ++i) {
-    RemoteMemTableMetaData* f = files[i];
+    std::shared_ptr<RemoteMemTableMetaData> f = files[i];
     if (icmp.Compare(f->largest, *largest_key) > 0) {
       *largest_key = f->largest;
     }
@@ -1328,14 +1272,14 @@ bool FindLargestKey(const InternalKeyComparator& icmp,
 
 // Finds minimum file b2=(l2, u2) in level file for which l2 > u1 and
 // user_key(l2) = user_key(u1)
-RemoteMemTableMetaData* FindSmallestBoundaryFile(
+std::shared_ptr<RemoteMemTableMetaData> FindSmallestBoundaryFile(
     const InternalKeyComparator& icmp,
-    const std::vector<RemoteMemTableMetaData*>& level_files,
+    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& level_files,
     const InternalKey& largest_key) {
   const Comparator* user_cmp = icmp.user_comparator();
-  RemoteMemTableMetaData* smallest_boundary_file = nullptr;
+  std::shared_ptr<RemoteMemTableMetaData> smallest_boundary_file = nullptr;
   for (size_t i = 0; i < level_files.size(); ++i) {
-    RemoteMemTableMetaData* f = level_files[i];
+    std::shared_ptr<RemoteMemTableMetaData> f = level_files[i];
     if (icmp.Compare(f->smallest, largest_key) > 0 &&
         user_cmp->Compare(f->smallest.user_key(), largest_key.user_key()) ==
             0) {
@@ -1363,8 +1307,8 @@ RemoteMemTableMetaData* FindSmallestBoundaryFile(
 //   in     level_files:      List of files to search for boundary files.
 //   in/out compaction_files: List of files to extend by adding boundary files.
 void AddBoundaryInputs(const InternalKeyComparator& icmp,
-                       const std::vector<RemoteMemTableMetaData*>& level_files,
-                       std::vector<RemoteMemTableMetaData*>* compaction_files) {
+                       const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& level_files,
+                       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* compaction_files) {
   InternalKey largest_key;
 
   // Quick return if compaction_files is empty.
@@ -1374,7 +1318,7 @@ void AddBoundaryInputs(const InternalKeyComparator& icmp,
 
   bool continue_searching = true;
   while (continue_searching) {
-    RemoteMemTableMetaData* smallest_boundary_file =
+    std::shared_ptr<RemoteMemTableMetaData> smallest_boundary_file =
         FindSmallestBoundaryFile(icmp, level_files, largest_key);
 
     // If a boundary file was found advance largest_key, otherwise we're done.
@@ -1404,7 +1348,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   // See if we can grow the number of inputs in "level" without
   // changing the number of "level+1" files we pick up.
   if (!c->inputs_[1].empty()) {
-    std::vector<RemoteMemTableMetaData*> expanded0;
+    std::vector<std::shared_ptr<RemoteMemTableMetaData>> expanded0;
     current_->GetOverlappingInputs(level, &all_start, &all_limit, &expanded0);
     AddBoundaryInputs(icmp_, current_->files_[level], &expanded0);
     const int64_t inputs0_size = TotalFileSize(c->inputs_[0]);
@@ -1415,7 +1359,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
             ExpandedCompactionByteSizeLimit(options_)) {
       InternalKey new_start, new_limit;
       GetRange(expanded0, &new_start, &new_limit);
-      std::vector<RemoteMemTableMetaData*> expanded1;
+      std::vector<std::shared_ptr<RemoteMemTableMetaData>> expanded1;
       current_->GetOverlappingInputs(level + 1, &new_start, &new_limit,
                                      &expanded1);
       if (expanded1.size() == c->inputs_[1].size()) {
@@ -1450,7 +1394,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
 
 Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
                                      const InternalKey* end) {
-  std::vector<RemoteMemTableMetaData*> inputs;
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs;
   current_->GetOverlappingInputs(level, begin, end, &inputs);
   if (inputs.empty()) {
     return nullptr;
@@ -1523,9 +1467,9 @@ bool Compaction::IsBaseLevelForKey(const Slice& user_key) {
   // Maybe use binary search to find right entry instead of linear search?
   const Comparator* user_cmp = input_version_->vset_->icmp_.user_comparator();
   for (int lvl = level_ + 2; lvl < config::kNumLevels; lvl++) {
-    const std::vector<RemoteMemTableMetaData*>& files = input_version_->files_[lvl];
+    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = input_version_->files_[lvl];
     while (level_ptrs_[lvl] < files.size()) {
-      RemoteMemTableMetaData* f = files[level_ptrs_[lvl]];
+      std::shared_ptr<RemoteMemTableMetaData> f = files[level_ptrs_[lvl]];
       if (user_cmp->Compare(user_key, f->largest.user_key()) <= 0) {
         // We've advanced far enough
         if (user_cmp->Compare(user_key, f->smallest.user_key()) >= 0) {

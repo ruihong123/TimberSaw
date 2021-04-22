@@ -57,6 +57,9 @@ struct DBImpl::CompactionState {
     uint64_t number;
     uint64_t file_size;
     InternalKey smallest, largest;
+    std::map<int, ibv_mr*> remote_data_mrs;
+    std::map<int, ibv_mr*> remote_dataindex_mrs;
+    std::map<int, ibv_mr*> remote_filter_mrs;
   };
 
   Output* current_output() { return &outputs[outputs.size() - 1]; }
@@ -506,17 +509,17 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
 //  mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
-  RemoteMemTableMetaData meta;
-  meta.number = versions_->NewFileNumber();
-  pending_outputs_.insert(meta.number);
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  meta->number = versions_->NewFileNumber();
+  pending_outputs_.insert(meta->number);
   Iterator* iter = mem->NewIterator();
   Log(options_.info_log, "Level-0 table #%llu: started",
-      (unsigned long long)meta.number);
+      (unsigned long long)meta->number);
 //  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
 //    mutex_.Unlock();
-    s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+    s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta);
 //    mutex_.Lock();
   }
 
@@ -524,24 +527,23 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 //      (unsigned long long)meta.number, (unsigned long long)meta.file_size,
 //      s.ToString().c_str());
   delete iter;
-  pending_outputs_.erase(meta.number);
+  pending_outputs_.erase(meta->number);
 
   // Note that if file_size is zero, the file has been deleted and
   // should not be added to the manifest.
   int level = 0;
-  if (s.ok() && meta.file_size > 0) {
-    const Slice min_user_key = meta.smallest.user_key();
-    const Slice max_user_key = meta.largest.user_key();
+  if (s.ok() && meta->file_size > 0) {
+    const Slice min_user_key = meta->smallest.user_key();
+    const Slice max_user_key = meta->largest.user_key();
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
     }
-    edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
-                  meta.largest);
+    edit->AddFile(level, meta);
   }
 
   CompactionStats stats;
   stats.micros = env_->NowMicros() - start_micros;
-  stats.bytes_written = meta.file_size;
+  stats.bytes_written = meta->file_size;
   stats_[level].Add(stats);
   return s;
 }
@@ -738,77 +740,76 @@ void DBImpl::BackgroundCompaction() {
     return;
   }
 
-//  Compaction* c;
-//  bool is_manual = (manual_compaction_ != nullptr);
-//  InternalKey manual_end;
-//  if (is_manual) {
-//    ManualCompaction* m = manual_compaction_;
-//    c = versions_->CompactRange(m->level, m->begin, m->end);
-//    m->done = (c == nullptr);
-//    if (c != nullptr) {
-//      manual_end = c->input(0, c->num_input_files(0) - 1)->largest;
-//    }
-//    Log(options_.info_log,
-//        "Manual compaction at level-%d from %s .. %s; will stop at %s\n",
-//        m->level, (m->begin ? m->begin->DebugString().c_str() : "(begin)"),
-//        (m->end ? m->end->DebugString().c_str() : "(end)"),
-//        (m->done ? "(end)" : manual_end.DebugString().c_str()));
-//  } else {
-//    c = versions_->PickCompaction();
-//  }
-//
-//  Status status;
-//  if (c == nullptr) {
-//    // Nothing to do
-//  } else if (!is_manual && c->IsTrivialMove()) {
-//    // Move file to next level
-//    assert(c->num_input_files(0) == 1);
-//    RemoteMemTableMetaData* f = c->input(0, 0);
-//    c->edit()->RemoveFile(c->level(), f->number);
-//    c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->smallest,
-//                       f->largest);
-//    status = versions_->LogAndApply(c->edit(), &mutex_);
-//    if (!status.ok()) {
-//      RecordBackgroundError(status);
-//    }
-//    VersionSet::LevelSummaryStorage tmp;
-//    Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
-//        static_cast<unsigned long long>(f->number), c->level() + 1,
-//        static_cast<unsigned long long>(f->file_size),
-//        status.ToString().c_str(), versions_->LevelSummary(&tmp));
-//  } else {
-//    CompactionState* compact = new CompactionState(c);
-//    status = DoCompactionWork(compact);
-//    if (!status.ok()) {
-//      RecordBackgroundError(status);
-//    }
-//    CleanupCompaction(compact);
-//    c->ReleaseInputs();
-//    RemoveObsoleteFiles();
-//  }
-//  delete c;
-//
-//  if (status.ok()) {
-//    // Done
-//  } else if (shutting_down_.load(std::memory_order_acquire)) {
-//    // Ignore compaction errors found during shutting down
-//  } else {
-//    Log(options_.info_log, "Compaction error: %s", status.ToString().c_str());
-//  }
-//
-//  if (is_manual) {
-//    ManualCompaction* m = manual_compaction_;
-//    if (!status.ok()) {
-//      m->done = true;
-//    }
-//    if (!m->done) {
-//      // We only compacted part of the requested range.  Update *m
-//      // to the range that is left to be compacted.
-//      m->tmp_storage = manual_end;
-//      m->begin = &m->tmp_storage;
-//    }
-//    manual_compaction_ = nullptr;
-//  }
+  Compaction* c;
+  bool is_manual = (manual_compaction_ != nullptr);
+  InternalKey manual_end;
+  if (is_manual) {
+    ManualCompaction* m = manual_compaction_;
+    c = versions_->CompactRange(m->level, m->begin, m->end);
+    m->done = (c == nullptr);
+    if (c != nullptr) {
+      manual_end = c->input(0, c->num_input_files(0) - 1)->largest;
+    }
+    Log(options_.info_log,
+        "Manual compaction at level-%d from %s .. %s; will stop at %s\n",
+        m->level, (m->begin ? m->begin->DebugString().c_str() : "(begin)"),
+        (m->end ? m->end->DebugString().c_str() : "(end)"),
+        (m->done ? "(end)" : manual_end.DebugString().c_str()));
+  } else {
+    c = versions_->PickCompaction();
+  }
+
+  Status status;
+  if (c == nullptr) {
+    // Nothing to do
+  } else if (!is_manual && c->IsTrivialMove()) {
+    // Move file to next level
+    assert(c->num_input_files(0) == 1);
+    std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+    c->edit()->RemoveFile(c->level(), f->number);
+    c->edit()->AddFile(c->level() + 1, f);
+    status = versions_->LogAndApply(c->edit(), &mutex_);
+    if (!status.ok()) {
+      RecordBackgroundError(status);
+    }
+    VersionSet::LevelSummaryStorage tmp;
+    Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+        static_cast<unsigned long long>(f->number), c->level() + 1,
+        static_cast<unsigned long long>(f->file_size),
+        status.ToString().c_str(), versions_->LevelSummary(&tmp));
+  } else {
+    CompactionState* compact = new CompactionState(c);
+    status = DoCompactionWork(compact);
+    if (!status.ok()) {
+      RecordBackgroundError(status);
+    }
+    CleanupCompaction(compact);
+    c->ReleaseInputs();
+    RemoveObsoleteFiles();
+  }
+  delete c;
+
+  if (status.ok()) {
+    // Done
+  } else if (shutting_down_.load(std::memory_order_acquire)) {
+    // Ignore compaction errors found during shutting down
+  } else {
+    Log(options_.info_log, "Compaction error: %s", status.ToString().c_str());
+  }
+
+  if (is_manual) {
+    ManualCompaction* m = manual_compaction_;
+    if (!status.ok()) {
+      m->done = true;
+    }
+    if (!m->done) {
+      // We only compacted part of the requested range.  Update *m
+      // to the range that is left to be compacted.
+      m->tmp_storage = manual_end;
+      m->begin = &m->tmp_storage;
+    }
+    manual_compaction_ = nullptr;
+  }
 }
 
 void DBImpl::CleanupCompaction(CompactionState* compact) {
@@ -870,8 +871,18 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   } else {
     compact->builder->Abandon();
   }
+  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
+  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
+  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
+#ifndef NDEBUG
+  uint64_t file_size = 0;
+  for(auto iter : compact->current_output()->remote_data_mrs){
+    file_size += iter.second->length;
+  }
+#endif
   const uint64_t current_bytes = compact->builder->FileSize();
   compact->current_output()->file_size = current_bytes;
+  assert(file_size == current_bytes);
   compact->total_bytes += current_bytes;
   delete compact->builder;
   compact->builder = nullptr;
@@ -888,10 +899,10 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
 
   if (s.ok() && current_entries > 0) {
     // Verify that the table is usable
-    Iterator* iter =
-        table_cache_->NewIterator(ReadOptions(), output_number, current_bytes);
-    s = iter->status();
-    delete iter;
+//    Iterator* iter =
+//        table_cache_->NewIterator(ReadOptions(), output_number, current_bytes);
+//    s = iter->status();
+//    delete iter;
     if (s.ok()) {
       Log(options_.info_log, "Generated table #%llu@%d: %lld keys, %lld bytes",
           (unsigned long long)output_number, compact->compaction->level(),
@@ -914,8 +925,16 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
   const int level = compact->compaction->level();
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     const CompactionState::Output& out = compact->outputs[i];
-    compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size,
-                                         out.smallest, out.largest);
+    std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+    //TODO make all the metadata written into out
+    meta->number = out.number;
+    meta->file_size = out.file_size;
+    meta->smallest = out.smallest;
+    meta->largest = out.largest;
+    meta->remote_data_mrs = out.remote_data_mrs;
+    meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
+    meta->remote_filter_mrs = out.remote_filter_mrs;
+    compact->compaction->edit()->AddFile(level + 1, meta);
   }
   return versions_->LogAndApply(compact->compaction->edit(), &mutex_);
 }

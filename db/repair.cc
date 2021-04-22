@@ -77,7 +77,7 @@ class Repairer {
     if (status.ok()) {
       unsigned long long bytes = 0;
       for (size_t i = 0; i < tables_.size(); i++) {
-        bytes += tables_[i].meta.file_size;
+        bytes += tables_[i].meta->file_size;
       }
       Log(options_.info_log,
           "**** Repaired leveldb %s; "
@@ -91,7 +91,7 @@ class Repairer {
 
  private:
   struct TableInfo {
-    RemoteMemTableMetaData meta;
+    std::shared_ptr<RemoteMemTableMetaData> meta;
     SequenceNumber max_sequence;
   };
 
@@ -200,20 +200,20 @@ class Repairer {
 
     // Do not record a version edit for this conversion to a Table
     // since ExtractMetaData() will also generate edits.
-    RemoteMemTableMetaData meta;
-    meta.number = next_file_number_++;
+    std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+    meta->number = next_file_number_++;
     Iterator* iter = mem->NewIterator();
-    status = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+    status = BuildTable(dbname_, env_, options_, table_cache_, iter, meta);
     delete iter;
     mem->Unref();
     mem = nullptr;
     if (status.ok()) {
-      if (meta.file_size > 0) {
-        table_numbers_.push_back(meta.number);
+      if (meta->file_size > 0) {
+        table_numbers_.push_back(meta->number);
       }
     }
     Log(options_.info_log, "Log #%llu: %d ops saved to Table #%llu %s",
-        (unsigned long long)log, counter, (unsigned long long)meta.number,
+        (unsigned long long)log, counter, (unsigned long long)meta->number,
         status.ToString().c_str());
     return status;
   }
@@ -224,23 +224,23 @@ class Repairer {
     }
   }
 
-  Iterator* NewTableIterator(const RemoteMemTableMetaData& meta) {
+  Iterator* NewTableIterator(std::shared_ptr<RemoteMemTableMetaData> meta) {
     // Same as compaction iterators: if paranoid_checks are on, turn
     // on checksum verification.
     ReadOptions r;
     r.verify_checksums = options_.paranoid_checks;
-    return table_cache_->NewIterator(r, meta.number, meta.file_size);
+    return table_cache_->NewIterator(r, meta);
   }
 
   void ScanTable(uint64_t number) {
     TableInfo t;
-    t.meta.number = number;
+    t.meta->number = number;
     std::string fname = TableFileName(dbname_, number);
-    Status status = env_->GetFileSize(fname, &t.meta.file_size);
+    Status status = env_->GetFileSize(fname, &t.meta->file_size);
     if (!status.ok()) {
       // Try alternate file name.
       fname = SSTTableFileName(dbname_, number);
-      Status s2 = env_->GetFileSize(fname, &t.meta.file_size);
+      Status s2 = env_->GetFileSize(fname, &t.meta->file_size);
       if (s2.ok()) {
         status = Status::OK();
       }
@@ -249,7 +249,7 @@ class Repairer {
       ArchiveFile(TableFileName(dbname_, number));
       ArchiveFile(SSTTableFileName(dbname_, number));
       Log(options_.info_log, "Table #%llu: dropped: %s",
-          (unsigned long long)t.meta.number, status.ToString().c_str());
+          (unsigned long long)t.meta->number, status.ToString().c_str());
       return;
     }
 
@@ -263,16 +263,16 @@ class Repairer {
       Slice key = iter->key();
       if (!ParseInternalKey(key, &parsed)) {
         Log(options_.info_log, "Table #%llu: unparsable key %s",
-            (unsigned long long)t.meta.number, EscapeString(key).c_str());
+            (unsigned long long)t.meta->number, EscapeString(key).c_str());
         continue;
       }
 
       counter++;
       if (empty) {
         empty = false;
-        t.meta.smallest.DecodeFrom(key);
+        t.meta->smallest.DecodeFrom(key);
       }
-      t.meta.largest.DecodeFrom(key);
+      t.meta->largest.DecodeFrom(key);
       if (parsed.sequence > t.max_sequence) {
         t.max_sequence = parsed.sequence;
       }
@@ -282,7 +282,7 @@ class Repairer {
     }
     delete iter;
     Log(options_.info_log, "Table #%llu: %d entries %s",
-        (unsigned long long)t.meta.number, counter, status.ToString().c_str());
+        (unsigned long long)t.meta->number, counter, status.ToString().c_str());
 
     if (status.ok()) {
       tables_.push_back(t);
@@ -319,7 +319,7 @@ class Repairer {
     } else {
       s = builder->Finish();
       if (s.ok()) {
-        t.meta.file_size = builder->FileSize();
+        t.meta->file_size = builder->FileSize();
       }
     }
     delete builder;
@@ -332,11 +332,11 @@ class Repairer {
     file = nullptr;
 
     if (counter > 0 && s.ok()) {
-      std::string orig = TableFileName(dbname_, t.meta.number);
+      std::string orig = TableFileName(dbname_, t.meta->number);
       s = env_->RenameFile(copy, orig);
       if (s.ok()) {
         Log(options_.info_log, "Table #%llu: %d entries repaired",
-            (unsigned long long)t.meta.number, counter);
+            (unsigned long long)t.meta->number, counter);
         tables_.push_back(t);
       }
     }
@@ -368,8 +368,7 @@ class Repairer {
     for (size_t i = 0; i < tables_.size(); i++) {
       // TODO(opt): separate out into multiple levels
       const TableInfo& t = tables_[i];
-      edit_.AddFile(0, t.meta.number, t.meta.file_size, t.meta.smallest,
-                    t.meta.largest);
+      edit_.AddFile(0, t.meta);
     }
 
     // std::fprintf(stderr,
