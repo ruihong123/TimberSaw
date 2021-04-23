@@ -1994,6 +1994,7 @@ bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p) {
     else
       return false;
   } else {
+    mr_iter--;
     size_t buff_offset =
         static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
     //      assert(buff_offset>=0);
