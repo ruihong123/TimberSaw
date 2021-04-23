@@ -18,17 +18,22 @@ class RDMA_Manager;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
 struct RemoteMemTableMetaData {
   RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
-  virtual ~RemoteMemTableMetaData() {
-    Remote_blocks_deallocate(remote_data_mrs);
-    Remote_blocks_deallocate(remote_dataindex_mrs);
-    Remote_blocks_deallocate(remote_filter_mrs);
+  ~RemoteMemTableMetaData() {
+    if(Remote_blocks_deallocate(remote_data_mrs) &&
+        Remote_blocks_deallocate(remote_dataindex_mrs) &&
+    Remote_blocks_deallocate(remote_filter_mrs)){
+      DEBUG("Remote blocks deleted successfully");
+    }
   }
-  void Remote_blocks_deallocate(std::map<int, ibv_mr*> map){
+  bool Remote_blocks_deallocate(std::map<int, ibv_mr*> map){
     std::map<int, ibv_mr*>::iterator it;
 
     for (it = map.begin(); it != map.end(); it++){
-      rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer");
+      if(!rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer")){
+        return false;
+      }
     }
+    return true;
   }
   static std::shared_ptr<RDMA_Manager> rdma_mg;
   int refs;
