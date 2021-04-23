@@ -43,18 +43,19 @@ Block::Block(const BlockContents& contents, BlockType type)
 Block::~Block() {
   if (RDMA_Regiested) {
     if (type_ == DataBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataBlock")){
-      printf("Block RDMA registered memory deallocated successfull");
+      printf("Block RDMA registered memory deallocated successfull\n");
       return;
     }
 
     if (type_ == IndexBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataIndexBlock")){
-      printf("Block RDMA registered memory deallocated successfull");
+      printf("Block RDMA registered memory deallocated successfull\n");
       return;
     }
     if (type_ == FilterBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){
-      printf("Block RDMA registered memory deallocated successfull");
+      printf("Block RDMA registered memory deallocated successfull\n");
       return;
     }
+    DEBUG("Not found in the RDMA mem pool");
   }
 }
 
