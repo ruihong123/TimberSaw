@@ -1088,12 +1088,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     stats.bytes_written += compact->outputs[i].file_size;
   }
 
-//  mutex_.Lock();
+  mutex_.Lock();
   stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {
     status = InstallCompactionResults(compact);
   }
+  mutex_.Unlock();
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
