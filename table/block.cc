@@ -38,6 +38,7 @@ Block::Block(const BlockContents& contents, BlockType type)
       restart_offset_ = size_ - (1 + NumRestarts()) * sizeof(uint32_t);
     }
   }
+  rdma_mg_ = Env::Default()->rdma_mg;
 }
 
 Block::~Block() {
