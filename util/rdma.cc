@@ -69,6 +69,7 @@ RDMA_Manager::~RDMA_Manager() {
         fprintf(stderr, "failed to destroy QP\n");
       }
     }
+  printf("RDMA Manager get destroyed\n");
   //  delete qp_local;
   //  delete  cq_local;
   //  delete t_local_1;
