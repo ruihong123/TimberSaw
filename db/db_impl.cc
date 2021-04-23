@@ -777,9 +777,11 @@ void DBImpl::BackgroundCompaction() {
         static_cast<unsigned long long>(f->number), c->level() + 1,
         static_cast<unsigned long long>(f->file_size),
         status.ToString().c_str(), versions_->LevelSummary(&tmp));
+    DEBUG("Trival compaction\n");
   } else {
     CompactionState* compact = new CompactionState(c);
     status = DoCompactionWork(compact);
+    DEBUG("Non-trivalcompaction!\n");
     if (!status.ok()) {
       RecordBackgroundError(status);
     }
@@ -960,7 +962,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   Iterator* input = versions_->MakeInputIterator(compact->compaction);
 
   // Release mutex while we're actually doing the compaction work
-  mutex_.Unlock();
+//  mutex_.Unlock();
 
   input->SeekToFirst();
   Status status;
@@ -1086,7 +1088,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     stats.bytes_written += compact->outputs[i].file_size;
   }
 
-  mutex_.Lock();
+//  mutex_.Lock();
   stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {

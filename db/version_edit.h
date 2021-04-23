@@ -16,8 +16,10 @@ namespace leveldb {
 class VersionSet;
 class RDMA_Manager;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
+// Solved
 struct RemoteMemTableMetaData {
   RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
+  //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {
     if(Remote_blocks_deallocate(remote_data_mrs) &&
         Remote_blocks_deallocate(remote_dataindex_mrs) &&
