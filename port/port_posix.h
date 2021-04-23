@@ -85,7 +85,7 @@
 #ifdef NDEBUG
 #define DEBUG(x)
 #else
-#define DEBUG(x,y) printf(x,y)
+#define DEBUG_arg(x,y) printf(x,y)
 #define DEBUG(x) printf(x)
 #endif
 #include "port/thread_annotations.h"
