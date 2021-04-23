@@ -87,7 +87,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
-  std::shared_ptr<RDMA_Manager> rdma_mg;
+  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = static_cast<size_t>(handle.size());
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataBlock"]);
   ibv_mr* contents;
@@ -146,15 +146,15 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   return Status::OK();
 }
 
-Status ReadDataIndexBlock(ibv_mr* remote_mr,
-                          const ReadOptions& options, BlockContents* result) {
+Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
+                          BlockContents* result) {
   result->data = Slice();
   result->cachable = false;
   result->heap_allocated = false;
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
-  std::shared_ptr<RDMA_Manager> rdma_mg;
+  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = remote_mr->length - -kBlockTrailerSize;
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataIndexBlock"]);
   ibv_mr* contents;
@@ -215,7 +215,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
-  std::shared_ptr<RDMA_Manager> rdma_mg;
+  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = remote_mr->length - -kBlockTrailerSize;
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["FilterBlock"]);
   ibv_mr* contents;
