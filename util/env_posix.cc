@@ -833,7 +833,7 @@ void PosixEnv::BackgroundThreadMain() {
 //    printf("create a new thread");
     // Wait until there is work to be done.
     while (background_work_queue_.empty()) {
-
+      DEBUG("Background thread wait.\n");
       background_work_cv_.Wait();
     }
 

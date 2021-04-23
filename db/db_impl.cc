@@ -737,6 +737,7 @@ void DBImpl::BackgroundCompaction() {
 
   if (imm_.load() != nullptr) {
     CompactMemTable();
+    DEBUG("Memtable flushed\n");
     return;
   }
 
@@ -1491,7 +1492,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 
         if (counter>200){
 #ifndef NDEBUG
-          printf("sleep counter is %d", sleep_counter);
+          if (sleep_counter % 1000 == 0)
+            printf("sleep counter is %d\n", sleep_counter);
 #endif
           sleep_counter++;
           usleep(10);
