@@ -72,7 +72,9 @@ Status Table::Open(const Options& options, Table** table,
 }
 
 void Table::ReadFilter() {
-
+  if (rep_->options.filter_policy == nullptr) {
+    return;  // Do not need any metadata
+  }
   // We might want to unify with ReadDataBlock() if we start
   // requiring checksum verification in Table::Open.
   ReadOptions opt;
