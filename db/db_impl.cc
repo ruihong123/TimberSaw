@@ -787,7 +787,7 @@ void DBImpl::BackgroundCompaction() {
     }
     CleanupCompaction(compact);
     c->ReleaseInputs();
-    RemoveObsoleteFiles();
+//    RemoveObsoleteFiles();
   }
   delete c;
 
