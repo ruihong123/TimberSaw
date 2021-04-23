@@ -1468,6 +1468,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   //Get a snapshot it is vital for the CAS but not vital for the wait logic.
   mem_r = mem_.load();
   size_t counter = 0;
+#ifndef NDEBUG
+  int sleep_counter =0;
+#endif
   // First check whether we need to switch the table.
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
@@ -1485,7 +1488,12 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         assert(seq_num > mem_r->GetFirstseq());
 //        usleep(1);
         counter++;
+
         if (counter>200){
+#ifndef NDEBUG
+          printf("sleep counter is %d", sleep_counter);
+#endif
+          sleep_counter++;
           usleep(10);
           counter = 0;
         }
