@@ -1493,7 +1493,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         if (counter>200){
 #ifndef NDEBUG
           if (sleep_counter % 1000 == 0)
-            printf("sleep counter is %d\n", sleep_counter);
+            printf("sleep counter for flush waiting is %d\n", sleep_counter);
 #endif
           sleep_counter++;
           env_->SleepForMicroseconds(5);
@@ -1510,7 +1510,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       if (counter>200){
 #ifndef NDEBUG
         if (sleep_counter % 1000 == 0)
-          printf("sleep counter is %d\n", sleep_counter);
+          printf("sleep counter for level 0 waiting is %d\n", sleep_counter);
 #endif
         sleep_counter++;
         env_->SleepForMicroseconds(10);// slightly larger than wait for flushing.
