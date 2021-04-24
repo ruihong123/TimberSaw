@@ -83,6 +83,7 @@
 #define fdatasync fsync
 #endif
 #ifdef NDEBUG
+#define DEBUG_arg(x,y)
 #define DEBUG(x)
 #else
 #define DEBUG_arg(x,y) printf(x,y)
