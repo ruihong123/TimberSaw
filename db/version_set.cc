@@ -738,13 +738,14 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
   edit->SetLastSequence(last_sequence_);
 
   Version* v = new Version(this);
+  version_mutex.Lock();
   {
     Builder builder(this, current_);
     builder.Apply(edit);
     builder.SaveTo(v);
   }
   Finalize(v);
-
+  version_mutex.Unlock();
   // Initialize new descriptor log file if necessary by creating
   // a temporary file that contains a snapshot of the current version.
 //  std::string new_manifest_file;

@@ -1496,14 +1496,29 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
             printf("sleep counter is %d\n", sleep_counter);
 #endif
           sleep_counter++;
-          usleep(10);
+          env_->SleepForMicroseconds(5);
+//          usleep(10);
           counter = 0;
         }
 
 //        mem_r = mem_.load();
 //      }
 //      mutex_.Unlock();
-    }else{
+    }else if(versions_->NumLevelFiles(0) >=
+             config::kL0_StopWritesTrigger){
+      // if level 0 is contain too much files, just wait here.
+      if (counter>200){
+#ifndef NDEBUG
+        if (sleep_counter % 1000 == 0)
+          printf("sleep counter is %d\n", sleep_counter);
+#endif
+        sleep_counter++;
+        env_->SleepForMicroseconds(10);// slightly larger than wait for flushing.
+//          usleep(10);
+        counter = 0;
+      }
+    }
+    else{
       assert(versions_->PrevLogNumber() == 0);
       MemTable* temp_mem = new MemTable(internal_comparator_);
       uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
