@@ -737,6 +737,7 @@ void DBImpl::BackgroundCompaction() {
 
   if (imm_.load() != nullptr) {
     CompactMemTable();
+    DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
     DEBUG("Memtable flushed\n");
     return;
   }
