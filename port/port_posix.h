@@ -89,6 +89,7 @@
 #define DEBUG_arg(x,y) printf(x,y)
 #define DEBUG(x) printf(x)
 #endif
+#define TIMEPRINT
 #include "port/thread_annotations.h"
 namespace leveldb {
 

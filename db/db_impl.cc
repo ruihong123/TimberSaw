@@ -1339,6 +1339,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 
   // May temporarily unlock and wait.
 //  Status status = Status::OK();
+#ifdef TIMEPRINT
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   size_t kv_num = WriteBatchInternal::Count(updates);
   assert(kv_num == 1);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
@@ -1346,7 +1349,11 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   kv_counter0.fetch_add(1);
   MemTable* mem;
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
-
+#ifdef TIMEPRINT
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("preprocessing, time elapse is %zu\n",  duration.count());
+#endif
 //    size_t kv_num = 1;
 //  spin_mutex.lock();
 //  uint64_t sequence = versions_->LastSequence_nonatomic();
@@ -1356,7 +1363,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   //TOTHINK: what if a write with a higher seq first go outside MakeRoomForwrite,
   // and it is supposed to write to the new memtable which has not been created yet.
   // hint how about set the metable barrier as seq_num rather than memory size?
-
+#ifdef TIMEPRINT
+  start = std::chrono::high_resolution_clock::now();
+#endif
   if (status.ok()) {  // nullptr batch is for compactions
     assert(updates != nullptr);
     WriteBatchInternal::SetSequence(updates, sequence);
@@ -1382,6 +1391,11 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  if (thread_ready_num >= thread_num) {
 //    cv.notify_all();
 //  }
+#ifdef TIMEPRINT
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
+#endif
   return status;
 }
 
