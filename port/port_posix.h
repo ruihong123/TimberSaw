@@ -82,6 +82,7 @@
 // when targeting older platforms.
 #define fdatasync fsync
 #endif
+#define TIMEPRINT
 #include "port/thread_annotations.h"
 namespace leveldb {
 
