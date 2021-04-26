@@ -28,7 +28,7 @@
 #if HAVE_SNAPPY
 #include <snappy.h>
 #endif  // HAVE_SNAPPY
-
+#define TIMEPRINT
 #include <cassert>
 #include <condition_variable>  // NOLINT
 #include <cstddef>

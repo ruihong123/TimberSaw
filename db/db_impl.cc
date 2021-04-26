@@ -1198,6 +1198,9 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 }
 
 Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
+#ifdef TIMEPRINT
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   Writer w(&mutex_);
   w.batch = updates;
   w.sync = options.sync;
@@ -1211,16 +1214,39 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   if (w.done) {
     return w.status;
   }
-
+#ifdef TIMEPRINT
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Wait for start, time elapse is %zu\n",  duration.count());
+#endif
+#ifdef TIMEPRINT
+  start = std::chrono::high_resolution_clock::now();
+#endif
   // May temporarily unlock and wait.
   Status status = MakeRoomForWrite(updates == nullptr);
+#ifdef TIMEPRINT
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Make room for write, time elapse is %zu\n",  duration.count());
+#endif
   uint64_t last_sequence = versions_->LastSequence();
   Writer* last_writer = &w;
   if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
     // TODO: Remove all the lock, use fettch and add to atomically increase the
     // TODO: sequence num. Use concurrent write in the Rocks DB to write
     // TODO:  skiplist concurrently. NO log is needed as well.
+#ifdef TIMEPRINT
+    start = std::chrono::high_resolution_clock::now();
+#endif
     WriteBatch* write_batch = BuildBatchGroup(&last_writer);
+#ifdef TIMEPRINT
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Build batch group, time elapse is %zu\n",  duration.count());
+#endif
+#ifdef TIMEPRINT
+    start = std::chrono::high_resolution_clock::now();
+#endif
     WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
     last_sequence += WriteBatchInternal::Count(write_batch);
 
@@ -1230,6 +1256,11 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     // into mem_.
     {
       mutex_.Unlock();
+#ifdef TIMEPRINT
+      stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Unlock, time elapse is %zu\n",  duration.count());
+#endif
 //      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
 //      bool sync_error = false;
 //      if (status.ok() && options.sync) {
@@ -1238,10 +1269,26 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //          sync_error = true;
 //        }
 //      }
+#ifdef TIMEPRINT
+      start = std::chrono::high_resolution_clock::now();
+#endif
       if (status.ok()) {
         status = WriteBatchInternal::InsertInto(write_batch, mem_);
       }
+#ifdef TIMEPRINT
+      stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Real insert, time elapse is %zu\n",  duration.count());
+#endif
+#ifdef TIMEPRINT
+      start = std::chrono::high_resolution_clock::now();
+#endif
       mutex_.Lock();
+#ifdef TIMEPRINT
+      stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Lock, time elapse is %zu\n",  duration.count());
+#endif
 //      if (sync_error) {
 //        // The state of the log file is indeterminate: the log record we
 //        // just added may or may not show up when the DB is re-opened.
@@ -1249,6 +1296,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //        RecordBackgroundError(status);
 //      }
     }
+#ifdef TIMEPRINT
+    start = std::chrono::high_resolution_clock::now();
+#endif
     if (write_batch == tmp_batch_) tmp_batch_->Clear();
 
     versions_->SetLastSequence(last_sequence);
@@ -1269,7 +1319,11 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   if (!writers_.empty()) {
     writers_.front()->cv.Signal();
   }
-
+#ifdef TIMEPRINT
+  stop = std::chrono::high_resolution_clock::now();
+  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Post insert, time elapse is %zu\n",  duration.count());
+#endif
   return status;
 }
 
