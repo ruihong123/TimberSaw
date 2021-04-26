@@ -1341,6 +1341,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  Status status = Status::OK();
 #ifdef TIMEPRINT
   auto start = std::chrono::high_resolution_clock::now();
+  auto total_start = std::chrono::high_resolution_clock::now();
 #endif
   size_t kv_num = WriteBatchInternal::Count(updates);
   assert(kv_num == 1);
@@ -1394,7 +1395,9 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 #ifdef TIMEPRINT
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  auto total_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - total_start);
   std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
+  std::printf("total time, time elapse is %zu\n",  total_duration.count());
 #endif
   return status;
 }
