@@ -533,10 +533,14 @@ Status TableBuilder::Finish() {
                     r->options.compression, msg_size);
     FlushDataIndex(msg_size);
   }
-  int num_of_poll = r->remote_filter_mrs.size() + r->remote_data_mrs.size()
-                    + r->remote_dataindex_mrs.size();
+  DEBUG_arg("for a sst the remote data chunks number %zu", r->local_data_mr.size());
+  int num_of_poll = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
+                    r->data_inuse_end - r->data_inuse_start + 1:
+                    (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
+
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "");
+  assert(r->options.env->rdma_mg->try_poll_this_thread_completions(wc,1) == 0);
 //  printf("A table finsihed flushing\n");
 //  // Write footer
 //  if (ok()) {
