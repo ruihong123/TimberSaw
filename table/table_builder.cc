@@ -384,7 +384,7 @@ void TableBuilder::FlushData(){
   // after that position to be increased by 1.
   if (r->data_inuse_start == -1){
     // first time flush
-    assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 1);
+    assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 2);
     rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
     r->data_inuse_end = 0;
     r->data_inuse_start = 0;
