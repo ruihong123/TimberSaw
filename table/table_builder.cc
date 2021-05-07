@@ -540,7 +540,7 @@ Status TableBuilder::Finish() {
   int num_of_poll = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
                     r->data_inuse_end - r->data_inuse_start + 1:
                     (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
-
+  num_of_poll = num_of_poll + r->local_filter_mr.size() + r->local_index_mr.size();
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "");
   usleep(10);
