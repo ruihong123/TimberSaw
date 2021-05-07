@@ -686,7 +686,7 @@ Status DBImpl::TEST_CompactMemTable() {
 }
 
 void DBImpl::RecordBackgroundError(const Status& s) {
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
   if (bg_error_.ok()) {
     bg_error_ = s;
     Memtable_full_cv.SignalAll();
