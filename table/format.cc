@@ -179,6 +179,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
 
   switch (data[n]) {
     case kNoCompression:
+      //block content do not contain compression type and check sum
       result->data = Slice(data, n);
       result->heap_allocated = false;
       result->cachable = false;  // Do not double-cache

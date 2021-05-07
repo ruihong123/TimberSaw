@@ -289,6 +289,9 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
   block->Finish();
 
   Slice* raw = &(r->index_block->buffer);
+  if (raw->size() == 19701){
+    int i = 1;
+  }
   Slice* block_contents;
   switch (compressiontype) {
     case kNoCompression:
