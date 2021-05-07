@@ -106,6 +106,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
     const uint32_t actual = crc32c::Value(data, n + 1);
     if (actual != crc) {
 //      delete[] buf;
+      DEBUG("Checksum mismatch\n");
       s = Status::Corruption("block checksum mismatch");
       return s;
     }
@@ -140,6 +141,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 //    }
     default:
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
+      DEBUG("illegal compression type\n");
       return Status::Corruption("bad block type");
   }
 
@@ -169,6 +171,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
     const uint32_t actual = crc32c::Value(data, n + 1);
     if (actual != crc) {
 //      delete[] buf;
+      DEBUG("Checksum mismatch\n");
       s = Status::Corruption("block checksum mismatch");
       return s;
     }
@@ -203,6 +206,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
 //    }
     default:
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
+      DEBUG("illegal compression type\n");
       return Status::Corruption("bad block type");
   }
 
@@ -230,6 +234,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
     const uint32_t actual = crc32c::Value(data, n + 1);
     if (actual != crc) {
 //      delete[] buf;
+      DEBUG("Checksum mismatch\n");
       s = Status::Corruption("block checksum mismatch");
       return s;
     }
@@ -264,6 +269,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
 //    }
     default:
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
+      DEBUG("illegal compression type\n");
       return Status::Corruption("bad block type");
   }
 
