@@ -796,6 +796,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, port::Mutex* mu) {
     prev_log_number_ = edit->prev_log_number_;
   } else {
     delete v;
+    printf("installing new version failed");
 //    if (!new_manifest_file.empty()) {
 //      delete descriptor_log_;
 //      delete descriptor_file_;
