@@ -15,10 +15,12 @@ namespace leveldb {
 static const size_t kFilterBaseLg = 11;
 static const size_t kFilterBase = 1 << kFilterBaseLg;
 
-FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy, ibv_mr* mr,
+FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy,
+                                       std::vector<ibv_mr*>* mrs,
                                        std::map<int, ibv_mr*>* remote_mrs,
                                        std::shared_ptr<RDMA_Manager> rdma_mg)
-    : policy_(policy), rdma_mg_(rdma_mg), local_mr(mr), remote_mrs_(remote_mrs) {}
+    : policy_(policy), rdma_mg_(rdma_mg),
+      local_mrs(mrs), remote_mrs_(remote_mrs) {}
 
 //TOTHINK: One block per bloom filter, then why there is a design for the while loop?
 // Is it a bad design?
@@ -61,13 +63,16 @@ Slice FilterBlockBuilder::Finish() {
   return Slice(result);
 }
 void FilterBlockBuilder::Reset() {
-  result.Reset(static_cast<char*>(local_mr->addr),0);
+  result.Reset(static_cast<char*>((*local_mrs)[0]->addr),0);
+}
+void FilterBlockBuilder::Move_buffer(const char* p){
+  result.Reset(p,0);
 }
 void FilterBlockBuilder::Flush() {
   ibv_mr* remote_mr;
   size_t msg_size = result.size();
   rdma_mg_->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg_->RDMA_Write(remote_mr, local_mr, msg_size, "",IBV_SEND_SIGNALED, 0);
+  rdma_mg_->RDMA_Write(remote_mr, (*local_mrs)[0], msg_size, "",IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(remote_mrs_->empty()){
     remote_mrs_->insert({0, remote_mr});

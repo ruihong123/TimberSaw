@@ -1515,8 +1515,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
           sleep_counter++;
 #endif
 
-//          env_->SleepForMicroseconds(10);
-          usleep(10);
+          env_->SleepForMicroseconds(10);
+//          usleep(10);
           counter = 0;
         }
 

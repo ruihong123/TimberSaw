@@ -1641,7 +1641,20 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   }
   return rc;
 }
+int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
+                                                   int num_entries) {
+  int poll_result;
+  int poll_num = 0;
+  int rc = 0;
+  ibv_cq* cq;
+  /* poll the completion for a while before giving up of doing it .. */
+  // gettimeofday(&cur_time, NULL);
+  // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
+  cq = static_cast<ibv_cq*>(cq_local->Get());
 
+  poll_result = ibv_poll_cq(cq, num_entries, &wc_p[poll_num]);
+  return poll_result;
+}
 /******************************************************************************
 * Function: print_config
 *

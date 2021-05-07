@@ -33,7 +33,8 @@ class Options;
 //      (StartBlock AddKey*)* Finish
 class FilterBlockBuilder {
  public:
-  explicit FilterBlockBuilder(const FilterPolicy* policy, ibv_mr* mr,
+  explicit FilterBlockBuilder(const FilterPolicy* policy,
+                              std::vector<ibv_mr*>* mrs,
                               std::map<int, ibv_mr*>* remote_mrs,
                               std::shared_ptr<RDMA_Manager> rdma_mg);
 
@@ -46,6 +47,7 @@ class FilterBlockBuilder {
   Slice Finish();
   void Reset();
   void Flush();
+  void Move_buffer(const char* p);
   Slice result;           // Filter data computed so far
 
  private:
@@ -53,13 +55,14 @@ class FilterBlockBuilder {
 
   const FilterPolicy* policy_;
   std::shared_ptr<RDMA_Manager> rdma_mg_;
-  ibv_mr* local_mr;
+  std::vector<ibv_mr*>* local_mrs;
   std::map<int, ibv_mr*>* remote_mrs_;
   std::string keys_;             // Flattened key contents
   std::vector<size_t> start_;    // Starting index in keys_ of each key
   //todo Make result Slice; make Policy->CreateFilter accept Slice rather than string
   std::vector<Slice> tmp_keys_;  // policy_->CreateFilter() argument
   std::vector<uint32_t> filter_offsets_;
+
 };
 
 class FilterBlockReader {

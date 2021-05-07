@@ -23,14 +23,27 @@ struct TableBuilder::Rep {
         pending_index_filter_entry(false) {
     index_block_options.block_restart_interval = 1;
     std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
-    rdma_mg->Allocate_Local_RDMA_Slot(local_data_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(local_index_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(local_filter_mr, "FlushBuffer");
-    data_block = new BlockBuilder(&index_block_options, local_data_mr);
-    index_block = new BlockBuilder(&index_block_options, local_index_mr);
+    ibv_mr* temp_data_mr;
+    ibv_mr* temp_index_mr;
+    ibv_mr* temp_filter_mr;
+    //first create two buffer for each slot.
+    rdma_mg->Allocate_Local_RDMA_Slot(temp_data_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(temp_index_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
+    local_data_mr.push_back(temp_data_mr);
+    local_index_mr.push_back(temp_index_mr);
+    local_filter_mr.push_back(temp_filter_mr);
+    rdma_mg->Allocate_Local_RDMA_Slot(temp_data_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(temp_index_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
+    local_data_mr.push_back(temp_data_mr);
+    local_index_mr.push_back(temp_index_mr);
+    local_filter_mr.push_back(temp_filter_mr);
+    data_block = new BlockBuilder(&index_block_options, local_data_mr[0]);
+    index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
-                    : new FilterBlockBuilder(opt.filter_policy, local_filter_mr,
+                    : new FilterBlockBuilder(opt.filter_policy, &local_filter_mr,
                                              &remote_filter_mrs,
                                              options.env->rdma_mg));
     status = Status::OK();
@@ -39,9 +52,18 @@ struct TableBuilder::Rep {
   Options options;
   Options index_block_options;
   WritableFile* file;
-  ibv_mr* local_data_mr;
-  ibv_mr* local_filter_mr;
-  ibv_mr* local_index_mr;
+  std::vector<ibv_mr*> local_data_mr;
+  // the start index of the in use buffer
+  int data_inuse_start = -1;
+  // the end index of the use buffer
+  int data_inuse_end = -1;
+  // when start larger than end by 1, there could be two scenarios:
+  // First, all the buffer are outstanding
+  // second, no buffer is outstanding, those two status will both have start - end = 1
+  bool data_inuse_empty = true;
+  std::vector<ibv_mr*> local_index_mr;
+  std::vector<ibv_mr*> local_filter_mr;
+
   std::map<int, ibv_mr*> remote_data_mrs;
   std::map<int, ibv_mr*> remote_dataindex_mrs;
   std::map<int, ibv_mr*> remote_filter_mrs;
@@ -82,9 +104,15 @@ TableBuilder::~TableBuilder() {
     delete rep_->filter_block;
   }
   std::shared_ptr<RDMA_Manager> rdma_mg = rep_->options.env->rdma_mg;
-  rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, "FlushBuffer");
-  rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, "FlushBuffer");
-  rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, "FlushBuffer");
+  for(auto iter : rep_->local_data_mr){
+    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+  }
+  for(auto iter : rep_->local_index_mr){
+    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+  }
+  for(auto iter : rep_->local_filter_mr){
+    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+  }
   delete rep_->data_block;
   delete rep_->index_block;
   delete rep_;
@@ -124,7 +152,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
   if (estimated_block_size + key.size() + value.size() +sizeof (uint32_t) + kBlockTrailerSize >= r->options.block_size) {
     UpdateFunctionBLock();
-    if (r->local_data_mr->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
+    if (r->local_data_mr[0]->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
       FlushData();
     }
   }
@@ -138,7 +166,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     //Note that the handle block size does not contain CRC!
     r->pending_data_handle.EncodeTo(&handle_encoding);
     if (r->index_block->CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
-        sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr->length){
+        sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr[0]->length){
       BlockHandle dummy_handle;
       size_t msg_size;
       FinishDataIndexBlock(r->index_block, &dummy_handle, r->options.compression, msg_size);
@@ -146,7 +174,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     }
     r->index_block->Add(r->last_key, Slice(handle_encoding));
     if (r->filter_block != nullptr) {
-      if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr->length){
+      if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr[0]->length){
         // Tofix: Finish itself contain Reset and Flush, Modify the filter block make
         // it update the r->offset and add crc and make filter block compatible with Finish block.
         BlockHandle dummy_handle;
@@ -242,7 +270,7 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
     // block_type == 0 means data block
     if (r->status.ok()) {
       r->offset += block_contents->size();
-      assert(r->offset - r->offset_last_flushed <= r->local_data_mr->length);
+      assert(r->offset - r->offset_last_flushed <= r->local_data_mr[0]->length);
     }
   }
   r->compressed_output.clear();
@@ -294,7 +322,7 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
   r->compressed_output.clear();
   block_size = block_contents->size();
   block->Reset();
-  block->Move_buffer(static_cast<char*>(r->local_index_mr->addr));
+
 }
 void TableBuilder::FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* handle,
                                      CompressionType compressiontype,
@@ -336,7 +364,7 @@ void TableBuilder::FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* han
   }
   r->compressed_output.clear();
   block_size = block_contents->size();
-  block->Reset();
+//  block->Reset();
 }
 //TODO make flushing flush the data to the remote memory flushing to remote memory
 void TableBuilder::FlushData(){
@@ -345,17 +373,67 @@ void TableBuilder::FlushData(){
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_data_mr, msg_size, "",IBV_SEND_SIGNALED, 0);
+  //TOTHINK: check the logic below.
+  // I was thinking that the start represent the oldest outgoing buffer, while the
+  // end is the latest buffer. When polling a result, the start index will moving forward
+  // and the start index will be changed to 0 when meeting the end of this index.
+  // If the start index meet the end index, then we need to allocate a new buffer,
+  // and insert to the local buffer vector.
+  // the end index will move forward because a new buffer will be in used, the start
+  // index will also increased by 1 because the insert will cause all the index
+  // after that position to be increased by 1.
+  if (r->data_inuse_start == -1){
+    // first time flush
+    assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 1);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
+    r->data_inuse_end = 0;
+    r->data_inuse_start = 0;
+    r->data_inuse_empty = false;
+  }else{
+    auto* wc = new ibv_wc[5];
+    int poll_num = 0;
+    poll_num = rdma_mg->try_poll_this_thread_completions(wc, 5);
+    // move the start index
+    r->data_inuse_start += poll_num;
+    if(r->data_inuse_start >= r->local_data_mr.size()){
+      r->data_inuse_start = r->data_inuse_start - r->local_data_mr.size();
+    }
+//    if(r->data_inuse_start - r->data_inuse_end == 1 ||
+//       r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
+//      if (poll_num > 0){
+//        //this means all the buffer is idle.
+////       (r->data_inuse_start ==0 && r->data_inuse_end == r->local_data_mr.size()-1) )){
+//        r->data_inuse_empty = true;
+//      }else{
+//        assert(poll_num == 0);
+//        //this means all the buffer is in use, need allocate a new buffer
+//      }
+//    }
+    //move forward the end of the outstanding buffer
+    r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, "",IBV_SEND_SIGNALED, 0);
+    if (r->data_inuse_start - r->data_inuse_end == 1 ||
+        r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
+      ibv_mr* new_local_mr;
+      rdma_mg->Allocate_Local_RDMA_Slot(new_local_mr,"FlushBuffer");
+      // insert new mr at start while increase start by 1.
+      r->local_data_mr.insert(r->local_data_mr.begin() + r->data_inuse_start++, new_local_mr);
+    }
+  }
   remote_mr->length = msg_size;
   if(r->remote_data_mrs.empty()){
     r->remote_data_mrs.insert({0, remote_mr});
   }else{
     r->remote_data_mrs.insert({r->remote_data_mrs.rbegin()->first+1, remote_mr});
   }
+
   r->offset_last_flushed = r->offset;
-  // Move the datablock pointer to the start of the write buffer, the other state of the data_block
+  // Move the datablock pointer to the start of the next write buffer, the other state of the data_block
   // has already reseted before
-  r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr->addr)));
+  int next_buffer_index = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
+
+  assert(next_buffer_index != r->data_inuse_start);
+  r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr[next_buffer_index]->addr)));
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
 void TableBuilder::FlushDataIndex(size_t msg_size) {
@@ -363,26 +441,34 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr, msg_size, "",IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
     r->remote_dataindex_mrs.insert({0, remote_mr});
   }else{
     r->remote_dataindex_mrs.insert({r->remote_dataindex_mrs.rbegin()->first+1, remote_mr});
   }
+  //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
+  // it would be overwrited.
+  r->index_block->Move_buffer(static_cast<char*>(r->local_index_mr[0]->addr));
+
 }
 void TableBuilder::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr, msg_size, "",IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){
     r->remote_filter_mrs.insert({0, remote_mr});
   }else{
     r->remote_filter_mrs.insert({r->remote_filter_mrs.rbegin()->first+1, remote_mr});
   }
+  //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
+  // it would be overwrited.
+  r->filter_block->Move_buffer(static_cast<char*>(r->local_filter_mr[0]->addr));
+
 }
 void TableBuilder::WriteRawBlock(const Slice& block_contents,
                                  CompressionType type, BlockHandle* handle) {
