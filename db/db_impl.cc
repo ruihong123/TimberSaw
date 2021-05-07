@@ -588,6 +588,8 @@ void DBImpl::CompactMemTable() {
     edit.SetPrevLogNumber(0);
     edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
     s = versions_->LogAndApply(&edit, &mutex_);
+  }else{
+    printf("version apply failed");
   }
 
   if (s.ok()) {
