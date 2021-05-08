@@ -694,7 +694,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
 }
 
 void DBImpl::MaybeScheduleCompaction() {
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
 // In my implementation the Maybeschedule Compaction will only be triggered once
 // by the thread which CAS the memtable successfully.
  if (shutting_down_.load(std::memory_order_acquire)) {
@@ -714,9 +714,28 @@ void DBImpl::BGWork(void* db) {
   reinterpret_cast<DBImpl*>(db)->BackgroundCall();
 }
 
+//void DBImpl::BackgroundCall() {
+//  //Tothink: why there is a lock, which data structure is this mutex protecting
+////  mutex_.Lock();
+////  assert(background_compaction_scheduled_);
+//  if (shutting_down_.load(std::memory_order_acquire)) {
+//    // No more background work when shutting down.
+//  } else if (!bg_error_.ok()) {
+//    // No more background work after a background error.
+//  } else {
+//    BackgroundCompaction();
+//  }
+//
+////  background_compaction_scheduled_ = false;
+//
+//  // Previous compaction may have produced too many files in a level,
+//  // so reschedule another compaction if needed.
+//  MaybeScheduleCompaction();
+////  mutex_.Unlock();
+//}
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a lock, which data structure is this mutex protecting
-//  mutex_.Lock();
+  mutex_.Lock();
 //  assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
@@ -731,7 +750,7 @@ void DBImpl::BackgroundCall() {
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
   MaybeScheduleCompaction();
-//  mutex_.Unlock();
+  mutex_.Unlock();
 }
 
 void DBImpl::BackgroundCompaction() {
@@ -1255,154 +1274,217 @@ Status DBImpl::Put(const WriteOptions& o, const Slice& key, const Slice& val) {
 Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
   return DB::Delete(options, key);
 }
-//
-//Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-//  Writer w(&mutex_);
-//  w.batch = updates;
-//  w.sync = options.sync;
-//  w.done = false;
-//
-//  MutexLock l(&mutex_);
-//  writers_.push_back(&w);
-//  while (!w.done && &w != writers_.front()) {
-//    w.cv.Wait();
-//  }
-//  if (w.done) {
-//    return w.status;
-//  }
-//
-//  // May temporarily unlock and wait.
-//  Status status = MakeRoomForWrite(updates == nullptr);
-//  uint64_t last_sequence = versions_->LastSequence();
-//  Writer* last_writer = &w;
-//  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-//    // TODO: Remove all the lock, use fettch and add to atomically increase the
-//    // TODO: sequence num. Use concurrent write in the Rocks DB to write
-//    // TODO:  skiplist concurrently. NO log is needed as well.
-//    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
-//    WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
-//    last_sequence += WriteBatchInternal::Count(write_batch);
-//
-//    // Add to log and apply to memtable.  We can release the lock
-//    // during this phase since &w is currently responsible for logging
-//    // and protects against concurrent loggers and concurrent writes
-//    // into mem_.
-//    {
-//      mutex_.Unlock();
-//      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
-//      bool sync_error = false;
-//      if (status.ok() && options.sync) {
-//        status = logfile_->Sync();
-//        if (!status.ok()) {
-//          sync_error = true;
-//        }
-//      }
-//      if (status.ok()) {
-//        status = WriteBatchInternal::InsertInto(write_batch, mem_);
-//      }
-//      mutex_.Lock();
-//      if (sync_error) {
-//        // The state of the log file is indeterminate: the log record we
-//        // just added may or may not show up when the DB is re-opened.
-//        // So we force the DB into a mode where all future writes fail.
-//        RecordBackgroundError(status);
-//      }
-//    }
-//    if (write_batch == tmp_batch_) tmp_batch_->Clear();
-//
-//    versions_->SetLastSequence(last_sequence);
-//  }
-//
-//  while (true) {
-//    Writer* ready = writers_.front();
-//    writers_.pop_front();
-//    if (ready != &w) {
-//      ready->status = status;
-//      ready->done = true;
-//      ready->cv.Signal();
-//    }
-//    if (ready == last_writer) break;
-//  }
-//
-//  // Notify new head of write queue
-//  if (!writers_.empty()) {
-//    writers_.front()->cv.Signal();
-//  }
-//
-//  return status;
-//}
+
 Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-//  Writer w(&mutex_);
-//  w.batch = updates;
-//  w.sync = options.sync;
-//  w.done = false;
+  Writer w(&mutex_);
+  w.batch = updates;
+  w.sync = options.sync;
+  w.done = false;
 
-
+  MutexLock l(&mutex_);
+  writers_.push_back(&w);
+  while (!w.done && &w != writers_.front()) {
+    w.cv.Wait();
+  }
+  if (w.done) {
+    return w.status;
+  }
 
   // May temporarily unlock and wait.
-//  Status status = Status::OK();
-#ifdef TIMEPRINT
-  auto start = std::chrono::high_resolution_clock::now();
-  auto total_start = std::chrono::high_resolution_clock::now();
-#endif
-  size_t kv_num = WriteBatchInternal::Count(updates);
-  assert(kv_num == 1);
-  uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
-  //todo: remove
-  kv_counter0.fetch_add(1);
-  MemTable* mem;
-  Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
-#ifdef TIMEPRINT
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  std::printf("preprocessing, time elapse is %zu\n",  duration.count());
-#endif
-//    size_t kv_num = 1;
-//  spin_mutex.lock();
-//  uint64_t sequence = versions_->LastSequence_nonatomic();
-//  versions_->SetLastSequence_nonatomic(sequence+kv_num);
-//  spin_mutex.unlock();
-//  uint64_t sequence = 10;
-  //TOTHINK: what if a write with a higher seq first go outside MakeRoomForwrite,
-  // and it is supposed to write to the new memtable which has not been created yet.
-  // hint how about set the metable barrier as seq_num rather than memory size?
-#ifdef TIMEPRINT
-  start = std::chrono::high_resolution_clock::now();
-#endif
-  if (status.ok()) {  // nullptr batch is for compactions
-    assert(updates != nullptr);
-    WriteBatchInternal::SetSequence(updates, sequence);
+  Status status = MakeRoomForWrite(updates == nullptr);
+  uint64_t last_sequence = versions_->LastSequence();
+  Writer* last_writer = &w;
+  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
+    // TODO: Remove all the lock, use fettch and add to atomically increase the
+    // TODO: sequence num. Use concurrent write in the Rocks DB to write
+    // TODO:  skiplist concurrently. NO log is needed as well.
+    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
+    WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
+    last_sequence += WriteBatchInternal::Count(write_batch);
 
-//    if (sequence >= mem_.load()->GetFirstseq()) {
-//      status = WriteBatchInternal::InsertInto(updates, mem_);
-//    }else{
-//      // TODO: some write may have write to immtable, the immutable need to be notified
-//      // when all the outgoing write on this table have finished and flush to storage
-//      status = WriteBatchInternal::InsertInto(updates, imm_);
-//    }
-    assert(sequence <= mem->Getlargest_seq_supposed() && sequence >= mem->GetFirstseq());
-    status = WriteBatchInternal::InsertInto(updates, mem);
-    mem->increase_kv_num(kv_num);
-  }else{
-    printf("Weird status not OK");
-    assert(0==1);
+    // Add to log and apply to memtable.  We can release the lock
+    // during this phase since &w is currently responsible for logging
+    // and protects against concurrent loggers and concurrent writes
+    // into mem_.
+    {
+      mutex_.Unlock();
+      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
+      bool sync_error = false;
+      if (status.ok() && options.sync) {
+        status = logfile_->Sync();
+        if (!status.ok()) {
+          sync_error = true;
+        }
+      }
+      if (status.ok()) {
+        status = WriteBatchInternal::InsertInto(write_batch, mem_);
+      }
+      mutex_.Lock();
+      if (sync_error) {
+        // The state of the log file is indeterminate: the log record we
+        // just added may or may not show up when the DB is re-opened.
+        // So we force the DB into a mode where all future writes fail.
+        RecordBackgroundError(status);
+      }
+    }
+    if (write_batch == tmp_batch_) tmp_batch_->Clear();
+
+    versions_->SetLastSequence(last_sequence);
   }
-  kv_counter1.fetch_add(1);
-//  if (mem_switching){}
-//  thread_ready_num++;
-//  printf("thread ready %d\n", thread_ready_num);
-//  if (thread_ready_num >= thread_num) {
-//    cv.notify_all();
-//  }
-#ifdef TIMEPRINT
-  stop = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  auto total_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - total_start);
-  std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
-  std::printf("total time, time elapse is %zu\n",  total_duration.count());
-#endif
+
+  while (true) {
+    Writer* ready = writers_.front();
+    writers_.pop_front();
+    if (ready != &w) {
+      ready->status = status;
+      ready->done = true;
+      ready->cv.Signal();
+    }
+    if (ready == last_writer) break;
+  }
+
+  // Notify new head of write queue
+  if (!writers_.empty()) {
+    writers_.front()->cv.Signal();
+  }
+
   return status;
 }
+// REQUIRES: mutex_ is held
+// REQUIRES: this thread is currently at the front of the writer queue
+Status DBImpl::MakeRoomForWrite(bool force) {
+  mutex_.AssertHeld();
+  assert(!writers_.empty());
+  bool allow_delay = !force;
+  Status s;
+  while (true) {
+    if (!bg_error_.ok()) {
+      // Yield previous error
+      s = bg_error_;
+      break;
+    } else if (allow_delay && versions_->NumLevelFiles(0) >=
+                              config::kL0_SlowdownWritesTrigger) {
+      // We are getting close to hitting a hard limit on the number of
+      // L0 files.  Rather than delaying a single write by several
+      // seconds when we hit the hard limit, start delaying each
+      // individual write by 1ms to reduce latency variance.  Also,
+      // this delay hands over some CPU to the compaction thread in
+      // case it is sharing the same core as the writer.
+      mutex_.Unlock();
+      env_->SleepForMicroseconds(1000);
+      allow_delay = false;  // Do not delay a single write more than once
+      mutex_.Lock();
+    } else if (!force &&
+               (mem_.load()->ApproximateMemoryUsage() <= options_.write_buffer_size)) {
+      // There is room in current memtable
+      break;
+    } else if (imm_ != nullptr) {
+      // We have filled up the current memtable, but the previous
+      // one is still being compacted, so we wait.
+      Log(options_.info_log, "Current memtable full; waiting...\n");
+      Memtable_full_cv.Wait();
+    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+      // There are too many level-0 files.
+      Log(options_.info_log, "Too many L0 files; waiting...\n");
+      Memtable_full_cv.Wait();
+    } else {
+      // Attempt to switch to a new memtable and trigger compaction of old
+      assert(versions_->PrevLogNumber() == 0);
+      uint64_t new_log_number = versions_->NewFileNumber();
+      WritableFile* lfile = nullptr;
+      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
+      if (!s.ok()) {
+        // Avoid chewing through file number space in a tight loop.
+        versions_->ReuseFileNumber(new_log_number);
+        break;
+      }
+      delete log_;
+      delete logfile_;
+      logfile_ = lfile;
+      logfile_number_ = new_log_number;
+      log_ = new log::Writer(lfile);
+      imm_ = mem_;
+      has_imm_.store(true, std::memory_order_release);
+      mem_ = new MemTable(internal_comparator_);
+      mem_->Ref();
+      force = false;  // Do not force another compaction if have room
+      MaybeScheduleCompaction();
+    }
+  }
+  return s;
+}
+//Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
+////  Writer w(&mutex_);
+////  w.batch = updates;
+////  w.sync = options.sync;
+////  w.done = false;
+//
+//
+//
+//  // May temporarily unlock and wait.
+////  Status status = Status::OK();
+//#ifdef TIMEPRINT
+//  auto start = std::chrono::high_resolution_clock::now();
+//  auto total_start = std::chrono::high_resolution_clock::now();
+//#endif
+//  size_t kv_num = WriteBatchInternal::Count(updates);
+//  assert(kv_num == 1);
+//  uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
+//  //todo: remove
+//  kv_counter0.fetch_add(1);
+//  MemTable* mem;
+//  Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
+//#ifdef TIMEPRINT
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  std::printf("preprocessing, time elapse is %zu\n",  duration.count());
+//#endif
+////    size_t kv_num = 1;
+////  spin_mutex.lock();
+////  uint64_t sequence = versions_->LastSequence_nonatomic();
+////  versions_->SetLastSequence_nonatomic(sequence+kv_num);
+////  spin_mutex.unlock();
+////  uint64_t sequence = 10;
+//  //TOTHINK: what if a write with a higher seq first go outside MakeRoomForwrite,
+//  // and it is supposed to write to the new memtable which has not been created yet.
+//  // hint how about set the metable barrier as seq_num rather than memory size?
+//#ifdef TIMEPRINT
+//  start = std::chrono::high_resolution_clock::now();
+//#endif
+//  if (status.ok()) {  // nullptr batch is for compactions
+//    assert(updates != nullptr);
+//    WriteBatchInternal::SetSequence(updates, sequence);
+//
+////    if (sequence >= mem_.load()->GetFirstseq()) {
+////      status = WriteBatchInternal::InsertInto(updates, mem_);
+////    }else{
+////      // TODO: some write may have write to immtable, the immutable need to be notified
+////      // when all the outgoing write on this table have finished and flush to storage
+////      status = WriteBatchInternal::InsertInto(updates, imm_);
+////    }
+//    assert(sequence <= mem->Getlargest_seq_supposed() && sequence >= mem->GetFirstseq());
+//    status = WriteBatchInternal::InsertInto(updates, mem);
+//    mem->increase_kv_num(kv_num);
+//  }else{
+//    printf("Weird status not OK");
+//    assert(0==1);
+//  }
+//  kv_counter1.fetch_add(1);
+////  if (mem_switching){}
+////  thread_ready_num++;
+////  printf("thread ready %d\n", thread_ready_num);
+////  if (thread_ready_num >= thread_num) {
+////    cv.notify_all();
+////  }
+//#ifdef TIMEPRINT
+//  stop = std::chrono::high_resolution_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  auto total_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - total_start);
+//  std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
+//  std::printf("total time, time elapse is %zu\n",  total_duration.count());
+//#endif
+//  return status;
+//}
 
 // seldom lock
 //// TOTHINK The write batch should not too large. other wise the wait function may
@@ -1484,117 +1566,117 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 // TOTHINK The write batch should not too large. other wise the wait function may
 // memtable could overflow even before the actual write.
 // ---------------lock free----------------
-Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
-  Status s = Status::OK();
-  //Get a snapshot it is vital for the CAS but not vital for the wait logic.
-  mem_r = mem_.load();
-  size_t counter = 0;
-#ifndef NDEBUG
-  int sleep_counter =0;
-#endif
-  // First check whether we need to switch the table.
-  while(seq_num > mem_r->Getlargest_seq_supposed()){
-    //before switch the table we need to check whether there is enough room
-    // for a new table.
-    if (imm_.load() != nullptr) {
-      // We have filled up the current memtable, but the previous
-      // one is still being compacted, so we wait.
-      // the wait will never get signalled.
-
-      // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
-//      mutex_.Lock();
-//      Log(options_.info_log, "Current memtable full; waiting...\n");
-//      mem_r = mem_.load();
-//      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
-        assert(seq_num > mem_r->GetFirstseq());
-//        usleep(1);
-        counter++;
-
-        if (counter>200){
-#ifndef NDEBUG
-          if (sleep_counter % 1000 == 0)
-            printf("sleep counter for flush waiting is %d\n", sleep_counter);
-          sleep_counter++;
-#endif
-
-          env_->SleepForMicroseconds(10);
-//          usleep(10);
-          counter = 0;
-        }
-
-//        mem_r = mem_.load();
+//Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
+//  Status s = Status::OK();
+//  //Get a snapshot it is vital for the CAS but not vital for the wait logic.
+//  mem_r = mem_.load();
+//  size_t counter = 0;
+//#ifndef NDEBUG
+//  int sleep_counter =0;
+//#endif
+//  // First check whether we need to switch the table.
+//  while(seq_num > mem_r->Getlargest_seq_supposed()){
+//    //before switch the table we need to check whether there is enough room
+//    // for a new table.
+//    if (imm_.load() != nullptr) {
+//      // We have filled up the current memtable, but the previous
+//      // one is still being compacted, so we wait.
+//      // the wait will never get signalled.
+//
+//      // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
+////      mutex_.Lock();
+////      Log(options_.info_log, "Current memtable full; waiting...\n");
+////      mem_r = mem_.load();
+////      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
+//        assert(seq_num > mem_r->GetFirstseq());
+////        usleep(1);
+//        counter++;
+//
+//        if (counter>200){
+//#ifndef NDEBUG
+//          if (sleep_counter % 1000 == 0)
+//            printf("sleep counter for flush waiting is %d\n", sleep_counter);
+//          sleep_counter++;
+//#endif
+//
+//          env_->SleepForMicroseconds(10);
+////          usleep(10);
+//          counter = 0;
+//        }
+//
+////        mem_r = mem_.load();
+////      }
+////      mutex_.Unlock();
+//    }else if(versions_->NumLevelFiles(0) >=
+//             config::kL0_StopWritesTrigger){
+//      // if level 0 is contain too much files, just wait here.
+//      if (counter>200){
+//#ifndef NDEBUG
+//        if (sleep_counter % 1000 == 0)
+//          printf("sleep counter for level 0 waiting is %d\n", sleep_counter);
+//        sleep_counter++;
+//#endif
+//
+//        env_->SleepForMicroseconds(10);// slightly larger than wait for flushing.
+////          usleep(10);
+//        counter = 0;
 //      }
-//      mutex_.Unlock();
-    }else if(versions_->NumLevelFiles(0) >=
-             config::kL0_StopWritesTrigger){
-      // if level 0 is contain too much files, just wait here.
-      if (counter>200){
-#ifndef NDEBUG
-        if (sleep_counter % 1000 == 0)
-          printf("sleep counter for level 0 waiting is %d\n", sleep_counter);
-        sleep_counter++;
-#endif
-
-        env_->SleepForMicroseconds(10);// slightly larger than wait for flushing.
-//          usleep(10);
-        counter = 0;
-      }
-    }
-    else{
-      assert(versions_->PrevLogNumber() == 0);
-      MemTable* temp_mem = new MemTable(internal_comparator_);
-      uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
-      temp_mem->SetFirstSeq(last_mem_seq+1);
-      // starting from this sequenctial number, the data should write the the new memtable
-      // set the immutable as seq_num - 1
-      temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
-      temp_mem->Ref();
-      mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
-
-      // CAS strong means that one thread will definitedly win under the concurrent,
-      // if it is weak then after the metable is full all the threads may gothrough the while
-      // loop multiple times.
-      if(mem_.compare_exchange_strong(mem_r, temp_mem)){
-        memtable_counter.fetch_add(1);
-        has_imm_.store(true, std::memory_order_release);
-
-        force = false;  // Do not force another compaction if have room
-
-        //set the flush flag for imm
-//        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
-//        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
-        assert(imm_.load() == nullptr);
-        imm_.store(mem_r);
-        MaybeScheduleCompaction();
-        mem_r = temp_mem;
-        return s;
-      }else{
-        temp_mem->SimpleDelete();
-
-      }
-    }
-    mem_r = mem_.load();
-    // For the safety concern (such as the thread get context switch)
-    // the mem_ may not be the one this table should write, need to go through
-    // the table searching procedure below.
-  }
-  //if not which table should this writer need to write?
-  while(true){
-    if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()){
-      return s;
-    }else {
-      // get the snapshot for imm then check it so that this memtable pointer is guarantee
-      // to be the one this thread want.
-      mem_r = imm_.load();
-      assert(imm_.load()!= nullptr);
-      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
-      printf("write to imm table");
-      if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
-        return s;
-      }
-    }
-  }
-}
+//    }
+//    else{
+//      assert(versions_->PrevLogNumber() == 0);
+//      MemTable* temp_mem = new MemTable(internal_comparator_);
+//      uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
+//      temp_mem->SetFirstSeq(last_mem_seq+1);
+//      // starting from this sequenctial number, the data should write the the new memtable
+//      // set the immutable as seq_num - 1
+//      temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
+//      temp_mem->Ref();
+//      mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
+//
+//      // CAS strong means that one thread will definitedly win under the concurrent,
+//      // if it is weak then after the metable is full all the threads may gothrough the while
+//      // loop multiple times.
+//      if(mem_.compare_exchange_strong(mem_r, temp_mem)){
+//        memtable_counter.fetch_add(1);
+//        has_imm_.store(true, std::memory_order_release);
+//
+//        force = false;  // Do not force another compaction if have room
+//
+//        //set the flush flag for imm
+////        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+////        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+//        assert(imm_.load() == nullptr);
+//        imm_.store(mem_r);
+//        MaybeScheduleCompaction();
+//        mem_r = temp_mem;
+//        return s;
+//      }else{
+//        temp_mem->SimpleDelete();
+//
+//      }
+//    }
+//    mem_r = mem_.load();
+//    // For the safety concern (such as the thread get context switch)
+//    // the mem_ may not be the one this table should write, need to go through
+//    // the table searching procedure below.
+//  }
+//  //if not which table should this writer need to write?
+//  while(true){
+//    if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()){
+//      return s;
+//    }else {
+//      // get the snapshot for imm then check it so that this memtable pointer is guarantee
+//      // to be the one this thread want.
+//      mem_r = imm_.load();
+//      assert(imm_.load()!= nullptr);
+//      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
+//      printf("write to imm table");
+//      if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
+//        return s;
+//      }
+//    }
+//  }
+//}
 // REQUIRES: mutex_ is held
 // REQUIRES: this thread is currently at the front of the writer queue
 //Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
