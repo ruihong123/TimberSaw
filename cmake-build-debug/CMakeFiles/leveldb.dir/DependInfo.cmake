@@ -20,6 +20,7 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/ruihong/Projects/leveldb/db/version_set.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/db/version_set.cc.o"
   "/home/ruihong/Projects/leveldb/db/write_batch.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/db/write_batch.cc.o"
   "/home/ruihong/Projects/leveldb/helpers/memenv/memenv.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o"
+  "/home/ruihong/Projects/leveldb/port/port_posix.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/port/port_posix.cc.o"
   "/home/ruihong/Projects/leveldb/table/block.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/table/block.cc.o"
   "/home/ruihong/Projects/leveldb/table/block_builder.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/table/block_builder.cc.o"
   "/home/ruihong/Projects/leveldb/table/filter_block.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/table/filter_block.cc.o"
@@ -41,7 +42,10 @@ set(CMAKE_DEPENDS_CHECK_CXX
   "/home/ruihong/Projects/leveldb/util/hash.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/hash.cc.o"
   "/home/ruihong/Projects/leveldb/util/logging.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/logging.cc.o"
   "/home/ruihong/Projects/leveldb/util/options.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/options.cc.o"
+  "/home/ruihong/Projects/leveldb/util/random.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/random.cc.o"
+  "/home/ruihong/Projects/leveldb/util/rdma.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/rdma.cc.o"
   "/home/ruihong/Projects/leveldb/util/status.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/status.cc.o"
+  "/home/ruihong/Projects/leveldb/util/thread_local.cc" "/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/leveldb.dir/util/thread_local.cc.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 
@@ -54,6 +58,9 @@ set(CMAKE_TARGET_DEFINITIONS_CXX
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "include"
+  "db"
+  "port"
+  "util"
   "../."
   "../include"
   )

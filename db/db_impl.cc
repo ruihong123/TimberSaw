@@ -135,7 +135,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
       db_lock_(nullptr),
       shutting_down_(false),
-      background_work_finished_signal_(&mutex_),
+      Memtable_full_cv(&mutex_),
       mem_(nullptr),
       imm_(nullptr),
       has_imm_(false),
@@ -154,7 +154,7 @@ DBImpl::~DBImpl() {
   mutex_.Lock();
   shutting_down_.store(true, std::memory_order_release);
   while (background_compaction_scheduled_) {
-    background_work_finished_signal_.Wait();
+    Memtable_full_cv.Wait();
   }
   mutex_.Unlock();
 
@@ -163,8 +163,8 @@ DBImpl::~DBImpl() {
   }
 
   delete versions_;
-  if (mem_ != nullptr) mem_->Unref();
-  if (imm_ != nullptr) imm_->Unref();
+  if (mem_ != nullptr) mem_.load()->Unref();
+  if (imm_ != nullptr) imm_.load()->Unref();
   delete tmp_batch_;
   delete log_;
   delete logfile_;
@@ -489,7 +489,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
       } else {
         // mem can be nullptr if lognum exists but was empty.
         mem_ = new MemTable(internal_comparator_);
-        mem_->Ref();
+        mem_.load()->Ref();
       }
     }
   }
@@ -551,12 +551,32 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 }
 
 void DBImpl::CompactMemTable() {
-  mutex_.AssertHeld();
-  assert(imm_ != nullptr);
+//  mutex_.AssertHeld();
+  //TOTHINK What will happen if we remove the mutex in the future?
+  MemTable* mem = mem_.load();
+  MemTable* imm = imm_.load();
+  assert(imm != nullptr);
+  assert(!imm->CheckFlushScheduled());
 
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
   Version* base = versions_->current();
+  // wait for the ongoing writes for 1 millisecond.
+  size_t counter = 0;
+  // wait for the immutable to get ready to flush. the signal here is prepare for
+  // the case that the thread this immutable is under the control of conditional
+  // variable.
+  while(!imm->able_to_flush){
+
+    counter++;
+    if (counter==500){
+//      printf("signal all the wait threads\n");
+//      Memtable_full_cv.SignalAll();
+      usleep(1);
+      counter = 0;
+    }
+  }
+  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
@@ -570,14 +590,26 @@ void DBImpl::CompactMemTable() {
     edit.SetPrevLogNumber(0);
     edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
     s = versions_->LogAndApply(&edit, &mutex_);
+  }else{
+    printf("version apply failed");
   }
 
   if (s.ok()) {
     // Commit to the new state
-    imm_->Unref();
-    imm_ = nullptr;
+//    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
+//    mutex_.Lock();
+    MemTable* imm = imm_.load();
+
+    imm->Unref();
+//    printf("mem %p has been deleted\n", imm);
+//    printf("mem %p has is still alive\n", mem);
+//    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
+    imm_.store(nullptr);
+//    mutex_.Unlock();
+//    Memtable_full_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
-    RemoveObsoleteFiles();
+    // TODO how to remove the obsoleted remote memtable?
+//    RemoveObsoleteFiles();
   } else {
     RecordBackgroundError(s);
   }
@@ -630,7 +662,7 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
       manual_compaction_ = &manual;
       MaybeScheduleCompaction();
     } else {  // Running either my compaction or another compaction.
-      background_work_finished_signal_.Wait();
+      Memtable_full_cv.Wait();
     }
   }
   if (manual_compaction_ == &manual) {
@@ -646,7 +678,7 @@ Status DBImpl::TEST_CompactMemTable() {
     // Wait until the compaction completes
     MutexLock l(&mutex_);
     while (imm_ != nullptr && bg_error_.ok()) {
-      background_work_finished_signal_.Wait();
+      Memtable_full_cv.Wait();
     }
     if (imm_ != nullptr) {
       s = bg_error_;
@@ -738,9 +770,10 @@ void DBImpl::BackgroundCompaction() {
   } else if (!is_manual && c->IsTrivialMove()) {
     // Move file to next level
     assert(c->num_input_files(0) == 1);
-    std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+    FileMetaData* f = c->input(0, 0);
     c->edit()->RemoveFile(c->level(), f->number);
-    c->edit()->AddFile(c->level() + 1, f);
+    c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->smallest,
+                       f->largest);
     status = versions_->LogAndApply(c->edit(), &mutex_);
     if (!status.ok()) {
       RecordBackgroundError(status);
@@ -760,7 +793,7 @@ void DBImpl::BackgroundCompaction() {
     }
     CleanupCompaction(compact);
     c->ReleaseInputs();
-    RemoveObsoleteFiles();
+//    RemoveObsoleteFiles();
   }
   delete c;
 
@@ -918,7 +951,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   Iterator* input = versions_->MakeInputIterator(compact->compaction);
 
   // Release mutex while we're actually doing the compaction work
-  mutex_.Unlock();
+//  mutex_.Unlock();
 
   input->SeekToFirst();
   Status status;
@@ -934,7 +967,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       if (imm_ != nullptr) {
         CompactMemTable();
         // Wake up MakeRoomForWrite() if necessary.
-        background_work_finished_signal_.SignalAll();
+        Memtable_full_cv.SignalAll();
       }
       mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
@@ -948,7 +981,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         break;
       }
     }
-
+    // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
     if (!ParseInternalKey(key, &ikey)) {
@@ -959,7 +992,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     } else {
       if (!has_current_user_key ||
           user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
-              0) {
+          0) {
         // First occurrence of this user key
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
         has_current_user_key = true;
@@ -1050,6 +1083,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   if (status.ok()) {
     status = InstallCompactionResults(compact);
   }
+  mutex_.Unlock();
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
@@ -1057,6 +1091,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
   return status;
 }
+
 
 namespace {
 
@@ -1090,11 +1125,11 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
 
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
-  list.push_back(mem_->NewIterator());
-  mem_->Ref();
+  list.push_back(mem_.load()->NewIterator());
+  mem_.load()->Ref();
   if (imm_ != nullptr) {
-    list.push_back(imm_->NewIterator());
-    imm_->Ref();
+    list.push_back(imm_.load()->NewIterator());
+    imm_.load()->Ref();
   }
   versions_->current()->AddIterators(options, &list);
   Iterator* internal_iter =
@@ -1518,10 +1553,10 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
   } else if (in == "approximate-memory-usage") {
     size_t total_usage = options_.block_cache->TotalCharge();
     if (mem_) {
-      total_usage += mem_->ApproximateMemoryUsage();
+      total_usage += mem_.load()->ApproximateMemoryUsage();
     }
     if (imm_) {
-      total_usage += imm_->ApproximateMemoryUsage();
+      total_usage += imm_.load()->ApproximateMemoryUsage();
     }
     char buf[50];
     std::snprintf(buf, sizeof(buf), "%llu",
@@ -1589,7 +1624,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       impl->logfile_number_ = new_log_number;
       impl->log_ = new log::Writer(lfile);
       impl->mem_ = new MemTable(impl->internal_comparator_);
-      impl->mem_->Ref();
+      impl->mem_.load()->Ref();
     }
   }
   if (s.ok() && save_manifest) {

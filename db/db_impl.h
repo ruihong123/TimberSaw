@@ -26,7 +26,9 @@ class TableCache;
 class Version;
 class VersionEdit;
 class VersionSet;
-
+class Memtable_keeper{
+  std::deque<MemTable> memtables;
+};
 class DBImpl : public DB {
  public:
   DBImpl(const Options& options, const std::string& dbname);
@@ -112,7 +114,7 @@ class DBImpl : public DB {
   // amount of work to recover recently logged updates.  Any changes to
   // be made to the descriptor are added to *edit.
   Status Recover(VersionEdit* edit, bool* save_manifest)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void MaybeIgnoreError(Status* s) const;
 
@@ -126,13 +128,15 @@ class DBImpl : public DB {
 
   Status RecoverLogFile(uint64_t log_number, bool last_log, bool* save_manifest,
                         VersionEdit* edit, SequenceNumber* max_sequence)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
-  Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+
+  Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   void RecordBackgroundError(const Status& s);
 
@@ -141,14 +145,14 @@ class DBImpl : public DB {
   void BackgroundCall();
   void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   void CleanupCompaction(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
   Status DoCompactionWork(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   Status OpenCompactionOutputFile(CompactionState* compact);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
@@ -168,14 +172,16 @@ class DBImpl : public DB {
 
   // Lock over the persistent DB state.  Non-null iff successfully acquired.
   FileLock* db_lock_;
-
+  std::atomic<bool> mem_switching;
+  int thread_ready_num;
   // State below is protected by mutex_
   port::Mutex mutex_;
   SpinMutex spin_mutex;
   std::atomic<bool> shutting_down_;
-  port::CondVar background_work_finished_signal_ GUARDED_BY(mutex_);
-  MemTable* mem_;
-  MemTable* imm_ GUARDED_BY(mutex_);  // Memtable being compacted
+  port::CondVar Memtable_full_cv GUARDED_BY(mutex_);
+  SpinMutex switch_mtx;
+  std::atomic<MemTable*> mem_;
+  std::atomic<MemTable*> imm_;  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
   uint64_t logfile_number_ GUARDED_BY(mutex_);
@@ -203,6 +209,9 @@ class DBImpl : public DB {
   Status bg_error_ GUARDED_BY(mutex_);
 
   CompactionStats stats_[config::kNumLevels] GUARDED_BY(mutex_);
+  std::atomic<size_t> memtable_counter = 0;
+  std::atomic<size_t> kv_counter0 = 0;
+  std::atomic<size_t> kv_counter1 = 0;
 };
 
 // Sanitize db options.  The caller should delete result.info_log if

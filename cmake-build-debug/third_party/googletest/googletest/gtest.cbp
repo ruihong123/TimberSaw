@@ -25,6 +25,9 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -51,6 +54,9 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -77,6 +83,9 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -103,6 +112,9 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -149,18 +161,6 @@
 		<Unit filename="/home/ruihong/Projects/leveldb/third_party/benchmark/cmake/benchmark.pc.in">
 			<Option virtualFolder="CMake Files\third_party\benchmark\cmake\"/>
 		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/third_party/benchmark/cmake/gnu_posix_regex.cpp">
-			<Option virtualFolder="CMake Files\third_party\benchmark\cmake\"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/third_party/benchmark/cmake/posix_regex.cpp">
-			<Option virtualFolder="CMake Files\third_party\benchmark\cmake\"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/third_party/benchmark/cmake/std_regex.cpp">
-			<Option virtualFolder="CMake Files\third_party\benchmark\cmake\"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/third_party/benchmark/cmake/steady_clock.cpp">
-			<Option virtualFolder="CMake Files\third_party\benchmark\cmake\"/>
-		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/third_party/benchmark/src/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\third_party\benchmark\src\"/>
 		</Unit>
@@ -193,6 +193,9 @@
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/port/port_config.h.in">
 			<Option virtualFolder="CMake Files\port\"/>
+		</Unit>
+		<Unit filename="/home/ruihong/Projects/leveldb/cmake/Findibverbs.cmake">
+			<Option virtualFolder="CMake Files\cmake\"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/cmake/leveldbConfig.cmake.in">
 			<Option virtualFolder="CMake Files\cmake\"/>
