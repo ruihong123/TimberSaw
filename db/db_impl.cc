@@ -695,9 +695,9 @@ void DBImpl::RecordBackgroundError(const Status& s) {
 
 void DBImpl::MaybeScheduleCompaction() {
   mutex_.AssertHeld();
-// In my implementation the Maybeschedule Compaction will only be triggered once
-// by the thread which CAS the memtable successfully.
- if (shutting_down_.load(std::memory_order_acquire)) {
+  if (background_compaction_scheduled_) {
+    // Already scheduled
+  } else if (shutting_down_.load(std::memory_order_acquire)) {
     // DB is being deleted; no more background compactions
   } else if (!bg_error_.ok()) {
     // Already got an error; no more changes
