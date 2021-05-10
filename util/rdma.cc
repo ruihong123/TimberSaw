@@ -1607,7 +1607,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
     int placeholder_num =static_cast<int>(temp_pointer->length) /(Table_Size);  // here we supposing the SSTables are 4 megabytes
     In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
 //    std::unique_lock l(remote_pool_mutex);
-      Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
+    Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
 //    l.unlock();
 
     // NOTICE: Couold be problematic because the pushback may not an absolute
