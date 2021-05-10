@@ -985,7 +985,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   Iterator* input = versions_->MakeInputIterator(compact->compaction);
 
   // Release mutex while we're actually doing the compaction work
-//  mutex_.Unlock();
+  mutex_.Unlock();
 
   input->SeekToFirst();
   Status status;
@@ -1117,7 +1117,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   if (status.ok()) {
     status = InstallCompactionResults(compact);
   }
-  mutex_.Unlock();
+//  mutex_.Unlock();
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
