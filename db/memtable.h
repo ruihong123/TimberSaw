@@ -55,7 +55,7 @@ class MemTable {
     assert(refs_ >= 0);
     if (refs_ <= 0) {
       // TODO: THis assertion may changed in the future
-      assert(kv_num.load() == MEMTABLE_SEQ_SIZE);
+//      assert(kv_num.load() == MEMTABLE_SEQ_SIZE);
       delete this;
     }
   }
