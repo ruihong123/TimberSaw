@@ -560,21 +560,21 @@ void DBImpl::CompactMemTable() {
   VersionEdit edit;
   Version* base = versions_->current();
   // wait for the ongoing writes for 1 millisecond.
-  size_t counter = 0;
-  // wait for the immutable to get ready to flush. the signal here is prepare for
-  // the case that the thread this immutable is under the control of conditional
-  // variable.
-  while(!imm->able_to_flush){
-
-    counter++;
-    if (counter==500){
-//      printf("signal all the wait threads\n");
-//      Memtable_full_cv.SignalAll();
-      usleep(1);
-      counter = 0;
-    }
-  }
-  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
+//  size_t counter = 0;
+//  // wait for the immutable to get ready to flush. the signal here is prepare for
+//  // the case that the thread this immutable is under the control of conditional
+//  // variable.
+//  while(!imm->able_to_flush){
+//
+//    counter++;
+//    if (counter==500){
+////      printf("signal all the wait threads\n");
+////      Memtable_full_cv.SignalAll();
+//      usleep(1);
+//      counter = 0;
+//    }
+//  }
+//  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
   base->Ref();
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
@@ -705,7 +705,7 @@ void DBImpl::MaybeScheduleCompaction() {
              !versions_->NeedsCompaction()) {
     // No work to be done
   } else {
-//    background_compaction_scheduled_ = true;
+    background_compaction_scheduled_ = true;
     env_->Schedule(&DBImpl::BGWork, this);
   }
 }
@@ -735,8 +735,8 @@ void DBImpl::BGWork(void* db) {
 //}
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a lock, which data structure is this mutex protecting
-  mutex_.Lock();
-//  assert(background_compaction_scheduled_);
+  MutexLock l(&mutex_);
+  assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {
@@ -745,16 +745,16 @@ void DBImpl::BackgroundCall() {
     BackgroundCompaction();
   }
 
-//  background_compaction_scheduled_ = false;
+  background_compaction_scheduled_ = false;
 
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
   MaybeScheduleCompaction();
-  mutex_.Unlock();
+  Memtable_full_cv.SignalAll();
 }
 
 void DBImpl::BackgroundCompaction() {
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
 
   if (imm_.load() != nullptr) {
     CompactMemTable();
@@ -1308,24 +1308,24 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     // into mem_.
     {
       mutex_.Unlock();
-      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
-      bool sync_error = false;
-      if (status.ok() && options.sync) {
-        status = logfile_->Sync();
-        if (!status.ok()) {
-          sync_error = true;
-        }
-      }
+//      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
+//      bool sync_error = false;
+//      if (status.ok() && options.sync) {
+//        status = logfile_->Sync();
+//        if (!status.ok()) {
+//          sync_error = true;
+//        }
+//      }
       if (status.ok()) {
         status = WriteBatchInternal::InsertInto(write_batch, mem_);
       }
       mutex_.Lock();
-      if (sync_error) {
-        // The state of the log file is indeterminate: the log record we
-        // just added may or may not show up when the DB is re-opened.
-        // So we force the DB into a mode where all future writes fail.
-        RecordBackgroundError(status);
-      }
+//      if (sync_error) {
+//        // The state of the log file is indeterminate: the log record we
+//        // just added may or may not show up when the DB is re-opened.
+//        // So we force the DB into a mode where all future writes fail.
+//        RecordBackgroundError(status);
+//      }
     }
     if (write_batch == tmp_batch_) tmp_batch_->Clear();
 
