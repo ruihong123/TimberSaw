@@ -133,8 +133,8 @@ class DBImpl : public DB {
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 
-  Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r);
+  Status MakeRoomForWrite(bool force);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
       EXCLUSIVE_LOCKS_REQUIRED(mutex_);
 

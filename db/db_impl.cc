@@ -507,7 +507,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
   meta->number = versions_->NewFileNumber();
@@ -518,9 +518,9 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 //  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
-//    mutex_.Unlock();
+    mutex_.Unlock();
     s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta);
-//    mutex_.Lock();
+    mutex_.Lock();
   }
 
 //  Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
@@ -549,7 +549,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 }
 
 void DBImpl::CompactMemTable() {
-//  mutex_.AssertHeld();
+  mutex_.AssertHeld();
   //TOTHINK What will happen if we remove the mutex in the future?
   MemTable* mem = mem_.load();
   MemTable* imm = imm_.load();
@@ -1389,24 +1389,10 @@ Status DBImpl::MakeRoomForWrite(bool force) {
       Memtable_full_cv.Wait();
     } else {
       // Attempt to switch to a new memtable and trigger compaction of old
-      assert(versions_->PrevLogNumber() == 0);
-      uint64_t new_log_number = versions_->NewFileNumber();
-      WritableFile* lfile = nullptr;
-      s = env_->NewWritableFile(LogFileName(dbname_, new_log_number), &lfile);
-      if (!s.ok()) {
-        // Avoid chewing through file number space in a tight loop.
-        versions_->ReuseFileNumber(new_log_number);
-        break;
-      }
-      delete log_;
-      delete logfile_;
-      logfile_ = lfile;
-      logfile_number_ = new_log_number;
-      log_ = new log::Writer(lfile);
-      imm_ = mem_;
+      imm_.store(mem_);
       has_imm_.store(true, std::memory_order_release);
       mem_ = new MemTable(internal_comparator_);
-      mem_->Ref();
+      mem_.load()->Ref();
       force = false;  // Do not force another compaction if have room
       MaybeScheduleCompaction();
     }
