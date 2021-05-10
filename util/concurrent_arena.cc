@@ -15,11 +15,11 @@
 namespace leveldb {
 
 #ifdef ROCKSDB_SUPPORT_THREAD_LOCAL
-__thread size_t ConcurrentArena::tls_cpuid = 0;
+//__thread size_t ConcurrentArena::tls_cpuid = 0;
 #endif
 // In order to initialize the thread local variable you need to initialize it
 // outside the class.
-__thread ConcurrentArena::Shard* ConcurrentArena::thread_local_shard = nullptr;
+__thread std::string* ConcurrentArena::thread_id = nullptr;
 namespace {
 // If the shard block size is too large, in the worst case, every core
 // allocates a block without populate it. If the shared block size is
@@ -31,20 +31,20 @@ const size_t kMaxShardBlockSize = size_t{128 * 1024};
 ConcurrentArena::ConcurrentArena(size_t block_size, AllocTracker* tracker,
                                  size_t huge_page_size)
     : shard_block_size_(std::min(kMaxShardBlockSize, block_size / 8)),
-      shards_(),
+//      shards_(),
       arena_(block_size, tracker, huge_page_size) {
 //  thread_local_shard = 0;
   Fixup();
 }
 
-ConcurrentArena::Shard* ConcurrentArena::Repick() {
-  auto shard_and_index = shards_.AccessElementAndIndex();
-#ifdef ROCKSDB_SUPPORT_THREAD_LOCAL
-  // even if we are cpu 0, use a non-zero tls_cpuid so we can tell we
-  // have repicked
-  tls_cpuid = shard_and_index.second | shards_.Size();
-#endif
-  return shard_and_index.first;
-}
+//ConcurrentArena::Shard* ConcurrentArena::Repick() {
+//  auto shard_and_index = shards_.AccessElementAndIndex();
+//#ifdef ROCKSDB_SUPPORT_THREAD_LOCAL
+//  // even if we are cpu 0, use a non-zero tls_cpuid so we can tell we
+//  // have repicked
+//  tls_cpuid = shard_and_index.second | shards_.Size();
+//#endif
+//  return shard_and_index.first;
+//}
 
 }  // namespace ROCKSDB_NAMESPACE

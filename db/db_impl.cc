@@ -691,7 +691,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
   mutex_.AssertHeld();
   if (bg_error_.ok()) {
     bg_error_ = s;
-    background_work_finished_signal_.SignalAll();
+    Memtable_full_cv.SignalAll();
   }
 }
 
