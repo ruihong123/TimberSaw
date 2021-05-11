@@ -159,7 +159,6 @@ class In_Use_Array{
 //        std::printf("Compare and swap time duration is %ld \n", duration.count());
         if(in_use_[i].compare_exchange_strong(temp, true)){
 //          std::cout << "chunk" <<i << "was changed to true" << std::endl;
-
           return i; // find the empty slot then return the index for the slot
 
         }
