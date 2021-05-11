@@ -737,7 +737,7 @@ void DBImpl::BackgroundCall() {
 }
 void DBImpl::BackgroundCompaction() {
 //  mutex_.AssertHeld();
-
+  mutex_.AssertNotHeld();
   if (imm_.load() != nullptr) {
     auto start = std::chrono::high_resolution_clock::now();
     CompactMemTable();
@@ -767,7 +767,7 @@ void DBImpl::BackgroundCompaction() {
   } else {
     c = versions_->PickCompaction();
   }
-
+  mutex_.AssertNotHeld();
   Status status;
   if (c == nullptr) {
     // Nothing to do
