@@ -509,6 +509,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
 //  mutex_.AssertHeld();
+  mutex_.AssertNotHeld();
   const uint64_t start_micros = env_->NowMicros();
   FileMetaData meta;
   meta.number = versions_->NewFileNumber();
@@ -829,7 +830,7 @@ void DBImpl::BackgroundCompaction() {
 
 void DBImpl::CleanupCompaction(CompactionState* compact) {
   mutex_.AssertNotHeld();
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
   if (compact->builder != nullptr) {
     // May happen if we get a shutdown call in the middle of compaction
     compact->builder->Abandon();
