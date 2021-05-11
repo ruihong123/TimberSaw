@@ -9,6 +9,8 @@
 
 namespace leveldb {
 
-Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {}
+Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
+  env->rdma_mg->Mempool_initialize(std::string("read"), block_size);
+}
 
 }  // namespace leveldb
