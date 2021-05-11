@@ -935,6 +935,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
 }
 
 Status DBImpl::DoCompactionWork(CompactionState* compact) {
+  mutex_.AssertNotHeld();
   const uint64_t start_micros = env_->NowMicros();
   int64_t imm_micros = 0;  // Micros spent doing imm_ compactions
 
@@ -953,7 +954,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   }
 
   Iterator* input = versions_->MakeInputIterator(compact->compaction);
-
+  mutex_.AssertNotHeld();
   // Release mutex while we're actually doing the compaction work
 //  mutex_.Unlock();
 
