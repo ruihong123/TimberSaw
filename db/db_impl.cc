@@ -1644,6 +1644,7 @@ Status DestroyDB(const std::string& dbname, const Options& options) {
     env->RemoveFile(lockname);
     env->RemoveDir(dbname);  // Ignore error in case dir contains other files
   }
+  env->fs_meta_save();
   return result;
 }
 
