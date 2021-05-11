@@ -828,6 +828,7 @@ void DBImpl::BackgroundCompaction() {
 
 
 void DBImpl::CleanupCompaction(CompactionState* compact) {
+  mutex_.AssertNotHeld();
   mutex_.AssertHeld();
   if (compact->builder != nullptr) {
     // May happen if we get a shutdown call in the middle of compaction
