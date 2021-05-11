@@ -1302,9 +1302,6 @@ class PosixEnv : public Env {
     //create a new one
     //for read&write type, try to find in the map table first, if missing then create a
     //new one
-    if (file_name == "/tmp/leveldbtest-817659/dbbench/CURRENT"){
-      printf("check point file open");
-    }
     if(type == write_new){
       std::unique_lock<std::shared_mutex> write_lock(fs_mutex);
       if (file_to_sst_meta.find(file_name) == file_to_sst_meta.end()) {

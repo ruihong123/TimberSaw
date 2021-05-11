@@ -171,9 +171,9 @@ class In_Use_Array{
   }
   bool deallocate_memory_slot(int index) {
     bool temp = true;
-    if (index == 4){
-      printf("mark here");
-    }
+//    if (index == 4){
+//      printf("mark here");
+//    }
     assert(in_use_[index] == true);
 //    std::cout << "chunk" <<index << "was changed to false" << std::endl;
 
