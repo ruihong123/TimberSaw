@@ -508,7 +508,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
-  mutex_.AssertHeld();
+//  mutex_.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   FileMetaData meta;
   meta.number = versions_->NewFileNumber();
@@ -519,9 +519,9 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 
   Status s;
   {
-    mutex_.Unlock();
+//    mutex_.Unlock();
     s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
-    mutex_.Lock();
+//    mutex_.Lock();
   }
 
   Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
