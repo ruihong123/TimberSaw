@@ -796,6 +796,7 @@ void DBImpl::BackgroundCompaction() {
     if (!status.ok()) {
       RecordBackgroundError(status);
     }
+    mutex_.AssertNotHeld();
     CleanupCompaction(compact);
     c->ReleaseInputs();
 //    RemoveObsoleteFiles();
@@ -1091,9 +1092,11 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     status = InstallCompactionResults(compact);
   }
   mutex_.Unlock();
+
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
+  mutex_.AssertNotHeld();
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
   return status;
