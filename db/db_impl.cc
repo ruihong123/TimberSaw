@@ -844,6 +844,7 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
 }
 
 Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
+  mutex_.AssertNotHeld();
   assert(compact != nullptr);
   assert(compact->builder == nullptr);
   uint64_t file_number;
@@ -1082,7 +1083,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     stats.bytes_written += compact->outputs[i].file_size;
   }
-
+  mutex_.AssertNotHeld();
   mutex_.Lock();
   stats_[compact->compaction->level() + 1].Add(stats);
 
