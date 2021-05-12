@@ -738,7 +738,11 @@ void DBImpl::BackgroundCompaction() {
 //  mutex_.AssertHeld();
 
   if (imm_.load() != nullptr) {
+    auto start = std::chrono::high_resolution_clock::now();
     CompactMemTable();
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    printf("memtable flushing time elapse (%ld) us\n", duration.count());
     DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
     DEBUG("Memtable flushed\n");
     return;
@@ -786,6 +790,7 @@ void DBImpl::BackgroundCompaction() {
     CompactionState* compact = new CompactionState(c);
     status = DoCompactionWork(compact);
     DEBUG("Non-trivalcompaction!\n");
+    std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
     if (!status.ok()) {
       RecordBackgroundError(status);
     }
@@ -981,7 +986,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       const uint64_t imm_start = env_->NowMicros();
       mutex_.Lock();
       if (imm_ != nullptr) {
+        auto start = std::chrono::high_resolution_clock::now();
         CompactMemTable();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        printf("memtable flushing time elapse (%ld) us\n", duration.count());
+        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
+        DEBUG("Memtable flushed\n");
         // Wake up MakeRoomForWrite() if necessary.
         Memtable_full_cv.SignalAll();
       }

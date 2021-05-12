@@ -419,6 +419,7 @@ class Compaction {
   // Release the input version for the compaction, once the compaction
   // is successful.
   void ReleaseInputs();
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of inputs
 
  private:
   friend class Version;
@@ -432,7 +433,6 @@ class Compaction {
   VersionEdit edit_;
 
   // Each compaction reads inputs from "level_" and "level_+1"
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of inputs
 
   // State used to check for number of overlapping grandparent files
   // (parent == level_ + 1, grandparent == level_ + 2)
