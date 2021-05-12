@@ -43,6 +43,7 @@ static double MaxBytesForLevel(const Options* options, int level) {
   // the level-0 compaction threshold based on number of files.
 
   // Result for both level-0 and level-1
+  //TODO adjust this value based on the write buffer size
   double result = 10. * 1048576.0;
   while (level > 1) {
     result *= 10;
