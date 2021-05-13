@@ -402,8 +402,7 @@ void TableBuilder::FlushData(){
       r->data_inuse_start = r->data_inuse_start - r->local_data_mr.size();
     }
     DEBUG_arg("Poll the completion %d\n", poll_num);
-    DEBUG_arg("In use start is %d\n", r->data_inuse_start);
-    DEBUG_arg("In use end is %d\n", r->data_inuse_end);
+
 //    if(r->data_inuse_start - r->data_inuse_end == 1 ||
 //       r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
 //      if (poll_num > 0){
@@ -447,6 +446,9 @@ void TableBuilder::FlushData(){
 
   assert(next_buffer_index != r->data_inuse_start);
   r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr[next_buffer_index]->addr)));
+  DEBUG_arg("In use start is %d\n", r->data_inuse_start);
+  DEBUG_arg("In use end is %d\n", r->data_inuse_end);
+  DEBUG_arg("Next write buffer to use %d", next_buffer_index);
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
 void TableBuilder::FlushDataIndex(size_t msg_size) {
