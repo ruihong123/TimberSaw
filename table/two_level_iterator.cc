@@ -146,7 +146,9 @@ void TwoLevelIterator::SetDataIterator(Iterator* data_iter) {
 void TwoLevelIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
     SetDataIterator(nullptr);
+    DEBUG("Index block invalid\n");
   } else {
+    DEBUG("Index block valid\n");
     Slice handle = index_iter_.value();
     if (data_iter_.iter() != nullptr &&
         handle.compare(data_block_handle_) == 0) {
