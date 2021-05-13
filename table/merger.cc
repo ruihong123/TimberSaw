@@ -77,6 +77,11 @@ class MergingIterator : public Iterator {
 
     current_->Next();
     FindSmallest();
+    num_entries++;
+    last_key = current_->key().ToString();
+    if (num_entries > 0) {
+      assert(comparator_->Compare(key(), Slice(last_key)) > 0);
+    }
   }
 
   void Prev() override {
@@ -144,6 +149,8 @@ class MergingIterator : public Iterator {
   int n_;
   IteratorWrapper* current_;
   Direction direction_;
+  std::string last_key;
+  int64_t num_entries;
 };
 
 void MergingIterator::FindSmallest() {
