@@ -401,7 +401,9 @@ void TableBuilder::FlushData(){
     if(r->data_inuse_start >= r->local_data_mr.size()){
       r->data_inuse_start = r->data_inuse_start - r->local_data_mr.size();
     }
-    DEBUG_arg("Poll the completion %d", poll_num);
+    DEBUG_arg("Poll the completion %d\n", poll_num);
+    DEBUG_arg("In use start is %d\n", r->data_inuse_start);
+    DEBUG_arg("In use end is %d\n", r->data_inuse_end);
 //    if(r->data_inuse_start - r->data_inuse_end == 1 ||
 //       r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
 //      if (poll_num > 0){
