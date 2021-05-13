@@ -150,7 +150,7 @@ class MergingIterator : public Iterator {
   IteratorWrapper* current_;
   Direction direction_;
   std::string last_key;
-  int64_t num_entries;
+  int64_t num_entries=0;
 };
 
 void MergingIterator::FindSmallest() {
