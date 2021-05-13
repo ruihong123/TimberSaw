@@ -77,11 +77,12 @@ class MergingIterator : public Iterator {
 
     current_->Next();
     FindSmallest();
-    num_entries++;
-    last_key = current_->key().ToString();
+
     if (num_entries > 0) {
       assert(comparator_->Compare(key(), Slice(last_key)) > 0);
     }
+    num_entries++;
+    last_key = current_->key().ToString();
   }
 
   void Prev() override {
