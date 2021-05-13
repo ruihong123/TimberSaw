@@ -157,7 +157,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
-  size_t n = remote_mr->length - -kBlockTrailerSize;
+  size_t n = remote_mr->length - kBlockTrailerSize;
   assert(n>0);
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataIndexBlock"]);
   ibv_mr* contents;
@@ -222,7 +222,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
-  size_t n = remote_mr->length - -kBlockTrailerSize;
+  size_t n = remote_mr->length - kBlockTrailerSize;
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["FilterBlock"]);
   ibv_mr* contents;
   rdma_mg->Allocate_Local_RDMA_Slot(contents, "FilterBlock");
