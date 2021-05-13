@@ -97,7 +97,9 @@ struct LEVELDB_EXPORT Options {
   // block size specified here corresponds to uncompressed data.  The
   // actual size of the unit read from disk may be smaller if
   // compression is enabled.  This parameter can be changed dynamically.
-  size_t block_size = 4 * 1024;
+  //This value have to be hardcoded for 8k, because the RDMA mempool will
+  // be initialized by this value
+  size_t block_size = 8 * 1024;
 
   // Number of keys between restart points for delta encoding of keys.
   // This parameter can be changed dynamically.  Most clients should
