@@ -125,7 +125,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
   }
-  DEBUG_arg("Move to next data, key is %s\n", data_iter_.key().ToString().c_str());
+//  DEBUG_arg("Move to next data, key is %s\n", data_iter_.key().ToString().c_str());
 }
 
 void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
@@ -157,7 +157,7 @@ void TwoLevelIterator::InitDataBlock() {
     Slice test_handle = handle;
     BlockHandle bhandle;
     bhandle.DecodeFrom(&test_handle);
-    printf("Offset is %lu, size is %lu", bhandle.offset(), bhandle.size());
+    printf("Offset is %lu, size is %lu\n", bhandle.offset(), bhandle.size());
 #endif
     if (data_iter_.iter() != nullptr &&
         handle.compare(data_block_handle_) == 0) {
