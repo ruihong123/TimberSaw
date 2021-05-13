@@ -113,7 +113,7 @@ void TwoLevelIterator::Prev() {
 }
 
 void TwoLevelIterator::SkipEmptyDataBlocksForward() {
-  DEBUG("Move to next data\n");
+
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
@@ -125,6 +125,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
   }
+  DEBUG_arg("Move to next data, key is %s\n", data_iter_.value().ToString().c_str());
 }
 
 void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
