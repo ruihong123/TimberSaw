@@ -153,6 +153,11 @@ void TwoLevelIterator::InitDataBlock() {
   } else {
     DEBUG("Index block valid\n");
     Slice handle = index_iter_.value();
+#ifndef NDEBUG
+    BlockHandle bhandle;
+    bhandle.DecodeFrom(&handle);
+    printf("Offset is %lu, size is %lu", bhandle.offset(), bhandle.size());
+#endif
     if (data_iter_.iter() != nullptr &&
         handle.compare(data_block_handle_) == 0) {
       // data_iter_ is already constructed with this iterator, so
