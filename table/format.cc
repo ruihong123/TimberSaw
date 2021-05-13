@@ -65,8 +65,8 @@ bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
   uint64_t  position = handle.offset();
   auto iter = remote_data_blocks.begin();
   while(iter != remote_data_blocks.end()){
-    if (position < iter->second->length){
-      position -= iter->second->length;
+    if (position > iter->second->length){
+      position -= ((iter->second->length));
       iter++;
     }else{
       assert(position + handle.size() + kBlockTrailerSize < iter->second->length);
@@ -90,7 +90,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = static_cast<size_t>(handle.size());
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataBlock"]);
-  ibv_mr* contents;
+  ibv_mr* contents= nullptr;
   ibv_mr remote_mr;
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "read");

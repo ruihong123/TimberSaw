@@ -39,7 +39,7 @@ class BlockHandle {
   Status DecodeFrom(Slice* input);
 
  private:
-  uint64_t offset_;
+  uint64_t offset_;// count in the blocktrailer.
   uint64_t size_;
 };
 
