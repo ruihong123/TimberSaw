@@ -258,6 +258,7 @@ class Block::Iter : public Iterator {
     current_ = restarts_;
     restart_index_ = num_restarts_;
     status_ = Status::Corruption("bad entry in block");
+    DEBUG("bad entry in block");
     key_.clear();
     value_.clear();
   }
