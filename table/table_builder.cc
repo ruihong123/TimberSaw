@@ -448,7 +448,7 @@ void TableBuilder::FlushData(){
   r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr[next_buffer_index]->addr)));
   DEBUG_arg("In use start is %d\n", r->data_inuse_start);
   DEBUG_arg("In use end is %d\n", r->data_inuse_end);
-  DEBUG_arg("Next write buffer to use %d", next_buffer_index);
+  DEBUG_arg("Next write buffer to use %d\n", next_buffer_index);
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
 void TableBuilder::FlushDataIndex(size_t msg_size) {
