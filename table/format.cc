@@ -93,7 +93,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   ibv_mr* contents= nullptr;
   ibv_mr remote_mr;
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
-    rdma_mg->Allocate_Local_RDMA_Slot(contents, "read");
+    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
     rdma_mg->RDMA_Read(&remote_mr, contents, n+ kBlockTrailerSize, "", IBV_SEND_SIGNALED, 1);
   }else{
     s = Status::Corruption("Remote memtable out of buffer");
