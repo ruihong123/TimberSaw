@@ -63,7 +63,7 @@ struct TableBuilder::Rep {
   bool data_inuse_empty = true;
   std::vector<ibv_mr*> local_index_mr;
   std::vector<ibv_mr*> local_filter_mr;
-
+  //TODO: make the map offset -> ibv_mr*
   std::map<int, ibv_mr*> remote_data_mrs;
   std::map<int, ibv_mr*> remote_dataindex_mrs;
   std::map<int, ibv_mr*> remote_filter_mrs;
@@ -420,12 +420,19 @@ void TableBuilder::FlushData(){
       rdma_mg->Allocate_Local_RDMA_Slot(new_local_mr,"FlushBuffer");
       // insert new mr at start while increase start by 1.
       r->local_data_mr.insert(r->local_data_mr.begin() + r->data_inuse_start++, new_local_mr);
+      DEBUG_arg("One more local write buffer is added, now %zu total\n", r->local_data_mr.size());
     }
   }
   remote_mr->length = msg_size;
   if(r->remote_data_mrs.empty()){
     r->remote_data_mrs.insert({0, remote_mr});
   }else{
+#ifndef NDEBUG
+    for (auto iter : r->remote_data_mrs) {
+      assert(remote_mr->addr != iter.second->addr);
+
+    }
+#endif
     r->remote_data_mrs.insert({r->remote_data_mrs.rbegin()->first+1, remote_mr});
   }
 
