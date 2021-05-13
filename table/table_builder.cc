@@ -142,8 +142,8 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   if (r->num_entries > 0) {
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
-  DEBUG_arg("ADD new key data, key is %s\n", key.ToString().c_str());
-  DEBUG_arg("number of entry is %ld\n", r->num_entries);
+//  DEBUG_arg("ADD new key data, key is %s\n", key.ToString().c_str());
+//  DEBUG_arg("number of entry is %ld\n", r->num_entries);
   //todo: MAKE IT a remote block size which could be 1M
   // How to predict the datasize before actually serilizae the data, so that there will
   // not be buffer overflow.
