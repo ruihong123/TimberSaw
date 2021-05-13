@@ -391,6 +391,7 @@ void TableBuilder::FlushData(){
     r->data_inuse_end = 0;
     r->data_inuse_start = 0;
     r->data_inuse_empty = false;
+
   }else{
     auto* wc = new ibv_wc[5];
     int poll_num = 0;
@@ -400,6 +401,7 @@ void TableBuilder::FlushData(){
     if(r->data_inuse_start >= r->local_data_mr.size()){
       r->data_inuse_start = r->data_inuse_start - r->local_data_mr.size();
     }
+    DEBUG_arg("Poll the completion %d", poll_num);
 //    if(r->data_inuse_start - r->data_inuse_end == 1 ||
 //       r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
 //      if (poll_num > 0){
