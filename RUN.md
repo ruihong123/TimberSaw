@@ -1,4 +1,4 @@
-#How to run
+# How to run
 *git clone --recurse-submodules the-code-link
 *mkdir -p build && cd build
 *cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
