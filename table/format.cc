@@ -112,7 +112,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
       return s;
     }
   }
-  printf("data[n] is %c", data[n]);
+  printf("data[n] is %c\n", data[n]);
   switch (data[n]) {
     case kNoCompression:
         result->data = Slice(data, n);
