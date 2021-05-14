@@ -272,6 +272,7 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
     // block_type == 0 means data block
     if (r->status.ok()) {
       r->offset += block_contents->size();
+      DEBUG_arg("Offset is %lu", r->offset);
       assert(r->offset - r->offset_last_flushed <= r->local_data_mr[0]->length);
     }
   }

@@ -881,8 +881,10 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   if (s.ok()) {
     s = compact->builder->Finish();
   } else {
+    printf("iterator Error!!!!!!!!!!!\n");
     compact->builder->Abandon();
   }
+
   compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
   compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
   compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
