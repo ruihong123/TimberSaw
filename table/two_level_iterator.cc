@@ -93,7 +93,7 @@ void TwoLevelIterator::SetDataIterator(Iterator* data_iter) {
 void TwoLevelIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
     SetDataIterator(nullptr);
-    DEBUG("Index block invalid\n");
+    DEBUG_arg("Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
     DEBUG("Index block valid\n");
     Slice handle = index_iter_.value();
