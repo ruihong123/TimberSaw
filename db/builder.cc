@@ -40,14 +40,14 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
     builder->get_datablocks_map(meta->remote_data_mrs);
     builder->get_dataindexblocks_map(meta->remote_dataindex_mrs);
     builder->get_filter_map(meta->remote_filter_mrs);
-    delete builder;
+
 
     meta->file_size = 0;
     for(auto iter : meta->remote_data_mrs){
       meta->file_size += iter.second->length;
     }
     assert(builder->FileSize() == meta->file_size);
-
+    delete builder;
 //TOFIX: temporarily disable the verification of index block.
 
     if (s.ok()) {
