@@ -164,6 +164,8 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   } else {
     iter = NewErrorIterator(s);
   }
+  iter->SeekToFirst();
+  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
   return iter;
 }
 
