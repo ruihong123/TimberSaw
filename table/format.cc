@@ -143,6 +143,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 //    }
     default:
       assert(data[n] != kNoCompression);
+      assert(false);
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
       DEBUG("illegal compression type\n");
       return Status::Corruption("bad block type");
