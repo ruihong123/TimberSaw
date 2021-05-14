@@ -566,7 +566,7 @@ Status TableBuilder::Finish() {
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "");
 #ifndef NDEBUG
   usleep(1000);
-  int check_poll_number = r->options.env->rdma_mg->try_poll_this_thread_completions(wc,5);
+  int check_poll_number = r->options.env->rdma_mg->try_poll_this_thread_completions(wc,1);
   assert( check_poll_number == 0);
 #endif
 //  printf("A table finsihed flushing\n");
