@@ -68,8 +68,8 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
   }
-//  DEBUG_arg("Move to next data, key is %s", data_iter_.key().ToString().c_str());
-//  DEBUG_arg("Iterator pointer is %p\n", this);
+  DEBUG_arg("Move to next data, key is %s", data_iter_.key().ToString().c_str());
+  DEBUG_arg("Iterator pointer is %p\n", this);
 }
 
 void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
@@ -95,7 +95,7 @@ void TwoLevelIterator::InitDataBlock() {
     SetDataIterator(nullptr);
     DEBUG_arg("Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
-    DEBUG("Index block valid\n");
+//    DEBUG("Index block valid\n");
     Slice handle = index_iter_.value();
 #ifndef NDEBUG
     Slice test_handle = handle;
