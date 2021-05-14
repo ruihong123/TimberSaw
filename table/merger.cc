@@ -78,7 +78,7 @@ class MergingIterator : public Iterator {
     current_->Next();
     FindSmallest();
 
-    if (num_entries > 0) {
+    if (num_entries > 0 && Valid()) {
       assert(comparator_->Compare(key(), Slice(last_key)) > 0);
     }
     num_entries++;
@@ -115,8 +115,7 @@ class MergingIterator : public Iterator {
   }
 
   Slice key() const override {
-    //TODO make the assert back.
-//    assert(Valid());
+    assert(Valid());
     return current_->key();
   }
 
