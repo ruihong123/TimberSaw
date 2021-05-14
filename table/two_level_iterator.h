@@ -124,8 +124,10 @@ class TwoLevelIterator : public Iterator {
   Status status() const override {
     // It'd be nice if status() returned a const Status& instead of a Status
     if (!index_iter_.status().ok()) {
+      printf("index invalid\n");
       return index_iter_.status();
     } else if (data_iter_.iter() != nullptr && !data_iter_.status().ok()) {
+      printf("data invalid\n");
       return data_iter_.status();
     } else {
       return status_;

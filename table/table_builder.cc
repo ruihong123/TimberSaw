@@ -501,7 +501,7 @@ Status TableBuilder::Finish() {
   FlushData();
   assert(!r->closed);
   r->closed = true;
-  DEBUG_arg("sst offset is %lu", r->offset);
+  DEBUG_arg("sst offset is %lu\n", r->offset);
   BlockHandle filter_block_handle, metaindex_block_handle, index_block_handle;
 
   // Write filter block
