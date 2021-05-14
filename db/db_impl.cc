@@ -881,7 +881,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   if (s.ok()) {
     s = compact->builder->Finish();
   } else {
-    printf("iterator Error!!!!!!!!!!!\n");
+    printf("iterator Error!!!!!!!!!!!, Error: %s\n", s.ToString().c_str());
     compact->builder->Abandon();
   }
 
