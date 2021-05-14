@@ -106,6 +106,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
     s = Status::Corruption("Remote memtable out of buffer");
   }
 #ifndef NDEBUG
+  usleep(100);
   check_poll_number = rdma_mg->try_poll_this_thread_completions(&wc,1);
   assert( check_poll_number == 0);
 #endif
