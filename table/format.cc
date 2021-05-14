@@ -105,7 +105,10 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   }else{
     s = Status::Corruption("Remote memtable out of buffer");
   }
-
+#ifndef NDEBUG
+  check_poll_number = rdma_mg->try_poll_this_thread_completions(&wc,1);
+  assert( check_poll_number == 0);
+#endif
   // Check the crc of the type and the block contents
   const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
