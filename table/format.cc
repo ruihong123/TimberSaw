@@ -121,7 +121,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 
 
       // Ok
-      break;
+        break;
 //    case kSnappyCompression: {
 //      size_t ulength = 0;
 //      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
@@ -141,6 +141,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 //      break;
 //    }
     default:
+      assert(data[n] != kNoCompression);
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
       DEBUG("illegal compression type\n");
       return Status::Corruption("bad block type");
