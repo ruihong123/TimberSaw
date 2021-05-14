@@ -65,7 +65,8 @@ bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
   uint64_t  position = handle.offset();
   auto iter = remote_data_blocks.begin();
   while(iter != remote_data_blocks.end()){
-    if (position >= iter->second->length){
+    if (position >= iter->second->length){// the missing of the equal, cause the
+                                          // problem of iterator sometime drop, make the compaction failed
       position -= ((iter->second->length));
       iter++;
     }else{

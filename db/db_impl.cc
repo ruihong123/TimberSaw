@@ -67,7 +67,7 @@ struct DBImpl::CompactionState {
   explicit CompactionState(Compaction* c)
       : compaction(c),
         smallest_snapshot(0),
-        outfile(nullptr),
+//        outfile(nullptr),
         builder(nullptr),
         total_bytes(0) {}
 
@@ -82,7 +82,7 @@ struct DBImpl::CompactionState {
   std::vector<Output> outputs;
 
   // State kept for output being generated
-  WritableFile* outfile;
+//  WritableFile* outfile;
   TableBuilder* builder;
 
   uint64_t total_bytes;
@@ -830,9 +830,9 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
     compact->builder->Abandon();
     delete compact->builder;
   } else {
-    assert(compact->outfile == nullptr);
+//    assert(compact->outfile == nullptr);
   }
-  delete compact->outfile;
+//  delete compact->outfile;
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     const CompactionState::Output& out = compact->outputs[i];
     pending_outputs_.erase(out.number);
@@ -869,7 +869,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
 Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
                                           Iterator* input) {
   assert(compact != nullptr);
-  assert(compact->outfile != nullptr);
+//  assert(compact->outfile != nullptr);
   assert(compact->builder != nullptr);
 
   const uint64_t output_number = compact->current_output()->number;
@@ -900,14 +900,14 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   compact->builder = nullptr;
 
   // Finish and check for file errors
-  if (s.ok()) {
-    s = compact->outfile->Sync();
-  }
-  if (s.ok()) {
-    s = compact->outfile->Close();
-  }
-  delete compact->outfile;
-  compact->outfile = nullptr;
+//  if (s.ok()) {
+//    s = compact->outfile->Sync();
+//  }
+//  if (s.ok()) {
+//    s = compact->outfile->Close();
+//  }
+//  delete compact->outfile;
+//  compact->outfile = nullptr;
 
   if (s.ok() && current_entries > 0) {
     // Verify that the table is usable
@@ -962,7 +962,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
   assert(versions_->NumLevelFiles(compact->compaction->level()) > 0);
   assert(compact->builder == nullptr);
-  assert(compact->outfile == nullptr);
+//  assert(compact->outfile == nullptr);
   if (snapshots_.empty()) {
     compact->smallest_snapshot = versions_->LastSequence();
   } else {
