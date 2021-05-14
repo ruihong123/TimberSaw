@@ -156,7 +156,7 @@ class Block::Iter : public Iterator {
     assert(Valid());
     ParseNextKey();
     if (num_entries > 0) {
-      assert(comparator_->Compare(key(), Slice(last_key)) > 0);
+      assert(comparator_->Compare(key(), Slice(last_key)) >= 0);
     }
     num_entries++;
     last_key = key_;
