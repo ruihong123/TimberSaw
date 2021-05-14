@@ -1138,7 +1138,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   }
   //  else
   //  {
-  //    fprintf(stdout, "RDMA Read Request was posted, OPCODE is %d\n", sr.opcode);
+      fprintf(stdout, "RDMA Read Request was posted, OPCODE is %d\n", sr.opcode);
   //  }
   if (poll_num != 0) {
     ibv_wc* wc = new ibv_wc[poll_num]();
@@ -1206,7 +1206,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   if (rc) fprintf(stderr, "failed to post SR, return is %d\n", rc);
   //  else
   //  {
-  //    fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
+      fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
   //  }
   if (poll_num != 0) {
     ibv_wc* wc = new ibv_wc[poll_num]();
