@@ -46,6 +46,7 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
     for(auto iter : meta->remote_data_mrs){
       meta->file_size += iter.second->length;
     }
+    assert(builder->FileSize() == meta->file_size);
 
 //TOFIX: temporarily disable the verification of index block.
 
