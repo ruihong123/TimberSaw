@@ -115,7 +115,8 @@ class MergingIterator : public Iterator {
   }
 
   Slice key() const override {
-    assert(Valid());
+    //TODO make the assert back.
+//    assert(Valid());
     return current_->key();
   }
 
