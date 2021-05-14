@@ -72,7 +72,7 @@ bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
     }else{
       assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
       *(remote_mr) = *(iter->second);
-      DEBUG_arg("Block buffer position %lu", position);
+      DEBUG_arg("Block buffer position %lu\n", position);
       remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
       return true;
     }
@@ -96,7 +96,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   ibv_mr remote_mr;
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-    rdma_mg->RDMA_Read(&remote_mr, contents, n+ kBlockTrailerSize, "", IBV_SEND_SIGNALED, 1);
+    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "", IBV_SEND_SIGNALED, 1);
   }else{
     s = Status::Corruption("Remote memtable out of buffer");
   }
