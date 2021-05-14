@@ -69,7 +69,7 @@ bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
       position -= ((iter->second->length));
       iter++;
     }else{
-      assert(position + handle.size() + kBlockTrailerSize < iter->second->length);
+      assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
       *(remote_mr) = *(iter->second);
       remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
       return true;
