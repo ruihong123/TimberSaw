@@ -102,6 +102,8 @@ class Block::Iter : public Iterator {
   std::string key_;
   Slice value_;
   Status status_;
+  std::string last_key;
+  int64_t num_entries=0;
 
   inline int Compare(const Slice& a, const Slice& b) const {
     return comparator_->Compare(a, b);
@@ -153,6 +155,11 @@ class Block::Iter : public Iterator {
   void Next() override {
     assert(Valid());
     ParseNextKey();
+    if (num_entries > 0) {
+      assert(comparator_->Compare(key(), Slice(last_key)) > 0);
+    }
+    num_entries++;
+    last_key = key_;
   }
 
   void Prev() override {
