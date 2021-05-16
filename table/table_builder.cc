@@ -388,7 +388,7 @@ void TableBuilder::FlushData(){
   if (r->data_inuse_start == -1){
     // first time flush
     assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 2);
-    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
     r->data_inuse_end = 0;
     r->data_inuse_start = 0;
     r->data_inuse_empty = false;
@@ -417,7 +417,7 @@ void TableBuilder::FlushData(){
 //    }
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
-    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, "",IBV_SEND_SIGNALED, 0);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
         r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
       ibv_mr* new_local_mr;
@@ -459,7 +459,7 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
     r->remote_dataindex_mrs.insert({0, remote_mr});
@@ -476,7 +476,7 @@ void TableBuilder::FlushFilter(size_t& msg_size) {
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, "",IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){
     r->remote_filter_mrs.insert({0, remote_mr});

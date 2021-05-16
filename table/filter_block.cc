@@ -72,7 +72,7 @@ void FilterBlockBuilder::Flush() {
   ibv_mr* remote_mr;
   size_t msg_size = result.size();
   rdma_mg_->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg_->RDMA_Write(remote_mr, (*local_mrs)[0], msg_size, "",IBV_SEND_SIGNALED, 0);
+  rdma_mg_->RDMA_Write(remote_mr, (*local_mrs)[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(remote_mrs_->empty()){
     remote_mrs_->insert({0, remote_mr});

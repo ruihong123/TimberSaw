@@ -101,7 +101,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 #endif
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "", IBV_SEND_SIGNALED, 1);
+    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
   }else{
     s = Status::Corruption("Remote memtable out of buffer");
   }
@@ -175,7 +175,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataIndexBlock"]);
   ibv_mr* contents;
   rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataIndexBlock");
-  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
   // Check the crc of the type and the block contents
   const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
@@ -239,7 +239,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["FilterBlock"]);
   ibv_mr* contents;
   rdma_mg->Allocate_Local_RDMA_Slot(contents, "FilterBlock");
-  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
   // Check the crc of the type and the block contents
   const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data

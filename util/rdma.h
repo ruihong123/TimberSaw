@@ -261,7 +261,7 @@ class RDMA_Manager {
   //        QP_Wrapper(std::string q_id){
   //            if (qp == NULL){
   //                Remote_Query_Pair_Connection(q_id);
-  //                qp = static_cast<ibv_qp*>(qp_local.get());
+  //                qp = static_cast<ibv_qp*>(qp_local_write.get());
   //            }
   //        }
   //        void operator()(ibv_qp* ptr){
@@ -375,10 +375,12 @@ class RDMA_Manager {
   std::shared_mutex qp_cq_map_mutex;
   std::vector<std::thread> thread_pool;
   //  ThreadLocalPtr* t_local_1;
-  ThreadLocalPtr* qp_local;
-  ThreadLocalPtr* cq_local;
-  //  thread_local static std::unique_ptr<ibv_qp, QP_Deleter> qp_local;
-  //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local;
+  ThreadLocalPtr* qp_local_write;
+  ThreadLocalPtr* cq_local_write;
+  ThreadLocalPtr* qp_local_read;
+  ThreadLocalPtr* cq_local_read;
+  //  thread_local static std::unique_ptr<ibv_qp, QP_Deleter> qp_local_write;
+  //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local_write;
   std::unordered_map<std::string, std::map<void*, In_Use_Array>>
       name_to_mem_pool;
   std::unordered_map<std::string, size_t> name_to_size;
@@ -413,8 +415,8 @@ class RDMA_Manager {
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid,
                        uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
-  bool create_qp(std::string& id);
-  int connect_qp(registered_qp_config remote_con_data, std::string& qp_id);
+  ibv_qp* create_qp(std::string& id);
+  int connect_qp(registered_qp_config remote_con_data, ibv_qp* qp);
   int resources_destroy();
   void print_config(void);
   void usage(const char* argv0);
