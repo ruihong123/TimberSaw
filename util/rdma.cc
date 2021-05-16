@@ -1153,7 +1153,12 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
     }
     delete[] wc;
   }
-
+  ibv_wc wc;
+#ifndef NDEBUG
+  usleep(100);
+  int check_poll_number = try_poll_this_thread_completions(&wc,1);
+  assert( check_poll_number == 0);
+#endif
   //  stop = std::chrono::high_resolution_clock::now();
   //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA READ and poll: %zu elapse: %ld\n", msg_size, duration.count());
   return rc;
