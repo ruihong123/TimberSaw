@@ -1617,6 +1617,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   } while (poll_num < num_entries);  // && ((cur_time_msec - start_time_msec) < MAX_POLL_CQ_TIMEOUT));
   //*(end) = std::chrono::steady_clock::now();
   // end = std::chrono::steady_clock::now();
+  assert(poll_num == num_entries);
   if (poll_result < 0) {
     /* poll CQ failed */
     fprintf(stderr, "poll CQ failed\n");
