@@ -96,7 +96,8 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   ibv_mr remote_mr;
 #ifndef NDEBUG
   ibv_wc wc;
-  int check_poll_number = rdma_mg->try_poll_this_thread_completions(&wc,1);
+  int check_poll_number =
+      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
   assert( check_poll_number == 0);
 #endif
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){

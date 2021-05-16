@@ -341,7 +341,8 @@ class RDMA_Manager {
       std::map<void*, In_Use_Array>* Bitmap);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
-  int try_poll_this_thread_completions(ibv_wc* wc_p, int num_entries);
+  int try_poll_this_thread_completions(ibv_wc* wc_p, int num_entries,
+                                       std::string q_id);
   void fs_serialization(
       char*& buff, size_t& size, std::string& db_name,
       std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,

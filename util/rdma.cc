@@ -1177,7 +1177,8 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   ibv_wc wc;
 #ifndef NDEBUG
   usleep(100);
-  int check_poll_number = try_poll_this_thread_completions(&wc,1);
+  int check_poll_number =
+      try_poll_this_thread_completions(&wc, 1, "read_local");
   assert( check_poll_number == 0);
 #endif
   //  stop = std::chrono::high_resolution_clock::now();
@@ -1633,10 +1634,18 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   // gettimeofday(&cur_time, NULL);
   // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
   std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
-  if (q_id != "")
-    cq = res->cq_map.at(q_id);
-  else
+  if (q_id == "write_local"){
     cq = static_cast<ibv_cq*>(cq_local_write->Get());
+    assert(cq != nullptr);
+  }else if (q_id == "read_local"){
+    cq = static_cast<ibv_cq*>(cq_local_read->Get());
+    assert(cq != nullptr);
+
+  }
+  else{
+    cq = res->cq_map.at(q_id);
+    assert(cq != nullptr);
+  }
   l.unlock();
   do {
     poll_result = ibv_poll_cq(cq, num_entries, &wc_p[poll_num]);
@@ -1675,7 +1684,8 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   return rc;
 }
 int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
-                                                   int num_entries) {
+                                                   int num_entries,
+                                                   std::string q_id) {
   int poll_result;
   int poll_num = 0;
   int rc = 0;
@@ -1683,7 +1693,18 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
   /* poll the completion for a while before giving up of doing it .. */
   // gettimeofday(&cur_time, NULL);
   // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
-  cq = static_cast<ibv_cq*>(cq_local_write->Get());
+  if (q_id == "write_local"){
+    cq = static_cast<ibv_cq*>(cq_local_write->Get());
+    assert(cq != nullptr);
+  }else if (q_id == "read_local"){
+    cq = static_cast<ibv_cq*>(cq_local_read->Get());
+    assert(cq != nullptr);
+
+  }
+  else{
+    cq = res->cq_map.at(q_id);
+    assert(cq != nullptr);
+  }
 
   poll_result = ibv_poll_cq(cq, num_entries, &wc_p[poll_num]);
   return poll_result;
