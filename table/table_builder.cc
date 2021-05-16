@@ -566,7 +566,7 @@ Status TableBuilder::Finish() {
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "write_local");
 #ifndef NDEBUG
-  usleep(1000000);
+  usleep(10);
   int check_poll_number =
       r->options.env->rdma_mg->try_poll_this_thread_completions(
           wc, 1, "write_local");

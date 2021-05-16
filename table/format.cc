@@ -94,12 +94,12 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataBlock"]);
   ibv_mr* contents= nullptr;
   ibv_mr remote_mr;
-#ifndef NDEBUG
-  ibv_wc wc;
-  int check_poll_number =
-      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
-  assert( check_poll_number == 0);
-#endif
+//#ifndef NDEBUG
+//  ibv_wc wc;
+//  int check_poll_number =
+//      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
+//  assert( check_poll_number == 0);
+//#endif
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
     rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
