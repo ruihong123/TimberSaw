@@ -291,7 +291,7 @@ void DBImpl::RemoveObsoleteFiles() {
     env_->RemoveFile(dbname_ + "/" + filename);
   }
 #ifdef DETAILS
-  printf("file Garbage collected %zu", files_to_delete.size());
+  printf("file Garbage collected %zu\n", files_to_delete.size());
 #endif
   mutex_.Lock();
 }
