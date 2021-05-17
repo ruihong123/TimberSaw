@@ -13,7 +13,7 @@ int main()
   struct leveldb::config_t config = {
       NULL,  /* dev_name */
       NULL,  /* server_name */
-      19875, /* tcp_port */
+      19876, /* tcp_port */
       1,	 /* ib_port */
       1, /* gid_idx */
       0};
