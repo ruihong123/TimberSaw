@@ -43,7 +43,7 @@ class FilterBlockTest : public testing::Test {
 
 TEST_F(FilterBlockTest, EmptyBuilder) {
   FilterBlockBuilder builder(&policy_, nullptr, std::map<int, ibv_mr*>(),
-                             nullptr);
+                             nullptr, <#initializer #>);
   Slice block = builder.Finish();
   ASSERT_EQ("\\x00\\x00\\x00\\x00\\x0b", EscapeString(block));
   FilterBlockReader reader(&policy_, block);
@@ -53,7 +53,7 @@ TEST_F(FilterBlockTest, EmptyBuilder) {
 
 TEST_F(FilterBlockTest, SingleChunk) {
   FilterBlockBuilder builder(&policy_, nullptr, std::map<int, ibv_mr*>(),
-                             nullptr);
+                             nullptr, <#initializer #>);
   builder.StartBlock(100);
   builder.AddKey("foo");
   builder.AddKey("bar");
@@ -75,7 +75,7 @@ TEST_F(FilterBlockTest, SingleChunk) {
 
 TEST_F(FilterBlockTest, MultiChunk) {
   FilterBlockBuilder builder(&policy_, nullptr, std::map<int, ibv_mr*>(),
-                             nullptr);
+                             nullptr, <#initializer #>);
 
   // First filter
   builder.StartBlock(0);

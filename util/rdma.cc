@@ -31,8 +31,10 @@ void UnrefHandle_cq(void* ptr) {
 RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
     : Table_Size(remote_block_size),
       //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
-      qp_local_write(new ThreadLocalPtr(&UnrefHandle_qp)),
-      cq_local_write(new ThreadLocalPtr(&UnrefHandle_cq)),
+      qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
+      cq_local_write_flush(new ThreadLocalPtr(&UnrefHandle_cq)),
+      qp_local_write_compact(new ThreadLocalPtr(&UnrefHandle_qp)),
+      cq_local_write_compact(new ThreadLocalPtr(&UnrefHandle_cq)),
       qp_local_read(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_read(new ThreadLocalPtr(&UnrefHandle_cq)),
       rdma_config(config)
@@ -72,8 +74,8 @@ RDMA_Manager::~RDMA_Manager() {
       }
     }
   printf("RDMA Manager get destroyed\n");
-  //  delete qp_local_write;
-  //  delete  cq_local_write;
+  //  delete qp_local_write_flush;
+  //  delete  cq_local_write_flush;
   //  delete t_local_1;
   //  for (auto & iter : name_to_mem_pool){
   //    delete iter.second;
@@ -834,8 +836,10 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id) {
   std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
   if (id == "read_local" )
     cq_local_read->Reset(cq);
-  else if(id == "write_local")
-    cq_local_write->Reset(cq);
+  else if(id == "write_local_compaction")
+    cq_local_write_compact->Reset(cq);
+  else if(id == "write_local_flushing")
+    cq_local_write_flush->Reset(cq);
   else
     res->cq_map[id] = cq;
 
@@ -856,8 +860,10 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id) {
   }
   if (id == "read_local" )
     qp_local_read->Reset(qp);
-  else if(id == "write_local")
-    qp_local_write->Reset(qp);
+  else if(id == "write_local_flush")
+    qp_local_write_flush->Reset(qp);
+  else if(id == "write_local_compact")
+    qp_local_write_compact->Reset(qp);
   else
     res->qp_map[id] = qp;
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
@@ -886,7 +892,7 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data, ibv_qp* qp) {
 //    assert(qp!= nullptr);
 //  }
 //  else if(qp_id == "write_local"){
-//    qp = static_cast<ibv_qp*>(qp_local_write->Get());
+//    qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
 //
 //  }
 //  else{
@@ -1136,10 +1142,10 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
     rc = ibv_post_send(qp, &sr, &bad_wr);
   }else if (q_id == "write_local"){
     assert(false);// Never comes to here
-    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write->Get());
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(q_id);
-      qp = static_cast<ibv_qp*>(qp_local_write->Get());
+      qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
     }
     rc = ibv_post_send(qp, &sr, &bad_wr);
   } else {
@@ -1216,11 +1222,18 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
       qp = static_cast<ibv_qp*>(qp_local_read->Get());
     }
     rc = ibv_post_send(qp, &sr, &bad_wr);
-  }else if (q_id == "write_local"){
-    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write->Get());
+  }else if (q_id == "write_local_flush"){
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(q_id);
-      qp = static_cast<ibv_qp*>(qp_local_write->Get());
+      qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+    }
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+  }else if (q_id == "write_local_compact"){
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+    if (qp == NULL) {
+      Remote_Query_Pair_Connection(q_id);
+      qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
     }
     rc = ibv_post_send(qp, &sr, &bad_wr);
   } else {
@@ -1628,9 +1641,13 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   // gettimeofday(&cur_time, NULL);
   // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
   std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
-  if (q_id == "write_local"){
-    cq = static_cast<ibv_cq*>(cq_local_write->Get());
+  if (q_id == "write_local_flush"){
+    cq = static_cast<ibv_cq*>(cq_local_write_flush->Get());
     assert(cq != nullptr);
+  }else if (q_id == "write_local_compact"){
+    cq = static_cast<ibv_cq*>(cq_local_write_compact->Get());
+    assert(cq != nullptr);
+
   }else if (q_id == "read_local"){
     cq = static_cast<ibv_cq*>(cq_local_read->Get());
     assert(cq != nullptr);
@@ -1687,8 +1704,11 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
   /* poll the completion for a while before giving up of doing it .. */
   // gettimeofday(&cur_time, NULL);
   // start_time_msec = (cur_time.tv_sec * 1000) + (cur_time.tv_usec / 1000);
-  if (q_id == "write_local"){
-    cq = static_cast<ibv_cq*>(cq_local_write->Get());
+  if (q_id == "write_local_flush"){
+    cq = static_cast<ibv_cq*>(cq_local_write_flush->Get());
+    assert(cq != nullptr);
+  }else if(q_id == "write_local_compact"){
+    cq = static_cast<ibv_cq*>(cq_local_write_compact->Get());
     assert(cq != nullptr);
   }else if (q_id == "read_local"){
     cq = static_cast<ibv_cq*>(cq_local_read->Get());

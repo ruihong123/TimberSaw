@@ -203,7 +203,8 @@ class Repairer {
     std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
     meta->number = next_file_number_++;
     Iterator* iter = mem->NewIterator();
-    status = BuildTable(dbname_, env_, options_, table_cache_, iter, meta);
+    status =
+        BuildTable(dbname_, env_, options_, table_cache_, iter, meta, IO_type::Flush);
     delete iter;
     mem->Unref();
     mem = nullptr;
@@ -302,7 +303,7 @@ class Repairer {
     if (!s.ok()) {
       return;
     }
-    TableBuilder* builder = new TableBuilder(options_);
+    TableBuilder* builder = new TableBuilder(options_, Flush);
 
     // Copy data.
     Iterator* iter = NewTableIterator(t.meta);

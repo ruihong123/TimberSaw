@@ -34,13 +34,13 @@ namespace leveldb {
 //class BlockBuilder;
 class BlockHandle;
 //class WritableFile;
-
+enum IO_type {Compact, Flush};
 class LEVELDB_EXPORT TableBuilder {
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder(const Options& options);
+  TableBuilder(const Options& options, IO_type type);
 
   TableBuilder(const TableBuilder&) = delete;
   TableBuilder& operator=(const TableBuilder&) = delete;

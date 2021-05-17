@@ -519,7 +519,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   Status s;
   {
 //    mutex_.Unlock();
-    s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta);
+    s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
 //    mutex_.Lock();
   }
 
@@ -866,7 +866,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
 //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder(options_);
+    compact->builder = new TableBuilder(options_, Compact);
   }
   return s;
 }

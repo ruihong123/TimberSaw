@@ -8,7 +8,13 @@
 #include <memory>
 
 #include "leveldb/status.h"
-
+#include "db/dbformat.h"
+#include "db/filename.h"
+#include "db/table_cache.h"
+#include "db/version_edit.h"
+#include "leveldb/db.h"
+#include "leveldb/env.h"
+#include "leveldb/iterator.h"
 namespace leveldb {
 
 struct Options;
@@ -26,7 +32,7 @@ class VersionEdit;
 // zero, and no Table file will be produced.
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter,
-                  std::shared_ptr<RemoteMemTableMetaData> meta);
+                  std::shared_ptr<RemoteMemTableMetaData> meta, IO_type type);
 
 }  // namespace leveldb
 

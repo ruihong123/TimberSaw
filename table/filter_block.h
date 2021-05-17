@@ -36,7 +36,8 @@ class FilterBlockBuilder {
   explicit FilterBlockBuilder(const FilterPolicy* policy,
                               std::vector<ibv_mr*>* mrs,
                               std::map<int, ibv_mr*>* remote_mrs,
-                              std::shared_ptr<RDMA_Manager> rdma_mg);
+                              std::shared_ptr<RDMA_Manager> rdma_mg,
+                              std::string& type_string);
 
   FilterBlockBuilder(const FilterBlockBuilder&) = delete;
   FilterBlockBuilder& operator=(const FilterBlockBuilder&) = delete;
@@ -62,6 +63,7 @@ class FilterBlockBuilder {
   //todo Make result Slice; make Policy->CreateFilter accept Slice rather than string
   std::vector<Slice> tmp_keys_;  // policy_->CreateFilter() argument
   std::vector<uint32_t> filter_offsets_;
+  std::string type_string_;
 
 };
 

@@ -12,8 +12,9 @@ namespace leveldb {
 //TOthink: how to save the remote mr?
 //TOFIX : now we suppose the index and filter block will not over the write buffer.
 struct TableBuilder::Rep {
-  Rep(const Options& opt)
+  Rep(const Options& opt, IO_type type)
       : options(opt),
+        type_(type),
         index_block_options(opt),
         offset(0),
         offset_last_flushed(0),
@@ -42,17 +43,27 @@ struct TableBuilder::Rep {
     local_filter_mr.push_back(temp_filter_mr);
     data_block = new BlockBuilder(&index_block_options, local_data_mr[0]);
     index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
+    if (type_ == IO_type::Compact){
+      type_string_ = "write_local_compact";
+    }else if(type_ == IO_type::Flush){
+      type_string_ = "write_local_flush";
+    }else{
+      assert(false);
+    }
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
                     : new FilterBlockBuilder(opt.filter_policy, &local_filter_mr,
-                                             &remote_filter_mrs,
-                                             options.env->rdma_mg));
+                                      &remote_filter_mrs, options.env->rdma_mg,
+                                             type_string_));
+
     status = Status::OK();
   }
 
   Options options;
   Options index_block_options;
-  WritableFile* file;
+  IO_type type_;
+  std::string type_string_;
+//  WritableFile* file;
   std::vector<ibv_mr*> local_data_mr;
   // the start index of the in use buffer
   int data_inuse_start = -1;
@@ -93,7 +104,8 @@ struct TableBuilder::Rep {
 
   std::string compressed_output;
 };
-TableBuilder::TableBuilder(const Options& options) : rep_(new Rep(options)) {
+TableBuilder::TableBuilder(const Options& options, IO_type type)
+    : rep_(new Rep(options, type)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->StartBlock(0);
   }
@@ -389,7 +401,7 @@ void TableBuilder::FlushData(){
   if (r->data_inuse_start == -1){
     // first time flush
     assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 2);
-    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
     r->data_inuse_end = 0;
     r->data_inuse_start = 0;
     r->data_inuse_empty = false;
@@ -413,7 +425,7 @@ void TableBuilder::FlushData(){
 
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
-    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
     //Check whether there is available buffer to serialize the memtable onto,
     // if not allocate a new one and insert it to the vector
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
@@ -458,7 +470,7 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
     r->remote_dataindex_mrs.insert({0, remote_mr});
@@ -476,7 +488,7 @@ void TableBuilder::FlushFilter(size_t& msg_size) {
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){
     r->remote_filter_mrs.insert({0, remote_mr});
