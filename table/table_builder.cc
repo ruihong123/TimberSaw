@@ -465,6 +465,7 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
   }
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
+  DEBUG_arg("Index block size is %zu", msg_size);
   r->index_block->Move_buffer(static_cast<char*>(r->local_index_mr[0]->addr));
 
 }
@@ -561,13 +562,13 @@ Status TableBuilder::Finish() {
   }
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "write_local");
-#ifndef NDEBUG
-  usleep(10);
-  int check_poll_number =
-      r->options.env->rdma_mg->try_poll_this_thread_completions(
-          wc, 1, "write_local");
-  assert( check_poll_number == 0);
-#endif
+//#ifndef NDEBUG
+//  usleep(10);
+//  int check_poll_number =
+//      r->options.env->rdma_mg->try_poll_this_thread_completions(
+//          wc, 1, "write_local");
+//  assert( check_poll_number == 0);
+//#endif
 //  printf("A table finsihed flushing\n");
 //  // Write footer
 //  if (ok()) {
