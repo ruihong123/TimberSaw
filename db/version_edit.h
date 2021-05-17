@@ -21,10 +21,11 @@ struct RemoteMemTableMetaData {
   RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
   //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {
+    DEBUG("Destroying RemoteMemtableMetaData");
     if(Remote_blocks_deallocate(remote_data_mrs) &&
         Remote_blocks_deallocate(remote_dataindex_mrs) &&
     Remote_blocks_deallocate(remote_filter_mrs)){
-      DEBUG("Remote blocks deleted successfully");
+      DEBUG("Remote blocks deleted successfully\n");
     }
   }
   bool Remote_blocks_deallocate(std::map<int, ibv_mr*> map){
