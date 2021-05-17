@@ -421,7 +421,7 @@ void TableBuilder::FlushData(){
     if(r->data_inuse_start >= r->local_data_mr.size()){
       r->data_inuse_start = r->data_inuse_start - r->local_data_mr.size();
     }
-    DEBUG_arg("Poll the completion %d\n", poll_num);
+//    DEBUG_arg("Poll the completion %d\n", poll_num);
 
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
