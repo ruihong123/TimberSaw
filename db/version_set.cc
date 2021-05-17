@@ -70,7 +70,7 @@ Version::~Version() {
   // Remove from linked list
   prev_->next_ = next_;
   next_->prev_ = prev_;
-
+  DEBUG("version garbage collected.\n");
   // Drop references to files
 //  for (int level = 0; level < config::kNumLevels; level++) {
 //    for (size_t i = 0; i < files_[level].size(); i++) {
