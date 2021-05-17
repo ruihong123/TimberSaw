@@ -54,10 +54,12 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
       // Verify that the table is usable
       Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
       s = it->status();
+#ifndef NDEBUG
       it->SeekToFirst();
       while(it->Valid()){
         it->Next();
       }
+#endif
       delete it;
     }
   }

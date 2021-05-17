@@ -103,13 +103,13 @@ void TwoLevelIterator::InitDataBlock() {
     SetDataIterator(nullptr);
     DEBUG_arg("Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
-    DEBUG("Index block valid\n");
+//    DEBUG("Index block valid\n");
     Slice handle = index_iter_.value();
 #ifndef NDEBUG
     Slice test_handle = handle;
     BlockHandle bhandle;
     bhandle.DecodeFrom(&test_handle);
-    printf("Iterator pointer is %p, Offset is %lu, this data block size is %lu\n", this, bhandle.offset(), bhandle.size());
+//    printf("Iterator pointer is %p, Offset is %lu, this data block size is %lu\n", this, bhandle.offset(), bhandle.size());
 #endif
     if (data_iter_.iter() != nullptr &&
         handle.compare(data_block_handle_) == 0) {

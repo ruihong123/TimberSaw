@@ -1159,7 +1159,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   }
   //  else
   //  {
-      fprintf(stdout, "RDMA Read Request was posted, OPCODE is %d\n", sr.opcode);
+//      fprintf(stdout, "RDMA Read Request was posted, OPCODE is %d\n", sr.opcode);
   //  }
   if (poll_num != 0) {
     ibv_wc* wc = new ibv_wc[poll_num]();
