@@ -415,7 +415,7 @@ void TableBuilder::FlushData(){
     auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
     poll_num =
-        rdma_mg->try_poll_this_thread_completions(wc, maximum_poll_number, "write_local");
+        rdma_mg->try_poll_this_thread_completions(wc, maximum_poll_number, r->type_string_);
     // move the start index
     r->data_inuse_start += poll_num;
     if(r->data_inuse_start >= r->local_data_mr.size()){
@@ -575,12 +575,12 @@ Status TableBuilder::Finish() {
     num_of_poll = num_of_poll + 1;
   }
   ibv_wc wc[num_of_poll];
-  r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "write_local");
+  r->options.env->rdma_mg->poll_completion(wc, num_of_poll, r->type_string_);
 #ifndef NDEBUG
   usleep(10);
   int check_poll_number =
       r->options.env->rdma_mg->try_poll_this_thread_completions(
-          wc, 1, "write_local");
+          wc, 1, r->type_string_);
   assert( check_poll_number == 0);
 #endif
 //  printf("A table finsihed flushing\n");
