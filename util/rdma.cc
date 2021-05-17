@@ -836,9 +836,9 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id) {
   std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
   if (id == "read_local" )
     cq_local_read->Reset(cq);
-  else if(id == "write_local_compaction")
+  else if(id == "write_local_compact")
     cq_local_write_compact->Reset(cq);
-  else if(id == "write_local_flushing")
+  else if(id == "write_local_flush")
     cq_local_write_flush->Reset(cq);
   else
     res->cq_map[id] = cq;

@@ -576,7 +576,7 @@ void DBImpl::CompactMemTable() {
   }
   imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
   base->Ref();
-  Status s = WriteLevel0Table(imm_, &edit, base);
+  Status s = WriteLevel0Table(imm, &edit, base);
   base->Unref();
 
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
