@@ -208,6 +208,7 @@ class Block::Iter : public Iterator {
                       &non_shared, &value_length);
       if (key_ptr == nullptr || (shared != 0)) {
         CorruptionError();
+        printf("detect corruption block, when seeking some key, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
         return;
       }
       Slice mid_key(key_ptr, non_shared);
@@ -279,6 +280,8 @@ class Block::Iter : public Iterator {
     p = DecodeEntry(p, limit, &shared, &non_shared, &value_length);
     if (p == nullptr || key_.size() < shared) {
       CorruptionError();
+      printf("detect corruption block, when parsing the next, "
+          "num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
       return false;
     } else {
       key_.resize(shared);
