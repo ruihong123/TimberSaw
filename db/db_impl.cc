@@ -992,17 +992,17 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     if (has_imm_.load(std::memory_order_relaxed)) {
       const uint64_t imm_start = env_->NowMicros();
 //      mutex_.Lock();
-//      if (imm_ != nullptr) {
-//        auto start = std::chrono::high_resolution_clock::now();
-//        CompactMemTable();
-//        auto stop = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
-//        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
-//        DEBUG("Memtable flushed\n");
-//        // Wake up MakeRoomForWrite() if necessary.
-//        Memtable_full_cv.SignalAll();
-//      }
+      if (imm_ != nullptr) {
+        auto start = std::chrono::high_resolution_clock::now();
+        CompactMemTable();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
+        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
+        DEBUG("Memtable flushed\n");
+        // Wake up MakeRoomForWrite() if necessary.
+        Memtable_full_cv.SignalAll();
+      }
 //      mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
     }

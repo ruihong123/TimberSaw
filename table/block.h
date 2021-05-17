@@ -271,7 +271,7 @@ class Block::Iter : public Iterator {
     const char* limit = data_ + restarts_;  // Restarts come right after data
     if (p >= limit) {
       // No more entries to return.  Mark as invalid.
-      printf("block is full, num of restart: %d, number of entries : %ld\n", num_restarts_, num_entries);
+//      printf("block is full, num of restart: %d, number of entries : %ld\n", num_restarts_, num_entries);
       current_ = restarts_;
       restart_index_ = num_restarts_;
       return false;
