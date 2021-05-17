@@ -76,8 +76,8 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
   }
-  printf("Move to next data, key is %s", data_iter_.key().ToString().c_str());
-  printf("Iterator pointer is %p\n", this);
+//  printf("Move to next data, key is %s", data_iter_.key().ToString().c_str());
+//  printf("Iterator pointer is %p\n", this);
 }
 
 void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
