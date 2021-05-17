@@ -1530,11 +1530,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         counter++;
 
         if (counter>200){
-#ifndef NDEBUG
           if (sleep_counter % 1000 == 0)
             printf("sleep counter for flush waiting is %d\n", sleep_counter);
           sleep_counter++;
-#endif
+
 
           env_->SleepForMicroseconds(10);
 //          usleep(10);
@@ -1548,12 +1547,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
              config::kL0_StopWritesTrigger){
       // if level 0 is contain too much files, just wait here.
       if (counter>200){
-#ifndef NDEBUG
         if (sleep_counter % 1000 == 0)
           printf("sleep counter for level 0 waiting is %d\n", sleep_counter);
         sleep_counter++;
-#endif
-
         env_->SleepForMicroseconds(10);// slightly larger than wait for flushing.
 //          usleep(10);
         counter = 0;
