@@ -394,10 +394,14 @@ void TableBuilder::FlushData(){
     r->data_inuse_empty = false;
 
   }else{
-    auto* wc = new ibv_wc[5];
+    // check the maximum outstanding buffer number, if not set it the flushing and compaction will be messed up
+    int maximum_poll_number = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
+                      r->data_inuse_end - r->data_inuse_start + 1:
+                      (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
+    auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
     poll_num =
-        rdma_mg->try_poll_this_thread_completions(wc, 5, "write_local");
+        rdma_mg->try_poll_this_thread_completions(wc, maximum_poll_number, "write_local");
     // move the start index
     r->data_inuse_start += poll_num;
     if(r->data_inuse_start >= r->local_data_mr.size()){
@@ -405,20 +409,11 @@ void TableBuilder::FlushData(){
     }
     DEBUG_arg("Poll the completion %d\n", poll_num);
 
-//    if(r->data_inuse_start - r->data_inuse_end == 1 ||
-//       r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
-//      if (poll_num > 0){
-//        //this means all the buffer is idle.
-////       (r->data_inuse_start ==0 && r->data_inuse_end == r->local_data_mr.size()-1) )){
-//        r->data_inuse_empty = true;
-//      }else{
-//        assert(poll_num == 0);
-//        //this means all the buffer is in use, need allocate a new buffer
-//      }
-//    }
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
     rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, "write_local",IBV_SEND_SIGNALED, 0);
+    //Check whether there is available buffer to serialize the memtable onto,
+    // if not allocate a new one and insert it to the vector
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
         r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
       ibv_mr* new_local_mr;
