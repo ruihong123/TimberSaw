@@ -788,7 +788,12 @@ void DBImpl::BackgroundCompaction() {
     DEBUG("Trival compaction\n");
   } else {
     CompactionState* compact = new CompactionState(c);
+
+    auto start = std::chrono::high_resolution_clock::now();
     status = DoCompactionWork(compact);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    printf("Table compaction time elapse (%ld) us, first level file number %d, the second level file number %d \n", duration.count(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
     DEBUG("Non-trivalcompaction!\n");
     std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
     if (!status.ok()) {
