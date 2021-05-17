@@ -522,7 +522,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
     s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
 //    mutex_.Lock();
   }
-
+  printf("remote table use count after building %ld\n", meta.use_count());
 //  Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
 //      (unsigned long long)meta.number, (unsigned long long)meta.file_size,
 //      s.ToString().c_str());

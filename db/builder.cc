@@ -30,7 +30,7 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
     }
 
     // Finish and check for builder errors
-    printf("remote table use count %ld\n", meta.use_count());
+
     s = builder->Finish();
     builder->get_datablocks_map(meta->remote_data_mrs);
     builder->get_dataindexblocks_map(meta->remote_dataindex_mrs);
