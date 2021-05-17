@@ -760,7 +760,13 @@ void DBImpl::BackgroundCompaction() {
         status.ToString().c_str(), versions_->LevelSummary(&tmp));
   } else {
     CompactionState* compact = new CompactionState(c);
+    auto start = std::chrono::high_resolution_clock::now();
     status = DoCompactionWork(compact);
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+    printf("Table compaction time elapse (%ld) us, first level file number %d, the second level file number %d \n", duration.count(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+    DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
+    DEBUG("Memtable flushed\n");
     if (!status.ok()) {
       RecordBackgroundError(status);
     }
@@ -935,19 +941,19 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
       const uint64_t imm_start = env_->NowMicros();
-      mutex_.Lock();
-      if (imm_ != nullptr) {
-        auto start = std::chrono::high_resolution_clock::now();
-        CompactMemTable();
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
-        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
-        DEBUG("Memtable flushed\n");
-        // Wake up MakeRoomForWrite() if necessary.
-        background_work_finished_signal_.SignalAll();
-      }
-      mutex_.Unlock();
+//      mutex_.Lock();
+//      if (imm_ != nullptr) {
+//        auto start = std::chrono::high_resolution_clock::now();
+//        CompactMemTable();
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
+//        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
+//        DEBUG("Memtable flushed\n");
+//        // Wake up MakeRoomForWrite() if necessary.
+//        background_work_finished_signal_.SignalAll();
+//      }
+//      mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
     }
 
