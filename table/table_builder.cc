@@ -21,6 +21,7 @@ struct TableBuilder::Rep {
         num_entries(0),
         closed(false),
         pending_index_filter_entry(false) {
+    //TOTHINK: why the block restart interval is 1 by default?
     index_block_options.block_restart_interval = 1;
     std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
     ibv_mr* temp_data_mr;
@@ -395,9 +396,10 @@ void TableBuilder::FlushData(){
 
   }else{
     // check the maximum outstanding buffer number, if not set it the flushing and compaction will be messed up
-    int maximum_poll_number = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
-                      r->data_inuse_end - r->data_inuse_start + 1:
-                      (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
+//    int maximum_poll_number = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
+//                      r->data_inuse_end - r->data_inuse_start + 1:
+//                      (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
+    int maximum_poll_number = 5;
     auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
     poll_num =
@@ -562,13 +564,13 @@ Status TableBuilder::Finish() {
   }
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, "write_local");
-//#ifndef NDEBUG
-//  usleep(10);
-//  int check_poll_number =
-//      r->options.env->rdma_mg->try_poll_this_thread_completions(
-//          wc, 1, "write_local");
-//  assert( check_poll_number == 0);
-//#endif
+#ifndef NDEBUG
+  usleep(10);
+  int check_poll_number =
+      r->options.env->rdma_mg->try_poll_this_thread_completions(
+          wc, 1, "write_local");
+  assert( check_poll_number == 0);
+#endif
 //  printf("A table finsihed flushing\n");
 //  // Write footer
 //  if (ok()) {
