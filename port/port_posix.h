@@ -82,7 +82,15 @@
 // when targeting older platforms.
 #define fdatasync fsync
 #endif
+#ifdef NDEBUG
+#define DEBUG_arg(x,y)
+#define DEBUG(x)
+#else
+#define DEBUG_arg(x,y) printf(x,y)
+#define DEBUG(x) printf(x)
+#endif
 //#define TIMEPRINT
+#define DETAILS
 #include "port/thread_annotations.h"
 namespace leveldb {
 
