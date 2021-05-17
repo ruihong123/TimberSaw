@@ -567,10 +567,10 @@ void DBImpl::CompactMemTable() {
   while(!imm->able_to_flush){
 
     counter++;
-    if (counter==500){
+    if (counter==5000){
 //      printf("signal all the wait threads\n");
 //      Memtable_full_cv.SignalAll();
-      usleep(1);
+      usleep(10);
       counter = 0;
     }
   }
