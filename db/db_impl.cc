@@ -1368,7 +1368,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   assert(kv_num == 1);
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
   //todo: remove
-  kv_counter0.fetch_add(1);
+//  kv_counter0.fetch_add(1);
   MemTable* mem;
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
 #ifdef TIMEPRINT
@@ -1406,7 +1406,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     printf("Weird status not OK");
     assert(0==1);
   }
-  kv_counter1.fetch_add(1);
+//  kv_counter1.fetch_add(1);
 //  if (mem_switching){}
 //  thread_ready_num++;
 //  printf("thread ready %d\n", thread_ready_num);
