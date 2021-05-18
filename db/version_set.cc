@@ -75,7 +75,7 @@ Version::~Version() {
   for (int level = 0; level < config::kNumLevels; level++) {
     for (size_t i = 0; i < files_[level].size(); i++) {
       std::shared_ptr<RemoteMemTableMetaData> f = files_[level][i];
-      printf("The file %zu in level %d 's use_count is %ld\n", i,level, f.use_count());
+//      printf("The file %zu in level %d 's use_count is %ld\n", i,level, f.use_count());
     }
   }
 }
