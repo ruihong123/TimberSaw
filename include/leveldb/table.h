@@ -40,7 +40,7 @@ class LEVELDB_EXPORT Table {
   //
   // *file must remain live while this Table is in use.
   static Status Open(const Options& options, Table** table,
-                     std::shared_ptr<RemoteMemTableMetaData> Remote_table_meta);
+                     const std::shared_ptr<RemoteMemTableMetaData>& Remote_table_meta);
 
   Table(const Table&) = delete;
   Table& operator=(const Table&) = delete;

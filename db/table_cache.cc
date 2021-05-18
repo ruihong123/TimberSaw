@@ -15,7 +15,7 @@ namespace leveldb {
 
 struct TableAndFile {
 //  RandomAccessFile* file;
-  std::shared_ptr<RemoteMemTableMetaData> remote_table;
+//  std::weak_ptr<RemoteMemTableMetaData> remote_table;
   Table* table;
 };
 
@@ -64,7 +64,7 @@ Status TableCache::FindTable(
     } else {
       TableAndFile* tf = new TableAndFile;
 //      tf->file = file;
-      tf->remote_table = Remote_memtable_meta;
+//      tf->remote_table = Remote_memtable_meta;
       tf->table = table;
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
     }

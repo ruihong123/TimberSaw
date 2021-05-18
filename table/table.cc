@@ -26,7 +26,7 @@ struct Table::Rep {
 
   Options options;
   Status status;
-  std::shared_ptr<RemoteMemTableMetaData> remote_table;
+  std::weak_ptr<RemoteMemTableMetaData> remote_table;
   uint64_t cache_id;
   FilterBlockReader* filter;
   const char* filter_data;
@@ -36,7 +36,7 @@ struct Table::Rep {
 };
 
 Status Table::Open(const Options& options, Table** table,
-                   std::shared_ptr<RemoteMemTableMetaData> Remote_table_meta) {
+                   const std::shared_ptr<RemoteMemTableMetaData>& Remote_table_meta) {
   *table = nullptr;
 
 
@@ -83,13 +83,13 @@ void Table::ReadFilter() {
     opt.verify_checksums = true;
   }
   BlockContents block;
-  if (!ReadFilterBlock(rep_->remote_table->remote_filter_mrs.begin()->second, opt, &block).ok()) {
+  if (!ReadFilterBlock(rep_->remote_table.lock()->remote_filter_mrs.begin()->second, opt, &block).ok()) {
     return;
   }
   if (block.heap_allocated) {
     rep_->filter_data = block.data.data();  // Will need to delete later
   }
-  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data, rep_->remote_table->rdma_mg);
+  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data, rep_->remote_table.lock()->rdma_mg);
 }
 
 Table::~Table() { delete rep_; }
@@ -136,7 +136,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
         DEBUG("Cache hit\n");
       } else {
-        s = ReadDataBlock(table->rep_->remote_table->remote_data_mrs, options, handle, &contents);
+        s = ReadDataBlock(table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
         if (s.ok()) {
           block = new Block(contents, DataBlock);
           if (contents.cachable && options.fill_cache) {
@@ -146,7 +146,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
-      s = ReadDataBlock(table->rep_->remote_table->remote_data_mrs, options, handle, &contents);
+      s = ReadDataBlock(table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }

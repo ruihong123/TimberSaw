@@ -86,8 +86,8 @@ class VersionEdit {
   // REQUIRES: This version has not been saved (see VersionSet::SaveTo)
   // REQUIRES: "smallest" and "largest" are smallest and largest keys in file
   void AddFile(int level,
-               std::shared_ptr<RemoteMemTableMetaData> remote_table) {
-    new_files_.push_back(std::make_pair(level, remote_table));
+               const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
+    new_files_.emplace_back(level, remote_table);
   }
 
   // Delete the specified "file" from the specified "level".
