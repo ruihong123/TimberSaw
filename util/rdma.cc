@@ -2026,7 +2026,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
       .at(map_pointer->addr)
       .deallocate_memory_slot(buff_offset / chunksize);
 }
-bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, std::string buff_type) {
+bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
   std::map<void*, In_Use_Array> Bitmap;
   Bitmap = name_to_mem_pool.at(buff_type);

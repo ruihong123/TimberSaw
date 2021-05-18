@@ -34,7 +34,7 @@ struct RemoteMemTableMetaData {
     std::map<int, ibv_mr*>::iterator it;
 
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer")){
+      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr)){
         return false;
       }
     }

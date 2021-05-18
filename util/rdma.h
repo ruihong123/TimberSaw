@@ -323,7 +323,7 @@ class RDMA_Manager {
   int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                   std::string buffer_type);
-  bool Deallocate_Local_RDMA_Slot(void* p, std::string buff_type);
+  bool Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type);
   //  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
   bool Deallocate_Remote_RDMA_Slot(void* p);
   //  void fs_meta_save(){
