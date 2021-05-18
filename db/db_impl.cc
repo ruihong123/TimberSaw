@@ -154,12 +154,12 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
-  mutex_.Lock();
+//  mutex_.Lock();
   shutting_down_.store(true, std::memory_order_release);
   while (background_compaction_scheduled_) {
-    Memtable_full_cv.Wait();
+    env_->SleepForMicroseconds(10);
   }
-  mutex_.Unlock();
+//  mutex_.Unlock();
 
   if (db_lock_ != nullptr) {
     env_->UnlockFile(db_lock_);
@@ -705,7 +705,7 @@ void DBImpl::MaybeScheduleCompaction() {
              !versions_->NeedsCompaction()) {
     // No work to be done
   } else {
-//    background_compaction_scheduled_ = true;
+    background_compaction_scheduled_ = true;
     env_->Schedule(&DBImpl::BGWork, this);
   }
 }
@@ -726,7 +726,7 @@ void DBImpl::BackgroundCall() {
     BackgroundCompaction();
   }
 
-//  background_compaction_scheduled_ = false;
+  background_compaction_scheduled_ = false;
 
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
