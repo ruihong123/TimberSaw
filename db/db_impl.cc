@@ -1154,6 +1154,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   }
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
+  // NOtifying all the waiting threads.
+  Memtable_full_cv.SignalAll();
   return status;
 }
 
