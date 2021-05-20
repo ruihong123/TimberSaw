@@ -574,7 +574,7 @@ void DBImpl::CompactMemTable() {
       counter = 0;
     }
   }
-  imm->SetFlushState(MemTable::FLUSH_SCHEDULED);
+  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
   base->Ref();
   Status s = WriteLevel0Table(imm, &edit, base);
   base->Unref();
@@ -1376,10 +1376,10 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   std::printf("preprocessing, time elapse is %zu\n",  duration.count());
 #endif
-//    size_t kv_num = 1;
+//    size_t seq_count = 1;
 //  spin_mutex.lock();
 //  uint64_t sequence = versions_->LastSequence_nonatomic();
-//  versions_->SetLastSequence_nonatomic(sequence+kv_num);
+//  versions_->SetLastSequence_nonatomic(sequence+seq_count);
 //  spin_mutex.unlock();
 //  uint64_t sequence = 10;
   //TOTHINK: what if a write with a higher seq first go outside MakeRoomForwrite,
@@ -1401,7 +1401,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //    }
     assert(sequence <= mem->Getlargest_seq_supposed() && sequence >= mem->GetFirstseq());
     status = WriteBatchInternal::InsertInto(updates, mem);
-    mem->increase_kv_num(kv_num);
+    mem->increase_seq_count(kv_num);
   }else{
     printf("Weird status not OK");
     assert(0==1);
@@ -1492,7 +1492,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //      // to be the one this thread want.
 //      mem_r = imm_.load();
 //      assert(imm_.load()!= nullptr);
-//      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
+//      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_seq_count() <= 4);
 //      printf("write to imm table");
 //      if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
 //        return s;
@@ -1574,8 +1574,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         force = false;  // Do not force another compaction if have room
 
         //set the flush flag for imm
-//        assert(imm_.load()->Get_kv_num() == MEMTABLE_SEQ_SIZE);
-//        assert(mem_r->Get_kv_num() == MEMTABLE_SEQ_SIZE);
+//        assert(imm_.load()->Get_seq_count() == MEMTABLE_SEQ_SIZE);
+//        assert(mem_r->Get_seq_count() == MEMTABLE_SEQ_SIZE);
         assert(imm_.load() == nullptr);
         imm_.store(mem_r);
         MaybeScheduleCompaction();
@@ -1600,7 +1600,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // to be the one this thread want.
       mem_r = imm_.load();
       assert(imm_.load()!= nullptr);
-      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_kv_num() <= 4);
+      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_seq_count() <= 4);
       printf("write to imm table");
       if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
         return s;

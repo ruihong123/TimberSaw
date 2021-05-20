@@ -20,7 +20,9 @@ class MemTableIterator;
 
 class MemTable {
  public:
-  enum FlushStateEnum { FLUSH_NOT_REQUESTED, FLUSH_REQUESTED, FLUSH_SCHEDULED };
+  //Requested means in the queue but not handled by thread, scheduled means put into the
+  enum FlushStateEnum { FLUSH_NOT_REQUESTED, FLUSH_REQUESTED,
+    FLUSH_PROCESSING, FLUSH_FINISHED};
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
   std::atomic<bool> able_to_flush = false;
@@ -55,7 +57,7 @@ class MemTable {
     assert(refs_ >= 0);
     if (refs_ <= 0) {
       // TODO: THis assertion may changed in the future
-      assert(kv_num.load() == MEMTABLE_SEQ_SIZE);
+      assert(seq_count.load() == MEMTABLE_SEQ_SIZE);
       delete this;
     }
   }
@@ -98,10 +100,13 @@ class MemTable {
 //
 //  }
   bool CheckFlushScheduled(){
-    return flush_state_ == FLUSH_SCHEDULED;
+    return flush_state_ == FLUSH_PROCESSING;
   }
   void SetFlushState(FlushStateEnum state){
     flush_state_.store(state);
+  }
+  void MarkFlushed(){
+      SetFlushState(FLUSH_FINISHED);
   }
   uint64_t Getlargest_seq_supposed() const{
     return largest_seq_supposed;
@@ -109,18 +114,18 @@ class MemTable {
   uint64_t GetFirstseq() const{
     return first_seq;
   }
-  void increase_kv_num(size_t num){
-    kv_num.fetch_add(num);
+  void increase_seq_count(size_t num){
+    seq_count.fetch_add(num);
     assert(num == 1);
-    assert(kv_num <= MEMTABLE_SEQ_SIZE);
+    assert(seq_count <= MEMTABLE_SEQ_SIZE);
     //TODO; For a write batch you the write may cross the boder, we need to modify
     // the boder of the next table
-    if (kv_num >= MEMTABLE_SEQ_SIZE){
+    if (seq_count >= MEMTABLE_SEQ_SIZE){
       able_to_flush.store(true);
     }
   }
-  size_t Get_kv_num(){
-    return kv_num;
+  size_t Get_seq_count(){
+    return seq_count;
   }
  private:
   friend class MemTableIterator;
@@ -132,7 +137,7 @@ class MemTable {
 
   KeyComparator comparator_;
   std::atomic<int> refs_;
-  std::atomic<size_t> kv_num = 0;
+  std::atomic<size_t> seq_count = 0;
 
   ConcurrentArena arena_;
   Table table_;
