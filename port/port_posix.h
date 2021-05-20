@@ -131,7 +131,7 @@ class Mutex {
   // this will assert if the mutex is not locked
   // it does NOT verify that mutex is held by a calling thread
   void AssertHeld();
-
+  void AssertNotHeld();
  private:
   friend class CondVar;
   pthread_mutex_t mu_;
