@@ -1484,6 +1484,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
       mutex_.Unlock();
     }else{
+
       mutex_.Lock();
       mem_r = mem_.load();
       if (imm_.load() == nullptr && seq_num > mem_r->Getlargest_seq_supposed()){
