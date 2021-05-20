@@ -1502,6 +1502,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         //set the flush flag for imm
         assert(imm_.load() == nullptr);
         imm_.store(mem_r);
+        has_imm_.store(true, std::memory_order_release);
         MaybeScheduleCompaction();
         // if we have create a new table then the new table will definite be
         // the table we will write.
