@@ -764,7 +764,7 @@ void DBImpl::BackgroundCall() {
 }
 
 void DBImpl::BackgroundCompaction() {
-//  mutex_.AssertHeld();
+  mutex_.AssertNotHeld();
 
   if (imm_.load() != nullptr) {
     auto start = std::chrono::high_resolution_clock::now();
@@ -795,7 +795,7 @@ void DBImpl::BackgroundCompaction() {
   } else {
     c = versions_->PickCompaction();
   }
-
+  mutex_.AssertNotHeld();
   Status status;
   if (c == nullptr) {
     // Nothing to do
@@ -819,6 +819,7 @@ void DBImpl::BackgroundCompaction() {
     CompactionState* compact = new CompactionState(c);
 
     auto start = std::chrono::high_resolution_clock::now();
+    mutex_.AssertNotHeld();
     status = DoCompactionWork(compact);
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
