@@ -805,6 +805,7 @@ class Benchmark {
     for (int i = 0; i < num_; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
+        //The key range should be adjustable.
 //        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num);
         const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
         key.Set(k);
