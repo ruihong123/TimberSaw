@@ -1022,7 +1022,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     if (has_imm_.load(std::memory_order_relaxed)) {
       const uint64_t imm_start = env_->NowMicros();
       mutex_.Lock();
-      mutex_.AssertNotHeld();
+//      mutex_.AssertNotHeld();
       if (imm_.load() != nullptr) {
         auto start = std::chrono::high_resolution_clock::now();
         CompactMemTable();
