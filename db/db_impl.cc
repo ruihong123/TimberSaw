@@ -545,6 +545,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   stats.micros = env_->NowMicros() - start_micros;
   stats.bytes_written = meta->file_size;
   stats_[level].Add(stats);
+  write_stall_mutex_.AssertNotHeld();
   return s;
 }
 
