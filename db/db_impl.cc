@@ -285,11 +285,11 @@ void DBImpl::RemoveObsoleteFiles() {
   // While deleting all files unblock other threads. All files being deleted
   // have unique names which will not collide with newly created files and
   // are therefore safe to delete while allowing other threads to proceed.
-  write_stall_mutex_.Unlock();
+//  write_stall_mutex_.Unlock();
   for (const std::string& filename : files_to_delete) {
     env_->RemoveFile(dbname_ + "/" + filename);
   }
-  write_stall_mutex_.Lock();
+//  write_stall_mutex_.Lock();
 }
 
 Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
@@ -599,7 +599,7 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     edit.SetPrevLogNumber(0);
     edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
-    s = versions_->LogAndApply(&edit, &write_stall_mutex_);
+    s = versions_->LogAndApply(&edit);
   }else{
     printf("version apply failed");
   }
@@ -607,7 +607,7 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     // Commit to the new state
 //    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-    write_stall_mutex_.Lock();
+    switch_mtx.lock();
     MemTable* imm = imm_.load();
 
     imm->Unref();
@@ -615,7 +615,8 @@ void DBImpl::CompactMemTable() {
 //    printf("mem %p has is still alive\n", mem);
 //    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
     imm_.store(nullptr);
-    write_stall_mutex_.Unlock();
+    switch_mtx.unlock();
+
     write_stall_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
     // TODO how to remove the obsoleted remote memtable?
@@ -805,7 +806,7 @@ void DBImpl::BackgroundCompaction() {
     std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
     c->edit()->RemoveFile(c->level(), f->number);
     c->edit()->AddFile(c->level() + 1, f);
-    status = versions_->LogAndApply(c->edit(), &write_stall_mutex_);
+    status = versions_->LogAndApply(c->edit());
     if (!status.ok()) {
       RecordBackgroundError(status);
     }
@@ -985,7 +986,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     meta->remote_filter_mrs = out.remote_filter_mrs;
     compact->compaction->edit()->AddFile(level + 1, meta);
   }
-  return versions_->LogAndApply(compact->compaction->edit(), &write_stall_mutex_);
+  return versions_->LogAndApply(compact->compaction->edit());
 }
 
 Status DBImpl::DoCompactionWork(CompactionState* compact) {
@@ -1021,8 +1022,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
       const uint64_t imm_start = env_->NowMicros();
-      write_stall_mutex_.Lock();
-//      write_stall_mutex_.AssertNotHeld();
+//      write_stall_mutex_.Lock();
+      write_stall_mutex_.AssertNotHeld();
       if (imm_.load() != nullptr) {
         auto start = std::chrono::high_resolution_clock::now();
         CompactMemTable();
@@ -1032,7 +1033,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
         DEBUG("Memtable flushed\n");
         // Wake up MakeRoomForWrite() if necessary.
-        write_stall_cv.SignalAll();
+//        write_stall_cv.SignalAll();
       }
       write_stall_mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
@@ -1913,7 +1914,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   if (s.ok() && save_manifest) {
     edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
     edit.SetLogNumber(impl->logfile_number_);
-    s = impl->versions_->LogAndApply(&edit, &impl->write_stall_mutex_);
+    s = impl->versions_->LogAndApply(&edit);
   }
   if (s.ok()) {
 //    impl->RemoveObsoleteFiles();
