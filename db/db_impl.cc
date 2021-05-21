@@ -1021,7 +1021,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
       const uint64_t imm_start = env_->NowMicros();
-//      mutex_.Lock();
+      mutex_.Lock();
       mutex_.AssertNotHeld();
       if (imm_.load() != nullptr) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -1034,7 +1034,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         // Wake up MakeRoomForWrite() if necessary.
         Memtable_full_cv.SignalAll();
       }
-//      mutex_.Unlock();
+      mutex_.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
     }
 
