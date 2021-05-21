@@ -114,45 +114,45 @@ class DBImpl : public DB {
   // amount of work to recover recently logged updates.  Any changes to
   // be made to the descriptor are added to *edit.
   Status Recover(VersionEdit* edit, bool* save_manifest)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   void MaybeIgnoreError(Status* s) const;
 
   // Delete any unneeded files and stale in-memory entries.
-  void RemoveObsoleteFiles() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void RemoveObsoleteFiles() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   // Compact the in-memory write buffer to disk.  Switches to a new
   // log-file/memtable and writes a new descriptor iff successful.
   // Errors are recorded in bg_error_.
-  void CompactMemTable() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void CompactMemTable() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   Status RecoverLogFile(uint64_t log_number, bool last_log, bool* save_manifest,
                         VersionEdit* edit, SequenceNumber* max_sequence)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   void RecordBackgroundError(const Status& s);
 
-  void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
   static void BGWork(void* db);
   void BackgroundCall();
-  void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+  void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
   void CleanupCompaction(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
   Status DoCompactionWork(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   Status OpenCompactionOutputFile(CompactionState* compact);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
 
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
@@ -174,41 +174,41 @@ class DBImpl : public DB {
   FileLock* db_lock_;
   std::atomic<bool> mem_switching;
   int thread_ready_num;
-  // State below is protected by mutex_
-  port::Mutex mutex_;
-  SpinMutex spin_mutex;
+  // State below is protected by write_stall_mutex_
+  port::Mutex write_stall_mutex_;
+  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
-  port::CondVar Memtable_full_cv GUARDED_BY(mutex_);
+  port::CondVar write_stall_cv GUARDED_BY(write_stall_mutex_);
   SpinMutex switch_mtx;
   std::atomic<MemTable*> mem_;
   std::atomic<MemTable*> imm_;  // Memtable being compacted
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
-  uint64_t logfile_number_ GUARDED_BY(mutex_);
+  uint64_t logfile_number_;
   log::Writer* log_;
-  uint32_t seed_ GUARDED_BY(mutex_);  // For sampling.
+  uint32_t seed_;  // For sampling.
 
   // Queue of writers.
-  std::deque<Writer*> writers_ GUARDED_BY(mutex_);
-  WriteBatch* tmp_batch_ GUARDED_BY(mutex_);
+  std::deque<Writer*> writers_;
+  WriteBatch* tmp_batch_;
 
-  SnapshotList snapshots_ GUARDED_BY(mutex_);
+  SnapshotList snapshots_;
 
   // Set of table files to protect from deletion because they are
   // part of ongoing compactions.
-  std::set<uint64_t> pending_outputs_ GUARDED_BY(mutex_);
+  std::set<uint64_t> pending_outputs_;
 
   // Has a background compaction been scheduled or is running?
-  bool background_compaction_scheduled_ GUARDED_BY(mutex_);
+  bool background_compaction_scheduled_;
 
-  ManualCompaction* manual_compaction_ GUARDED_BY(mutex_);
+  ManualCompaction* manual_compaction_;
 
-  VersionSet* const versions_ GUARDED_BY(mutex_);
+  VersionSet* const versions_;
 
   // Have we encountered a background error in paranoid mode?
-  Status bg_error_ GUARDED_BY(mutex_);
+  Status bg_error_;
 
-  CompactionStats stats_[config::kNumLevels] GUARDED_BY(mutex_);
+  CompactionStats stats_[config::kNumLevels];
   std::atomic<size_t> memtable_counter = 0;
   std::atomic<size_t> kv_counter0 = 0;
   std::atomic<size_t> kv_counter1 = 0;
