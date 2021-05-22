@@ -138,7 +138,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
       db_lock_(nullptr),
       shutting_down_(false),
-      write_stall_cv(&write_stall_mutex_),
+      write_stall_cv(&undefine_mutex),
       mem_(nullptr),
       imm_(nullptr),
       has_imm_(false),
@@ -154,12 +154,12 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
-//  write_stall_mutex_.Lock();
-  shutting_down_.store(true, std::memory_order_release);
+//  undefine_mutex.Lock();
+  shutting_down_.store(true);
   while (background_compaction_scheduled_) {
     env_->SleepForMicroseconds(10);
   }
-//  write_stall_mutex_.Unlock();
+//  undefine_mutex.Unlock();
 
   if (db_lock_ != nullptr) {
     env_->UnlockFile(db_lock_);
@@ -226,7 +226,7 @@ void DBImpl::MaybeIgnoreError(Status* s) const {
 }
 
 void DBImpl::RemoveObsoleteFiles() {
-  write_stall_mutex_.AssertHeld();
+  undefine_mutex.AssertHeld();
 
   if (!bg_error_.ok()) {
     // After a background error, we don't know whether a new version may
@@ -285,15 +285,15 @@ void DBImpl::RemoveObsoleteFiles() {
   // While deleting all files unblock other threads. All files being deleted
   // have unique names which will not collide with newly created files and
   // are therefore safe to delete while allowing other threads to proceed.
-//  write_stall_mutex_.Unlock();
+//  undefine_mutex.Unlock();
   for (const std::string& filename : files_to_delete) {
     env_->RemoveFile(dbname_ + "/" + filename);
   }
-//  write_stall_mutex_.Lock();
+//  undefine_mutex.Lock();
 }
 
 Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
-  write_stall_mutex_.AssertHeld();
+  undefine_mutex.AssertHeld();
 
   // Ignore error from CreateDir since the creation of the DB is
   // committed only when the descriptor is created, and this directory
@@ -401,7 +401,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
     }
   };
 
-  write_stall_mutex_.AssertHeld();
+  undefine_mutex.AssertHeld();
 
   // Open the log file
   std::string fname = LogFileName(dbname_, log_number);
@@ -507,7 +507,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
 
 Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
                                 Version* base) {
-//  write_stall_mutex_.AssertHeld();
+//  undefine_mutex.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
   meta->number = versions_->NewFileNumber();
@@ -518,9 +518,9 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 //  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
-//    write_stall_mutex_.Unlock();
+//    undefine_mutex.Unlock();
     s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
-//    write_stall_mutex_.Lock();
+//    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
 //  Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
@@ -550,7 +550,7 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
 }
 
 void DBImpl::CompactMemTable() {
-//  write_stall_mutex_.AssertHeld();
+//  undefine_mutex.AssertHeld();
   //TOTHINK What will happen if we remove the mutex in the future?
   MemTable* mem = mem_.load();
   MemTable* imm = imm_.load();
@@ -565,7 +565,7 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
-//-----------------seldom lock----------------------------
+//-----------------seldom Lock----------------------------
   while(!imm->able_to_flush){
     counter++;
     if (counter==500){
@@ -575,7 +575,7 @@ void DBImpl::CompactMemTable() {
       counter = 0;
     }
   }
-//---------------lock free version -----------------------
+//---------------Lock free version -----------------------
 //  while(!imm->able_to_flush){
 //
 //    counter++;
@@ -604,7 +604,7 @@ void DBImpl::CompactMemTable() {
   }else{
     printf("version apply failed");
   }
-//-------------------- seldom lock version----------------
+//-------------------- seldom Lock version----------------
   if (s.ok()) {
     // Commit to the new state
 //    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
@@ -622,11 +622,11 @@ void DBImpl::CompactMemTable() {
     has_imm_.store(false, std::memory_order_release);
     // TODO how to remove the obsoleted remote memtable?
 //    RemoveObsoleteFiles();
-// ----------------lock-free version below--------------------
+// ----------------Lock-free version below--------------------
 //  if (s.ok()) {
 //    // Commit to the new state
 ////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-////    write_stall_mutex_.Lock();
+////    undefine_mutex.Lock();
 //    MemTable* imm = imm_.load();
 //
 //    imm->Unref();
@@ -634,7 +634,7 @@ void DBImpl::CompactMemTable() {
 ////    printf("mem %p has is still alive\n", mem);
 ////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
 //    imm_.store(nullptr);
-////    write_stall_mutex_.Unlock();
+////    undefine_mutex.Unlock();
 ////    write_stall_cv.SignalAll();
 //    has_imm_.store(false, std::memory_order_release);
 //    // TODO how to remove the obsoleted remote memtable?
@@ -647,7 +647,7 @@ void DBImpl::CompactMemTable() {
 void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
   int max_level_with_files = 1;
   {
-    MutexLock l(&write_stall_mutex_);
+    MutexLock l(&undefine_mutex);
     Version* base = versions_->current();
     for (int level = 1; level < config::kNumLevels; level++) {
       if (base->OverlapInLevel(level, begin, end)) {
@@ -684,7 +684,7 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
     manual.end = &end_storage;
   }
 
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   while (!manual.done && !shutting_down_.load(std::memory_order_acquire) &&
          bg_error_.ok()) {
     if (manual_compaction_ == nullptr) {  // Idle
@@ -705,7 +705,7 @@ Status DBImpl::TEST_CompactMemTable() {
   Status s = Write(WriteOptions(), nullptr);
   if (s.ok()) {
     // Wait until the compaction completes
-    MutexLock l(&write_stall_mutex_);
+    MutexLock l(&undefine_mutex);
     while (imm_ != nullptr && bg_error_.ok()) {
       write_stall_cv.Wait();
     }
@@ -717,7 +717,7 @@ Status DBImpl::TEST_CompactMemTable() {
 }
 
 void DBImpl::RecordBackgroundError(const Status& s) {
-//  write_stall_mutex_.AssertHeld();
+//  undefine_mutex.AssertHeld();
   if (bg_error_.ok()) {
     bg_error_ = s;
     write_stall_cv.SignalAll();
@@ -725,7 +725,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
 }
 
 void DBImpl::MaybeScheduleCompaction() {
-//  write_stall_mutex_.AssertHeld();
+//  undefine_mutex.AssertHeld();
 // In my implementation the Maybeschedule Compaction will only be triggered once
 // by the thread which CAS the memtable successfully.
  if (shutting_down_.load(std::memory_order_acquire)) {
@@ -746,8 +746,8 @@ void DBImpl::BGWork(void* db) {
 }
 
 void DBImpl::BackgroundCall() {
-  //Tothink: why there is a lock, which data structure is this mutex protecting
-//  write_stall_mutex_.Lock();
+  //Tothink: why there is a Lock, which data structure is this mutex protecting
+//  undefine_mutex.Lock();
 //  assert(background_compaction_scheduled_);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
@@ -762,7 +762,7 @@ void DBImpl::BackgroundCall() {
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
   MaybeScheduleCompaction();
-//  write_stall_mutex_.Unlock();
+//  undefine_mutex.Unlock();
 }
 
 void DBImpl::BackgroundCompaction() {
@@ -861,7 +861,7 @@ void DBImpl::BackgroundCompaction() {
 }
 
 void DBImpl::CleanupCompaction(CompactionState* compact) {
-//  write_stall_mutex_.AssertHeld();
+//  undefine_mutex.AssertHeld();
   if (compact->builder != nullptr) {
     // May happen if we get a shutdown call in the middle of compaction
     compact->builder->Abandon();
@@ -882,7 +882,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   assert(compact->builder == nullptr);
   uint64_t file_number;
   {
-    write_stall_mutex_.Lock();
+    undefine_mutex.Lock();
     file_number = versions_->NewFileNumber();
     pending_outputs_.insert(file_number);
     CompactionState::Output out;
@@ -890,7 +890,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
     out.smallest.Clear();
     out.largest.Clear();
     compact->outputs.push_back(out);
-    write_stall_mutex_.Unlock();
+    undefine_mutex.Unlock();
   }
 
   // Make the output file
@@ -965,7 +965,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
 }
 
 Status DBImpl::InstallCompactionResults(CompactionState* compact) {
-  write_stall_mutex_.AssertHeld();
+  undefine_mutex.AssertHeld();
   Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
       compact->compaction->num_input_files(0), compact->compaction->level(),
       compact->compaction->num_input_files(1), compact->compaction->level() + 1,
@@ -1011,7 +1011,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   Iterator* input = versions_->MakeInputIterator(compact->compaction);
 
   // Release mutex while we're actually doing the compaction work
-//  write_stall_mutex_.Unlock();
+//  undefine_mutex.Unlock();
 
   input->SeekToFirst();
   Status status;
@@ -1023,7 +1023,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
       const uint64_t imm_start = env_->NowMicros();
-//      write_stall_mutex_.Lock();
+//      undefine_mutex.Lock();
       write_stall_mutex_.AssertNotHeld();
       if (imm_.load() != nullptr) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -1036,7 +1036,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         // Wake up MakeRoomForWrite() if necessary.
 //        write_stall_cv.SignalAll();
       }
-      write_stall_mutex_.Unlock();
+//      undefine_mutex.Unlock();
       imm_micros += (env_->NowMicros() - imm_start);
     }
 
@@ -1143,14 +1143,14 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     stats.bytes_written += compact->outputs[i].file_size;
   }
-
-  write_stall_mutex_.Lock();
+  // TODO: we can remove this lock.
+  undefine_mutex.Lock();
   stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {
     status = InstallCompactionResults(compact);
   }
-  write_stall_mutex_.Unlock();
+  undefine_mutex.Unlock();
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
@@ -1188,9 +1188,9 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
 Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
                                       SequenceNumber* latest_snapshot,
                                       uint32_t* seed) {
-//  write_stall_mutex_.Lock();
+//  undefine_mutex.Lock();
   *latest_snapshot = versions_->LastSequence();
-  //TODO: use read wirte spin lock to concurrent control the get of the imm and mem
+  //TODO: use read wirte spin Lock to concurrent control the get of the imm and mem
   MemTable* mem = mem_.load();
   MemTable* imm = imm_.load();
   // Collect together all needed child iterators
@@ -1206,11 +1206,11 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
       NewMergingIterator(&internal_comparator_, &list[0], list.size());
   versions_->current()->Ref();
 
-  IterState* cleanup = new IterState(&write_stall_mutex_, mem_, imm_, versions_->current());
+  IterState* cleanup = new IterState(&undefine_mutex, mem_, imm_, versions_->current());
   internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
 
   *seed = ++seed_;
-//  write_stall_mutex_.Unlock();
+//  undefine_mutex.Unlock();
   return internal_iter;
 }
 
@@ -1221,14 +1221,14 @@ Iterator* DBImpl::TEST_NewInternalIterator() {
 }
 
 int64_t DBImpl::TEST_MaxNextLevelOverlappingBytes() {
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   return versions_->MaxNextLevelOverlappingBytes();
 }
 
 Status DBImpl::Get(const ReadOptions& options, const Slice& key,
                    std::string* value) {
   Status s;
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   SequenceNumber snapshot;
   if (options.snapshot != nullptr) {
     snapshot =
@@ -1249,7 +1249,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
 
   // Unlock while reading from files and memtables
   {
-    write_stall_mutex_.Unlock();
+    undefine_mutex.Unlock();
     // First look in the memtable, then in the immutable memtable (if any).
     LookupKey lkey(key, snapshot);
     if (mem->Get(lkey, value, &s)) {
@@ -1260,7 +1260,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
       s = current->Get(options, lkey, value, &stats);
       have_stat_update = true;
     }
-    write_stall_mutex_.Lock();
+    undefine_mutex.Lock();
   }
 
   if (have_stat_update && current->UpdateStats(stats)) {
@@ -1285,19 +1285,19 @@ Iterator* DBImpl::NewIterator(const ReadOptions& options) {
 }
 
 void DBImpl::RecordReadSample(Slice key) {
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   if (versions_->current()->RecordReadSample(key)) {
     MaybeScheduleCompaction();
   }
 }
 
 const Snapshot* DBImpl::GetSnapshot() {
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   return snapshots_.New(versions_->LastSequence());
 }
 
 void DBImpl::ReleaseSnapshot(const Snapshot* snapshot) {
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   snapshots_.Delete(static_cast<const SnapshotImpl*>(snapshot));
 }
 
@@ -1311,12 +1311,12 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 }
 //
 //Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-//  Writer w(&write_stall_mutex_);
+//  Writer w(&undefine_mutex);
 //  w.batch = updates;
 //  w.sync = options.sync;
 //  w.done = false;
 //
-//  MutexLock l(&write_stall_mutex_);
+//  MutexLock l(&undefine_mutex);
 //  writers_.push_back(&w);
 //  while (!w.done && &w != writers_.front()) {
 //    w.cv.Wait();
@@ -1325,24 +1325,24 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 //    return w.status;
 //  }
 //
-//  // May temporarily unlock and wait.
+//  // May temporarily Unlock and wait.
 //  Status status = MakeRoomForWrite(updates == nullptr);
 //  uint64_t last_sequence = versions_->LastSequence();
 //  Writer* last_writer = &w;
 //  if (status.ok() && updates != nullptr) {  // nullptr batch is for compactions
-//    // TODO: Remove all the lock, use fettch and add to atomically increase the
+//    // TODO: Remove all the Lock, use fettch and add to atomically increase the
 //    // TODO: sequence num. Use concurrent write in the Rocks DB to write
 //    // TODO:  skiplist concurrently. NO log is needed as well.
 //    WriteBatch* write_batch = BuildBatchGroup(&last_writer);
 //    WriteBatchInternal::SetSequence(write_batch, last_sequence + 1);
 //    last_sequence += WriteBatchInternal::Count(write_batch);
 //
-//    // Add to log and apply to memtable.  We can release the lock
+//    // Add to log and apply to memtable.  We can release the Lock
 //    // during this phase since &w is currently responsible for logging
 //    // and protects against concurrent loggers and concurrent writes
 //    // into mem_.
 //    {
-//      write_stall_mutex_.Unlock();
+//      undefine_mutex.Unlock();
 //      status = log_->AddRecord(WriteBatchInternal::Contents(write_batch));
 //      bool sync_error = false;
 //      if (status.ok() && options.sync) {
@@ -1354,7 +1354,7 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 //      if (status.ok()) {
 //        status = WriteBatchInternal::InsertInto(write_batch, mem_);
 //      }
-//      write_stall_mutex_.Lock();
+//      undefine_mutex.Lock();
 //      if (sync_error) {
 //        // The state of the log file is indeterminate: the log record we
 //        // just added may or may not show up when the DB is re-opened.
@@ -1386,14 +1386,14 @@ Status DBImpl::Delete(const WriteOptions& options, const Slice& key) {
 //  return status;
 //}
 Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
-//  Writer w(&write_stall_mutex_);
+//  Writer w(&undefine_mutex);
 //  w.batch = updates;
 //  w.sync = options.sync;
 //  w.done = false;
 
 
 
-  // May temporarily unlock and wait.
+  // May temporarily Unlock and wait.
 //  Status status = Status::OK();
 #ifdef TIMEPRINT
   auto start = std::chrono::high_resolution_clock::now();
@@ -1412,10 +1412,10 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   std::printf("preprocessing, time elapse is %zu\n",  duration.count());
 #endif
 //    size_t seq_count = 1;
-//  spin_mutex.lock();
+//  spin_mutex.Lock();
 //  uint64_t sequence = versions_->LastSequence_nonatomic();
 //  versions_->SetLastSequence_nonatomic(sequence+seq_count);
-//  spin_mutex.unlock();
+//  spin_mutex.Unlock();
 //  uint64_t sequence = 10;
   //TOTHINK: what if a write with a higher seq first go outside MakeRoomForwrite,
   // and it is supposed to write to the new memtable which has not been created yet.
@@ -1458,15 +1458,15 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   return status;
 }
 
-// seldom lock
+// seldom Lock
 //// TOTHINK The write batch should not too large. other wise the wait function may
 //// memtable could overflow even before the actual write.
 Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
   Status s = Status::OK();
   //Get a snapshot it is vital for the CAS but not vital for the wait logic.
   mem_r = mem_.load();
-  // First check whether we need to switch the table, we do not lock here, because
-  // most of the time the memtable will not be switched. we will lock inside and
+  // First check whether we need to switch the table, we do not Lock here, because
+  // most of the time the memtable will not be switched. we will Lock inside and
   // get the table
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
@@ -1477,8 +1477,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // one is still being compacted, so we wait.
       // the wait will never get signalled.
 
-      // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
-      write_stall_mutex_.Lock();
+      // We check the imm again in the while loop, because the state may have already been changed before you acquire the Lock.
+      undefine_mutex.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
       while ((imm_.load() != nullptr|| versions_->NumLevelFiles(0) >=
@@ -1488,7 +1488,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         printf("thread was waked up\n");
         mem_r = mem_.load();
       }
-      write_stall_mutex_.Unlock();
+      undefine_mutex.Unlock();
     }else{
       switch_mtx.lock();
       mem_r = mem_.load();
@@ -1540,7 +1540,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 }
 // TOTHINK The write batch should not too large. other wise the wait function may
 // memtable could overflow even before the actual write.
-// ---------------lock free----------------
+// ---------------Lock free----------------
 //Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
 //  Status s = Status::OK();
 //  //Get a snapshot it is vital for the CAS but not vital for the wait logic.
@@ -1556,8 +1556,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //      // one is still being compacted, so we wait.
 //      // the wait will never get signalled.
 //
-//      // We check the imm again in the while loop, because the state may have already been changed before you acquire the lock.
-////      write_stall_mutex_.Lock();
+//      // We check the imm again in the while loop, because the state may have already been changed before you acquire the Lock.
+////      undefine_mutex.Lock();
 ////      Log(options_.info_log, "Current memtable full; waiting...\n");
 ////      mem_r = mem_.load();
 ////      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
@@ -1578,7 +1578,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //
 ////        mem_r = mem_.load();
 ////      }
-////      write_stall_mutex_.Unlock();
+////      undefine_mutex.Unlock();
 //    }else if(versions_->NumLevelFiles(0) >=
 //             config::kL0_StopWritesTrigger){
 //      // if level 0 is contain too much files, just wait here.
@@ -1646,10 +1646,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //    }
 //  }
 //}
-// REQUIRES: write_stall_mutex_ is held
+// REQUIRES: undefine_mutex is held
 // REQUIRES: this thread is currently at the front of the writer queue
 //Status DBImpl::MakeRoomForWrite(bool force, uint64_t seq_num, MemTable*& mem_r) {
-////  write_stall_mutex_.AssertHeld();
+////  undefine_mutex.AssertHeld();
 ////  assert(!writers_.empty());
 //  bool allow_delay = !force;
 //  Status s = Status::OK();
@@ -1668,10 +1668,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 ////      // individual write by 1ms to reduce latency variance.  Also,
 ////      // this delay hands over some CPU to the compaction thread in
 ////      // case it is sharing the same core as the writer.
-//////      write_stall_mutex_.Unlock();
+//////      undefine_mutex.Unlock();
 //////      env_->SleepForMicroseconds(1000);
 //////      allow_delay = false;  // Do not delay a single write more than once
-//////      write_stall_mutex_.Lock();
+//////      undefine_mutex.Lock();
 //    } else if (seq_num <= mem_r->GetFirstseq()) {
 //      assert(imm_.load()!= nullptr);
 //      mem_r = imm_.load();
@@ -1687,13 +1687,13 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //      // the wait will never get signalled.
 //
 //      // We check the imm again in the while loop, because the state may have already
-//      // been changed before you acquire the lock.
-//      write_stall_mutex_.Lock();
+//      // been changed before you acquire the Lock.
+//      undefine_mutex.Lock();
 //      Log(options_.info_log, "Current memtable full; waiting...\n");
 //      while (imm_.load() != nullptr){
 //        background_work_finished_signal_.Wait();
 //      }
-//      write_stall_mutex_.Unlock();
+//      undefine_mutex.Unlock();
 //
 //
 ////    } else if (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
@@ -1739,7 +1739,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 // REQUIRES: Writer list must be non-empty
 // REQUIRES: First writer must have a non-null batch
 WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
-//  write_stall_mutex_.AssertHeld();
+//  undefine_mutex.AssertHeld();
   assert(!writers_.empty());
   Writer* first = writers_.front();
   WriteBatch* result = first->batch;
@@ -1791,7 +1791,7 @@ WriteBatch* DBImpl::BuildBatchGroup(Writer** last_writer) {
 bool DBImpl::GetProperty(const Slice& property, std::string* value) {
   value->clear();
 
-//  MutexLock l(&write_stall_mutex_);
+//  MutexLock l(&undefine_mutex);
   MemTable* mem = mem_.load();
   MemTable* imm = imm_.load();
   Slice in = property;
@@ -1854,7 +1854,7 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
 
 void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
   // TODO(opt): better implementation
-  MutexLock l(&write_stall_mutex_);
+  MutexLock l(&undefine_mutex);
   Version* v = versions_->current();
   v->Ref();
 
@@ -1890,7 +1890,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
 
   DBImpl* impl = new DBImpl(options, dbname);
-  impl->write_stall_mutex_.Lock();
+  impl->undefine_mutex.Lock();
   VersionEdit edit;
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
@@ -1921,7 +1921,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
 //    impl->RemoveObsoleteFiles();
     impl->MaybeScheduleCompaction();
   }
-  impl->write_stall_mutex_.Unlock();
+  impl->undefine_mutex.Unlock();
   if (s.ok()) {
     assert(impl->mem_ != nullptr);
     *dbptr = impl;

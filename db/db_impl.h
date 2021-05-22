@@ -114,45 +114,45 @@ class DBImpl : public DB {
   // amount of work to recover recently logged updates.  Any changes to
   // be made to the descriptor are added to *edit.
   Status Recover(VersionEdit* edit, bool* save_manifest)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   void MaybeIgnoreError(Status* s) const;
 
   // Delete any unneeded files and stale in-memory entries.
-  void RemoveObsoleteFiles() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+  void RemoveObsoleteFiles() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   // Compact the in-memory write buffer to disk.  Switches to a new
   // log-file/memtable and writes a new descriptor iff successful.
   // Errors are recorded in bg_error_.
-  void CompactMemTable() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+  void CompactMemTable() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   Status RecoverLogFile(uint64_t log_number, bool last_log, bool* save_manifest,
                         VersionEdit* edit, SequenceNumber* max_sequence)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   void RecordBackgroundError(const Status& s);
 
-  void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+  void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   static void BGWork(void* db);
   void BackgroundCall();
-  void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+  void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   void CleanupCompaction(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status DoCompactionWork(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   Status OpenCompactionOutputFile(CompactionState* compact);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact)
-      EXCLUSIVE_LOCKS_REQUIRED(write_stall_mutex_);
+      EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
@@ -174,7 +174,9 @@ class DBImpl : public DB {
   FileLock* db_lock_;
   std::atomic<bool> mem_switching;
   int thread_ready_num;
-  // State below is protected by write_stall_mutex_
+  // State below is protected by undefine_mutex
+  // we could rename it as superversion mutex
+  port::Mutex undefine_mutex;
   port::Mutex write_stall_mutex_;
   SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
