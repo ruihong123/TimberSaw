@@ -232,7 +232,7 @@ class VersionSet {
   // current version.  Will release *mu while actually writing to the file.
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
-  Status LogAndApply(VersionEdit* edit) EXCLUSIVE_LOCKS_REQUIRED(mu);
+  Status LogAndApply(VersionEdit* edit);
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool* save_manifest);
@@ -376,7 +376,15 @@ class VersionSet {
   // Either an empty string, or a valid InternalKey.
   std::string compact_pointer_[config::kNumLevels];
 };
-
+class FlushJob {
+ public:
+  explicit FlushJob(port::Mutex* write_stall_mutex, port::CondVar* write_stall_cv);
+  autovector<MemTable*> mem_vec;
+  port::Mutex* write_stall_mutex_;
+  port::CondVar* write_stall_cv_;
+  void Waitforpendingwriter();
+  void SetAllMemStateProcessing();
+};
 // A Compaction encapsulates information about a compaction.
 class Compaction {
  public:

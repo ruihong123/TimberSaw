@@ -26,6 +26,7 @@ class MemTable {
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
   std::atomic<bool> able_to_flush = false;
+  uint64_t file_number_ = 0;
   explicit MemTable(const InternalKeyComparator& comparator);
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;
@@ -99,8 +100,11 @@ class MemTable {
 //  void SetLargestSeqTillNow(uint64_t seq){
 //
 //  }
-  bool CheckFlushScheduled(){
+  bool CheckFlushInProcess(){
     return flush_state_ == FLUSH_PROCESSING;
+  }
+  bool CheckFlushFinished(){
+    return flush_state_ == FLUSH_FINISHED;
   }
   void SetFlushState(FlushStateEnum state){
     flush_state_.store(state);

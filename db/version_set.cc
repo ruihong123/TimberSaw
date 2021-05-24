@@ -605,7 +605,7 @@ class VersionSet::Builder {
       // of data before triggering a compaction.
       f->allowed_seeks = static_cast<int>((f->file_size / 16384U));
       if (f->allowed_seeks < 100) f->allowed_seeks = 100;
-
+      //Tothink: Why we have delete file here
       levels_[level].deleted_files.erase(f->number);
       levels_[level].added_files->insert(f);
     }
@@ -623,11 +623,13 @@ class VersionSet::Builder {
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator base_end = base_files.end();
       const FileSet* added_files = levels_[level].added_files;
       v->files_[level].reserve(base_files.size() + added_files->size());
+      //TOTHINK: how could this make sure the order in level 0.
       for (const auto& added_file : *added_files) {
         // Add all smaller files listed in base_
         for (std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator bpos =
                  std::upper_bound(base_iter, base_end, added_file, cmp);
              base_iter != bpos; ++base_iter) {
+          //Ruihong: why the builder will push back the base_iter to the level?
           MaybeAddFile(v, level, *base_iter);
         }
 
@@ -732,11 +734,15 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 
   edit->SetNextFile(next_file_number_);
   edit->SetLastSequence(last_sequence_);
-
+  //Build an empty version.
   Version* v = new Version(this);
+
   version_mutex.Lock();
   {
+    // Decide what table to keep what to discard.
     Builder builder(this, current_);
+    // apply to the new version, no need to apply delete files, only add
+    // alive files and new files to the new version just created
     builder.Apply(edit);
     builder.SaveTo(v);
   }
@@ -1512,5 +1518,31 @@ void Compaction::ReleaseInputs() {
     input_version_ = nullptr;
   }
 }
+
+void FlushJob::Waitforpendingwriter() {
+  size_t counter = 0;
+  for (auto iter: mem_vec) {
+    while (!iter->able_to_flush.load()) {
+      counter++;
+      if (counter == 500) {
+        printf("signal all the wait threads\n");
+        usleep(10);
+        write_stall_cv_->SignalAll();
+        counter = 0;
+      }
+    }
+  }
+
+}
+void FlushJob::SetAllMemStateProcessing() {
+  for (auto iter: mem_vec) {
+    iter->SetFlushState(MemTable::FLUSH_PROCESSING);
+
+  }
+}
+FlushJob::FlushJob(port::Mutex* write_stall_mutex,
+                   port::CondVar* write_stall_cv) :write_stall_mutex_(write_stall_mutex),
+write_stall_cv_(write_stall_cv){}
+
 
 }  // namespace leveldb

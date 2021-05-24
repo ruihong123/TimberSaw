@@ -5,19 +5,22 @@
 #ifndef STORAGE_LEVELDB_DB_DB_IMPL_H_
 #define STORAGE_LEVELDB_DB_DB_IMPL_H_
 
+#include "db/dbformat.h"
+#include "db/log_writer.h"
+#include "db/snapshot.h"
 #include <atomic>
 #include <deque>
 #include <set>
 #include <string>
 
-#include "db/dbformat.h"
-#include "db/log_writer.h"
-#include "db/snapshot.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
+
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/mutexlock.h"
+
+#include "version_set.h"
 
 namespace leveldb {
 
@@ -26,6 +29,7 @@ class TableCache;
 class Version;
 class VersionEdit;
 class VersionSet;
+class MemTableList;
 class Memtable_keeper{
   std::deque<MemTable> memtables;
 };
@@ -130,9 +134,10 @@ class DBImpl : public DB {
                         VersionEdit* edit, SequenceNumber* max_sequence)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
-  Status WriteLevel0Table(MemTable* mem, VersionEdit* edit, Version* base)
+  Status WriteLevel0Table(leveldb::FlushJob* job, VersionEdit* edit, Version* base)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
-
+  Status WriteLevel0Table(MemTable* job, VersionEdit* edit, Version* base)
+  EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
@@ -181,9 +186,10 @@ class DBImpl : public DB {
   SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   port::CondVar write_stall_cv GUARDED_BY(write_stall_mutex_);
-  SpinMutex switch_mtx;
+  SpinMutex superversion_mtx;
   std::atomic<MemTable*> mem_;
-  std::atomic<MemTable*> imm_;  // Memtable being compacted
+//  std::atomic<MemTable*> imm_;  // Memtable being compacted
+  MemTableList* imm_;
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
   uint64_t logfile_number_;

@@ -19,6 +19,7 @@
 #include "db/log_reader.h"
 #include "db/log_writer.h"
 #include "db/memtable.h"
+#include "db/memtable_list.h"
 #include "db/table_cache.h"
 #include "db/version_set.h"
 #include "db/write_batch_internal.h"
@@ -167,7 +168,8 @@ DBImpl::~DBImpl() {
 
   delete versions_;
   if (mem_ != nullptr) mem_.load()->SimpleDelete();
-  if (imm_ != nullptr) imm_.load()->SimpleDelete();
+//  if (imm_ != nullptr) imm_.load()->SimpleDelete();
+  if (imm_ != nullptr) delete imm_;
   delete tmp_batch_;
   delete log_;
   delete logfile_;
@@ -505,14 +507,61 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   return status;
 }
 
-Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
+Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit,
                                 Version* base) {
 //  undefine_mutex.AssertHeld();
+  const uint64_t start_micros = env_->NowMicros();
+  //Mark all memtable as FLUSHPROCESSING.
+  job->SetAllMemStateProcessing();
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  meta->number = versions_->NewFileNumber();
+  pending_outputs_.insert(meta->number);
+  Iterator* iter = job->NewIterator();
+  Log(options_.info_log, "Level-0 table #%llu: started",
+      (unsigned long long)meta->number);
+//  printf("now system start to serializae mem %p\n", mem);
+  Status s;
+  {
+//    undefine_mutex.Unlock();
+    s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
+//    undefine_mutex.Lock();
+  }
+//  printf("remote table use count after building %ld\n", meta.use_count());
+//  Log(options_.info_log, "Level-0 table #%llu: %lld bytes %s",
+//      (unsigned long long)meta.number, (unsigned long long)meta.file_size,
+//      s.ToString().c_str());
+  delete iter;
+  pending_outputs_.erase(meta->number);
+
+  // Note that if file_size is zero, the file has been deleted and
+  // should not be added to the manifest.
+  int level = 0;
+  if (s.ok() && meta->file_size > 0) {
+    const Slice min_user_key = meta->smallest.user_key();
+    const Slice max_user_key = meta->largest.user_key();
+    if (base != nullptr) {
+      level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
+    }
+    edit->AddFile(level, meta);
+  }
+
+  CompactionStats stats;
+  stats.micros = env_->NowMicros() - start_micros;
+  stats.bytes_written = meta->file_size;
+  stats_[level].Add(stats);
+  write_stall_mutex_.AssertNotHeld();
+  return s;
+}
+Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
+                                Version* base) {
+//  undefine_mutex.AssertHeld();
+  //The program should never goes here.
+  assert(false);
   const uint64_t start_micros = env_->NowMicros();
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
   meta->number = versions_->NewFileNumber();
   pending_outputs_.insert(meta->number);
-  Iterator* iter = mem->NewIterator();
+  Iterator* iter = job->NewIterator();
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta->number);
 //  printf("now system start to serializae mem %p\n", mem);
@@ -549,13 +598,104 @@ Status DBImpl::WriteLevel0Table(MemTable* mem, VersionEdit* edit,
   return s;
 }
 
+//void DBImpl::CompactMemTable() {
+////  undefine_mutex.AssertHeld();
+//  //TOTHINK What will happen if we remove the mutex in the future?
+//  MemTable* mem = mem_.load();
+//  MemTable* imm = imm_.load();
+//  assert(imm != nullptr);
+//  assert(!imm->CheckFlushInProcess());
+//
+//  // Save the contents of the memtable as a new Table
+//  VersionEdit edit;
+//  Version* base = versions_->current();
+//  // wait for the ongoing writes for 1 millisecond.
+//  size_t counter = 0;
+//  // wait for the immutable to get ready to flush. the signal here is prepare for
+//  // the case that the thread this immutable is under the control of conditional
+//  // variable.
+////-----------------seldom Lock----------------------------
+//  while(!imm->able_to_flush){
+//    counter++;
+//    if (counter==500){
+//      printf("signal all the wait threads\n");
+//      usleep(10);
+//      write_stall_cv.SignalAll();
+//      counter = 0;
+//    }
+//  }
+////---------------Lock free version -----------------------
+////  while(!imm->able_to_flush){
+////
+////    counter++;
+////    if (counter==5000){
+//////      printf("signal all the wait threads\n");
+//////      write_stall_cv.SignalAll();
+////      usleep(10);
+////      counter = 0;
+////    }
+////  }
+//
+//  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
+//  base->Ref();
+//  Status s = WriteLevel0Table(imm, &edit, base);
+//  base->Unref();
+//
+//  if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
+//    s = Status::IOError("Deleting DB during memtable compaction");
+//  }
+//
+//  // Replace immutable memtable with the generated Table
+//  // TODO: use tryinstall flush result here
+//  if (s.ok()) {
+//    edit.SetPrevLogNumber(0);
+//    edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
+//    s = versions_->LogAndApply(&edit);
+//  }else{
+//    printf("version apply failed");
+//  }
+////-------------------- seldom Lock version----------------
+//  if (s.ok()) {
+//    // Commit to the new state
+////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
+//    superversion_mtx.lock();
+//    MemTable* imm = imm_.load();
+//
+//    imm->Unref();
+////    printf("mem %p has been deleted\n", imm);
+////    printf("mem %p has is still alive\n", mem);
+////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
+//    imm_.store(nullptr);
+//    superversion_mtx.unlock();
+//
+//    write_stall_cv.SignalAll();
+//    has_imm_.store(false, std::memory_order_release);
+//    // TODO how to remove the obsoleted remote memtable?
+////    RemoveObsoleteFiles();
+//// ----------------Lock-free version below--------------------
+////  if (s.ok()) {
+////    // Commit to the new state
+//////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
+//////    undefine_mutex.Lock();
+////    MemTable* imm = imm_.load();
+////
+////    imm->Unref();
+//////    printf("mem %p has been deleted\n", imm);
+//////    printf("mem %p has is still alive\n", mem);
+//////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
+////    imm_.store(nullptr);
+//////    undefine_mutex.Unlock();
+//////    write_stall_cv.SignalAll();
+////    has_imm_.store(false, std::memory_order_release);
+////    // TODO how to remove the obsoleted remote memtable?
+//////    RemoveObsoleteFiles();
+//  } else {
+//    RecordBackgroundError(s);
+//  }
+//}
 void DBImpl::CompactMemTable() {
 //  undefine_mutex.AssertHeld();
   //TOTHINK What will happen if we remove the mutex in the future?
-  MemTable* mem = mem_.load();
-  MemTable* imm = imm_.load();
-  assert(imm != nullptr);
-  assert(!imm->CheckFlushScheduled());
 
   // Save the contents of the memtable as a new Table
   VersionEdit edit;
@@ -565,29 +705,14 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
-//-----------------seldom Lock----------------------------
-  while(!imm->able_to_flush){
-    counter++;
-    if (counter==500){
-      printf("signal all the wait threads\n");
-      usleep(10);
-      write_stall_cv.SignalAll();
-      counter = 0;
-    }
+  FlushJob f_job;
+  {
+    std::unique_lock<SpinMutex> l(superversion_mtx);
+    imm_->PickMemtablesToFlush(&f_job.mem_vec);
   }
-//---------------Lock free version -----------------------
-//  while(!imm->able_to_flush){
-//
-//    counter++;
-//    if (counter==5000){
-////      printf("signal all the wait threads\n");
-////      write_stall_cv.SignalAll();
-//      usleep(10);
-//      counter = 0;
-//    }
-//  }
+  f_job.Waitforpendingwriter();
 
-  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
+//  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
   base->Ref();
   Status s = WriteLevel0Table(imm, &edit, base);
   base->Unref();
@@ -597,6 +722,7 @@ void DBImpl::CompactMemTable() {
   }
 
   // Replace immutable memtable with the generated Table
+  // TODO: use tryinstall flush result here
   if (s.ok()) {
     edit.SetPrevLogNumber(0);
     edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
@@ -608,7 +734,7 @@ void DBImpl::CompactMemTable() {
   if (s.ok()) {
     // Commit to the new state
 //    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-    switch_mtx.lock();
+    superversion_mtx.lock();
     MemTable* imm = imm_.load();
 
     imm->Unref();
@@ -616,7 +742,7 @@ void DBImpl::CompactMemTable() {
 //    printf("mem %p has is still alive\n", mem);
 //    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
     imm_.store(nullptr);
-    switch_mtx.unlock();
+    superversion_mtx.unlock();
 
     write_stall_cv.SignalAll();
     has_imm_.store(false, std::memory_order_release);
@@ -643,6 +769,7 @@ void DBImpl::CompactMemTable() {
     RecordBackgroundError(s);
   }
 }
+
 
 void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
   int max_level_with_files = 1;
@@ -1490,7 +1617,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
       undefine_mutex.Unlock();
     }else{
-      switch_mtx.lock();
+      superversion_mtx.lock();
       mem_r = mem_.load();
       if (imm_.load() == nullptr && seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
@@ -1511,10 +1638,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         // if we have create a new table then the new table will definite be
         // the table we will write.
         mem_r = temp_mem;
-        switch_mtx.unlock();
+        superversion_mtx.unlock();
         return s;
       }
-      switch_mtx.unlock();
+      superversion_mtx.unlock();
     }
     mem_r = mem_.load();
     // For the safety concern (such as the thread get context switch)
