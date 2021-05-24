@@ -32,6 +32,7 @@ class Writer;
 }
 
 class Compaction;
+ class FlushJob;
 class Iterator;
 class MemTable;
 class TableBuilder;
@@ -289,7 +290,7 @@ class VersionSet {
   // being compacted, or zero if there is no such log file.
   uint64_t PrevLogNumber() const { return prev_log_number_; }
 
-  // Pick level and inputs for a new compaction.
+  // Pick level and mem_vec for a new compaction.
   // Returns nullptr if there is no compaction to be done.
   // Otherwise returns a pointer to a heap-allocated object that
   // describes the compaction.  Caller should delete the result.
@@ -306,7 +307,7 @@ class VersionSet {
   // file at a level >= 1.
   int64_t MaxNextLevelOverlappingBytes();
 
-  // Create an iterator that reads over the compaction inputs for "*c".
+  // Create an iterator that reads over the compaction mem_vec for "*c".
   // The caller should delete the iterator when no longer needed.
   Iterator* MakeInputIterator(Compaction* c);
 
@@ -335,6 +336,7 @@ class VersionSet {
   class Builder;
 
   friend class Compaction;
+  friend class FlushJob;
   friend class Version;
 
   bool ReuseManifest(const std::string& dscname, const std::string& dscbase);
@@ -371,20 +373,13 @@ class VersionSet {
   log::Writer* descriptor_log_;
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
   Version* current_;        // == dummy_versions_.prev_
+  //TODO: make it spinmutex?
   port::Mutex version_mutex;
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_pointer_[config::kNumLevels];
 };
-class FlushJob {
- public:
-  explicit FlushJob(port::Mutex* write_stall_mutex, port::CondVar* write_stall_cv);
-  autovector<MemTable*> mem_vec;
-  port::Mutex* write_stall_mutex_;
-  port::CondVar* write_stall_cv_;
-  void Waitforpendingwriter();
-  void SetAllMemStateProcessing();
-};
+
 // A Compaction encapsulates information about a compaction.
 class Compaction {
  public:
@@ -401,17 +396,17 @@ class Compaction {
   // "which" must be either 0 or 1
   int num_input_files(int which) const { return inputs_[which].size(); }
 
-  // Return the ith input file at "level()+which" ("which" must be 0 or 1).
+  // Return the ith mem_vec file at "level()+which" ("which" must be 0 or 1).
   std::shared_ptr<RemoteMemTableMetaData> input(int which, int i) const { return inputs_[which][i]; }
 
   // Maximum size of files to build during this compaction.
   uint64_t MaxOutputFileSize() const { return max_output_file_size_; }
 
   // Is this a trivial compaction that can be implemented by just
-  // moving a single input file to the next level (no merging or splitting)
+  // moving a single mem_vec file to the next level (no merging or splitting)
   bool IsTrivialMove() const;
 
-  // Add all inputs to this compaction as delete operations to *edit.
+  // Add all mem_vec to this compaction as delete operations to *edit.
   void AddInputDeletions(VersionEdit* edit);
 
   // Returns true if the information we have available guarantees that
@@ -423,10 +418,10 @@ class Compaction {
   // before processing "internal_key".
   bool ShouldStopBefore(const Slice& internal_key);
 
-  // Release the input version for the compaction, once the compaction
+  // Release the mem_vec version for the compaction, once the compaction
   // is successful.
   void ReleaseInputs();
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of inputs
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of mem_vec
 
  private:
   friend class Version;
@@ -439,7 +434,7 @@ class Compaction {
   Version* input_version_;
   VersionEdit edit_;
 
-  // Each compaction reads inputs from "level_" and "level_+1"
+  // Each compaction reads mem_vec from "level_" and "level_+1"
 
   // State used to check for number of overlapping grandparent files
   // (parent == level_ + 1, grandparent == level_ + 2)

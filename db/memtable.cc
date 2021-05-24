@@ -7,6 +7,7 @@
 #include "leveldb/comparator.h"
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
+#include "db/version_edit.h"
 #include "util/coding.h"
 
 namespace leveldb {
@@ -18,8 +19,8 @@ namespace leveldb {
 //  return Slice(p, len);
 //}
 
-MemTable::MemTable(const InternalKeyComparator& comparator)
-    : comparator_(comparator), refs_(0), table_(comparator_, &arena_) {}
+MemTable::MemTable(const InternalKeyComparator& cmp)
+    : comparator(cmp), refs_(0), table_(comparator, &arena_) {}
 
 MemTable::~MemTable() { assert(refs_ == 0); }
 
@@ -127,7 +128,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
     const char* entry = iter.key();
     uint32_t key_length;
     const char* key_ptr = GetVarint32Ptr(entry, entry + 5, &key_length);
-    if (comparator_.comparator.user_comparator()->Compare(
+    if (comparator.comparator.user_comparator()->Compare(
             Slice(key_ptr, key_length - 8), key.user_key()) == 0) {
       // Correct user key
       const uint64_t tag = DecodeFixed64(key_ptr + key_length - 8);

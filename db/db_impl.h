@@ -145,9 +145,10 @@ class DBImpl : public DB {
 
   void RecordBackgroundError(const Status& s);
 
-  void MaybeScheduleCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
+  void MaybeScheduleFlushOrCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   static void BGWork(void* db);
   void BackgroundCall();
+  void BackgroundFlush();
   void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   void CleanupCompaction(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
@@ -186,7 +187,8 @@ class DBImpl : public DB {
   SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   port::CondVar write_stall_cv GUARDED_BY(write_stall_mutex_);
-  SpinMutex superversion_mtx;
+  SpinMutex imm_mtx;
+//  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;
 //  std::atomic<MemTable*> imm_;  // Memtable being compacted
   MemTableList* imm_;

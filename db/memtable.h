@@ -17,20 +17,10 @@ namespace leveldb {
 
 class InternalKeyComparator;
 class MemTableIterator;
+class RemoteMemTableMetaData;
 
 class MemTable {
  public:
-  //Requested means in the queue but not handled by thread, scheduled means put into the
-  enum FlushStateEnum { FLUSH_NOT_REQUESTED, FLUSH_REQUESTED,
-    FLUSH_PROCESSING, FLUSH_FINISHED};
-  // MemTables are reference counted.  The initial reference count
-  // is zero and the caller must call Ref() at least once.
-  std::atomic<bool> able_to_flush = false;
-  uint64_t file_number_ = 0;
-  explicit MemTable(const InternalKeyComparator& comparator);
-  MemTable(const MemTable&) = delete;
-  MemTable& operator=(const MemTable&) = delete;
-  ~MemTable();
   struct KeyComparator {
     typedef Slice DecodedType;
 
@@ -45,6 +35,19 @@ class MemTable {
     int operator()(const char* prefix_len_key,
                    const DecodedType& key) const;
   };
+  //Requested means in the queue but not handled by thread, scheduled means put into the
+  enum FlushStateEnum { FLUSH_NOT_REQUESTED, FLUSH_REQUESTED,
+    FLUSH_PROCESSING, FLUSH_FINISHED};
+  // MemTables are reference counted.  The initial reference count
+  // is zero and the caller must call Ref() at least once.
+  std::atomic<bool> able_to_flush = false;
+  std::shared_ptr<RemoteMemTableMetaData> sstable;
+  const KeyComparator comparator;
+  explicit MemTable(const InternalKeyComparator& cmp);
+  MemTable(const MemTable&) = delete;
+  MemTable& operator=(const MemTable&) = delete;
+  ~MemTable();
+
   typedef InlineSkipList<KeyComparator> Table;
   Table* GetTable(){
     return &table_;
@@ -110,7 +113,8 @@ class MemTable {
     flush_state_.store(state);
   }
   void MarkFlushed(){
-      SetFlushState(FLUSH_FINISHED);
+    assert(flush_state_ == FLUSH_PROCESSING);
+    SetFlushState(FLUSH_FINISHED);
   }
   uint64_t Getlargest_seq_supposed() const{
     return largest_seq_supposed;
@@ -139,7 +143,7 @@ class MemTable {
 
 
 
-  KeyComparator comparator_;
+
   std::atomic<int> refs_;
   std::atomic<size_t> seq_count = 0;
 

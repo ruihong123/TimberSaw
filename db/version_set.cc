@@ -436,7 +436,7 @@ int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
   return level;
 }
 
-// Store in "*inputs" all files in "level" that overlap [begin,end]
+// Store in "*mem_vec" all files in "level" that overlap [begin,end]
 void Version::GetOverlappingInputs(int level, const InternalKey* begin,
                                    const InternalKey* end,
                                    std::vector<std::shared_ptr<RemoteMemTableMetaData>>* inputs) {
@@ -1134,9 +1134,9 @@ int64_t VersionSet::MaxNextLevelOverlappingBytes() {
   return result;
 }
 
-// Stores the minimal range that covers all entries in inputs in
+// Stores the minimal range that covers all entries in mem_vec in
 // *smallest, *largest.
-// REQUIRES: inputs is not empty
+// REQUIRES: mem_vec is not empty
 void VersionSet::GetRange(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs,
                           InternalKey* smallest, InternalKey* largest) {
   assert(!inputs.empty());
@@ -1160,7 +1160,7 @@ void VersionSet::GetRange(const std::vector<std::shared_ptr<RemoteMemTableMetaDa
 
 // Stores the minimal range that covers all entries in inputs1 and inputs2
 // in *smallest, *largest.
-// REQUIRES: inputs is not empty
+// REQUIRES: mem_vec is not empty
 void VersionSet::GetRange2(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs1,
                            const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs2,
                            InternalKey* smallest, InternalKey* largest) {
@@ -1349,7 +1349,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   InternalKey all_start, all_limit;
   GetRange2(c->inputs_[0], c->inputs_[1], &all_start, &all_limit);
 
-  // See if we can grow the number of inputs in "level" without
+  // See if we can grow the number of mem_vec in "level" without
   // changing the number of "level+1" files we pick up.
   if (!c->inputs_[1].empty()) {
     std::vector<std::shared_ptr<RemoteMemTableMetaData>> expanded0;
@@ -1518,31 +1518,5 @@ void Compaction::ReleaseInputs() {
     input_version_ = nullptr;
   }
 }
-
-void FlushJob::Waitforpendingwriter() {
-  size_t counter = 0;
-  for (auto iter: mem_vec) {
-    while (!iter->able_to_flush.load()) {
-      counter++;
-      if (counter == 500) {
-        printf("signal all the wait threads\n");
-        usleep(10);
-        write_stall_cv_->SignalAll();
-        counter = 0;
-      }
-    }
-  }
-
-}
-void FlushJob::SetAllMemStateProcessing() {
-  for (auto iter: mem_vec) {
-    iter->SetFlushState(MemTable::FLUSH_PROCESSING);
-
-  }
-}
-FlushJob::FlushJob(port::Mutex* write_stall_mutex,
-                   port::CondVar* write_stall_cv) :write_stall_mutex_(write_stall_mutex),
-write_stall_cv_(write_stall_cv){}
-
 
 }  // namespace leveldb

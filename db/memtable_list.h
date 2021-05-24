@@ -111,7 +111,7 @@ class MemTableListVersion {
   void AddIterators(const ReadOptions& options,
                     std::vector<Iterator*>* iterator_list,
                     Arena* arena);
-
+  MemTable* PickMemtablesSeqBelong(size_t seq);
 //  void AddIterators(const ReadOptions& options,
 //                    MergeIteratorBuilder* merge_iter_builder);
 
@@ -142,12 +142,12 @@ class MemTableListVersion {
 //      LogBuffer* log_buffer);
 
   // REQUIRE: m is an immutable memtable
-  void Add(MemTable* m, autovector<MemTable*>* to_delete);
+  void Add(MemTable* m);
   // REQUIRE: m is an immutable memtable
-  void Remove(MemTable* m, autovector<MemTable*>* to_delete);
+  void Remove(MemTable* m);
 
   // Return true if memtable is trimmed
-  bool TrimHistory(autovector<MemTable*>* to_delete, size_t usage);
+  bool TrimHistory(size_t usage);
 
   bool GetFromList(std::list<MemTable*>* list, const LookupKey& key,
                    std::string* value, Status* s);
@@ -203,7 +203,8 @@ class MemTableList {
   explicit MemTableList(int min_write_buffer_number_to_merge,
                         int max_write_buffer_number_to_maintain,
                         int64_t max_write_buffer_size_to_maintain)
-      : imm_flush_needed(false),
+      : cmp(BytewiseComparator()),
+        imm_flush_needed(false),
         imm_trim_needed(false),
         min_write_buffer_number_to_merge_(min_write_buffer_number_to_merge),
         current_(new MemTableListVersion(&current_memory_usage_,
@@ -223,7 +224,7 @@ class MemTableList {
   ~MemTableList() {}
 
   MemTableListVersion* current() const { return current_; }
-
+  InternalKeyComparator cmp;
   // so that background threads can detect non-nullptr pointer to
   // determine whether there is anything more to start flushing.
   std::atomic<bool> imm_flush_needed;
@@ -245,22 +246,26 @@ class MemTableList {
   // Returns the earliest memtables that needs to be flushed. The returned
   // memtables are guaranteed to be in the ascending order of created time.
   void PickMemtablesToFlush(autovector<MemTable*>* mems);
-
+  MemTable* PickMemtablesSeqBelong(size_t seq);
   // Reset status of the given memtable list back to pending state so that
   // they can get picked up again on the next round of flush.
+
   void RollbackMemtableFlush(const autovector<MemTable*>& mems,
                              uint64_t file_number);
+  //Create a merge interpreter
+  Iterator* MakeInputIterator(FlushJob* job);
+
 
   // Try commit a successful flush in the manifest file. It might just return
   // Status::OK letting a concurrent flush to do the actual the recording.
-  Status TryInstallMemtableFlushResults(const autovector<MemTable*>& mems,
-                                        VersionSet* vset, port::Mutex* mu,
-                                        uint64_t file_number, Status* io_s,
+  Status TryInstallMemtableFlushResults(FlushJob* job,
+                                        VersionSet* vset, SpinMutex* imm_mtx,
+      std::shared_ptr<RemoteMemTableMetaData>& sstable,
                                         VersionEdit* edit);
 
   // New memtables are inserted at the front of the list.
   // Takes ownership of the referenced held on *m by the caller of Add().
-  void Add(MemTable* m, autovector<MemTable*>* to_delete);
+  void Add(MemTable* m);
 
   // Returns an estimate of the number of bytes of data in use.
   size_t ApproximateMemoryUsage();
@@ -319,7 +324,7 @@ class MemTableList {
   // void operator=(const MemTableList&);
 
   size_t* current_memory_usage() { return &current_memory_usage_; }
-
+  size_t current_memtable_num() { return current_memtable_num_.load(); }
   // Returns the min log containing the prep section after memtables listsed in
   // `memtables_to_flush` are flushed and their status is persisted in manifest.
 //  uint64_t PrecomputeMinLogContainingPrepSection(
@@ -393,14 +398,27 @@ class MemTableList {
 
   // The current memory usage.
   size_t current_memory_usage_;
-
+  // The current memtable number. This can only represent the number of memtbale
+  // in the latest version, which means there could be more table alive in the memory.
+  std::atomic<size_t> current_memtable_num_;
   // Cached value of current_->ApproximateMemoryUsageExcludingLast().
   std::atomic<size_t> current_memory_usage_excluding_last_;
 
   // Cached value of current_->HasHistory().
   std::atomic<bool> current_has_history_;
 };
+class FlushJob {
+ public:
+  explicit FlushJob(port::Mutex* write_stall_mutex, port::CondVar* write_stall_cv);
+  autovector<MemTable*> mem_vec;
+  port::Mutex* write_stall_mutex_;
+  port::CondVar* write_stall_cv_;
+  std::shared_ptr<RemoteMemTableMetaData> sst;
+  void Waitforpendingwriter();
+  void SetAllMemStateProcessing();
 
+
+};
 // Installs memtable atomic flush results.
 // In most cases, imm_lists is nullptr, and the function simply uses the
 // immutable memtable lists associated with the cfds. There are unit tests that

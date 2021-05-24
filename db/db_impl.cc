@@ -514,9 +514,10 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit,
   //Mark all memtable as FLUSHPROCESSING.
   job->SetAllMemStateProcessing();
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  job->sst = meta;
   meta->number = versions_->NewFileNumber();
   pending_outputs_.insert(meta->number);
-  Iterator* iter = job->NewIterator();
+  Iterator* iter = imm_->MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta->number);
 //  printf("now system start to serializae mem %p\n", mem);
@@ -658,7 +659,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
 //  if (s.ok()) {
 //    // Commit to the new state
 ////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-//    superversion_mtx.lock();
+//    imm_mtx.lock();
 //    MemTable* imm = imm_.load();
 //
 //    imm->Unref();
@@ -666,7 +667,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
 ////    printf("mem %p has is still alive\n", mem);
 ////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
 //    imm_.store(nullptr);
-//    superversion_mtx.unlock();
+//    imm_mtx.unlock();
 //
 //    write_stall_cv.SignalAll();
 //    has_imm_.store(false, std::memory_order_release);
@@ -705,68 +706,23 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
-  FlushJob f_job;
+  FlushJob f_job(&write_stall_mutex_, &write_stall_cv);
   {
-    std::unique_lock<SpinMutex> l(superversion_mtx);
+    std::unique_lock<SpinMutex> l(imm_mtx);
     imm_->PickMemtablesToFlush(&f_job.mem_vec);
   }
   f_job.Waitforpendingwriter();
 
 //  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
   base->Ref();
-  Status s = WriteLevel0Table(imm, &edit, base);
+  Status s = WriteLevel0Table(&f_job, &edit, base);
   base->Unref();
+
+  imm_->TryInstallMemtableFlushResults(&f_job, versions_, &imm_mtx, f_job.sst,
+                                       &edit);
 
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
-  }
-
-  // Replace immutable memtable with the generated Table
-  // TODO: use tryinstall flush result here
-  if (s.ok()) {
-    edit.SetPrevLogNumber(0);
-    edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
-    s = versions_->LogAndApply(&edit);
-  }else{
-    printf("version apply failed");
-  }
-//-------------------- seldom Lock version----------------
-  if (s.ok()) {
-    // Commit to the new state
-//    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-    superversion_mtx.lock();
-    MemTable* imm = imm_.load();
-
-    imm->Unref();
-//    printf("mem %p has been deleted\n", imm);
-//    printf("mem %p has is still alive\n", mem);
-//    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
-    imm_.store(nullptr);
-    superversion_mtx.unlock();
-
-    write_stall_cv.SignalAll();
-    has_imm_.store(false, std::memory_order_release);
-    // TODO how to remove the obsoleted remote memtable?
-//    RemoveObsoleteFiles();
-// ----------------Lock-free version below--------------------
-//  if (s.ok()) {
-//    // Commit to the new state
-////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-////    undefine_mutex.Lock();
-//    MemTable* imm = imm_.load();
-//
-//    imm->Unref();
-////    printf("mem %p has been deleted\n", imm);
-////    printf("mem %p has is still alive\n", mem);
-////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
-//    imm_.store(nullptr);
-////    undefine_mutex.Unlock();
-////    write_stall_cv.SignalAll();
-//    has_imm_.store(false, std::memory_order_release);
-//    // TODO how to remove the obsoleted remote memtable?
-////    RemoveObsoleteFiles();
-  } else {
-    RecordBackgroundError(s);
   }
 }
 
@@ -816,7 +772,7 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
          bg_error_.ok()) {
     if (manual_compaction_ == nullptr) {  // Idle
       manual_compaction_ = &manual;
-      MaybeScheduleCompaction();
+      MaybeScheduleFlushOrCompaction();
     } else {  // Running either my compaction or another compaction.
       write_stall_cv.Wait();
     }
@@ -851,7 +807,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
   }
 }
 
-void DBImpl::MaybeScheduleCompaction() {
+void DBImpl::MaybeScheduleFlushOrCompaction() {
 //  undefine_mutex.AssertHeld();
 // In my implementation the Maybeschedule Compaction will only be triggered once
 // by the thread which CAS the memtable successfully.
@@ -888,10 +844,28 @@ void DBImpl::BackgroundCall() {
 
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
-  MaybeScheduleCompaction();
+  MaybeScheduleFlushOrCompaction();
 //  undefine_mutex.Unlock();
 }
+void DBImpl::BackgroundFlush() {
+  //Tothink: why there is a Lock, which data structure is this mutex protecting
+//  undefine_mutex.Lock();
+//  assert(background_compaction_scheduled_);
+  if (shutting_down_.load(std::memory_order_acquire)) {
+    // No more background work when shutting down.
+  } else if (!bg_error_.ok()) {
+    // No more background work after a background error.
+  } else if (imm_->current_memtable_num()>2) {
+    BackgroundCompaction();
+  }
 
+  background_compaction_scheduled_ = false;
+
+  // Previous compaction may have produced too many files in a level,
+  // so reschedule another compaction if needed.
+  MaybeScheduleFlushOrCompaction();
+//  undefine_mutex.Unlock();
+}
 void DBImpl::BackgroundCompaction() {
   write_stall_mutex_.AssertNotHeld();
 
@@ -1391,7 +1365,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   }
 
   if (have_stat_update && current->UpdateStats(stats)) {
-    MaybeScheduleCompaction();
+    MaybeScheduleFlushOrCompaction();
   }
   mem->Unref();
   if (imm != nullptr) imm->Unref();
@@ -1414,7 +1388,7 @@ Iterator* DBImpl::NewIterator(const ReadOptions& options) {
 void DBImpl::RecordReadSample(Slice key) {
   MutexLock l(&undefine_mutex);
   if (versions_->current()->RecordReadSample(key)) {
-    MaybeScheduleCompaction();
+    MaybeScheduleFlushOrCompaction();
   }
 }
 
@@ -1598,7 +1572,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
     // for a new table.
-    if (imm_.load() != nullptr || versions_->NumLevelFiles(0) >=
+    if (imm_->current_memtable_num()> config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
                                       config::kL0_StopWritesTrigger) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
@@ -1608,7 +1582,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       undefine_mutex.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
-      while ((imm_.load() != nullptr|| versions_->NumLevelFiles(0) >=
+      while ((imm_->current_memtable_num() > config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
              config::kL0_StopWritesTrigger) && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
         write_stall_cv.Wait();
@@ -1617,9 +1591,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
       undefine_mutex.Unlock();
     }else{
-      superversion_mtx.lock();
+      imm_mtx.lock();
       mem_r = mem_.load();
-      if (imm_.load() == nullptr && seq_num > mem_r->Getlargest_seq_supposed()){
+      if (imm_->current_memtable_num() <= config::Immutable_StopWritesTrigger && seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
         MemTable* temp_mem = new MemTable(internal_comparator_);
         uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
@@ -1631,17 +1605,17 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
         mem_.store(temp_mem);
         //set the flush flag for imm
-        assert(imm_.load() == nullptr);
-        imm_.store(mem_r);
+        assert(imm_->current_memtable_num() > config::Immutable_StopWritesTrigger);
+        imm_->Add(mem_r);
         has_imm_.store(true, std::memory_order_release);
-        MaybeScheduleCompaction();
+        MaybeScheduleFlushOrCompaction();
         // if we have create a new table then the new table will definite be
         // the table we will write.
         mem_r = temp_mem;
-        superversion_mtx.unlock();
+        imm_mtx.unlock();
         return s;
       }
-      superversion_mtx.unlock();
+      imm_mtx.unlock();
     }
     mem_r = mem_.load();
     // For the safety concern (such as the thread get context switch)
@@ -1655,9 +1629,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
     }else {
       // get the snapshot for imm then check it so that this memtable pointer is guarantee
       // to be the one this thread want.
+
       mem_r = imm_.load();
       assert(imm_.load()!= nullptr);
-      assert(MEMTABLE_SEQ_SIZE - mem_r->Get_seq_count() <= 4);
       printf("write to imm table");
       if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()) {
         return s;
@@ -1743,7 +1717,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 ////        assert(mem_r->Get_seq_count() == MEMTABLE_SEQ_SIZE);
 //        assert(imm_.load() == nullptr);
 //        imm_.store(mem_r);
-//        MaybeScheduleCompaction();
+//        MaybeScheduleFlushOrCompaction();
 //        mem_r = temp_mem;
 //        return s;
 //      }else{
@@ -1853,7 +1827,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //
 //        //set the flush flag for imm
 //        imm_.store(mem_r);
-//        MaybeScheduleCompaction();
+//        MaybeScheduleFlushOrCompaction();
 //      }else{
 //        temp_mem->Unref();
 //      };
@@ -1997,6 +1971,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
   v->Unref();
 }
 
+
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish
 Status DB::Put(const WriteOptions& opt, const Slice& key, const Slice& value) {
@@ -2046,7 +2021,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   }
   if (s.ok()) {
 //    impl->RemoveObsoleteFiles();
-    impl->MaybeScheduleCompaction();
+impl->MaybeScheduleFlushOrCompaction();
   }
   impl->undefine_mutex.Unlock();
   if (s.ok()) {
