@@ -202,11 +202,11 @@ class MemTableList {
   // A list of memtables.
   explicit MemTableList(int min_write_buffer_number_to_merge,
                         int max_write_buffer_number_to_maintain,
-                        int64_t max_write_buffer_size_to_maintain)
+                        int64_t max_write_buffer_size_to_maintain,
+                        SpinMutex* mtx)
       : cmp(BytewiseComparator()),
         imm_flush_needed(false),
         imm_trim_needed(false),
-        min_write_buffer_number_to_merge_(min_write_buffer_number_to_merge),
         current_(new MemTableListVersion(&current_memory_usage_,
                                          max_write_buffer_number_to_maintain,
                                          max_write_buffer_size_to_maintain)),
@@ -215,7 +215,7 @@ class MemTableList {
         flush_requested_(false),
         current_memory_usage_(0),
         current_memory_usage_excluding_last_(0),
-        current_has_history_(false) {
+        current_has_history_(false), imm_mtx(mtx) {
     current_->Ref();
   }
 
@@ -382,12 +382,12 @@ class MemTableList {
   // DB mutex held
   void InstallNewVersion();
 
-  const int min_write_buffer_number_to_merge_;
+//  const int min_write_buffer_number_to_merge_;
 
   MemTableListVersion* current_;
 
   // the number of elements that still need flushing
-  int num_flush_not_started_;
+  std::atomic<int> num_flush_not_started_;
 
   // committing in progress
   bool commit_in_progress_;
@@ -406,6 +406,7 @@ class MemTableList {
 
   // Cached value of current_->HasHistory().
   std::atomic<bool> current_has_history_;
+  SpinMutex* imm_mtx;
 };
 class FlushJob {
  public:

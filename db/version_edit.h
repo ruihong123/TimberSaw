@@ -42,6 +42,7 @@ struct RemoteMemTableMetaData {
   }
   static std::shared_ptr<RDMA_Manager> rdma_mg;
   int refs;
+  int level;
   int allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
   std::map<int, ibv_mr*> remote_data_mrs;
@@ -51,6 +52,7 @@ struct RemoteMemTableMetaData {
   uint64_t file_size;    // File size in bytes
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
+  bool UnderCompaction;
 };
 
 class VersionEdit {
@@ -91,7 +93,16 @@ class VersionEdit {
                const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
     new_files_.emplace_back(level, remote_table);
   }
-
+  void AddFileIfNotExist(int level,
+               const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
+    for(auto iter : new_files_){
+      if (iter.second == remote_table){
+        return;
+      }
+    }
+    new_files_.emplace_back(level, remote_table);
+    return;
+  }
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file) {
     deleted_files_.insert(std::make_pair(level, file));

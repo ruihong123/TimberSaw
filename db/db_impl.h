@@ -134,7 +134,7 @@ class DBImpl : public DB {
                         VersionEdit* edit, SequenceNumber* max_sequence)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
-  Status WriteLevel0Table(leveldb::FlushJob* job, VersionEdit* edit, Version* base)
+  Status WriteLevel0Table(FlushJob* job, VersionEdit* edit)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status WriteLevel0Table(MemTable* job, VersionEdit* edit, Version* base)
   EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);

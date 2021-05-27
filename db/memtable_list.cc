@@ -320,12 +320,7 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
 // Returns true if there is at least one memtable on which flush has
 // not yet started.
 bool MemTableList::IsFlushPending() const {
-  if ((flush_requested_ && num_flush_not_started_ > 0) ||
-      (num_flush_not_started_ >= min_write_buffer_number_to_merge_)) {
-    assert(imm_flush_needed.load(std::memory_order_relaxed));
-    return true;
-  }
-  return false;
+  return this->num_flush_not_started_.load() >= 2;
 }
 
 // Returns the memtables that need to be flushed.
@@ -341,14 +336,14 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 
     if (!m->CheckFlushInProcess()) {
       assert(!m->CheckFlushFinished());
-      num_flush_not_started_--;
-      if (num_flush_not_started_ == 0) {
-        imm_flush_needed.store(false, std::memory_order_release);
-      }
+      num_flush_not_started_.fetch_sub(1);
+//      if (num_flush_not_started_ == 0) {
+//        imm_flush_needed.store(false, std::memory_order_release);
+//      }
 //      m->flush_in_progress_ = true;  // flushing will start very soon
       mems->push_back(m);
       // at most pick 2 table and do the merge
-      if(++table_counter>=2)
+      if(++table_counter>= leveldb::config::ImmuNumPerFlush)
         break;
     }
   }
@@ -358,7 +353,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 }
 
 MemTable* MemTableList::PickMemtablesSeqBelong(size_t seq) {
-
+    return current_->PickMemtablesSeqBelong(seq);
 }
 
 
@@ -386,7 +381,7 @@ void MemTableList::RollbackMemtableFlush(const autovector<MemTable*>& mems,
     assert(m->CheckFlushInProcess());
 
     m->SetFlushState(MemTable::FLUSH_REQUESTED);
-    num_flush_not_started_++;
+    num_flush_not_started_.fetch_add(1);
   }
   imm_flush_needed.store(true, std::memory_order_release);
 }
@@ -442,7 +437,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
       if (!m->CheckFlushFinished()) {
         break;
       }
-
+      edit->AddFileIfNotExist(0,m->sstable);
       batch_count++;
     }
 
@@ -456,7 +451,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
     while (batch_count-- > 0) {
       MemTable* m = current_->memlist_.back();
 
-      assert(m->sstable > 0);
+      assert(m->sstable != nullptr);
       autovector<MemTable*> dummy_to_delete = autovector<MemTable*>();
       current_->Remove(m);
       UpdateCachedValuesFromMemTableListVersion();
@@ -488,7 +483,7 @@ void MemTableList::Add(MemTable* m) {
   // Add memtable number atomically.
   current_memtable_num_.fetch_add(1);
   m->SetFlushState(MemTable::FLUSH_REQUESTED);
-  num_flush_not_started_++;
+  num_flush_not_started_.fetch_add(1);
   if (num_flush_not_started_ == 1) {
     imm_flush_needed.store(true, std::memory_order_release);
   }

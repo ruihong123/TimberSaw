@@ -58,7 +58,13 @@ bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files,
                            const Slice* smallest_user_key,
                            const Slice* largest_user_key);
+class Level_Info{
+ public:
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> files;
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> in_progress;
+  double compaction_score_;
 
+};
 class Version {
  public:
   // Lookup the value for key.  If found, store it in *val and
@@ -111,7 +117,7 @@ class Version {
   int PickLevelForMemTableOutput(const Slice& smallest_user_key,
                                  const Slice& largest_user_key);
 
-  int NumFiles(int level) const { return files_[level].size(); }
+  int NumFiles(int level) const { return levels_[level].size(); }
 
   // Return a human readable string that describes this version's contents.
   std::string DebugString() const;
@@ -206,8 +212,9 @@ class Version {
   int refs_;          // Number of live refs to this version
 
   // List of files per level
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> files_[config::kNumLevels];
-
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> levels_[config::kNumLevels];
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> in_progress[config::kNumLevels];
+  double score[config::kNumLevels];
   // Next file to compact based on seek stats.
   std::shared_ptr<RemoteMemTableMetaData> file_to_compact_;
   int file_to_compact_level_;
