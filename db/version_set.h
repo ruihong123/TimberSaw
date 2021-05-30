@@ -99,7 +99,7 @@ class Version {
   void Ref();
   void Unref();
 
-  void GetOverlappingInputs(
+  bool GetOverlappingInputs(
       int level,
       const InternalKey* begin,  // nullptr means before all keys
       const InternalKey* end,    // nullptr means after all keys
@@ -175,6 +175,8 @@ class Version {
     // Backing store for value().  Holds the file number and size.
     mutable char value_buf_[16];
   };
+  double CompactionScore(int i);
+  int CompactionLevel(int i);
  private:
   friend class Compaction;
   friend class VersionSet;
@@ -214,7 +216,7 @@ class Version {
   // List of files per level
   std::vector<std::shared_ptr<RemoteMemTableMetaData>> levels_[config::kNumLevels];
   std::vector<std::shared_ptr<RemoteMemTableMetaData>> in_progress[config::kNumLevels];
-  double score[config::kNumLevels];
+//  double score[config::kNumLevels];
   // Next file to compact based on seek stats.
   std::shared_ptr<RemoteMemTableMetaData> file_to_compact_;
   int file_to_compact_level_;
@@ -222,8 +224,9 @@ class Version {
   // Level that should be compacted next and its compaction score.
   // Score < 1 means compaction is not strictly needed.  These fields
   // are initialized by Finalize().
-  double compaction_score_;
-  int compaction_level_;
+  std::vector<double> compaction_score_;
+  std::vector<int> compaction_level_;
+
 };
 
 class VersionSet {
@@ -296,12 +299,14 @@ class VersionSet {
   // Return the log file number for the log file that is currently
   // being compacted, or zero if there is no such log file.
   uint64_t PrevLogNumber() const { return prev_log_number_; }
-
+//  static bool check_compaction_state(std::shared_ptr<RemoteMemTableMetaData> sst);
+  bool PickFileToCompact(int level, Compaction* c);
   // Pick level and mem_vec for a new compaction.
   // Returns nullptr if there is no compaction to be done.
   // Otherwise returns a pointer to a heap-allocated object that
   // describes the compaction.  Caller should delete the result.
   Compaction* PickCompaction();
+
 
   // Return a compaction object for compacting the range [begin,end] in
   // the specified level.  Returns nullptr if there is nothing in that
@@ -321,7 +326,7 @@ class VersionSet {
   // Returns true iff some level needs a compaction.
   bool NeedsCompaction() const {
     Version* v = current_;
-    return (v->compaction_score_ >= 1) || (v->file_to_compact_ != nullptr);
+    return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
   }
 
   // Add all files listed in any live version to *live.
@@ -384,7 +389,7 @@ class VersionSet {
   port::Mutex version_mutex;
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
-  std::string compact_pointer_[config::kNumLevels];
+  std::string compact_index_[config::kNumLevels];
 };
 
 // A Compaction encapsulates information about a compaction.
@@ -395,6 +400,7 @@ class Compaction {
   // Return the level that is being compacted.  Inputs from "level"
   // and "level+1" will be merged to produce a set of "level+1" files.
   int level() const { return level_; }
+  void SetLevel(int level) { level_ = level; }
 
   // Return the object that holds the edits to the descriptor done
   // by this compaction.
@@ -424,7 +430,7 @@ class Compaction {
   // Returns true iff we should stop building the current output
   // before processing "internal_key".
   bool ShouldStopBefore(const Slice& internal_key);
-
+  uint64_t FirstLevelSize();
   // Release the mem_vec version for the compaction, once the compaction
   // is successful.
   void ReleaseInputs();

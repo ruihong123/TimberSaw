@@ -437,7 +437,7 @@ int Version::PickLevelForMemTableOutput(const Slice& smallest_user_key,
 }
 
 // Store in "*inputs" all files in "level" that overlap [begin,end]
-void Version::GetOverlappingInputs(int level, const InternalKey* begin,
+bool Version::GetOverlappingInputs(int level, const InternalKey* begin,
                                    const InternalKey* end,
                                    std::vector<std::shared_ptr<RemoteMemTableMetaData>>* inputs) {
   assert(level >= 0);
@@ -459,7 +459,9 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
       // "f" is completely before specified range; skip it
     } else if (end != nullptr && user_cmp->Compare(file_start, user_end) > 0) {
       // "f" is completely after specified range; skip it
-    } else {
+    } else if(f->UnderCompaction) {
+      return false;
+    }else{
       inputs->push_back(f);
       if (level == 0) {
         // Level-0 files may overlap each other.  So check if the newly
@@ -477,6 +479,7 @@ void Version::GetOverlappingInputs(int level, const InternalKey* begin,
           i = 0;
         }
       }
+      return true;
     }
   }
 }
@@ -507,7 +510,8 @@ std::string Version::DebugString() const {
   }
   return r;
 }
-
+double Version::CompactionScore(int i) { return compaction_score_[i]; }
+int Version::CompactionLevel(int i) { return compaction_level_[i]; }
 // A helper class so we can efficiently apply a whole sequence
 // of edits to a particular state without creating intermediate
 // Versions that contain full copies of the intermediate state.
@@ -576,7 +580,7 @@ class VersionSet::Builder {
     // Update compaction pointers
     for (size_t i = 0; i < edit->compact_pointers_.size(); i++) {
       const int level = edit->compact_pointers_[i].first;
-      vset_->compact_pointer_[level] =
+      vset_->compact_index_[level] =
           edit->compact_pointers_[i].second.Encode().ToString();
     }
 
@@ -1016,23 +1020,37 @@ void VersionSet::Finalize(Version* v) {
       score = (v->levels_[level].size() - v->in_progress[level].size())/
               static_cast<double>(config::kL0_CompactionTrigger);
       assert(score>0);
-      v->score[level] = score;
+      v->compaction_level_[level] = level;
+      v->compaction_score_[level] = score;
     } else {
       // Compute the ratio of current size to size limit.
       const uint64_t level_bytes = TotalFileSize(v->levels_[level]) - TotalFileSize(v->in_progress[level]);
       score =
           static_cast<double>(level_bytes) / MaxBytesForLevel(options_, level);
-      v->score[level] = score;
+      v->compaction_level_[level] = level;
+      v->compaction_score_[level] = score;
     }
 
-    if (score > best_score) {
-      best_level = level;
-      best_score = score;
+//    if (score > best_score) {
+//      best_level = level;
+//      best_score = score;
+//    }
+  }
+  //sort the compaction level and compaction score.
+  for (int i = 0; i < config::kNumLevels - 2; i++) {
+    for (int j = i + 1; j < config::kNumLevels - 1; j++) {
+      if (v->compaction_score_[i] < v->compaction_score_[j]) {
+        double score = v->compaction_score_[i];
+        int level = v->compaction_level_[i];
+        v->compaction_score_[i] = v->compaction_score_[j];
+        v->compaction_level_[i] = v->compaction_level_[j];
+        v->compaction_score_[j] = score;
+        v->compaction_level_[j] = level;
+      }
     }
   }
-
-  v->compaction_level_ = best_level;
-  v->compaction_score_ = best_score;
+//  v->compaction_level_ = best_level;
+//  v->compaction_score_ = best_score;
 }
 
 Status VersionSet::WriteSnapshot(log::Writer* log) {
@@ -1044,9 +1062,9 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
 
   // Save compaction pointers
   for (int level = 0; level < config::kNumLevels; level++) {
-    if (!compact_pointer_[level].empty()) {
+    if (!compact_index_[level].empty()) {
       InternalKey key;
-      key.DecodeFrom(compact_pointer_[level]);
+      key.DecodeFrom(compact_index_[level]);
       edit.SetCompactPointer(level, key);
     }
   }
@@ -1176,7 +1194,7 @@ void VersionSet::GetRange(const std::vector<std::shared_ptr<RemoteMemTableMetaDa
 
 // Stores the minimal range that covers all entries in inputs1 and inputs2
 // in *smallest, *largest.
-// REQUIRES: mem_vec is not empty
+// REQUIRES: inputs_ is not empty
 void VersionSet::GetRange2(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs1,
                            const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs2,
                            InternalKey* smallest, InternalKey* largest) {
@@ -1232,11 +1250,11 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
 //    assert(level + 1 < config::kNumLevels);
 //    c = new Compaction(options_, level);
 //
-//    // Pick the first file that comes after compact_pointer_[level]
+//    // Pick the first file that comes after compact_index_[level]
 //    for (size_t i = 0; i < current_->levels_[level].size(); i++) {
 //      std::shared_ptr<RemoteMemTableMetaData> f = current_->levels_[level][i];
-//      if (compact_pointer_[level].empty() ||
-//          icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
+//      if (compact_index_[level].empty() ||
+//          icmp_.Compare(f->largest.Encode(), compact_index_[level]) > 0) {
 //        c->inputs_[0].push_back(f);
 //        break;
 //      }
@@ -1271,63 +1289,160 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
 //
 //  return c;
 //}
-Compaction* VersionSet::PickCompaction() {
-  Compaction* c;
-  int level;
+//bool VersionSet::check_compaction_state(
+//    std::shared_ptr<RemoteMemTableMetaData> sst) {
+//  return sst->UnderCompaction;
+//}
+bool VersionSet::PickFileToCompact(int level, Compaction* c){
 
-  // We prefer compactions triggered by too much data in a level over
-  // the compactions triggered by seeks.
-  const bool size_compaction = (current_->compaction_score_ >= 1);
-  const bool seek_compaction = (current_->file_to_compact_ != nullptr);
-  if (size_compaction) {
-    level = current_->compaction_level_;
-    c = new Compaction(options_, level);
-    if (level == 0){
-      c->inputs_[0] = current_->levels_[level];
-      for(auto iter : c->inputs_[0]){
-        if (iter->UnderCompaction){
-          c->inputs_[0].erase(iter);
-        }
-      }
-    }else{
-      for (size_t i = 0; i < current_->levels_[level].size(); i++) {
-      std::shared_ptr<RemoteMemTableMetaData> f = current_->levels_[level][i];
-      if (compact_pointer_[level].empty() ||
-          icmp_.Compare(f->largest.Encode(), compact_pointer_[level]) > 0) {
-        c->inputs_[0].push_back(f);
-        break;
-      }
-    }
-    if (c->inputs_[0].empty()) {
-      // Wrap-around to the beginning of the key space
-      c->inputs_[0].push_back(current_->levels_[level][0]);
-    }
-    }
-  } else if (seek_compaction) {
-    level = current_->file_to_compact_level_;
-    c = new Compaction(options_, level);
-    c->inputs_[0].push_back(current_->file_to_compact_);
-  } else {
-    return nullptr;
-  }
 
-  c->input_version_ = current_;
-  c->input_version_->Ref();
-
-  // Files in level 0 may overlap each other, so pick up all overlapping ones
-  if (level == 0) {
+  c->inputs_->clear();
+  if (level==0){
+    // if there is pending compaction, skip level 0
+    if (current_->in_progress->size()>0){
+      return false;
+    }
+    //Directly pickup all the pending table in level 0
+    c->inputs_[0] = current_->levels_[level];
     InternalKey smallest, largest;
     GetRange(c->inputs_[0], &smallest, &largest);
     // Note that the next call will discard the file we placed in
     // c->inputs_[0] earlier and replace it with an overlapping set
     // which will include the picked file.
-    current_->GetOverlappingInputs(0, &smallest, &largest, &c->inputs_[0]);
     assert(!c->inputs_[0].empty());
+    return current_->GetOverlappingInputs(1, &smallest, &largest, &c->inputs_[1]);
+
+
+  }else {
+    size_t current_level_size = current_->levels_[level].size();
+    size_t random_index = std::rand() % current_level_size;
+    InternalKey smallest, largest;
+    auto user_cmp = icmp_.user_comparator();
+    int counter = 0;
+    while (1) {
+      std::shared_ptr<RemoteMemTableMetaData> f =
+          current_->levels_[level][random_index];
+
+      if (!f->UnderCompaction) {
+        // if this file is not under compaction, insert it to the input list.
+        c->inputs_[0].push_back(f);
+        std::shared_ptr<RemoteMemTableMetaData> next_f = current_->levels_[level][random_index + 1];
+        // need to check whether next file share the same key with this file, if yes
+        // we have to add the next file. because the upper level can not have newer update
+        // than lower level
+        //TOTHink: Is the file sequence in vector sorted by the largest / smallest key?
+        assert(user_cmp->Compare(next_f->largest.user_key(), f->largest.user_key()) > 0);
+        if(user_cmp->Compare(next_f->smallest.user_key(), f->largest.user_key()) == 0){
+          c->inputs_[0].push_back(next_f);
+        }
+        GetRange(c->inputs_[0], &smallest, &largest);
+        // find file for level n+1
+        if(current_->GetOverlappingInputs(level + 1, &smallest, &largest,
+                                       &c->inputs_[1])){
+          break;
+        }else{
+          // if level n+1 under compaction clear the files
+          c->inputs_[0].clear();
+          c->inputs_[1].clear();
+        }
+      } else {
+        // Optional: if this file is under compaction then empty the input vector.
+        if (!c->inputs_[0].empty()) {
+          c->inputs_[0].clear();
+
+        }
+        if (!c->inputs_[0].empty()) {
+          c->inputs_[0].clear();
+
+        }
+      }
+      // Tothink: here we do not check the size of the inputs[0], we will avoid
+      //  creating small files during the compaction.
+//      if (c->FirstLevelSize() < options_->max_file_size){
+//        InternalKey smallest, largest;
+//        GetRange(c->inputs_[0], &smallest, &largest);
+//        if(current_->GetOverlappingInputs(0, &smallest, &largest, &c->inputs_[0]))
+//          break;
+//        else{
+//          c->inputs_[0].clear();
+//        }
+//      }
+      random_index =
+          random_index + 1 < current_level_size ? random_index + 1 : 0;
+      if (++counter == current_level_size) break;
+    }
   }
 
-  SetupOtherInputs(c);
+  return c->inputs_[0].empty();
 
-  return c;
+}
+Compaction* VersionSet::PickCompaction() {
+  Compaction* c;
+  int level = 0;
+  double level_score = 0;
+  bool skipped_l0_to_base = false;
+  c = new Compaction(options_, level);
+  // We prefer compactions triggered by too much data in a level over
+  // the compactions triggered by seeks.
+  for (int i = 0; i < config::kNumLevels - 1; i++) {
+    level = current_->CompactionLevel(i);
+    level_score = current_->CompactionScore(i);
+    c->SetLevel(level);
+    if (level_score > 1){
+
+      if (skipped_l0_to_base && level == 1) {
+        // If L0->L1 compaction is pending, don't schedule further
+        // compaction from base level. Otherwise L0->base_level compaction
+        // may starve.
+        continue;
+      }
+      if (PickFileToCompact(level,c)) {
+        break;
+      }else{
+        if (level == 0){
+          skipped_l0_to_base = true;
+          //TODO: schedule a intralevel compaction like rocks db.
+        }
+      }
+    }else{
+      // Compaction scores are sorted in descending order, no further scores
+      // will be >= 1.
+      break;
+    }
+  }
+  if (!c->inputs_[0].empty()) {
+    c->input_version_ = current_;
+    c->input_version_->Ref();
+    return c;
+  }else{
+    return nullptr;
+  }
+  //TODO: enable the file seek time compaciton in the future.
+//  if (current_->file_to_compact_ != nullptr) {
+//    level = current_->file_to_compact_level_;
+//    c->SetLevel(level);
+//    assert(c->inputs_[0].empty()&& c->inputs_[1].empty());
+//    c->inputs_[0].push_back(current_->file_to_compact_);
+//  } else {
+//    return nullptr;
+//  }
+
+
+
+//  // Files in level 0 may overlap each other, so pick up all overlapping ones
+//  if (level == 0) {
+//    InternalKey smallest, largest;
+//    GetRange(c->inputs_[0], &smallest, &largest);
+//    // Note that the next call will discard the file we placed in
+//    // c->inputs_[0] earlier and replace it with an overlapping set
+//    // which will include the picked file.
+//    current_->GetOverlappingInputs(0, &smallest, &largest, &c->inputs_[0]);
+//    assert(!c->inputs_[0].empty());
+//  }
+//
+//  SetupOtherInputs(c);
+
+
 }
 // Finds the largest key in a vector of files. Returns true if files it not
 // empty.
@@ -1422,7 +1537,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   InternalKey all_start, all_limit;
   GetRange2(c->inputs_[0], c->inputs_[1], &all_start, &all_limit);
 
-  // See if we can grow the number of mem_vec in "level" without
+  // See if we can grow the number of inputs in "level" without
   // changing the number of "level+1" files we pick up.
   if (!c->inputs_[1].empty()) {
     std::vector<std::shared_ptr<RemoteMemTableMetaData>> expanded0;
@@ -1465,7 +1580,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   // We update this immediately instead of waiting for the VersionEdit
   // to be applied so that if the compaction fails, we will try a different
   // key range next time.
-  compact_pointer_[level] = largest.Encode().ToString();
+  compact_index_[level] = largest.Encode().ToString();
   c->edit_.SetCompactPointer(level, largest);
 }
 
@@ -1501,6 +1616,7 @@ Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
   SetupOtherInputs(c);
   return c;
 }
+
 
 Compaction::Compaction(const Options* options, int level)
     : level_(level),
@@ -1584,7 +1700,13 @@ bool Compaction::ShouldStopBefore(const Slice& internal_key) {
     return false;
   }
 }
-
+uint64_t Compaction::FirstLevelSize(){
+  uint64_t sum_size = 0;
+  for (auto file : inputs_[0]) {
+    sum_size +=file->file_size;
+  }
+  return sum_size;
+}
 void Compaction::ReleaseInputs() {
   if (input_version_ != nullptr) {
     input_version_->Unref();
