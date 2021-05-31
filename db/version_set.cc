@@ -1020,7 +1020,7 @@ void VersionSet::Finalize(Version* v) {
       // overwrites/deletions).
       score = (v->levels_[level].size() - v->in_progress[level].size())/
               static_cast<double>(config::kL0_CompactionTrigger);
-      assert(score>0);
+      assert(score>=0);
       v->compaction_level_[level] = level;
       v->compaction_score_[level] = score;
     } else {
@@ -1028,6 +1028,7 @@ void VersionSet::Finalize(Version* v) {
       const uint64_t level_bytes = TotalFileSize(v->levels_[level]) - TotalFileSize(v->in_progress[level]);
       score =
           static_cast<double>(level_bytes) / MaxBytesForLevel(options_, level);
+      assert(score>=0);
       v->compaction_level_[level] = level;
       v->compaction_score_[level] = score;
     }
