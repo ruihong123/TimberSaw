@@ -486,7 +486,23 @@ class PosixLockTable {
   port::Mutex mu_;
   std::set<std::string> locked_files_ GUARDED_BY(mu_);
 };
+template<typename ReturnType, typename ArgsType>
+struct BGItem {
+//  void* tag = nullptr;
+  std::function<ReturnType(ArgsType args)> function;
 
+//  std::function<void()> unschedFunction;
+};
+template<typename ReturnType, typename ArgsType>
+class ThreadPool{
+ public:
+  std::vector<port::Thread> bgthreads_;
+  std::deque<BGItem<ReturnType, ArgsType>> background_work_queue_;
+  Env::ThreadPoolType Type_;
+  void Schedule(std::function<ReturnType(ArgsType args)>&& func, ArgsType args);
+//  void Schedule(std::function<void(void* args)>&& schedule, void* args);
+
+};
 class PosixEnv : public Env {
  public:
   PosixEnv();
@@ -826,7 +842,27 @@ void PosixEnv::Schedule(
   background_work_queue_.emplace(background_work_function, background_work_arg);
   background_work_mutex_.Unlock();
 }
-
+//void PosixEnv::Schedule(
+//    void (*background_work_function)(void* background_work_arg),
+//    void* background_work_arg) {
+//  background_work_mutex_.Lock();
+//
+//
+//  // Start the background thread, if we haven't done so already.
+//  if (!started_background_thread_) {
+//    started_background_thread_ = true;
+//    std::thread background_thread(PosixEnv::BackgroundThreadEntryPoint, this);
+//    background_thread.detach();
+//  }
+//
+//  // If the queue is empty, the background thread may be waiting for work.
+//  if (background_work_queue_.empty()) {
+//    background_work_cv_.Signal();
+//  }
+//
+//  background_work_queue_.emplace(background_work_function, background_work_arg);
+//  background_work_mutex_.Unlock();
+//}
 void PosixEnv::BackgroundThreadMain() {
   while (true) {
     background_work_mutex_.Lock();

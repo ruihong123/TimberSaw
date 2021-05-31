@@ -899,6 +899,9 @@ void DBImpl::BackgroundCompaction() {
           (m->done ? "(end)" : manual_end.DebugString().c_str()));
     } else {
       c = versions_->PickCompaction();
+      //if there is no task to pick up, just return.
+      if (c== nullptr)
+        return;
     }
     write_stall_mutex_.AssertNotHeld();
     Status status;
@@ -1131,17 +1134,17 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //      const uint64_t imm_start = env_->NowMicros();
 //      undefine_mutex.Lock();
       write_stall_mutex_.AssertNotHeld();
-      if (imm_.load() != nullptr) {
-        auto start = std::chrono::high_resolution_clock::now();
-        CompactMemTable();
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
-        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
-        DEBUG("Memtable flushed\n");
-        // Wake up MakeRoomForWrite() if necessary.
-//        write_stall_cv.SignalAll();
-      }
+//      if (imm_.load() != nullptr) {
+//        auto start = std::chrono::high_resolution_clock::now();
+//        CompactMemTable();
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
+//        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
+//        DEBUG("Memtable flushed\n");
+//        // Wake up MakeRoomForWrite() if necessary.
+////        write_stall_cv.SignalAll();
+//      }
 //      undefine_mutex.Unlock();
 //      imm_micros += (env_->NowMicros() - imm_start);
     }
@@ -1273,17 +1276,17 @@ struct IterState {
   port::Mutex* const mu;
   Version* const version GUARDED_BY(mu);
   MemTable* const mem GUARDED_BY(mu);
-  MemTable* const imm GUARDED_BY(mu);
-
-  IterState(port::Mutex* mutex, MemTable* mem, MemTable* imm, Version* version)
-      : mu(mutex), version(version), mem(mem), imm(imm) {}
+//  MemTable* const imm GUARDED_BY(mu);
+  MemTableListVersion* imm_version;
+  IterState(port::Mutex* mutex, MemTable* mem, MemTableListVersion* imm_version, Version* version)
+      : mu(mutex), version(version), mem(mem), imm_version(imm_version) {}
 };
 
 static void CleanupIteratorState(void* arg1, void* arg2) {
   IterState* state = reinterpret_cast<IterState*>(arg1);
   state->mu->Lock();
   state->mem->Unref();
-  if (state->imm != nullptr) state->imm->Unref();
+  if (state->imm_version != nullptr) state->imm_version->Unref();
   state->version->Unref();
   state->mu->Unlock();
   delete state;
@@ -1298,21 +1301,18 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   *latest_snapshot = versions_->LastSequence();
   //TODO: use read wirte spin Lock to concurrent control the get of the imm and mem
   MemTable* mem = mem_.load();
-  MemTable* imm = imm_.load();
+  MemTableListVersion* imm = imm_->current();
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
   list.push_back(mem->NewIterator());
   mem->Ref();
-  if (imm != nullptr) {
-    list.push_back(imm->NewIterator());
-    imm->Ref();
-  }
+  imm->AddIteratorsToList(&list);
   versions_->current()->AddIterators(options, &list);
   Iterator* internal_iter =
       NewMergingIterator(&internal_comparator_, &list[0], list.size());
   versions_->current()->Ref();
 
-  IterState* cleanup = new IterState(&undefine_mutex, mem_, imm_, versions_->current());
+  IterState* cleanup = new IterState(&undefine_mutex, mem_, imm, versions_->current());
   internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
 
   *seed = ++seed_;
@@ -1344,7 +1344,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   }
 
   MemTable* mem = mem_;
-  MemTable* imm = imm_;
+  MemTableListVersion* imm = imm_->current();
   Version* current = versions_->current();
   mem->Ref();
   if (imm != nullptr) imm->Ref();
@@ -1899,7 +1899,7 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
 
 //  MutexLock l(&undefine_mutex);
   MemTable* mem = mem_.load();
-  MemTable* imm = imm_.load();
+//  MemTableListVersion* imm = imm_->current();
   Slice in = property;
   Slice prefix("leveldb.");
   if (!in.starts_with(prefix)) return false;
@@ -1945,8 +1945,8 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
     if (mem) {
       total_usage += mem->ApproximateMemoryUsage();
     }
-    if (imm) {
-      total_usage += imm->ApproximateMemoryUsage();
+    if (imm_) {
+      total_usage += imm_->ApproximateMemoryUsageExcludingLast();
     }
     char buf[50];
     std::snprintf(buf, sizeof(buf), "%llu",

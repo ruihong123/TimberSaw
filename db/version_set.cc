@@ -479,9 +479,10 @@ bool Version::GetOverlappingInputs(int level, const InternalKey* begin,
           i = 0;
         }
       }
-      return true;
+
     }
   }
+  return true;
 }
 
 std::string Version::DebugString() const {
@@ -1415,6 +1416,7 @@ Compaction* VersionSet::PickCompaction() {
     c->input_version_->Ref();
     return c;
   }else{
+    delete c;
     return nullptr;
   }
   //TODO: enable the file seek time compaciton in the future.

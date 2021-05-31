@@ -108,7 +108,7 @@ class MemTableListVersion {
 //  Status AddRangeTombstoneIterators(const ReadOptions& read_opts, Arena* arena,
 //                                    RangeDelAggregator* range_del_agg);
 
-  void AddIterators(const ReadOptions& options,
+  void AddIteratorsToVector(const ReadOptions& options,
                     std::vector<Iterator*>* iterator_list,
                     Arena* arena);
   MemTable* PickMemtablesSeqBelong(size_t seq);
@@ -116,6 +116,7 @@ class MemTableListVersion {
 //                    MergeIteratorBuilder* merge_iter_builder);
 
   uint64_t GetTotalNumEntries() const;
+  void AddIteratorsToList(std::vector<Iterator*>* list);
 
 //  uint64_t GetTotalNumDeletes() const;
 
@@ -252,7 +253,8 @@ class MemTableList {
 
   void RollbackMemtableFlush(const autovector<MemTable*>& mems,
                              uint64_t file_number);
-  //Create a merge interpreter
+  //Create a merge interpreter from flush job, do not need mutex synchronize outside
+  // the function.
   Iterator* MakeInputIterator(FlushJob* job);
 
 

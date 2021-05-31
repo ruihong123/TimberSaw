@@ -51,6 +51,7 @@ class WritableFile;
 
 class LEVELDB_EXPORT Env {
  public:
+  enum ThreadPoolType{FlushThreadPool, CompactionThreadPool, SubcompactionThreadPool};
   Env();
 
   Env(const Env&) = delete;

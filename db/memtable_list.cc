@@ -177,7 +177,7 @@ bool MemTableListVersion::GetFromList(std::list<MemTable*>* list,
 //  return Status::OK();
 //}
 
-void MemTableListVersion::AddIterators(
+void MemTableListVersion::AddIteratorsToVector(
     const ReadOptions& options, std::vector<Iterator*>* iterator_list,
     Arena* arena) {
   for (auto& m : memlist_) {
@@ -206,6 +206,14 @@ uint64_t MemTableListVersion::GetTotalNumEntries() const {
     total_num += m->Get_seq_count();
   }
   return total_num;
+}
+void MemTableListVersion::AddIteratorsToList(
+    std::vector<Iterator*>* list) {
+//  int iter_num = memlist_.size();
+  for (auto iter : memlist_) {
+    this->Ref();
+    list->push_back(iter->NewIterator());
+  }
 }
 
 //MemTable::MemTableStats MemTableListVersion::ApproximateStats(
@@ -315,7 +323,6 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
   }
   return ret;
 }
-
 
 // Returns true if there is at least one memtable on which flush has
 // not yet started.
