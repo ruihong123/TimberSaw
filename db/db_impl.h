@@ -20,6 +20,7 @@
 #include "port/thread_annotations.h"
 #include "util/mutexlock.h"
 
+#include "memtable_list.h"
 #include "version_set.h"
 
 namespace leveldb {
@@ -62,7 +63,7 @@ class DBImpl : public DB {
   void TEST_CompactRange(int level, const Slice* begin, const Slice* end);
 
   // Force current memtable contents to be compacted.
-  Status TEST_CompactMemTable();
+//  Status TEST_CompactMemTable();
 
   // Return an internal iterator over the current state of the database.
   // The keys of this iterator are internal keys (see format.h).
@@ -184,14 +185,14 @@ class DBImpl : public DB {
   // we could rename it as superversion mutex
   port::Mutex undefine_mutex;
   port::Mutex write_stall_mutex_;
-  SpinMutex spin_memtable_switch_mutex;
+//  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   port::CondVar write_stall_cv GUARDED_BY(write_stall_mutex_);
   SpinMutex imm_mtx;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;
 //  std::atomic<MemTable*> imm_;  // Memtable being compacted
-  MemTableList* imm_;
+  MemTableList imm_;
   std::atomic<bool> has_imm_;         // So bg thread can detect non-null imm_
   WritableFile* logfile_;
   uint64_t logfile_number_;

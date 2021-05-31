@@ -141,7 +141,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       shutting_down_(false),
       write_stall_cv(&undefine_mutex),
       mem_(nullptr),
-      imm_(nullptr),
+      imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger, 64*1024*1024*config::Immutable_StopWritesTrigger ,&imm_mtx),
       has_imm_(false),
       logfile_(nullptr),
       logfile_number_(0),
@@ -169,7 +169,7 @@ DBImpl::~DBImpl() {
   delete versions_;
   if (mem_ != nullptr) mem_.load()->SimpleDelete();
 //  if (imm_ != nullptr) imm_.load()->SimpleDelete();
-  if (imm_ != nullptr) delete imm_;
+//  if (imm_ != nullptr) delete imm_;
   delete tmp_batch_;
   delete log_;
   delete logfile_;
@@ -516,7 +516,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
   pending_outputs_.insert(meta->number);
-  Iterator* iter = imm_->MakeInputIterator(job);
+  Iterator* iter = imm_.MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta->number);
 //  printf("now system start to serializae mem %p\n", mem);
@@ -708,8 +708,8 @@ void DBImpl::CompactMemTable() {
   FlushJob f_job(&write_stall_mutex_, &write_stall_cv);
   {
     std::unique_lock<SpinMutex> l(imm_mtx);
-    if (imm_->IsFlushPending())
-      imm_->PickMemtablesToFlush(&f_job.mem_vec);
+    if (imm_.IsFlushPending())
+      imm_.PickMemtablesToFlush(&f_job.mem_vec);
     else
       return;
   }
@@ -720,7 +720,7 @@ void DBImpl::CompactMemTable() {
   Status s = WriteLevel0Table(&f_job, &edit);
   base->Unref();
 
-  imm_->TryInstallMemtableFlushResults(&f_job, versions_, &imm_mtx, f_job.sst,
+  imm_.TryInstallMemtableFlushResults(&f_job, versions_, &imm_mtx, f_job.sst,
                                        &edit);
 
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
@@ -740,7 +740,7 @@ void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
       }
     }
   }
-  TEST_CompactMemTable();  // TODO(sanjay): Skip if memtable does not overlap
+//  TEST_CompactMemTable();  // TODO(sanjay): Skip if memtable does not overlap
   for (int level = 0; level < max_level_with_files; level++) {
     TEST_CompactRange(level, begin, end);
   }
@@ -785,21 +785,21 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
   }
 }
 
-Status DBImpl::TEST_CompactMemTable() {
-  // nullptr batch means just wait for earlier writes to be done
-  Status s = Write(WriteOptions(), nullptr);
-  if (s.ok()) {
-    // Wait until the compaction completes
-    MutexLock l(&undefine_mutex);
-    while (imm_ != nullptr && bg_error_.ok()) {
-      write_stall_cv.Wait();
-    }
-    if (imm_ != nullptr) {
-      s = bg_error_;
-    }
-  }
-  return s;
-}
+//Status DBImpl::TEST_CompactMemTable() {
+//  // nullptr batch means just wait for earlier writes to be done
+//  Status s = Write(WriteOptions(), nullptr);
+//  if (s.ok()) {
+//    // Wait until the compaction completes
+//    MutexLock l(&undefine_mutex);
+//    while (imm_ != nullptr && bg_error_.ok()) {
+//      write_stall_cv.Wait();
+//    }
+//    if (imm_ != nullptr) {
+//      s = bg_error_;
+//    }
+//  }
+//  return s;
+//}
 
 void DBImpl::RecordBackgroundError(const Status& s) {
 //  undefine_mutex.AssertHeld();
@@ -817,7 +817,7 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
     // DB is being deleted; no more background compactions
   } else if (!bg_error_.ok()) {
     // Already got an error; no more changes
-  } else if (imm_ == nullptr && manual_compaction_ == nullptr &&
+  } else if (imm_.IsFlushPending() &&
              !versions_->NeedsCompaction()) {
     // No work to be done
   } else {
@@ -857,7 +857,7 @@ void DBImpl::BackgroundFlush() {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {
     // No more background work after a background error.
-  } else if (imm_->IsFlushPending()) {
+  } else if (imm_.IsFlushPending()) {
     auto start = std::chrono::high_resolution_clock::now();
     CompactMemTable();
     auto stop = std::chrono::high_resolution_clock::now();
@@ -1301,7 +1301,7 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   *latest_snapshot = versions_->LastSequence();
   //TODO: use read wirte spin Lock to concurrent control the get of the imm and mem
   MemTable* mem = mem_.load();
-  MemTableListVersion* imm = imm_->current();
+  MemTableListVersion* imm = imm_.current();
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
   list.push_back(mem->NewIterator());
@@ -1344,7 +1344,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   }
 
   MemTable* mem = mem_;
-  MemTableListVersion* imm = imm_->current();
+  MemTableListVersion* imm = imm_.current();
   Version* current = versions_->current();
   mem->Ref();
   if (imm != nullptr) imm->Ref();
@@ -1577,7 +1577,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
     // for a new table.
-    if (imm_->current_memtable_num()>= config::Immutable_StopWritesTrigger
+    if (imm_.current_memtable_num()>= config::Immutable_StopWritesTrigger
         || versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
@@ -1587,7 +1587,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       undefine_mutex.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
-      while ((imm_->current_memtable_num() >= config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
+      while ((imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
              config::kL0_StopWritesTrigger) && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
         write_stall_cv.Wait();
@@ -1599,7 +1599,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       imm_mtx.lock();
       mem_r = mem_.load();
       //After aquire the lock check the status again
-      if (imm_->current_memtable_num() <= config::Immutable_StopWritesTrigger&&
+      if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
           versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger &&
           seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
@@ -1613,8 +1613,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
         mem_.store(temp_mem);
         //set the flush flag for imm
-        assert(imm_->current_memtable_num() > config::Immutable_StopWritesTrigger);
-        imm_->Add(mem_r);
+        assert(imm_.current_memtable_num() > config::Immutable_StopWritesTrigger);
+        imm_.Add(mem_r);
         has_imm_.store(true, std::memory_order_release);
         MaybeScheduleFlushOrCompaction();
         // if we have create a new table then the new table will definite be
@@ -1638,7 +1638,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // get the snapshot for imm then check it so that this memtable pointer is guarantee
       // to be the one this thread want.
 
-      mem_r = imm_->PickMemtablesSeqBelong(seq_num);
+      mem_r = imm_.PickMemtablesSeqBelong(seq_num);
       if (mem_r != nullptr)
         return s;
     }
@@ -1945,9 +1945,9 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
     if (mem) {
       total_usage += mem->ApproximateMemoryUsage();
     }
-    if (imm_) {
-      total_usage += imm_->ApproximateMemoryUsageExcludingLast();
-    }
+
+    total_usage += imm_.ApproximateMemoryUsageExcludingLast();
+
     char buf[50];
     std::snprintf(buf, sizeof(buf), "%llu",
                   static_cast<unsigned long long>(total_usage));
