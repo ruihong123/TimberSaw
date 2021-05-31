@@ -189,9 +189,7 @@ class Version {
         prev_(this),
         refs_(0),
         file_to_compact_(nullptr),
-        file_to_compact_level_(-1),
-        compaction_score_(-1),
-        compaction_level_(-1) {}
+        file_to_compact_level_(-1){}
 
   Version(const Version&) = delete;
   Version& operator=(const Version&) = delete;
@@ -224,8 +222,8 @@ class Version {
   // Level that should be compacted next and its compaction score.
   // Score < 1 means compaction is not strictly needed.  These fields
   // are initialized by Finalize().
-  std::vector<double> compaction_score_;
-  std::vector<int> compaction_level_;
+  std::array<int, config::kNumLevels> compaction_score_;
+  std::array<int, config::kNumLevels> compaction_level_;
 
 };
 
