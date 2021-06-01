@@ -823,24 +823,26 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
   if (imm_.IsFlushPending()) {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
-    BGThreadMetadata thread_pool_args = {.db = this, .func_args = function_args};
-    env_->Schedule(BGWork_Flush, static_cast<void*>(&thread_pool_args), Env::ThreadPoolType::FlushThreadPool);
+    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Flush, static_cast<void*>(thread_pool_args), Env::ThreadPoolType::FlushThreadPool);
   }
   if (versions_->NeedsCompaction()) {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
-    BGThreadMetadata thread_pool_args = {.db = this, .func_args = function_args};
-    env_->Schedule(BGWork_Compaction, static_cast<void*>(&thread_pool_args), Env::ThreadPoolType::CompactionThreadPool);
+    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), Env::ThreadPoolType::CompactionThreadPool);
   }
 }
 
 void DBImpl::BGWork_Flush(void* thread_arg) {
   BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
   p->db->BackgroundFlush(p->func_args);
+  delete static_cast<BGThreadMetadata*>(thread_arg);
 }
 void DBImpl::BGWork_Compaction(void* thread_arg) {
   BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
   p->db->BackgroundCompaction(p->func_args);
+  delete static_cast<BGThreadMetadata*>(thread_arg);
 }
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a Lock, which data structure is this mutex protecting
