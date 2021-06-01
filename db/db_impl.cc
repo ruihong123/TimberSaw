@@ -815,21 +815,33 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
 // by the thread which CAS the memtable successfully.
  if (shutting_down_.load(std::memory_order_acquire)) {
     // DB is being deleted; no more background compactions
+    return;
   } else if (!bg_error_.ok()) {
     // Already got an error; no more changes
-  } else if (imm_.IsFlushPending() &&
-             !versions_->NeedsCompaction()) {
-    // No work to be done
-  } else {
-    background_compaction_scheduled_ = true;
-    env_->Schedule(&DBImpl::BGWork, this);
+    return;
+  }
+  if (imm_.IsFlushPending()) {
+//    background_compaction_scheduled_ = true;
+    void* function_args = nullptr;
+    BGThreadMetadata thread_pool_args = {.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Flush, static_cast<void*>(&thread_pool_args), Env::ThreadPoolType::FlushThreadPool);
+  }
+  if (versions_->NeedsCompaction()) {
+//    background_compaction_scheduled_ = true;
+    void* function_args = nullptr;
+    BGThreadMetadata thread_pool_args = {.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(&thread_pool_args), Env::ThreadPoolType::CompactionThreadPool);
   }
 }
 
-void DBImpl::BGWork(void* db) {
-  reinterpret_cast<DBImpl*>(db)->BackgroundCall();
+void DBImpl::BGWork_Flush(void* thread_arg) {
+  BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+  p->db->BackgroundFlush(p->func_args);
 }
-
+void DBImpl::BGWork_Compaction(void* thread_arg) {
+  BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+  p->db->BackgroundCompaction(p->func_args);
+}
 void DBImpl::BackgroundCall() {
   //Tothink: why there is a Lock, which data structure is this mutex protecting
 //  undefine_mutex.Lock();
@@ -839,7 +851,8 @@ void DBImpl::BackgroundCall() {
   } else if (!bg_error_.ok()) {
     // No more background work after a background error.
   } else {
-    BackgroundCompaction();
+    void* dummay_p = nullptr;
+    BackgroundCompaction(dummay_p);
   }
 
   background_compaction_scheduled_ = false;
@@ -849,7 +862,7 @@ void DBImpl::BackgroundCall() {
   MaybeScheduleFlushOrCompaction();
 //  undefine_mutex.Unlock();
 }
-void DBImpl::BackgroundFlush() {
+void DBImpl::BackgroundFlush(void* p) {
   //Tothink: why there is a Lock, which data structure is this mutex protecting
 //  undefine_mutex.Lock();
 //  assert(background_compaction_scheduled_);
@@ -874,7 +887,7 @@ void DBImpl::BackgroundFlush() {
   MaybeScheduleFlushOrCompaction();
 //  undefine_mutex.Unlock();
 }
-void DBImpl::BackgroundCompaction() {
+void DBImpl::BackgroundCompaction(void* p) {
   write_stall_mutex_.AssertNotHeld();
 
   if (shutting_down_.load(std::memory_order_acquire)) {
@@ -965,7 +978,7 @@ void DBImpl::BackgroundCompaction() {
       manual_compaction_ = nullptr;
     }
   }
-
+  MaybeScheduleFlushOrCompaction();
 
 }
 
@@ -1177,10 +1190,12 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
       if (last_sequence_for_key <= compact->smallest_snapshot) {
         // Hidden by an newer entry for same user key
+        assert(false);
         drop = true;  // (A)
       } else if (ikey.type == kTypeDeletion &&
                  ikey.sequence <= compact->smallest_snapshot &&
                  compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+        // TOTHINK(0ruihong) :what is this for
         // For this user key:
         // (1) there is no data in higher levels
         // (2) data in lower levels will have larger sequence numbers

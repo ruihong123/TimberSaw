@@ -34,6 +34,8 @@ class MemTableList;
 class Memtable_keeper{
   std::deque<MemTable> memtables;
 };
+// The structure for storing argument for thread pool.
+
 class DBImpl : public DB {
  public:
   DBImpl(const Options& options, const std::string& dbname);
@@ -147,10 +149,11 @@ class DBImpl : public DB {
   void RecordBackgroundError(const Status& s);
 
   void MaybeScheduleFlushOrCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
-  static void BGWork(void* db);
+  static void BGWork_Flush(void* thread_args);
+  static void BGWork_Compaction(void* thread_args);
   void BackgroundCall();
-  void BackgroundFlush();
-  void BackgroundCompaction() EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
+  void BackgroundFlush(void* p);
+  void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   void CleanupCompaction(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status DoCompactionWork(CompactionState* compact)
@@ -224,7 +227,10 @@ class DBImpl : public DB {
   std::atomic<size_t> kv_counter0 = 0;
   std::atomic<size_t> kv_counter1 = 0;
 };
-
+struct BGThreadMetadata {
+  DBImpl* db;
+  void* func_args;
+};
 // Sanitize db options.  The caller should delete result.info_log if
 // it is not equal to src.info_log.
 Options SanitizeOptions(const std::string& db,

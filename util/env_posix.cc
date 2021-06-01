@@ -486,20 +486,123 @@ class PosixLockTable {
   port::Mutex mu_;
   std::set<std::string> locked_files_ GUARDED_BY(mu_);
 };
-template<typename ReturnType, typename ArgsType>
+//template<typename ReturnType, typename ArgsType>
 struct BGItem {
 //  void* tag = nullptr;
-  std::function<ReturnType(ArgsType args)> function;
-
+  std::function<void(void* args)> function;
+  void* args;
 //  std::function<void()> unschedFunction;
 };
-template<typename ReturnType, typename ArgsType>
+
+//template<typename ReturnType, typename ArgsType>
 class ThreadPool{
  public:
+
   std::vector<port::Thread> bgthreads_;
-  std::deque<BGItem<ReturnType, ArgsType>> background_work_queue_;
+  std::deque<BGItem> queue_;
   Env::ThreadPoolType Type_;
-  void Schedule(std::function<ReturnType(ArgsType args)>&& func, ArgsType args);
+  std::mutex mu_;
+  std::condition_variable bgsignal_ GUARDED_BY(mu_);
+  int total_threads_limit_;
+  std::atomic_uint queue_len_;
+  bool exit_all_threads_;
+  bool wait_for_jobs_to_complete_;
+  void WakeUpAllThreads() { bgsignal_.notify_all();
+  }
+  void BGThread() {
+    bool low_io_priority = false;
+    while (true) {
+      // Wait until there is an item that is ready to run
+      std::unique_lock<std::mutex> lock(mu_);
+      // Stop waiting if the thread needs to do work or needs to terminate.
+      while (!exit_all_threads_ && queue_.empty() ) {
+        bgsignal_.wait(lock);
+      }
+
+      if (exit_all_threads_) {  // mechanism to let BG threads exit safely
+
+        if (!wait_for_jobs_to_complete_ ||
+            queue_.empty()) {
+          break;
+        }
+      }
+
+
+      auto func = std::move(queue_.front().function);
+      void* args = std::move(queue_.front().args);
+      queue_.pop_front();
+
+      queue_len_.store(static_cast<unsigned int>(queue_.size()),
+                       std::memory_order_relaxed);
+
+      lock.unlock();
+
+
+      func(args);
+    }
+  }
+  void StartBGThreads() {
+    // Start background thread if necessary
+    while ((int)bgthreads_.size() < total_threads_limit_) {
+
+      port::Thread p_t(&ThreadPool::BGThread, this);
+      bgthreads_.push_back(std::move(p_t));
+    }
+  }
+  void Schedule(std::function<void(void* args)>&& func, void* args){
+    std::lock_guard<std::mutex> lock(mu_);
+    if (exit_all_threads_) {
+      return;
+    }
+    StartBGThreads();
+    // Add to priority queue
+    queue_.push_back(BGItem());
+
+    auto& item = queue_.back();
+//    item.tag = tag;
+    item.function = std::move(func);
+    item.args = std::move(args);
+
+    queue_len_.store(static_cast<unsigned int>(queue_.size()),
+                     std::memory_order_relaxed);
+
+//    if (!HasExcessiveThread()) {
+//      // Wake up at least one waiting thread.
+//      bgsignal_.notify_one();
+//    } else {
+//      // Need to wake up all threads to make sure the one woken
+//      // up is not the one to terminate.
+//      WakeUpAllThreads();
+//    }
+    WakeUpAllThreads();
+  }
+  void JoinThreads(bool wait_for_jobs_to_complete) {
+
+    std::unique_lock<std::mutex> lock(mu_);
+    assert(!exit_all_threads_);
+
+    wait_for_jobs_to_complete_ = wait_for_jobs_to_complete;
+    exit_all_threads_ = true;
+    // prevent threads from being recreated right after they're joined, in case
+    // the user is concurrently submitting jobs.
+    total_threads_limit_ = 0;
+
+    lock.unlock();
+
+    bgsignal_.notify_all();
+
+    for (auto& th : bgthreads_) {
+      th.join();
+    }
+
+    bgthreads_.clear();
+
+    exit_all_threads_ = false;
+    wait_for_jobs_to_complete_ = false;
+  }
+  void SetBackgroundThreads(int num){
+    total_threads_limit_ = num;
+  }
 //  void Schedule(std::function<void(void* args)>&& schedule, void* args);
 
 };
@@ -507,6 +610,10 @@ class PosixEnv : public Env {
  public:
   PosixEnv();
   ~PosixEnv() override {
+    // By default the threadpool will not wait for all the task in the queue finished.
+    flushing.JoinThreads(false);
+    compaction.JoinThreads(false);
+    subcompaction.JoinThreads(false);
     static const char msg[] =
         "PosixEnv singleton destroyed. Unsupported behavior!\n";
     std::fwrite(msg, 1, sizeof(msg), stderr);
@@ -678,7 +785,9 @@ class PosixEnv : public Env {
 
   void Schedule(void (*background_work_function)(void* background_work_arg),
                 void* background_work_arg) override;
-
+  void Schedule(
+      void (*background_work_function)(void* background_work_arg),
+      void* background_work_arg, ThreadPoolType type) override;
   void StartThread(void (*thread_main)(void* thread_main_arg),
                    void* thread_main_arg) override {
     std::thread new_thread(thread_main, thread_main_arg);
@@ -731,6 +840,19 @@ class PosixEnv : public Env {
   void SleepForMicroseconds(int micros) override {
     std::this_thread::sleep_for(std::chrono::microseconds(micros));
   }
+  void SetBackgroundThreads(int num,  Env::ThreadPoolType type) override{
+    switch (type) {
+      case Env::FlushThreadPool:
+        flushing.SetBackgroundThreads(num);
+        break;
+      case Env::CompactionThreadPool:
+        compaction.SetBackgroundThreads(num);
+        break;
+      case Env::SubcompactionThreadPool:
+        subcompaction.SetBackgroundThreads(num);
+        break;
+    }
+  }
 
  private:
   void BackgroundThreadMain();
@@ -759,7 +881,9 @@ class PosixEnv : public Env {
 
   std::queue<BackgroundWorkItem> background_work_queue_
       GUARDED_BY(background_work_mutex_);
-
+  ThreadPool flushing;
+  ThreadPool compaction;
+  ThreadPool subcompaction;
   PosixLockTable locks_;  // Thread-safe.
   Limiter mmap_limiter_;  // Thread-safe.
   Limiter fd_limiter_;    // Thread-safe.
@@ -842,27 +966,21 @@ void PosixEnv::Schedule(
   background_work_queue_.emplace(background_work_function, background_work_arg);
   background_work_mutex_.Unlock();
 }
-//void PosixEnv::Schedule(
-//    void (*background_work_function)(void* background_work_arg),
-//    void* background_work_arg) {
-//  background_work_mutex_.Lock();
-//
-//
-//  // Start the background thread, if we haven't done so already.
-//  if (!started_background_thread_) {
-//    started_background_thread_ = true;
-//    std::thread background_thread(PosixEnv::BackgroundThreadEntryPoint, this);
-//    background_thread.detach();
-//  }
-//
-//  // If the queue is empty, the background thread may be waiting for work.
-//  if (background_work_queue_.empty()) {
-//    background_work_cv_.Signal();
-//  }
-//
-//  background_work_queue_.emplace(background_work_function, background_work_arg);
-//  background_work_mutex_.Unlock();
-//}
+void PosixEnv::Schedule(
+    void (*background_work_function)(void* background_work_arg),
+    void* background_work_arg, ThreadPoolType type) {
+  switch (type) {
+    case FlushThreadPool:
+      flushing.Schedule(background_work_function, background_work_arg);
+      break;
+    case CompactionThreadPool:
+      compaction.Schedule(background_work_function, background_work_arg);
+      break;
+    case SubcompactionThreadPool:
+      subcompaction.Schedule(background_work_function, background_work_arg);
+      break;
+  }
+}
 void PosixEnv::BackgroundThreadMain() {
   while (true) {
     background_work_mutex_.Lock();

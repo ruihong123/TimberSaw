@@ -15,7 +15,8 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
   env->rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_write_block);
   env->rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_write_block);
   env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"), RDMA_write_block);
-
+  env->SetBackgroundThreads(max_background_flushes,Env::ThreadPoolType::FlushThreadPool);
+  env->SetBackgroundThreads(max_background_compactions,Env::ThreadPoolType::CompactionThreadPool);
 }
 
 }  // namespace leveldb

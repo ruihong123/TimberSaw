@@ -218,173 +218,173 @@ class NoOpLogger : public Logger {
   void Logv(const char* format, std::va_list ap) override {}
 };
 
-class InMemoryEnv : public EnvWrapper {
- public:
-  explicit InMemoryEnv(Env* base_env) : EnvWrapper(base_env) {}
-
-  ~InMemoryEnv() override {
-    for (const auto& kvp : file_map_) {
-      kvp.second->Unref();
-    }
-  }
-
-  // Partial implementation of the Env interface.
-  Status NewSequentialFile(const std::string& fname,
-                           SequentialFile** result) override {
-    MutexLock lock(&mutex_);
-    if (file_map_.find(fname) == file_map_.end()) {
-      *result = nullptr;
-      return Status::IOError(fname, "File not found");
-    }
-
-    *result = new SequentialFileImpl(file_map_[fname]);
-    return Status::OK();
-  }
-
-  Status NewRandomAccessFile(const std::string& fname,
-                             RandomAccessFile** result) override {
-    MutexLock lock(&mutex_);
-    if (file_map_.find(fname) == file_map_.end()) {
-      *result = nullptr;
-      return Status::IOError(fname, "File not found");
-    }
-
-    *result = new RandomAccessFileImpl(file_map_[fname]);
-    return Status::OK();
-  }
-
-  Status NewWritableFile(const std::string& fname,
-                         WritableFile** result) override {
-    MutexLock lock(&mutex_);
-    FileSystem::iterator it = file_map_.find(fname);
-
-    FileState* file;
-    if (it == file_map_.end()) {
-      // File is not currently open.
-      file = new FileState();
-      file->Ref();
-      file_map_[fname] = file;
-    } else {
-      file = it->second;
-      file->Truncate();
-    }
-
-    *result = new WritableFileImpl(file);
-    return Status::OK();
-  }
-
-  Status NewAppendableFile(const std::string& fname,
-                           WritableFile** result) override {
-    MutexLock lock(&mutex_);
-    FileState** sptr = &file_map_[fname];
-    FileState* file = *sptr;
-    if (file == nullptr) {
-      file = new FileState();
-      file->Ref();
-    }
-    *result = new WritableFileImpl(file);
-    return Status::OK();
-  }
-
-  bool FileExists(const std::string& fname) override {
-    MutexLock lock(&mutex_);
-    return file_map_.find(fname) != file_map_.end();
-  }
-
-  Status GetChildren(const std::string& dir,
-                     std::vector<std::string>* result) override {
-    MutexLock lock(&mutex_);
-    result->clear();
-
-    for (const auto& kvp : file_map_) {
-      const std::string& filename = kvp.first;
-
-      if (filename.size() >= dir.size() + 1 && filename[dir.size()] == '/' &&
-          Slice(filename).starts_with(Slice(dir))) {
-        result->push_back(filename.substr(dir.size() + 1));
-      }
-    }
-
-    return Status::OK();
-  }
-
-  void RemoveFileInternal(const std::string& fname)
-      EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
-    if (file_map_.find(fname) == file_map_.end()) {
-      return;
-    }
-
-    file_map_[fname]->Unref();
-    file_map_.erase(fname);
-  }
-
-  Status RemoveFile(const std::string& fname) override {
-    MutexLock lock(&mutex_);
-    if (file_map_.find(fname) == file_map_.end()) {
-      return Status::IOError(fname, "File not found");
-    }
-
-    RemoveFileInternal(fname);
-    return Status::OK();
-  }
-
-  Status CreateDir(const std::string& dirname) override { return Status::OK(); }
-
-  Status RemoveDir(const std::string& dirname) override { return Status::OK(); }
-
-  Status GetFileSize(const std::string& fname, uint64_t* file_size) override {
-    MutexLock lock(&mutex_);
-    if (file_map_.find(fname) == file_map_.end()) {
-      return Status::IOError(fname, "File not found");
-    }
-
-    *file_size = file_map_[fname]->Size();
-    return Status::OK();
-  }
-
-  Status RenameFile(const std::string& src,
-                    const std::string& target) override {
-    MutexLock lock(&mutex_);
-    if (file_map_.find(src) == file_map_.end()) {
-      return Status::IOError(src, "File not found");
-    }
-
-    RemoveFileInternal(target);
-    file_map_[target] = file_map_[src];
-    file_map_.erase(src);
-    return Status::OK();
-  }
-
-  Status LockFile(const std::string& fname, FileLock** lock) override {
-    *lock = new FileLock;
-    return Status::OK();
-  }
-
-  Status UnlockFile(FileLock* lock) override {
-    delete lock;
-    return Status::OK();
-  }
-
-  Status GetTestDirectory(std::string* path) override {
-    *path = "/test";
-    return Status::OK();
-  }
-
-  Status NewLogger(const std::string& fname, Logger** result) override {
-    *result = new NoOpLogger;
-    return Status::OK();
-  }
-
- private:
-  // Map from filenames to FileState objects, representing a simple file system.
-  typedef std::map<std::string, FileState*> FileSystem;
-
-  port::Mutex mutex_;
-  FileSystem file_map_ GUARDED_BY(mutex_);
-};
+//class InMemoryEnv : public EnvWrapper {
+// public:
+//  explicit InMemoryEnv(Env* base_env) : EnvWrapper(base_env) {}
+//
+//  ~InMemoryEnv() override {
+//    for (const auto& kvp : file_map_) {
+//      kvp.second->Unref();
+//    }
+//  }
+//
+//  // Partial implementation of the Env interface.
+//  Status NewSequentialFile(const std::string& fname,
+//                           SequentialFile** result) override {
+//    MutexLock lock(&mutex_);
+//    if (file_map_.find(fname) == file_map_.end()) {
+//      *result = nullptr;
+//      return Status::IOError(fname, "File not found");
+//    }
+//
+//    *result = new SequentialFileImpl(file_map_[fname]);
+//    return Status::OK();
+//  }
+//
+//  Status NewRandomAccessFile(const std::string& fname,
+//                             RandomAccessFile** result) override {
+//    MutexLock lock(&mutex_);
+//    if (file_map_.find(fname) == file_map_.end()) {
+//      *result = nullptr;
+//      return Status::IOError(fname, "File not found");
+//    }
+//
+//    *result = new RandomAccessFileImpl(file_map_[fname]);
+//    return Status::OK();
+//  }
+//
+//  Status NewWritableFile(const std::string& fname,
+//                         WritableFile** result) override {
+//    MutexLock lock(&mutex_);
+//    FileSystem::iterator it = file_map_.find(fname);
+//
+//    FileState* file;
+//    if (it == file_map_.end()) {
+//      // File is not currently open.
+//      file = new FileState();
+//      file->Ref();
+//      file_map_[fname] = file;
+//    } else {
+//      file = it->second;
+//      file->Truncate();
+//    }
+//
+//    *result = new WritableFileImpl(file);
+//    return Status::OK();
+//  }
+//
+//  Status NewAppendableFile(const std::string& fname,
+//                           WritableFile** result) override {
+//    MutexLock lock(&mutex_);
+//    FileState** sptr = &file_map_[fname];
+//    FileState* file = *sptr;
+//    if (file == nullptr) {
+//      file = new FileState();
+//      file->Ref();
+//    }
+//    *result = new WritableFileImpl(file);
+//    return Status::OK();
+//  }
+//
+//  bool FileExists(const std::string& fname) override {
+//    MutexLock lock(&mutex_);
+//    return file_map_.find(fname) != file_map_.end();
+//  }
+//
+//  Status GetChildren(const std::string& dir,
+//                     std::vector<std::string>* result) override {
+//    MutexLock lock(&mutex_);
+//    result->clear();
+//
+//    for (const auto& kvp : file_map_) {
+//      const std::string& filename = kvp.first;
+//
+//      if (filename.size() >= dir.size() + 1 && filename[dir.size()] == '/' &&
+//          Slice(filename).starts_with(Slice(dir))) {
+//        result->push_back(filename.substr(dir.size() + 1));
+//      }
+//    }
+//
+//    return Status::OK();
+//  }
+//
+//  void RemoveFileInternal(const std::string& fname)
+//      EXCLUSIVE_LOCKS_REQUIRED(mutex_) {
+//    if (file_map_.find(fname) == file_map_.end()) {
+//      return;
+//    }
+//
+//    file_map_[fname]->Unref();
+//    file_map_.erase(fname);
+//  }
+//
+//  Status RemoveFile(const std::string& fname) override {
+//    MutexLock lock(&mutex_);
+//    if (file_map_.find(fname) == file_map_.end()) {
+//      return Status::IOError(fname, "File not found");
+//    }
+//
+//    RemoveFileInternal(fname);
+//    return Status::OK();
+//  }
+//
+//  Status CreateDir(const std::string& dirname) override { return Status::OK(); }
+//
+//  Status RemoveDir(const std::string& dirname) override { return Status::OK(); }
+//
+//  Status GetFileSize(const std::string& fname, uint64_t* file_size) override {
+//    MutexLock lock(&mutex_);
+//    if (file_map_.find(fname) == file_map_.end()) {
+//      return Status::IOError(fname, "File not found");
+//    }
+//
+//    *file_size = file_map_[fname]->Size();
+//    return Status::OK();
+//  }
+//
+//  Status RenameFile(const std::string& src,
+//                    const std::string& target) override {
+//    MutexLock lock(&mutex_);
+//    if (file_map_.find(src) == file_map_.end()) {
+//      return Status::IOError(src, "File not found");
+//    }
+//
+//    RemoveFileInternal(target);
+//    file_map_[target] = file_map_[src];
+//    file_map_.erase(src);
+//    return Status::OK();
+//  }
+//
+//  Status LockFile(const std::string& fname, FileLock** lock) override {
+//    *lock = new FileLock;
+//    return Status::OK();
+//  }
+//
+//  Status UnlockFile(FileLock* lock) override {
+//    delete lock;
+//    return Status::OK();
+//  }
+//
+//  Status GetTestDirectory(std::string* path) override {
+//    *path = "/test";
+//    return Status::OK();
+//  }
+//
+//  Status NewLogger(const std::string& fname, Logger** result) override {
+//    *result = new NoOpLogger;
+//    return Status::OK();
+//  }
+//
+// private:
+//  // Map from filenames to FileState objects, representing a simple file system.
+//  typedef std::map<std::string, FileState*> FileSystem;
+//
+//  port::Mutex mutex_;
+//  FileSystem file_map_ GUARDED_BY(mutex_);
+//};
 
 }  // namespace
 
-Env* NewMemEnv(Env* base_env) { return new InMemoryEnv(base_env); }
+//Env* NewMemEnv(Env* base_env) { return new InMemoryEnv(base_env); }
 
 }  // namespace leveldb
