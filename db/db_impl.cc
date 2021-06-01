@@ -1164,6 +1164,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     }
 
     Slice key = input->key();
+    //Check whether the output file have too much overlap with level n + 2
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
       status = FinishCompactionOutputFile(compact, input);
@@ -1187,16 +1188,20 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
         has_current_user_key = true;
         last_sequence_for_key = kMaxSequenceNumber;
+        // this will result in the key not drop, next if will always be false because of
+        // the last_sequence_for_key.
       }
 
       if (last_sequence_for_key <= compact->smallest_snapshot) {
         // Hidden by an newer entry for same user key
-        assert(false);
+
         drop = true;  // (A)
       } else if (ikey.type == kTypeDeletion &&
                  ikey.sequence <= compact->smallest_snapshot &&
                  compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-        // TOTHINK(0ruihong) :what is this for
+        // TOTHINK(0ruihong) :what is this for?
+        //  Generally delete can only be deleted when there is definitely no file contain the
+        //  same key in the upper level.
         // For this user key:
         // (1) there is no data in higher levels
         // (2) data in lower levels will have larger sequence numbers
