@@ -215,6 +215,7 @@ class MemTableList {
         commit_in_progress_(false),
         flush_requested_(false),
         current_memory_usage_(0),
+        current_memtable_num_(0),
         current_memory_usage_excluding_last_(0),
         current_has_history_(false), imm_mtx(mtx) {
     current_->Ref();
