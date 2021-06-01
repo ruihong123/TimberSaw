@@ -208,6 +208,7 @@ class MemTableList {
       : cmp(BytewiseComparator()),
         imm_flush_needed(false),
         imm_trim_needed(false),
+        current_memtable_num_(0),
         current_(new MemTableListVersion(&current_memory_usage_,
                                          max_write_buffer_number_to_maintain,
                                          max_write_buffer_size_to_maintain)),
@@ -215,7 +216,6 @@ class MemTableList {
         commit_in_progress_(false),
         flush_requested_(false),
         current_memory_usage_(0),
-        current_memtable_num_(0),
         current_memory_usage_excluding_last_(0),
         current_has_history_(false), imm_mtx(mtx) {
     current_->Ref();
@@ -384,7 +384,9 @@ class MemTableList {
 
   // DB mutex held
   void InstallNewVersion();
-
+// The current memtable number. This can only represent the number of memtbale
+  // in the latest version, which means there could be more table alive in the memory.
+  std::atomic<size_t> current_memtable_num_;
 //  const int min_write_buffer_number_to_merge_;
 
   MemTableListVersion* current_;
@@ -401,9 +403,7 @@ class MemTableList {
 
   // The current memory usage.
   size_t current_memory_usage_;
-  // The current memtable number. This can only represent the number of memtbale
-  // in the latest version, which means there could be more table alive in the memory.
-  std::atomic<size_t> current_memtable_num_;
+
   // Cached value of current_->ApproximateMemoryUsageExcludingLast().
   std::atomic<size_t> current_memory_usage_excluding_last_;
 
