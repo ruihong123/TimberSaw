@@ -720,8 +720,7 @@ void DBImpl::CompactMemTable() {
   Status s = WriteLevel0Table(&f_job, &edit);
   base->Unref();
 
-  imm_.TryInstallMemtableFlushResults(&f_job, versions_, &imm_mtx, f_job.sst,
-                                       &edit);
+  imm_.TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
 
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");

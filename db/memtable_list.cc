@@ -257,10 +257,11 @@ void MemTableListVersion::Add(MemTable* m) {
 // we can remove the argument to_delete.
 void MemTableListVersion::Remove(MemTable* m) {
   // THIS SHOULD be protected by a lock.
+
   assert(refs_ == 1);  // only when refs_ == 1 is MemTableListVersion mutable
   memlist_.remove(m);
 
-  m->MarkFlushed();
+//  m->MarkFlushed();
   if (max_write_buffer_size_to_maintain_ > 0 ||
       max_write_buffer_number_to_maintain_ > 0) {
     memlist_history_.push_front(m);
@@ -397,7 +398,7 @@ void MemTableList::RollbackMemtableFlush(const autovector<MemTable*>& mems,
 // Try record a successful flush in the manifest file. It might just return
 // Status::OK letting a concurrent flush to do actual the recording..
 Status MemTableList::TryInstallMemtableFlushResults(
-    FlushJob* job, VersionSet* vset, SpinMutex* imm_mtx,
+    FlushJob* job, VersionSet* vset,
     std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit) {
 //  AutoThreadOperationStageUpdater stage_updater(
 //      ThreadStatus::STAGE_MEMTABLE_INSTALL_FLUSH_RESULTS);

@@ -261,10 +261,9 @@ class MemTableList {
 
   // Try commit a successful flush in the manifest file. It might just return
   // Status::OK letting a concurrent flush to do the actual the recording.
-  Status TryInstallMemtableFlushResults(FlushJob* job,
-                                        VersionSet* vset, SpinMutex* imm_mtx,
-      std::shared_ptr<RemoteMemTableMetaData>& sstable,
-                                        VersionEdit* edit);
+  Status TryInstallMemtableFlushResults(
+      FlushJob* job, VersionSet* vset,
+      std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
 
   // New memtables are inserted at the front of the list.
   // Takes ownership of the referenced held on *m by the caller of Add().
