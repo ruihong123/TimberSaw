@@ -318,9 +318,10 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
     MemTable* x = memlist_history_.back();
     memlist_history_.pop_back();
 
-    x->Unref();
+
     *parent_memtable_list_memory_usage_ -= x->ApproximateMemoryUsage();
     ret = true;
+    x->Unref();
   }
   return ret;
 }
