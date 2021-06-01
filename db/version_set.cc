@@ -1390,7 +1390,7 @@ Compaction* VersionSet::PickCompaction() {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);
     c->SetLevel(level);
-    if (level_score > 1){
+    if (level_score >= 1){
 
       if (skipped_l0_to_base && level == 1) {
         // If L0->L1 compaction is pending, don't schedule further
