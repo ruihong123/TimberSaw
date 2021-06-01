@@ -1382,6 +1382,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
 
 }
 Compaction* VersionSet::PickCompaction() {
+
   Compaction* c;
   int level = 0;
   double level_score = 0;
@@ -1389,6 +1390,7 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
+  version_mutex.Lock();
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);
@@ -1418,9 +1420,11 @@ Compaction* VersionSet::PickCompaction() {
   if (!c->inputs_[0].empty()) {
     c->input_version_ = current_;
     c->input_version_->Ref();
+    version_mutex.Unlock();
     return c;
   }else{
     delete c;
+    version_mutex.Unlock();
     return nullptr;
   }
   //TODO: enable the file seek time compaciton in the future.
