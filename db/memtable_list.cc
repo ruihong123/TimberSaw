@@ -344,6 +344,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
     if (!m->CheckFlushInProcess()) {
       assert(!m->CheckFlushFinished());
       num_flush_not_started_.fetch_sub(1);
+      m->SetFlushState(MemTable::FLUSH_PROCESSING);
 //      if (num_flush_not_started_ == 0) {
 //        imm_flush_needed.store(false, std::memory_order_release);
 //      }
