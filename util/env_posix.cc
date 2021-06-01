@@ -971,9 +971,11 @@ void PosixEnv::Schedule(
     void* background_work_arg, ThreadPoolType type) {
   switch (type) {
     case FlushThreadPool:
+      printf("flushing thread pool task queue length %zu", flushing.queue_.size());
       flushing.Schedule(background_work_function, background_work_arg);
       break;
     case CompactionThreadPool:
+      printf("flushing thread pool task queue length %zu", compaction.queue_.size());
       compaction.Schedule(background_work_function, background_work_arg);
       break;
     case SubcompactionThreadPool:
