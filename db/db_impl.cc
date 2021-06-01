@@ -1628,7 +1628,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
         mem_.store(temp_mem);
         //set the flush flag for imm
-        assert(imm_.current_memtable_num() > config::Immutable_StopWritesTrigger);
+        assert(imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger);
         imm_.Add(mem_r);
         has_imm_.store(true, std::memory_order_release);
         MaybeScheduleFlushOrCompaction();
