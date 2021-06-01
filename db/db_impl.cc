@@ -713,6 +713,7 @@ void DBImpl::CompactMemTable() {
     else
       return;
   }
+  DEBUG_arg("picked metable number is %lu", f_job.mem_vec.size());
   f_job.Waitforpendingwriter();
 
 //  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
