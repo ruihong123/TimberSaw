@@ -1328,15 +1328,18 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
       if (!f->UnderCompaction) {
         // if this file is not under compaction, insert it to the input list.
         c->inputs_[0].push_back(f);
-        std::shared_ptr<RemoteMemTableMetaData> next_f = current_->levels_[level][random_index + 1];
-        // need to check whether next file share the same key with this file, if yes
-        // we have to add the next file. because the upper level can not have newer update
-        // than lower level
-        //TOTHink: Is the file sequence in vector sorted by the largest / smallest key?
-        assert(user_cmp->Compare(next_f->largest.user_key(), f->largest.user_key()) > 0);
-        if(user_cmp->Compare(next_f->smallest.user_key(), f->largest.user_key()) == 0){
-          c->inputs_[0].push_back(next_f);
+        if (random_index != current_level_size - 1){
+          std::shared_ptr<RemoteMemTableMetaData> next_f = current_->levels_[level][random_index + 1];
+          // need to check whether next file share the same key with this file, if yes
+          // we have to add the next file. because the upper level can not have newer update
+          // than lower level
+          //TOTHink: Is the file sequence in vector sorted by the largest / smallest key?
+          assert(user_cmp->Compare(next_f->largest.user_key(), f->largest.user_key()) > 0);
+          if(user_cmp->Compare(next_f->smallest.user_key(), f->largest.user_key()) == 0){
+            c->inputs_[0].push_back(next_f);
+          }
         }
+
         GetRange(c->inputs_[0], &smallest, &largest);
         // find file for level n+1
         if(current_->GetOverlappingInputs(level + 1, &smallest, &largest,
