@@ -880,7 +880,7 @@ void DBImpl::BackgroundFlush(void* p) {
     DEBUG("Memtable flushed\n");
   }
 
-  background_compaction_scheduled_ = false;
+//  background_compaction_scheduled_ = false;
 
   // Previous compaction may have produced too many files in a level,
   // so reschedule another compaction if needed.
