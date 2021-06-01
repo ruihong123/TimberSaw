@@ -1615,7 +1615,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       mem_r = mem_.load();
       //After aquire the lock check the status again
       if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
-          versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger &&
+          versions_->NumLevelFiles(0) <= config::kL0_StopWritesTrigger &&
           seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
         MemTable* temp_mem = new MemTable(internal_comparator_);
