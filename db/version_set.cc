@@ -637,6 +637,10 @@ class VersionSet::Builder {
       // but whensearcg level 0 the reader will order the table be filenumber and then
       // iterate in the order of file number.
       // All the levels are oganized by key smallest key order
+#ifndef NDEBUG
+      if (!levels_[level].deleted_files.empty())
+        printf("contain deleted file at level %d", level);
+#endif
       for (const auto& added_file : *added_files) {
         // Add all smaller files listed in base_
         for (std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator bpos =
@@ -676,6 +680,9 @@ class VersionSet::Builder {
   void MaybeAddFile(Version* v, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
     if (levels_[level].deleted_files.count(f->number) > 0) {
       // File is deleted: do nothing
+#ifndef NDEBUG
+      printf("file NUM %lu get deleted.\n", f->number);
+#endif
     } else {
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* files = &v->levels_[level];
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* in_progresses = &v->in_progress[level];
