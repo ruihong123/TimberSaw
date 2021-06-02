@@ -765,7 +765,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
     builder.SaveTo(v);
   }
   Finalize(v);
-  version_mutex.Unlock();
+
   // Initialize new descriptor log file if necessary by creating
   // a temporary file that contains a snapshot of the current version.
 //  std::string new_manifest_file;
@@ -825,7 +825,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //      env_->RemoveFile(new_manifest_file);
 //    }
   }
-
+  version_mutex.Unlock();
   return s;
 }
 
