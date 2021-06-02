@@ -479,7 +479,7 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
   }
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
-  DEBUG_arg("Index block size is %zu", msg_size);
+//  DEBUG_arg("Index block size is %zu", msg_size);
   r->index_block->Move_buffer(static_cast<char*>(r->local_index_mr[0]->addr));
 
 }

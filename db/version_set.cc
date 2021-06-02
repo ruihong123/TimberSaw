@@ -1332,7 +1332,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
       for (auto iter : c->inputs_[1]) {
         iter->UnderCompaction = true;
       }
-      current_->in_progress[level+1].insert(current_->in_progress[level].end(),
+      current_->in_progress[level+1].insert(current_->in_progress[level+1].end(),
                                            c->inputs_[1].begin(), c->inputs_[1].end());
 //      return true;
     }else{
@@ -1379,7 +1379,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
           for (auto iter : c->inputs_[1]) {
             iter->UnderCompaction = true;
           }
-          current_->in_progress[level+1].insert(current_->in_progress[level].end(),
+          current_->in_progress[level+1].insert(current_->in_progress[level+1].end(),
                                                 c->inputs_[1].begin(), c->inputs_[1].end());
           break;
         }else{
