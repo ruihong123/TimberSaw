@@ -1116,6 +1116,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
     meta->remote_filter_mrs = out.remote_filter_mrs;
     compact->compaction->edit()->AddFile(level + 1, meta);
+    assert(!meta->UnderCompaction);
   }
   return versions_->LogAndApply(compact->compaction->edit());
 }

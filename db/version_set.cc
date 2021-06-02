@@ -639,7 +639,7 @@ class VersionSet::Builder {
       // All the levels are oganized by key smallest key order
 #ifndef NDEBUG
       if (!levels_[level].deleted_files.empty())
-        printf("contain deleted file at level %d", level);
+        printf("contain deleted file at level %d\n", level);
 #endif
       for (const auto& added_file : *added_files) {
         // Add all smaller files listed in base_
@@ -1305,9 +1305,11 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
 bool VersionSet::PickFileToCompact(int level, Compaction* c){
   assert(c->inputs_[0].empty());
   assert(c->inputs_[1].empty());
+  version_mutex.AssertHeld();
   if (level==0){
     // if there is pending compaction, skip level 0
-    if (current_->in_progress[0].size()>0){
+    if (current_->in_progress[level].size()>0){
+      assert(current_->levels_[level][0]->UnderCompaction);
       return false;
     }
     //Directly pickup all the pending table in level 0
