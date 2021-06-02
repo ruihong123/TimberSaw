@@ -642,6 +642,8 @@ class VersionSet::Builder {
         printf("contain deleted file at level %d\n", level);
 #endif
       for (const auto& added_file : *added_files) {
+        //Mark the file as not under compaction.
+        added_file->UnderCompaction = false;
         // Add all smaller files listed in base_
         for (std::vector<std::shared_ptr<RemoteMemTableMetaData>>::const_iterator bpos =
                  std::upper_bound(base_iter, base_end, added_file, cmp);
