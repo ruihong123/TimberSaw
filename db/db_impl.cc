@@ -722,7 +722,7 @@ void DBImpl::CompactMemTable() {
   base->Unref();
 
   imm_.TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
-  MaybeScheduleFlushOrCompaction();
+//  MaybeScheduleFlushOrCompaction();
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
   }
@@ -820,17 +820,20 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
     // Already got an error; no more changes
     return;
   }
+  DEBUG("May be schedule a background task! \n");
   if (imm_.IsFlushPending()) {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
     BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
     env_->Schedule(BGWork_Flush, static_cast<void*>(thread_pool_args), Env::ThreadPoolType::FlushThreadPool);
+    DEBUG("Schedule a flushing !\n");
   }
   if (versions_->NeedsCompaction()) {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
     BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
     env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), Env::ThreadPoolType::CompactionThreadPool);
+    DEBUG("Schedule a Compaction !\n");
   }
 }
 
@@ -915,8 +918,11 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else {
       c = versions_->PickCompaction();
       //if there is no task to pick up, just return.
-      if (c== nullptr)
+      if (c== nullptr){
+        DEBUG("compaction task executed but not found doable task.\n");
         return;
+      }
+
     }
     write_stall_mutex_.AssertNotHeld();
     Status status;
