@@ -1312,9 +1312,18 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
     // c->inputs_[0] earlier and replace it with an overlapping set
     // which will include the picked file.
     assert(!c->inputs_[0].empty());
-    return current_->GetOverlappingInputs(1, &smallest, &largest, &c->inputs_[1]);
-
-
+    if(current_->GetOverlappingInputs(1, &smallest, &largest, &c->inputs_[1])){
+      //Mark all the files as undercompaction
+      for (auto iter : c->inputs_[0]) {
+        iter->UnderCompaction = true;
+      }
+      for (auto iter : c->inputs_[1]) {
+        iter->UnderCompaction = true;
+      }
+      return true;
+    }else{
+      return false;
+    }
   }else {
     size_t current_level_size = current_->levels_[level].size();
     size_t random_index = std::rand() % current_level_size;
@@ -1344,6 +1353,13 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
         // find file for level n+1
         if(current_->GetOverlappingInputs(level + 1, &smallest, &largest,
                                        &c->inputs_[1])){
+          //Mark all the files as undercompaction
+          for (auto iter : c->inputs_[0]) {
+            iter->UnderCompaction = true;
+          }
+          for (auto iter : c->inputs_[1]) {
+            iter->UnderCompaction = true;
+          }
           break;
         }else{
           // if level n+1 under compaction clear the files
@@ -1420,6 +1436,8 @@ Compaction* VersionSet::PickCompaction() {
   if (!c->inputs_[0].empty()) {
     c->input_version_ = current_;
     c->input_version_->Ref();
+    //Recalculate the scores so that next time pick from a different level.
+    Finalize(current_);
     version_mutex.Unlock();
     return c;
   }else{
