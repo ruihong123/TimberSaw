@@ -1296,9 +1296,8 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
 //  return sst->UnderCompaction;
 //}
 bool VersionSet::PickFileToCompact(int level, Compaction* c){
-
-
-  c->inputs_->clear();
+  assert(c->inputs_[0].empty());
+  assert(c->inputs_[1].empty());
   if (level==0){
     // if there is pending compaction, skip level 0
     if (current_->in_progress[0].size()>0){
@@ -1312,7 +1311,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
     // c->inputs_[0] earlier and replace it with an overlapping set
     // which will include the picked file.
     assert(!c->inputs_[0].empty());
-    if(current_->GetOverlappingInputs(1, &smallest, &largest, &c->inputs_[1])){
+    if(current_->GetOverlappingInputs(level+1, &smallest, &largest, &c->inputs_[1])){
       //Mark all the files as undercompaction
       for (auto iter : c->inputs_[0]) {
         iter->UnderCompaction = true;
@@ -1326,6 +1325,8 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
                                            c->inputs_[1].begin(), c->inputs_[1].end());
       return true;
     }else{
+      c->inputs_[0].clear();
+      c->inputs_[1].clear();
       return false;
     }
   }else {
