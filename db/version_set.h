@@ -222,8 +222,8 @@ class Version {
   // Level that should be compacted next and its compaction score.
   // Score < 1 means compaction is not strictly needed.  These fields
   // are initialized by Finalize().
-  std::array<double, config::kNumLevels> compaction_score_;
-  std::array<int, config::kNumLevels> compaction_level_;
+  std::array<double, config::kNumLevels - 1> compaction_score_;
+  std::array<int, config::kNumLevels - 1> compaction_level_;
 
 };
 

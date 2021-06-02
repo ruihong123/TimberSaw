@@ -1001,8 +1001,8 @@ void VersionSet::MarkFileNumberUsed(uint64_t number) {
 
 void VersionSet::Finalize(Version* v) {
   // Precomputed best level for next compaction
-  int best_level = -1;
-  double best_score = -1;
+//  int best_level = -1;
+//  double best_score = -1;
 
   for (int level = 0; level < config::kNumLevels - 1; level++) {
     double score;
@@ -1317,9 +1317,13 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
       for (auto iter : c->inputs_[0]) {
         iter->UnderCompaction = true;
       }
+      current_->in_progress[level].insert(current_->in_progress[level].end(),
+                                          c->inputs_[0].begin(), c->inputs_[0].end());
       for (auto iter : c->inputs_[1]) {
         iter->UnderCompaction = true;
       }
+      current_->in_progress[level+1].insert(current_->in_progress[level].end(),
+                                           c->inputs_[1].begin(), c->inputs_[1].end());
       return true;
     }else{
       return false;
@@ -1357,9 +1361,13 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
           for (auto iter : c->inputs_[0]) {
             iter->UnderCompaction = true;
           }
+          current_->in_progress[level].insert(current_->in_progress[level].end(),
+                                              c->inputs_[0].begin(), c->inputs_[0].end());
           for (auto iter : c->inputs_[1]) {
             iter->UnderCompaction = true;
           }
+          current_->in_progress[level+1].insert(current_->in_progress[level].end(),
+                                                c->inputs_[1].begin(), c->inputs_[1].end());
           break;
         }else{
           // if level n+1 under compaction clear the files
