@@ -1334,12 +1334,12 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
       }
       current_->in_progress[level+1].insert(current_->in_progress[level].end(),
                                            c->inputs_[1].begin(), c->inputs_[1].end());
-      return true;
+//      return true;
     }else{
       // clear the input for this level and return.
       c->inputs_[0].clear();
       c->inputs_[1].clear();
-      return false;
+//      return false;
     }
   }else {
     size_t current_level_size = current_->levels_[level].size();
@@ -1415,7 +1415,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
     }
   }
 
-  return c->inputs_[0].empty();
+  return !c->inputs_[0].empty();
 
 }
 Compaction* VersionSet::PickCompaction() {
