@@ -1336,6 +1336,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
                                            c->inputs_[1].begin(), c->inputs_[1].end());
       return true;
     }else{
+      // clear the input for this level and return.
       c->inputs_[0].clear();
       c->inputs_[1].clear();
       return false;
@@ -1440,6 +1441,13 @@ Compaction* VersionSet::PickCompaction() {
         continue;
       }
       if (PickFileToCompact(level,c)) {
+        assert(c->level() == level);
+#ifndef NDEBUG
+        for (auto iter : c->inputs_[0]) {
+          assert(std::find(current_->levels_[level].begin(), current_->levels_[level].end(), iter)
+                 !=current_-> levels_[level].end());
+        }
+#endif
         break;
       }else{
         if (level == 0){
