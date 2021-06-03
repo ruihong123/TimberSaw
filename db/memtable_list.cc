@@ -357,6 +357,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
         break;
     }
   }
+  DEBUG_arg("table picked is %d", table_counter);
   if (!atomic_flush || num_flush_not_started_ == 0) {
     flush_requested_ = false;  // start-flush request is complete
   }
@@ -452,6 +453,8 @@ Status MemTableList::TryInstallMemtableFlushResults(
       assert(m->sstable != nullptr);
       edit->AddFileIfNotExist(0,m->sstable);
       batch_count++;
+      if (batch_count == 3)
+        printf("check\n");
     }
 
     // TODO(myabandeh): Not sure how batch_count could be 0 here.

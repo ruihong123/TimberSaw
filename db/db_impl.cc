@@ -1667,7 +1667,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
     }else {
       // get the snapshot for imm then check it so that this memtable pointer is guarantee
       // to be the one this thread want.
-
+      // TODO: use imm_mtx to control the access.
       mem_r = imm_.PickMemtablesSeqBelong(seq_num);
       if (mem_r != nullptr)
         return s;
