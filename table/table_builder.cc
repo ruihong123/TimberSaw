@@ -563,7 +563,7 @@ Status TableBuilder::Finish() {
                     r->options.compression, msg_size);
     FlushDataIndex(msg_size);
   }
-  DEBUG_arg("for a sst the remote data chunks number %zu\n", r->remote_data_mrs.size());
+//  DEBUG_arg("for a sst the remote data chunks number %zu\n", r->remote_data_mrs.size());
   //TODO: the polling number here sometime is not correct.
   int num_of_poll = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
                     r->data_inuse_end - r->data_inuse_start + 1:
