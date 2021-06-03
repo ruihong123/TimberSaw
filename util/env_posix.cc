@@ -611,9 +611,9 @@ class PosixEnv : public Env {
   PosixEnv();
   ~PosixEnv() override {
     // By default the threadpool will not wait for all the task in the queue finished.
-    flushing.JoinThreads(false);
-    compaction.JoinThreads(false);
-    subcompaction.JoinThreads(false);
+//    flushing.JoinThreads(false);
+//    compaction.JoinThreads(false);
+//    subcompaction.JoinThreads(false);
     static const char msg[] =
         "PosixEnv singleton destroyed. Unsupported behavior!\n";
     std::fwrite(msg, 1, sizeof(msg), stderr);
@@ -788,6 +788,7 @@ class PosixEnv : public Env {
   void Schedule(
       void (*background_work_function)(void* background_work_arg),
       void* background_work_arg, ThreadPoolType type) override;
+  void JoinAllThreads(bool wait_for_jobs_to_complete) override;
   void StartThread(void (*thread_main)(void* thread_main_arg),
                    void* thread_main_arg) override {
     std::thread new_thread(thread_main, thread_main_arg);
@@ -983,6 +984,11 @@ void PosixEnv::Schedule(
       break;
   }
 }
+void PosixEnv::JoinAllThreads(bool wait_for_jobs_to_complete) {
+  flushing.JoinThreads(wait_for_jobs_to_complete);
+  compaction.JoinThreads(wait_for_jobs_to_complete);
+  subcompaction.JoinThreads(wait_for_jobs_to_complete);
+}
 void PosixEnv::BackgroundThreadMain() {
   while (true) {
     background_work_mutex_.Lock();
@@ -1002,6 +1008,7 @@ void PosixEnv::BackgroundThreadMain() {
     background_work_function(background_work_arg);
   }
 }
+
 
 namespace {
 

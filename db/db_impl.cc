@@ -157,6 +157,7 @@ DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
   shutting_down_.store(true);
+  env_->JoinAllThreads(false);
   while (background_compaction_scheduled_) {
     env_->SleepForMicroseconds(10);
   }
