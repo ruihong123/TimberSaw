@@ -432,6 +432,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
     // assigned to flush the oldest memtable, will later wake up and does all
     // the pending writes to manifest, in order.
     if (memlist.empty() || !memlist.back()->CheckFlushFinished()) {
+      //Unlock the spinlock and do not write to the version
       imm_mtx->unlock();
       break;
     }
@@ -446,9 +447,9 @@ Status MemTableList::TryInstallMemtableFlushResults(
     for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
       MemTable* m = *it;
       if (!m->CheckFlushFinished()) {
-        //Unlock the spinlock and do not write to the version
         break;
       }
+      assert(m->sstable != nullptr);
       edit->AddFileIfNotExist(0,m->sstable);
       batch_count++;
     }
