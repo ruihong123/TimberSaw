@@ -761,7 +761,7 @@ void FlushJob::Waitforpendingwriter() {
     while (!iter->able_to_flush.load()) {
       counter++;
       if (counter == 500) {
-        printf("signal all the wait threads\n");
+//        printf("signal all the wait threads\n");
         usleep(10);
         write_stall_cv_->SignalAll();
         counter = 0;

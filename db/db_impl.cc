@@ -1621,7 +1621,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
              config::kL0_StopWritesTrigger) && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
         write_stall_cv.Wait();
-        printf("thread was waked up\n");
+//        printf("thread was waked up\n");
         mem_r = mem_.load();
       }
       undefine_mutex.Unlock();
