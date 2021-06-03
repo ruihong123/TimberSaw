@@ -445,6 +445,8 @@ Status MemTableList::TryInstallMemtableFlushResults(
     for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
       MemTable* m = *it;
       if (!m->CheckFlushFinished()) {
+        //Unlock the spinlock and do not write to the version
+        imm_mtx->unlock();
         break;
       }
       edit->AddFileIfNotExist(0,m->sstable);

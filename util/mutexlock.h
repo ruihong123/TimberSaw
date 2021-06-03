@@ -127,7 +127,7 @@ class SpinMutex {
 
   void unlock() { locked_.store(false, std::memory_order_release); }
 
- private:
+// private:
   std::atomic<bool> locked_;
 };
 //TODO: implement a spin read wirte lock to control some short synchronization more
