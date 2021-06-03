@@ -407,7 +407,8 @@ Status MemTableList::TryInstallMemtableFlushResults(
   autovector<MemTable*> mems = job->mem_vec;
   assert(mems.size() >0);
   imm_mtx->lock();
-
+  if (mems.size() == 1)
+    printf("check 1 memtable installation\n");
   // Flush was successful
   // Record the status on the memtable object. Either this call or a call by a
   // concurrent flush thread will read the status and write it to manifest.
