@@ -1311,7 +1311,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
   if (level==0){
     // if there is pending compaction, skip level 0
     if (current_->in_progress[level].size()>0){
-      assert(current_->levels_[level][0]->UnderCompaction);
+//      assert(current_->levels_[level][0]->UnderCompaction);
       return false;
     }
     //Directly pickup all the pending table in level 0
