@@ -23,7 +23,7 @@ MemTable::MemTable(const InternalKeyComparator& cmp)
     : comparator(cmp), refs_(0), table_(comparator, &arena_) {}
 
 MemTable::~MemTable() {
-  DEBUG_arg("Memtable % p deallocated\n", this);
+  DEBUG_arg("Memtable %p deallocated\n", this);
   assert(refs_ == 0);
 }
 
