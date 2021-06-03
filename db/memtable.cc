@@ -22,7 +22,10 @@ namespace leveldb {
 MemTable::MemTable(const InternalKeyComparator& cmp)
     : comparator(cmp), refs_(0), table_(comparator, &arena_) {}
 
-MemTable::~MemTable() { assert(refs_ == 0); }
+MemTable::~MemTable() {
+  DEBUG_arg("Memtable % p deallocated\n", this);
+  assert(refs_ == 0);
+}
 
 size_t MemTable::ApproximateMemoryUsage() { return arena_.ApproximateMemoryUsage(); }
 
