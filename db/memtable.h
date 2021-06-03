@@ -107,7 +107,7 @@ class MemTable {
     return flush_state_ == FLUSH_PROCESSING;
   }
   bool CheckFlushFinished(){
-    return flush_state_ == FLUSH_FINISHED;
+    return flush_state_.load() == FLUSH_FINISHED;
   }
   void SetFlushState(FlushStateEnum state){
     flush_state_.store(state);
