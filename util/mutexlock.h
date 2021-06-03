@@ -120,7 +120,7 @@ class SpinMutex {
       }
       port::AsmVolatilePause();
       if (tries > 100) {
-        printf("I tried so many time I got yield\n");
+//        printf("I tried so many time I got yield\n");
         std::this_thread::yield();
       }
     }
@@ -128,7 +128,7 @@ class SpinMutex {
 
   void unlock() {
     locked_.store(false, std::memory_order_release);
-    printf("spin mutex unlocked. \n");
+//    printf("spin mutex unlocked. \n");
   }
 
 // private:

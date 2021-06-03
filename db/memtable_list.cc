@@ -432,6 +432,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
     // assigned to flush the oldest memtable, will later wake up and does all
     // the pending writes to manifest, in order.
     if (memlist.empty() || !memlist.back()->CheckFlushFinished()) {
+      imm_mtx->unlock();
       break;
     }
     // scan all memtables from the earliest, and commit those
@@ -446,7 +447,6 @@ Status MemTableList::TryInstallMemtableFlushResults(
       MemTable* m = *it;
       if (!m->CheckFlushFinished()) {
         //Unlock the spinlock and do not write to the version
-        imm_mtx->unlock();
         break;
       }
       edit->AddFileIfNotExist(0,m->sstable);
