@@ -337,6 +337,7 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
   }
   r->compressed_output.clear();
   block_size = block_contents->size();
+  printf("index block size: %zu \n", block_size);
   block->Reset();
 
 }

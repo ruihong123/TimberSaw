@@ -524,7 +524,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   Status s;
   {
 //    undefine_mutex.Unlock();
-    s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -706,7 +706,7 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
-  FlushJob f_job(&write_stall_mutex_, &write_stall_cv);
+  FlushJob f_job(&write_stall_mutex_, &write_stall_cv, &internal_comparator_);
   {
     std::unique_lock<std::mutex> l(imm_mtx);
     if (imm_.IsFlushPending())
@@ -1244,12 +1244,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       if (compact->builder->NumEntries() == 0) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
-      compact->current_output()->largest.DecodeFrom(key);
+
       compact->builder->Add(key, input->value());
 
       // Close output file if it is big enough
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
+        compact->current_output()->largest.DecodeFrom(key);
         status = FinishCompactionOutputFile(compact, input);
         if (!status.ok()) {
           break;

@@ -11,18 +11,13 @@
 #include <string>
 #include "db/db_impl.h"
 #include "db/memtable.h"
-//#include "db/range_tombstone_fragmenter.h"
 #include "db/version_set.h"
-//#include "logging/log_buffer.h"
-//#include "monitoring/thread_status_util.h"
 #include "leveldb/db.h"
-#include "leveldb//env.h"
+#include "leveldb/env.h"
 #include "leveldb/iterator.h"
-//#include "table/merging_iterator.h"
-//#include "test_util/sync_point.h"
 #include "util/coding.h"
 #include "table/merger.h"
-
+#include "db/table_cache.h"
 
 namespace leveldb {
 
@@ -355,7 +350,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 //      m->flush_in_progress_ = true;  // flushing will start very soon
       mems->push_back(m);
       // at most pick 2 table and do the merge
-      if(++table_counter>= leveldb::config::ImmuNumPerFlush)
+      if(++table_counter>= leveldb::config::MaxImmuNumPerFlush)
         break;
     }
   }
@@ -783,6 +778,97 @@ void FlushJob::SetAllMemStateProcessing() {
   }
 }
 FlushJob::FlushJob(port::Mutex* write_stall_mutex,
-                   port::CondVar* write_stall_cv) :write_stall_mutex_(write_stall_mutex),
-                                                   write_stall_cv_(write_stall_cv){}
+                   port::CondVar* write_stall_cv,
+                   const InternalKeyComparator* cmp)
+    :write_stall_mutex_(write_stall_mutex), write_stall_cv_(write_stall_cv),
+      user_cmp(cmp){}
+Status FlushJob::BuildTable(const std::string& dbname, Env* env,
+                            const Options& options, TableCache* table_cache,
+                            Iterator* iter,
+                            const std::shared_ptr<RemoteMemTableMetaData>& meta,
+                            IO_type type) {
+  Status s;
+//  meta->file_size = 0;
+  iter->SeekToFirst();
+  ParsedInternalKey ikey;
+  std::string current_user_key;
+  bool has_current_user_key = false;
+  if (iter->Valid()) {
+
+    auto* builder = new TableBuilder(options, type);
+    meta->smallest.DecodeFrom(iter->key());
+    Slice key;
+    for (; iter->Valid(); iter->Next()) {
+      key = iter->key();
+      bool drop = false;
+      if (!ParseInternalKey(key, &ikey)) {
+        // Do not hide error keys
+        current_user_key.clear();
+        has_current_user_key = false;
+        printf("Corrupt key value detected\n");
+        s = Status::IOError("Corrupt key value detected\n");
+        break;
+      } else {
+        if (!has_current_user_key ||
+            user_cmp->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
+          // First occurrence of this user key
+          current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+          has_current_user_key = true;
+          drop = true;
+          // this will result in the key not drop, next if will always be false because of the last_sequence_for_key.
+        }
+      }
+      if (!drop)
+        builder->Add(key, iter->value());
+    }
+
+    if (s.ok()) {
+      meta->largest.DecodeFrom(key);
+    } else{
+      delete builder;
+      return s;
+    }
+
+    // Finish and check for builder errors
+
+    s = builder->Finish();
+    builder->get_datablocks_map(meta->remote_data_mrs);
+    builder->get_dataindexblocks_map(meta->remote_dataindex_mrs);
+    builder->get_filter_map(meta->remote_filter_mrs);
+
+
+    meta->file_size = 0;
+    for(auto iter : meta->remote_data_mrs){
+      meta->file_size += iter.second->length;
+    }
+    assert(builder->FileSize() == meta->file_size);
+    delete builder;
+//TOFIX: temporarily disable the verification of index block.
+
+    if (s.ok()) {
+      // Verify that the table is usable
+      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
+      s = it->status();
+#ifndef NDEBUG
+      it->SeekToFirst();
+      while(it->Valid()){
+        it->Next();
+      }
+#endif
+      delete it;
+    }
+  }
+
+  // Check for input iterator errors
+  if (!iter->status().ok()) {
+    s = iter->status();
+  }
+
+//  if (s.ok() && !meta->remote_data_mrs.empty()) {
+//    // Keep it
+//  } else {
+//    env->RemoveFile(fname);
+//  }
+  return s;
+}
 }  // namespace ROCKSDB_NAMESPACE
