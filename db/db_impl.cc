@@ -708,7 +708,7 @@ void DBImpl::CompactMemTable() {
   // variable.
   FlushJob f_job(&write_stall_mutex_, &write_stall_cv);
   {
-    std::unique_lock<SpinMutex> l(imm_mtx);
+    std::unique_lock<std::mutex> l(imm_mtx);
     if (imm_.IsFlushPending())
       imm_.PickMemtablesToFlush(&f_job.mem_vec);
     else

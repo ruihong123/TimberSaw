@@ -204,7 +204,7 @@ class MemTableList {
   explicit MemTableList(int min_write_buffer_number_to_merge,
                         int max_write_buffer_number_to_maintain,
                         int64_t max_write_buffer_size_to_maintain,
-                        SpinMutex* mtx)
+                        std::mutex* mtx)
       : cmp(BytewiseComparator()),
         imm_flush_needed(false),
         imm_trim_needed(false),
@@ -408,7 +408,7 @@ class MemTableList {
 
   // Cached value of current_->HasHistory().
   std::atomic<bool> current_has_history_;
-  SpinMutex* imm_mtx;
+  std::mutex* imm_mtx;
 };
 class FlushJob {
  public:
