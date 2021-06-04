@@ -455,7 +455,9 @@ Status MemTableList::TryInstallMemtableFlushResults(
       edit->AddFileIfNotExist(0,m->sstable);
       batch_count++;
       if (batch_count == 3)
-        printf("check\n");
+        printf("check equals 3\n");
+      if (batch_count == 4)
+        printf("check equals 4\n");
     }
 
     // TODO(myabandeh): Not sure how batch_count could be 0 here.
