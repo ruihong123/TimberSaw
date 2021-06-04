@@ -31,6 +31,7 @@ class Mutex;
 class VersionSet;
 
 void MemTableListVersion::AddMemTable(MemTable* m) {
+  std::cout <<"AddMemTable called thread ID is" <<std::this_thread::get_id() << std::endl;
   assert(std::find(memlist_.begin(), memlist_.end(), m) == memlist_.end());
   memlist_.push_front(m);
   *parent_memtable_list_memory_usage_ += m->ApproximateMemoryUsage();

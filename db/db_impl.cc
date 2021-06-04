@@ -708,7 +708,7 @@ void DBImpl::CompactMemTable() {
   // variable.
   FlushJob f_job(&write_stall_mutex_, &write_stall_cv);
   {
-    std::unique_lock<std::mutex> l(imm_mtx);
+    std::unique_lock<SpinMutex> l(imm_mtx);
     if (imm_.IsFlushPending())
       imm_.PickMemtablesToFlush(&f_job.mem_vec);
     else
@@ -1646,11 +1646,12 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         assert(imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger);
         imm_.Add(mem_r);
         has_imm_.store(true, std::memory_order_release);
-        MaybeScheduleFlushOrCompaction();
+
         // if we have create a new table then the new table will definite be
         // the table we will write.
         mem_r = temp_mem;
         imm_mtx.unlock();
+        MaybeScheduleFlushOrCompaction();
         return s;
       }
       imm_mtx.unlock();

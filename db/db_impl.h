@@ -191,7 +191,7 @@ class DBImpl : public DB {
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   port::CondVar write_stall_cv GUARDED_BY(write_stall_mutex_);
-  std::mutex imm_mtx;
+  SpinMutex imm_mtx;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;
 //  std::atomic<MemTable*> imm_;  // Memtable being compacted
