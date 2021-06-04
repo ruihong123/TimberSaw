@@ -103,7 +103,7 @@ class WriteLock {
 class SpinMutex {
  public:
   SpinMutex() : locked_(false) {}
-
+  //TODO this spinmutex have problem, some time 2 thread can walk into the protected code.
   bool try_lock() {
     auto currently_locked = locked_.load(std::memory_order_relaxed);
     return !currently_locked &&
