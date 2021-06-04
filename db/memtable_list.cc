@@ -477,6 +477,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
       ResetTrimHistoryNeeded();
     }
     current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
+    DEBUG_arg("Install flushing result, current immutable number is %lu", current_memtable_num_.load());
     job->write_stall_cv_->SignalAll();
     imm_mtx->unlock();
 
@@ -501,6 +502,7 @@ void MemTableList::Add(MemTable* m) {
   current_->Add(m);
   // Add memtable number atomically.
   current_memtable_num_.fetch_add(1);
+  DEBUG_arg("Add a new file, current immtable number is %lu", current_memtable_num_.load());
   m->SetFlushState(MemTable::FLUSH_REQUESTED);
   num_flush_not_started_.fetch_add(1);
   if (num_flush_not_started_ == 1) {
