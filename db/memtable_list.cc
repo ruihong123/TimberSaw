@@ -455,16 +455,16 @@ Status MemTableList::TryInstallMemtableFlushResults(
       edit->AddFileIfNotExist(0,m->sstable);
       batch_count++;
       if (batch_count == 3)
-        printf("check equals 3\n");
+        DEBUG("check equals 3\n");
       if (batch_count == 4)
-        printf("check equals 4\n");
+        DEBUG("check equals 4\n");
     }
 
     // TODO(myabandeh): Not sure how batch_count could be 0 here.
 
-
-      // we will be changing the version in the next code path,
-      // so we better create a new one, since versions are immutable
+    DEBUG("try install inner loop\n");
+    // we will be changing the version in the next code path,
+    // so we better create a new one, since versions are immutable
     InstallNewVersion();
     size_t batch_count_for_fetch_sub = batch_count;
     while (batch_count-- > 0) {
