@@ -1151,6 +1151,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   std::string current_user_key;
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
+  Slice key;
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     // Prioritize immutable compaction work
     if (has_imm_.load(std::memory_order_relaxed)) {
@@ -1172,7 +1173,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //      imm_micros += (env_->NowMicros() - imm_start);
     }
 
-    Slice key = input->key();
+    key = input->key();
     //Check whether the output file have too much overlap with level n + 2
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
@@ -1265,6 +1266,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && compact->builder != nullptr) {
+    compact->current_output()->largest.DecodeFrom(key);
     status = FinishCompactionOutputFile(compact, input);
   }
   if (status.ok()) {
