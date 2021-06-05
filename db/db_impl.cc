@@ -1153,28 +1153,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
   Slice key;
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
-    // Prioritize immutable compaction work
-    if (has_imm_.load(std::memory_order_relaxed)) {
-//      const uint64_t imm_start = env_->NowMicros();
-//      undefine_mutex.Lock();
-//      write_stall_mutex_.AssertNotHeld();
-//      if (imm_.load() != nullptr) {
-//        auto start = std::chrono::high_resolution_clock::now();
-//        CompactMemTable();
-//        auto stop = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//        printf("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
-//        DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
-//        DEBUG("Memtable flushed\n");
-//        // Wake up MakeRoomForWrite() if necessary.
-////        write_stall_cv.SignalAll();
-//      }
-//      undefine_mutex.Unlock();
-//      imm_micros += (env_->NowMicros() - imm_start);
-    }
-
     key = input->key();
-    Slice key_temp = key;
     assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (compact->compaction->ShouldStopBefore(key) &&
@@ -1187,7 +1166,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
-    if (!ParseInternalKey(key_temp, &ikey)) {
+    if (!ParseInternalKey(key, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
       has_current_user_key = false;
@@ -1249,7 +1228,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       }
 
       compact->builder->Add(key, input->value());
-
+      assert(key.data()[0] == '0');
       // Close output file if it is big enough
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
@@ -1264,7 +1243,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
     input->Next();
   }
-
+  assert(key.data()[0] == '0');
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
   }
