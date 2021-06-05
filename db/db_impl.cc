@@ -1174,6 +1174,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     }
 
     key = input->key();
+    assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
