@@ -1653,7 +1653,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         // if we have create a new table then the new table will definite be
         // the table we will write.
         mem_r = temp_mem;
-        imm_mtx.unlock();
+//        imm_mtx.unlock();
         MaybeScheduleFlushOrCompaction();
         return s;
       }
