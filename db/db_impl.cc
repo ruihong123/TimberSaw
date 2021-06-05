@@ -1629,7 +1629,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
       undefine_mutex.Unlock();
     }else{
-      imm_mtx.lock();
+      std::unique_lock<std::mutex> l(imm_mtx);
       mem_r = mem_.load();
       //After aquire the lock check the status again
       if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
@@ -1657,7 +1657,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         MaybeScheduleFlushOrCompaction();
         return s;
       }
-      imm_mtx.unlock();
+//      imm_mtx.unlock();
     }
     mem_r = mem_.load();
     // For the safety concern (such as the thread get context switch)
