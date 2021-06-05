@@ -1251,6 +1251,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       // Close output file if it is big enough
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
+        assert(key.data()[0] == '0');
         compact->current_output()->largest.DecodeFrom(key);
         status = FinishCompactionOutputFile(compact, input);
         if (!status.ok()) {
@@ -1266,6 +1267,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && compact->builder != nullptr) {
+    assert(key.data()[0] == '0');
     compact->current_output()->largest.DecodeFrom(key);
     status = FinishCompactionOutputFile(compact, input);
   }
