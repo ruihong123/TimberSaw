@@ -475,10 +475,11 @@ Status MemTableList::TryInstallMemtableFlushResults(
     }
     current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
     DEBUG_arg("Install flushing result, current immutable number is %lu", current_memtable_num_.load());
-    job->write_stall_cv_->SignalAll();
+
     imm_mtx->unlock();
 
     s = vset->LogAndApply(edit);
+    job->write_stall_cv_->SignalAll();
 
   }
 

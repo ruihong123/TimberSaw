@@ -139,7 +139,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
       db_lock_(nullptr),
       shutting_down_(false),
-      write_stall_cv(&undefine_mutex),
+      write_stall_cv(&write_stall_mutex_),
       mem_(nullptr),
       imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger, 64*1024*1024*config::Immutable_StopWritesTrigger ,&imm_mtx),
       has_imm_(false),
@@ -550,7 +550,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   stats.micros = env_->NowMicros() - start_micros;
   stats.bytes_written = meta->file_size;
   stats_[level].Add(stats);
-  write_stall_mutex_.AssertNotHeld();
+//  write_stall_mutex_.AssertNotHeld();
   return s;
 }
 Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
@@ -595,7 +595,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   stats.micros = env_->NowMicros() - start_micros;
   stats.bytes_written = meta->file_size;
   stats_[level].Add(stats);
-  write_stall_mutex_.AssertNotHeld();
+//  write_stall_mutex_.AssertNotHeld();
   return s;
 }
 
@@ -894,7 +894,7 @@ void DBImpl::BackgroundFlush(void* p) {
 //  undefine_mutex.Unlock();
 }
 void DBImpl::BackgroundCompaction(void* p) {
-  write_stall_mutex_.AssertNotHeld();
+//  write_stall_mutex_.AssertNotHeld();
 
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
@@ -925,7 +925,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       }
 
     }
-    write_stall_mutex_.AssertNotHeld();
+//    write_stall_mutex_.AssertNotHeld();
     Status status;
     if (c == nullptr) {
       // Nothing to do
@@ -949,7 +949,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       CompactionState* compact = new CompactionState(c);
 
       auto start = std::chrono::high_resolution_clock::now();
-      write_stall_mutex_.AssertNotHeld();
+//      write_stall_mutex_.AssertNotHeld();
       status = DoCompactionWork(compact);
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
@@ -1157,7 +1157,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     if (has_imm_.load(std::memory_order_relaxed)) {
 //      const uint64_t imm_start = env_->NowMicros();
 //      undefine_mutex.Lock();
-      write_stall_mutex_.AssertNotHeld();
+//      write_stall_mutex_.AssertNotHeld();
 //      if (imm_.load() != nullptr) {
 //        auto start = std::chrono::high_resolution_clock::now();
 //        CompactMemTable();
