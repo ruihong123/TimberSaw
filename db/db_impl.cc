@@ -1617,7 +1617,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // the wait will never get signalled.
 
       // We check the imm again in the while loop, because the state may have already been changed before you acquire the Lock.
-      undefine_mutex.Lock();
+      write_stall_mutex_.Lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
       while ((imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
@@ -1627,10 +1627,15 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //        printf("thread was waked up\n");
         mem_r = mem_.load();
       }
-      undefine_mutex.Unlock();
+      write_stall_mutex_.Unlock();
     }else{
       std::unique_lock<std::mutex> l(imm_mtx);
-      assert(locked == false);
+//      assert(locked == false);
+      while(true){
+        if (!locked)
+          break;
+      }
+
       locked = true;
       mem_r = mem_.load();
       //After aquire the lock check the status again
