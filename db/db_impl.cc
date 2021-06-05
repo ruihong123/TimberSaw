@@ -1240,9 +1240,12 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         }
       }
     }
-
+    assert(key.data()[0] == '0');
     input->Next();
+    assert(key.data()[0] == '0');
   }
+  input->Prev();
+  assert(input->Valid());
   assert(key.data()[0] == '0');
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
