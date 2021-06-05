@@ -1174,6 +1174,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     }
 
     key = input->key();
+    Slice key_temp = key;
     assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (compact->compaction->ShouldStopBefore(key) &&
@@ -1186,7 +1187,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
-    if (!ParseInternalKey(key, &ikey)) {
+    if (!ParseInternalKey(key_temp, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
       has_current_user_key = false;
