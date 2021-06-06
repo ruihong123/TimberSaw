@@ -25,21 +25,30 @@ TwoLevelIterator::~TwoLevelIterator() = default;
 void TwoLevelIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) data_iter_.Seek(target);
+  if (data_iter_.iter() != nullptr) {
+    data_iter_.Seek(target);
+    valid_ = true;
+  }
   SkipEmptyDataBlocksForward();
 }
 
 void TwoLevelIterator::SeekToFirst() {
   index_iter_.SeekToFirst();
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
+  if (data_iter_.iter() != nullptr) {
+    data_iter_.SeekToFirst();
+    valid_ = true;
+  }
   SkipEmptyDataBlocksForward();
 }
 
 void TwoLevelIterator::SeekToLast() {
   index_iter_.SeekToLast();
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
+  if (data_iter_.iter() != nullptr){
+    data_iter_.SeekToLast();
+    valid_ = true;
+  }
   SkipEmptyDataBlocksBackward();
 }
 
@@ -68,7 +77,8 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-      SetDataIterator(nullptr);
+//      SetDataIterator(nullptr);
+      valid_ = false;
       return;
     }
     index_iter_.Next();
@@ -84,7 +94,8 @@ void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-      SetDataIterator(nullptr);
+//      SetDataIterator(nullptr);
+      valid_ = false;
       return;
     }
     index_iter_.Prev();
@@ -100,7 +111,8 @@ void TwoLevelIterator::SetDataIterator(Iterator* data_iter) {
 
 void TwoLevelIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
-    SetDataIterator(nullptr);
+//    SetDataIterator(nullptr);
+    valid_ = false;
     DEBUG_arg("Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
 //    DEBUG("Index block valid\n");
@@ -176,7 +188,8 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-      SetDataIterator(nullptr);
+//      SetDataIterator(nullptr);
+      valid_ = false;
       return;
     }
     index_iter_.Next();
@@ -189,7 +202,9 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksBackward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-      SetDataIterator(nullptr);
+      // Not set as nullptr
+//      SetDataIterator(nullptr);
+      valid_ = false;
       return;
     }
     index_iter_.Prev();
@@ -205,7 +220,9 @@ void TwoLevelFileIterator::SetDataIterator(Iterator* data_iter) {
 
 void TwoLevelFileIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
-    SetDataIterator(nullptr);
+    // Not set the iter as nullptr when reaching the end
+//    SetDataIterator(nullptr);
+    valid_ = false;
   } else {
     std::shared_ptr<RemoteMemTableMetaData> remote_table = index_iter_.value();
     if (data_iter_.iter() != nullptr &&

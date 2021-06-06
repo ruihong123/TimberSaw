@@ -97,8 +97,11 @@ class Block::Iter : public Iterator {
   std::string key_;
   Slice value_;
   Status status_;
+#ifndef NDEBUG
   std::string last_key;
   int64_t num_entries=0;
+#endif
+
 
 
 
@@ -148,11 +151,13 @@ class Block::Iter : public Iterator {
   void Next() override {
     assert(Valid());
     ParseNextKey();
+#ifndef NDEBUG
     if (num_entries > 0) {
       assert(comparator_->Compare(key_, Slice(last_key)) >= 0);
     }
     num_entries++;
     last_key = key_;
+#endif
   }
 
   void Prev() override {
@@ -208,7 +213,9 @@ class Block::Iter : public Iterator {
                       &non_shared, &value_length);
       if (key_ptr == nullptr || (shared != 0)) {
         CorruptionError();
+#ifndef NDEBUG
         printf("detect corruption block, when seeking some key, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
+#endif
         return;
       }
       Slice mid_key(key_ptr, non_shared);
@@ -282,7 +289,9 @@ class Block::Iter : public Iterator {
     p = DecodeEntry(p, limit, &shared, &non_shared, &value_length);
     if (p == nullptr || key_.size() < shared) {
       CorruptionError();
+#ifndef NDEBUG
       printf("detect corruption block, when parsing the next, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
+#endif
       return false;
     } else {
       key_.resize(shared);

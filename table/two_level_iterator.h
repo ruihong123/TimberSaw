@@ -112,7 +112,7 @@ class TwoLevelIterator : public Iterator {
   void Next() override;
   void Prev() override;
 
-  bool Valid() const override { return data_iter_.Valid(); }
+  bool Valid() const override { return valid_; }
   Slice key() const override {
     assert(Valid());
     return data_iter_.key();
@@ -152,8 +152,11 @@ class TwoLevelIterator : public Iterator {
   // If data_iter_ is non-null, then "data_block_handle_" holds the
   // "index_value" passed to block_function_ to create the data_iter_.
   std::string data_block_handle_;
+#ifndef NDEBUG
   std::string last_key;
   int64_t num_entries=0;
+#endif
+  bool valid_ = false;
 };
 
 class TwoLevelFileIterator : public Iterator {
@@ -169,7 +172,7 @@ class TwoLevelFileIterator : public Iterator {
   void Next() override;
   void Prev() override;
 
-  bool Valid() const override { return data_iter_.Valid(); }
+  bool Valid() const override { return valid_; }
   Slice key() const override {
     assert(Valid());
     return data_iter_.key();
@@ -207,6 +210,7 @@ class TwoLevelFileIterator : public Iterator {
   // If data_iter_ is non-null, then "data_block_handle_" holds the
   // "index_value" passed to block_function_ to create the data_iter_.
   std::shared_ptr<RemoteMemTableMetaData> this_remote_table;
+  bool valid_ = false;
 };
 Iterator* NewTwoLevelIterator(
     Iterator* index_iter,

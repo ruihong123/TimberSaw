@@ -1147,6 +1147,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
   input->SeekToFirst();
   Status status;
+  //TODO: try to create two ikey for parsed key, they can in turn represent the current user key
+  // and former one, which can save the data copy overhead.
   ParsedInternalKey ikey;
   std::string current_user_key;
   bool has_current_user_key = false;
@@ -1244,6 +1246,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     input->Next();
     assert(key.data()[0] == '0');
   }
+  // You can not call prev here because the iterator is not valid any more
   input->Prev();
   assert(input->Valid());
   assert(key.data()[0] == '0');
