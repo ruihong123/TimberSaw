@@ -1244,7 +1244,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     }
 //    assert(key.data()[0] == '0');
     input->Next();
-    assert(key.data()[0] == '0');
+//    assert(key.data()[0] == '0');
   }
   // You can not call prev here because the iterator is not valid any more
 //  input->Prev();
