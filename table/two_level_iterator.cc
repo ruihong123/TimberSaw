@@ -155,21 +155,30 @@ TwoLevelFileIterator::~TwoLevelFileIterator() = default;
 void TwoLevelFileIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) data_iter_.Seek(target);
+  if (data_iter_.iter() != nullptr) {
+    data_iter_.Seek(target);
+    valid_ = true;
+  }
   SkipEmptyDataBlocksForward();
 }
 
 void TwoLevelFileIterator::SeekToFirst() {
   index_iter_.SeekToFirst();
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
+  if (data_iter_.iter() != nullptr) {
+    data_iter_.SeekToFirst();
+    valid_ = true;
+  }
   SkipEmptyDataBlocksForward();
 }
 
 void TwoLevelFileIterator::SeekToLast() {
   index_iter_.SeekToLast();
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
+  if (data_iter_.iter() != nullptr){
+    data_iter_.SeekToLast();
+    valid_ = true;
+  }
   SkipEmptyDataBlocksBackward();
 }
 

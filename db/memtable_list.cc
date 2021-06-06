@@ -474,7 +474,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
       ResetTrimHistoryNeeded();
     }
     current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
-    DEBUG_arg("Install flushing result, current immutable number is %lu", current_memtable_num_.load());
+    DEBUG_arg("Install flushing result, current immutable number is %lu\n", current_memtable_num_.load());
 
     imm_mtx->unlock();
 
