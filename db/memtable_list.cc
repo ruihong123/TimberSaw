@@ -820,8 +820,9 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
           // First occurrence of this user key
           current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
           has_current_user_key = true;
-          drop = true;
           // this will result in the key not drop, next if will always be false because of the last_sequence_for_key.
+        }else{
+          drop = true;
         }
       }
 #ifndef NDEBUG
@@ -844,7 +845,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
       return s;
     }
 #ifndef NDEBUG
-    printf("Total number of key touched is %d, dropped KV is %d\n", number_of_key, drop_counter);
+    printf("Total number of key touched is %d, KV left is %d\n", number_of_key, drop_counter);
 #endif
     // Finish and check for builder errors
 

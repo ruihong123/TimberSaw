@@ -1244,6 +1244,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     }
 //    assert(key.data()[0] == '0');
     input->Next();
+    //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
+    // be invalid also.
 //    assert(key.data()[0] == '0');
   }
   // You can not call prev here because the iterator is not valid any more
