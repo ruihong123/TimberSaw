@@ -156,7 +156,7 @@ class TwoLevelIterator : public Iterator {
   std::string last_key;
   int64_t num_entries=0;
 #endif
-  bool valid_ = false;
+  bool valid_;
 };
 
 class TwoLevelFileIterator : public Iterator {
@@ -210,7 +210,7 @@ class TwoLevelFileIterator : public Iterator {
   // If data_iter_ is non-null, then "data_block_handle_" holds the
   // "index_value" passed to block_function_ to create the data_iter_.
   std::shared_ptr<RemoteMemTableMetaData> this_remote_table;
-  bool valid_ = false;
+  bool valid_;
 };
 Iterator* NewTwoLevelIterator(
     Iterator* index_iter,

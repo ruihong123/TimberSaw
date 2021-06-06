@@ -18,7 +18,7 @@ TwoLevelIterator::TwoLevelIterator(Iterator* index_iter,
       arg_(arg),
       options_(options),
       index_iter_(index_iter),
-      data_iter_(nullptr) {}
+      data_iter_(nullptr), valid_(false) {}
 
 TwoLevelIterator::~TwoLevelIterator() = default;
 
@@ -124,7 +124,7 @@ void TwoLevelIterator::InitDataBlock() {
     bhandle.DecodeFrom(&test_handle);
 //    printf("Iterator pointer is %p, Offset is %lu, this data block size is %lu\n", this, bhandle.offset(), bhandle.size());
 #endif
-    if (data_iter_.iter() != nullptr &&
+    if (valid_ &&
         handle.compare(data_block_handle_) == 0) {
       // data_iter_ is already constructed with this iterator, so
       // no need to change anything
@@ -148,7 +148,7 @@ TwoLevelFileIterator::TwoLevelFileIterator(Version::LevelFileNumIterator* index_
       arg_(arg),
       options_(options),
       index_iter_(index_iter),
-      data_iter_(nullptr) {}
+      data_iter_(nullptr), valid_(false) {}
 
 TwoLevelFileIterator::~TwoLevelFileIterator() = default;
 
@@ -226,8 +226,7 @@ void TwoLevelFileIterator::InitDataBlock() {
     valid_ = false;
   } else {
     std::shared_ptr<RemoteMemTableMetaData> remote_table = index_iter_.value();
-    if (data_iter_.iter() != nullptr &&
-        remote_table == this_remote_table) {
+    if (valid_ && remote_table == this_remote_table) {
       // data_iter_ is already constructed with this iterator, so
       // no need to change anything
     } else {
