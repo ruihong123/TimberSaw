@@ -824,10 +824,16 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
           // this will result in the key not drop, next if will always be false because of the last_sequence_for_key.
         }
       }
+#ifndef NDEBUG
       number_of_key++;
-      if (!drop)
+#endif
+      if (!drop){
+#ifndef NDEBUG
         drop_counter++;
+#endif
         builder->Add(key, iter->value());
+      }
+
     }
 
     if (s.ok()) {

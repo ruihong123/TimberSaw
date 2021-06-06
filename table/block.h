@@ -136,7 +136,9 @@ class Block::Iter : public Iterator {
         restart_index_(num_restarts_) {
     assert(num_restarts_ > 0);
   }
-
+  ~Iter(){
+    DEBUG_arg("Block iter deallocate %p", this);
+  }
   bool Valid() const override { return current_ < restarts_; }
   Status status() const override { return status_; }
   Slice key() const override {
