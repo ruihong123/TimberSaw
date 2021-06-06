@@ -1248,7 +1248,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // be invalid also.
 //    assert(key.data()[0] == '0');
   }
-
+  reinterpret_cast<leveldb::MergingIterator>
   // You can not call prev here because the iterator is not valid any more
 //  input->Prev();
 //  assert(input->Valid());
