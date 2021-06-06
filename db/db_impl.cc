@@ -1156,7 +1156,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   Slice key;
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     key = input->key();
-    assert(key.data()[0] == '0');
+//    assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (compact->compaction->ShouldStopBefore(key) &&
         compact->builder != nullptr) {
@@ -1230,11 +1230,11 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       }
 
       compact->builder->Add(key, input->value());
-      assert(key.data()[0] == '0');
+//      assert(key.data()[0] == '0');
       // Close output file if it is big enough
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
-        assert(key.data()[0] == '0');
+//        assert(key.data()[0] == '0');
         compact->current_output()->largest.DecodeFrom(key);
         status = FinishCompactionOutputFile(compact, input);
         if (!status.ok()) {
@@ -1242,13 +1242,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         }
       }
     }
-    assert(key.data()[0] == '0');
+//    assert(key.data()[0] == '0');
     input->Next();
     assert(key.data()[0] == '0');
   }
   // You can not call prev here because the iterator is not valid any more
-  input->Prev();
-  assert(input->Valid());
+//  input->Prev();
+//  assert(input->Valid());
   assert(key.data()[0] == '0');
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
