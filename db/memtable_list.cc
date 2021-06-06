@@ -858,6 +858,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     for(auto iter : meta->remote_data_mrs){
       meta->file_size += iter.second->length;
     }
+    DEBUG_arg("SSTable size is %d \n", meta->file_size);
     assert(builder->FileSize() == meta->file_size);
     delete builder;
 //TOFIX: temporarily disable the verification of index block.
