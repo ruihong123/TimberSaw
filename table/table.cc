@@ -67,6 +67,8 @@ Status Table::Open(const Options& options, Table** table,
     *table = new Table(rep);
     (*table)->ReadFilter();
 //    (*table)->ReadMeta(footer);
+  }else{
+    assert(false);
   }
 
   return s;

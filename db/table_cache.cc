@@ -66,6 +66,7 @@ Status TableCache::FindTable(
 //      tf->file = file;
 //      tf->remote_table = Remote_memtable_meta;
       tf->table = table;
+      assert(table->rep_ != nullptr);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
     }
   }

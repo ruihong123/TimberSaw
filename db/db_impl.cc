@@ -1146,9 +1146,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 //  undefine_mutex.Unlock();
 
   input->SeekToFirst();
+#ifndef NDEBUG
+  int Not_drop_counter = 0;
+  int number_of_key = 0;
+#endif
   Status status;
-  //TODO: try to create two ikey for parsed key, they can in turn represent the current user key
-  // and former one, which can save the data copy overhead.
+  // TODO: try to create two ikey for parsed key, they can in turn represent the current user key
+  //  and former one, which can save the data copy overhead.
   ParsedInternalKey ikey;
   std::string current_user_key;
   bool has_current_user_key = false;
@@ -1207,16 +1211,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
       last_sequence_for_key = ikey.sequence;
     }
-#if 0
-    Log(options_.info_log,
-        "  Compact: %s, seq %d, type: %d %d, drop: %d, is_base: %d, "
-        "%d smallest_snapshot: %d",
-        ikey.user_key.ToString().c_str(),
-        (int)ikey.sequence, ikey.type, kTypeValue, drop,
-        compact->compaction->IsBaseLevelForKey(ikey.user_key),
-        (int)last_sequence_for_key, (int)compact->smallest_snapshot);
+#ifndef NDEBUG
+    number_of_key++;
 #endif
-
     if (!drop) {
       // Open output file if necessary
       if (compact->builder == nullptr) {
@@ -1228,7 +1225,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       if (compact->builder->NumEntries() == 0) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
-
+#ifndef NDEBUG
+      Not_drop_counter++;
+#endif
       compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
@@ -1248,9 +1247,14 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // be invalid also.
 //    assert(key.data()[0] == '0');
   }
+
   // You can not call prev here because the iterator is not valid any more
 //  input->Prev();
 //  assert(input->Valid());
+#ifndef NDEBUG
+  printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
+         Not_drop_counter);
+#endif
   assert(key.data()[0] == '0');
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");

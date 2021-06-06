@@ -792,7 +792,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 //  meta->file_size = 0;
   iter->SeekToFirst();
 #ifndef NDEBUG
-  int drop_counter = 0;
+  int Not_drop_counter = 0;
   int number_of_key = 0;
 #endif
   ParsedInternalKey ikey;
@@ -830,7 +830,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 #endif
       if (!drop){
 #ifndef NDEBUG
-        drop_counter++;
+        Not_drop_counter++;
 #endif
         builder->Add(key, iter->value());
       }
@@ -845,7 +845,8 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
       return s;
     }
 #ifndef NDEBUG
-    printf("Total number of key touched is %d, KV left is %d\n", number_of_key, drop_counter);
+    printf("For flush, Total number of key touched is %d, KV left is %d\n", number_of_key,
+           Not_drop_counter);
 #endif
     // Finish and check for builder errors
 
