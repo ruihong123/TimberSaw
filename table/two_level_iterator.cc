@@ -204,6 +204,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
       valid_ = false;
       return;
     }
+    DEBUG_arg("two level iterator index iterator move forward. this iterator is %p", this);
     index_iter_.Next();
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
