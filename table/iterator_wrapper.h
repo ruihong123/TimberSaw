@@ -18,14 +18,19 @@ class IteratorWrapper {
  public:
   IteratorWrapper() : iter_(nullptr), valid_(false) {}
   explicit IteratorWrapper(Iterator* iter) : iter_(nullptr) { Set(iter); }
-  ~IteratorWrapper() { delete iter_; }
+  ~IteratorWrapper() {
+#ifndef NDEBUG
+    printf("Delete iter_ when iterator wrapper deallocation, deleted iter_ is %p \n", iter_);
+#endif
+    delete iter_;
+  }
   Iterator* iter() const { return iter_; }
 
   // Takes ownership of "iter" and will delete it when destroyed, or
   // when Set() is invoked again.
   void Set(Iterator* iter) {
 #ifndef NDEBUG
-    printf("Delete iterator %p by iterator wrapper\n", iter_);
+    printf("Delete iter_ when replacing the iterator, deleted iter_ is %p \n", iter_);
 #endif
     delete iter_;
 
