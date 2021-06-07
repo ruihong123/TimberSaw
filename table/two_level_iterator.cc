@@ -150,7 +150,9 @@ TwoLevelFileIterator::TwoLevelFileIterator(Version::LevelFileNumIterator* index_
       index_iter_(index_iter),
       data_iter_(nullptr), valid_(false) {}
 
-TwoLevelFileIterator::~TwoLevelFileIterator() = default;
+TwoLevelFileIterator::~TwoLevelFileIterator() {
+    DEBUG_arg("TWOLevelFileIterator destructing, this pointer is %p", this);
+};
 
 void TwoLevelFileIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
