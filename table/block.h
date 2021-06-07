@@ -137,7 +137,10 @@ class Block::Iter : public Iterator {
     assert(num_restarts_ > 0);
   }
   ~Iter(){
-    DEBUG_arg("Block iter deallocate %p", this->key_.c_str());
+#ifndef NDEBUG
+    printf("Block iter deallocate char p %p, iterator p %p\n", this->key_.c_str() , this);
+#endif
+//    DEBUG_arg("Block iter deallocate %p", this->key_.c_str());
   }
   bool Valid() const override { return current_ < restarts_; }
   Status status() const override { return status_; }
@@ -269,7 +272,7 @@ class Block::Iter : public Iterator {
     current_ = restarts_;
     restart_index_ = num_restarts_;
     status_ = Status::Corruption("bad entry in block");
-    DEBUG("bad entry in block");
+    DEBUG("bad entry in block\n");
     key_.clear();
     value_.clear();
   }
