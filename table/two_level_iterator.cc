@@ -99,6 +99,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
       valid_ = false;
       return;
     }
+    DEBUG_arg("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Prev();
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
@@ -204,7 +205,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
       valid_ = false;
       return;
     }
-    DEBUG_arg("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
+    DEBUG_arg("two level file iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Next();
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
