@@ -84,6 +84,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
       valid_ = false;
       return;
     }
+    DEBUG_arg("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Next();
 //    printf("Move to next block\n");
     InitDataBlock();
@@ -101,7 +102,6 @@ void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
       valid_ = false;
       return;
     }
-    DEBUG_arg("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Prev();
     InitDataBlock();
     if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
