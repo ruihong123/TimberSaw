@@ -72,12 +72,14 @@ Version::~Version() {
   next_->prev_ = prev_;
   DEBUG("version garbage collected.\n");
   // Drop references to files
+#ifndef NDEBUG
   for (int level = 0; level < config::kNumLevels; level++) {
     for (size_t i = 0; i < levels_[level].size(); i++) {
       std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][i];
 //      printf("The file %zu in level %d 's use_count is %ld\n", i,level, f.use_count());
     }
   }
+#endif
 }
 
 int FindFile(const InternalKeyComparator& icmp,
