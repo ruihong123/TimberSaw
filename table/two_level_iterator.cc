@@ -84,11 +84,14 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
       valid_ = false;
       return;
     }
-    DEBUG_arg("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
+#ifndef NDEBUG
+    printf("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
+#endif
+
     index_iter_.Next();
 //    printf("Move to next block\n");
     InitDataBlock();
-    if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
+    if (valid_) data_iter_.SeekToFirst();
   }
 //  printf("Move to next data, key is %s", data_iter_.key().ToString().c_str());
 //  printf("Iterator pointer is %p\n", this);
@@ -104,7 +107,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
     }
     index_iter_.Prev();
     InitDataBlock();
-    if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
+    if (valid_) data_iter_.SeekToLast();
   }
 }
 
@@ -210,7 +213,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
     DEBUG_arg("two level file iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Next();
     InitDataBlock();
-    if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
+    if (valid_) data_iter_.SeekToFirst();
   }
 }
 
@@ -225,7 +228,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksBackward() {
     }
     index_iter_.Prev();
     InitDataBlock();
-    if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
+    if (valid_) data_iter_.SeekToLast();
   }
 }
 
