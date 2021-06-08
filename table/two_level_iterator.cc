@@ -21,7 +21,7 @@ TwoLevelIterator::TwoLevelIterator(Iterator* index_iter,
       data_iter_(nullptr), valid_(false) {}
 
 TwoLevelIterator::~TwoLevelIterator() {
-  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p", this);
+  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p\n", this);
 };
 
 void TwoLevelIterator::Seek(const Slice& target) {
@@ -159,7 +159,7 @@ TwoLevelFileIterator::TwoLevelFileIterator(Version::LevelFileNumIterator* index_
       data_iter_(nullptr), valid_(false) {}
 
 TwoLevelFileIterator::~TwoLevelFileIterator() {
-    DEBUG_arg("TWOLevelFileIterator destructing, this pointer is %p", this);
+    DEBUG_arg("TWOLevelFileIterator destructing, this pointer is %p\n", this);
 };
 
 void TwoLevelFileIterator::Seek(const Slice& target) {

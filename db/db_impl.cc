@@ -1160,6 +1160,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
   Slice key;
   assert(input->Valid());
+#ifndef NDEBUG
+  printf("first key is %s", input->key().ToString().c_str());
+#endif
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     key = input->key();
 //    assert(key.data()[0] == '0');
