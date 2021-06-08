@@ -40,6 +40,8 @@ void TwoLevelIterator::SeekToFirst() {
   if (data_iter_.iter() != nullptr) {
     data_iter_.SeekToFirst();
     valid_ = true;
+  } else{
+    assert(false);
   }
   SkipEmptyDataBlocksForward();
 }
@@ -176,6 +178,8 @@ void TwoLevelFileIterator::SeekToFirst() {
   if (data_iter_.iter() != nullptr) {
     data_iter_.SeekToFirst();
     valid_ = true;
+  } else{
+    assert(false);
   }
   SkipEmptyDataBlocksForward();
 }

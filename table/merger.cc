@@ -33,6 +33,9 @@ class MergingIterator : public Iterator {
       children_[i].SeekToFirst();
     }
     FindSmallest();
+#ifndef NDEBUG
+    if (!Valid()) assert(false);
+#endif
     direction_ = kForward;
   }
 

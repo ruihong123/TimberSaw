@@ -1159,6 +1159,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
   Slice key;
+  assert(input->Valid());
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     key = input->key();
 //    assert(key.data()[0] == '0');
