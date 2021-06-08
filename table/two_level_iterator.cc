@@ -20,7 +20,9 @@ TwoLevelIterator::TwoLevelIterator(Iterator* index_iter,
       index_iter_(index_iter),
       data_iter_(nullptr), valid_(false) {}
 
-TwoLevelIterator::~TwoLevelIterator() = default;
+TwoLevelIterator::~TwoLevelIterator() {
+  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p", this);
+};
 
 void TwoLevelIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
