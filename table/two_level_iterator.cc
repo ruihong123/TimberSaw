@@ -117,7 +117,7 @@ void TwoLevelIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
 //    SetDataIterator(nullptr);
     valid_ = false;
-    DEBUG_arg("Index block invalid, error: %s\n", status().ToString().c_str());
+    DEBUG_arg("TwoLevelIterator Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
 //    DEBUG("Index block valid\n");
     Slice handle = index_iter_.value();
@@ -238,6 +238,8 @@ void TwoLevelFileIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
     // Not set the iter as nullptr when reaching the end
 //    SetDataIterator(nullptr);
+    DEBUG_arg("TwoLevelFileIterator Index block invalid, this pointer: %p\n", this);
+
     valid_ = false;
   } else {
     std::shared_ptr<RemoteMemTableMetaData> remote_table = index_iter_.value();
