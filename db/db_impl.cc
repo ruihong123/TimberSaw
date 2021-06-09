@@ -1625,8 +1625,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       while ((imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
              config::kL0_StopWritesTrigger) && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
-        std::cout << "Writer is going to wait" << (imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger)
-                  << (versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) <<std::endl;
+        std::cout << "Writer is going to wait current immutable number " << (imm_.current_memtable_num()) << "Level 0 file number "
+                  << (versions_->NumLevelFiles(0)) <<std::endl;
         write_stall_cv.Wait();
 //        printf("thread was waked up\n");
         mem_r = mem_.load();
