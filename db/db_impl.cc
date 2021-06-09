@@ -156,8 +156,10 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
-  shutting_down_.store(true);
+  //TODO: shuttinh down and join all threads may have duplicated funciton. remove one
+  // of it.
   env_->JoinAllThreads(false);
+  shutting_down_.store(true);
   while (background_compaction_scheduled_) {
     env_->SleepForMicroseconds(10);
   }
