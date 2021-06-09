@@ -28,6 +28,9 @@ class VersionSet;
 void MemTableListVersion::AddMemTable(MemTable* m) {
 //  std::cout <<"AddMemTable called thread ID is" <<std::this_thread::get_id() << std::endl;
   assert(std::find(memlist_.begin(), memlist_.end(), m) == memlist_.end());
+  if (std::find(memlist_.begin(), memlist_.end(), m) == memlist_.end()){
+    printf("Error: insert duplicated table to the memtable list");
+  }
   memlist_.push_front(m);
   *parent_memtable_list_memory_usage_ += m->ApproximateMemoryUsage();
 }
@@ -451,8 +454,10 @@ Status MemTableList::TryInstallMemtableFlushResults(
       assert(m->sstable != nullptr);
       edit->AddFileIfNotExist(0,m->sstable);
       batch_count++;
-      if (batch_count == 3)
+      if (batch_count == 3){
         DEBUG("check equals 3\n");
+        printf("Memtable list install 3 tables");
+      }
       if (batch_count == 4)
         DEBUG("check equals 4\n");
     }
