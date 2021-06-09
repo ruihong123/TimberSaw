@@ -344,6 +344,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
     MemTable* m = *it;
 
     if (!m->CheckFlushInProcess()) {
+      //The pickmemtable should never see the flush finished table.
       assert(!m->CheckFlushFinished());
       num_flush_not_started_.fetch_sub(1);
       m->SetFlushState(MemTable::FLUSH_PROCESSING);
@@ -406,7 +407,8 @@ Status MemTableList::TryInstallMemtableFlushResults(
 //      ThreadStatus::STAGE_MEMTABLE_INSTALL_FLUSH_RESULTS);
   autovector<MemTable*> mems = job->mem_vec;
   assert(mems.size() >0);
-  imm_mtx->lock();
+  std::unique_lock<std::mutex> lck(*imm_mtx);
+//  imm_mtx->lock();
   if (mems.size() == 1)
     printf("check 1 memtable installation\n");
   // Flush was successful
@@ -435,7 +437,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
     // the pending writes to manifest, in order.
     if (memlist.empty() || !memlist.back()->CheckFlushFinished()) {
       //Unlock the spinlock and do not write to the version
-      imm_mtx->unlock();
+//      imm_mtx->unlock();
       break;
     }
     // scan all memtables from the earliest, and commit those
@@ -481,7 +483,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
     current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
     DEBUG_arg("Install flushing result, current immutable number is %lu\n", current_memtable_num_.load());
 
-    imm_mtx->unlock();
+    lck.unlock();
 
     s = vset->LogAndApply(edit);
     job->write_stall_cv_->notify_all();
@@ -783,10 +785,10 @@ void FlushJob::SetAllMemStateProcessing() {
 
   }
 }
-FlushJob::FlushJob(std::mutex* write_stall_mutex,
+FlushJob::FlushJob(std::mutex* imm_mtx,
                    std::condition_variable* write_stall_cv,
                    const InternalKeyComparator* cmp)
-    :write_stall_mutex_(write_stall_mutex), write_stall_cv_(write_stall_cv),
+    : imm_mtx_(imm_mtx), write_stall_cv_(write_stall_cv),
       user_cmp(cmp){}
 Status FlushJob::BuildTable(const std::string& dbname, Env* env,
                             const Options& options, TableCache* table_cache,

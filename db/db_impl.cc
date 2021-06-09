@@ -1634,7 +1634,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
 //      imm_mtx.unlock();
     }else{
-      std::unique_lock<std::mutex> l(imm_mtx);
+      std::lock_guard<std::mutex> l(imm_mtx);
 //      assert(locked == false);
 #ifndef NDEBUG
       while(true){

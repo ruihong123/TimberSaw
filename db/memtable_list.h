@@ -412,11 +412,11 @@ class MemTableList {
 };
 class FlushJob {
  public:
-  explicit FlushJob(std::mutex* write_stall_mutex,
+  explicit FlushJob(std::mutex* imm_mtx,
                     std::condition_variable* write_stall_cv,
                     const InternalKeyComparator* cmp);
   autovector<MemTable*> mem_vec;
-  std::mutex* write_stall_mutex_;
+  std::mutex* imm_mtx_;
   std::condition_variable* write_stall_cv_;
   std::shared_ptr<RemoteMemTableMetaData> sst;
   const InternalKeyComparator* user_cmp;
