@@ -1634,7 +1634,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
 //      imm_mtx.unlock();
     }else{
-      std::lock_guard<std::mutex> l(imm_mtx);
+      std::unique_lock<std::mutex> l(imm_mtx);
 //      assert(locked == false);
 #ifndef NDEBUG
       while(true){
@@ -1678,6 +1678,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       locked = false;
 #endif
 //      imm_mtx.unlock();
+      l.unlock();
     }
     mem_r = mem_.load();
     // For the safety concern (such as the thread get context switch)
