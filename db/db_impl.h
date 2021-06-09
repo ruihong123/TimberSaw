@@ -187,10 +187,10 @@ class DBImpl : public DB {
   // State below is protected by undefine_mutex
   // we could rename it as superversion mutex
   port::Mutex undefine_mutex;
-  port::Mutex write_stall_mutex_;
+//  port::Mutex write_stall_mutex_;
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
-  port::CondVar write_stall_cv GUARDED_BY(write_stall_mutex_);
+  std::condition_variable write_stall_cv GUARDED_BY(imm_mtx);
   std::mutex imm_mtx;
   bool locked = false;
 //  SpinMutex LSMv_mtx;

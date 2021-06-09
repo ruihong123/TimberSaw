@@ -412,12 +412,12 @@ class MemTableList {
 };
 class FlushJob {
  public:
-  explicit FlushJob(port::Mutex* write_stall_mutex,
-                    port::CondVar* write_stall_cv,
+  explicit FlushJob(std::mutex* write_stall_mutex,
+                    std::condition_variable* write_stall_cv,
                     const InternalKeyComparator* cmp);
   autovector<MemTable*> mem_vec;
-  port::Mutex* write_stall_mutex_;
-  port::CondVar* write_stall_cv_;
+  std::mutex* write_stall_mutex_;
+  std::condition_variable* write_stall_cv_;
   std::shared_ptr<RemoteMemTableMetaData> sst;
   const InternalKeyComparator* user_cmp;
   void Waitforpendingwriter();

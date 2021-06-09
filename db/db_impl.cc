@@ -139,7 +139,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
       db_lock_(nullptr),
       shutting_down_(false),
-      write_stall_cv(&write_stall_mutex_),
+//      write_stall_cv(&write_stall_mutex_),
       mem_(nullptr),
       imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger, 64*1024*1024*config::Immutable_StopWritesTrigger ,&imm_mtx),
       has_imm_(false),
@@ -708,7 +708,7 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
-  FlushJob f_job(&write_stall_mutex_, &write_stall_cv, &internal_comparator_);
+  FlushJob f_job(&imm_mtx, &write_stall_cv, &internal_comparator_);
   {
     std::unique_lock<std::mutex> l(imm_mtx);
     if (imm_.IsFlushPending())
@@ -731,7 +731,7 @@ void DBImpl::CompactMemTable() {
   }
 }
 
-
+//NOte: deprecated function
 void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
   int max_level_with_files = 1;
   {
@@ -772,16 +772,16 @@ void DBImpl::TEST_CompactRange(int level, const Slice* begin,
     manual.end = &end_storage;
   }
 
-  MutexLock l(&undefine_mutex);
-  while (!manual.done && !shutting_down_.load(std::memory_order_acquire) &&
-         bg_error_.ok()) {
-    if (manual_compaction_ == nullptr) {  // Idle
-      manual_compaction_ = &manual;
-      MaybeScheduleFlushOrCompaction();
-    } else {  // Running either my compaction or another compaction.
-      write_stall_cv.Wait();
-    }
-  }
+//  MutexLock l(&undefine_mutex);
+//  while (!manual.done && !shutting_down_.load(std::memory_order_acquire) &&
+//         bg_error_.ok()) {
+//    if (manual_compaction_ == nullptr) {  // Idle
+//      manual_compaction_ = &manual;
+//      MaybeScheduleFlushOrCompaction();
+//    } else {  // Running either my compaction or another compaction.
+//      write_stall_cv.wait(imm_mtx);
+//    }
+//  }
   if (manual_compaction_ == &manual) {
     // Cancel my manual compaction since we aborted early for some reason.
     manual_compaction_ = nullptr;
@@ -808,7 +808,7 @@ void DBImpl::RecordBackgroundError(const Status& s) {
 //  undefine_mutex.AssertHeld();
   if (bg_error_.ok()) {
     bg_error_ = s;
-    write_stall_cv.SignalAll();
+    write_stall_cv.notify_all();
   }
 }
 
@@ -1301,7 +1301,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
   // NOtifying all the waiting threads.
-  write_stall_cv.SignalAll();
+  write_stall_cv.notify_all();
   return status;
 }
 
@@ -1619,7 +1619,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // the wait will never get signalled.
 
       // We check the imm again in the while loop, because the state may have already been changed before you acquire the Lock.
-      write_stall_mutex_.Lock();
+      std::unique_lock<std::mutex> lck(imm_mtx);
+//      imm_mtx.lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
       while ((imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
@@ -1627,20 +1628,22 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         assert(seq_num > mem_r->GetFirstseq());
 //        std::cout << "Writer is going to wait current immutable number " << (imm_.current_memtable_num()) << " Level 0 file number "
 //                  << (versions_->NumLevelFiles(0)) <<std::endl;
-        write_stall_cv.Wait();
+        write_stall_cv.wait(lck);
 //        printf("thread was waked up\n");
         mem_r = mem_.load();
       }
-      write_stall_mutex_.Unlock();
+//      imm_mtx.unlock();
     }else{
       std::unique_lock<std::mutex> l(imm_mtx);
 //      assert(locked == false);
+#ifndef NDEBUG
       while(true){
         if (!locked)
           break;
       }
 
       locked = true;
+#endif
       mem_r = mem_.load();
       //After aquire the lock check the status again
       if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
@@ -1666,10 +1669,14 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         mem_r = temp_mem;
 //        imm_mtx.unlock();
         MaybeScheduleFlushOrCompaction();
+#ifndef NDEBUG
         locked = false;
+#endif
         return s;
       }
+#ifndef NDEBUG
       locked = false;
+#endif
 //      imm_mtx.unlock();
     }
     mem_r = mem_.load();
@@ -1685,6 +1692,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // get the snapshot for imm then check it so that this memtable pointer is guarantee
       // to be the one this thread want.
       // TODO: use imm_mtx to control the access.
+      std::unique_lock<std::mutex> l(imm_mtx);
       mem_r = imm_.PickMemtablesSeqBelong(seq_num);
       if (mem_r != nullptr)
         return s;

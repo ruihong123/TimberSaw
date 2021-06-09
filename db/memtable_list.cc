@@ -484,7 +484,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
     imm_mtx->unlock();
 
     s = vset->LogAndApply(edit);
-    job->write_stall_cv_->SignalAll();
+    job->write_stall_cv_->notify_all();
 
   }
 
@@ -770,7 +770,7 @@ void FlushJob::Waitforpendingwriter() {
       if (counter == 500) {
 //        printf("signal all the wait threads\n");
         usleep(10);
-        write_stall_cv_->SignalAll();
+        write_stall_cv_->notify_all();
         counter = 0;
       }
     }
@@ -783,8 +783,8 @@ void FlushJob::SetAllMemStateProcessing() {
 
   }
 }
-FlushJob::FlushJob(port::Mutex* write_stall_mutex,
-                   port::CondVar* write_stall_cv,
+FlushJob::FlushJob(std::mutex* write_stall_mutex,
+                   std::condition_variable* write_stall_cv,
                    const InternalKeyComparator* cmp)
     :write_stall_mutex_(write_stall_mutex), write_stall_cv_(write_stall_cv),
       user_cmp(cmp){}
