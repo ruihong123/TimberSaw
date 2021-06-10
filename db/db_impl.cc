@@ -721,7 +721,11 @@ void DBImpl::CompactMemTable() {
 
 //  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
   base->Ref();
+  auto start = std::chrono::high_resolution_clock::now();
   Status s = WriteLevel0Table(&f_job, &edit);
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
   base->Unref();
 
   imm_.TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
@@ -879,11 +883,9 @@ void DBImpl::BackgroundFlush(void* p) {
   } else if (!bg_error_.ok()) {
     // No more background work after a background error.
   } else if (imm_.IsFlushPending()) {
-    auto start = std::chrono::high_resolution_clock::now();
+
     CompactMemTable();
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    printf("memtable flushing time elapse (%ld) us\n", duration.count());
+
     DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
     DEBUG("Memtable flushed\n");
   }
