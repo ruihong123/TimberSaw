@@ -25,7 +25,7 @@ namespace config {
 static const int kNumLevels = 7;
 static const int MaxImmuNumPerFlush = 1;
 // Immutable flushing will be triggered when hit this number
-static const int Immutable_FlushTrigger = 2;
+static const int Immutable_FlushTrigger = 1;
 // Maximum number of unflushed immutable files
 static const int Immutable_StopWritesTrigger = 10;
 // Level-0 compaction is started when we hit this many files.
