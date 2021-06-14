@@ -417,6 +417,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
   for (size_t i = 0; i < mems.size(); ++i) {
     // First mark the flushing is finished in the immutables
     mems[i]->MarkFlushed();
+    DEBUG_arg("Memtable %p marked as flushed\n", mems[i]);
     mems[i]->sstable = sstable;
   }
 
