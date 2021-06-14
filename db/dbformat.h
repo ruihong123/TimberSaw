@@ -23,7 +23,7 @@ namespace leveldb {
 // parameters set via options.
 namespace config {
 static const int kNumLevels = 7;
-static const int MaxImmuNumPerFlush = 2;
+static const int MaxImmuNumPerFlush = 1;
 // Immutable flushing will be triggered when hit this number
 static const int Immutable_FlushTrigger = 2;
 // Maximum number of unflushed immutable files
