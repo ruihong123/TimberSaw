@@ -87,7 +87,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
       return;
     }
 #ifndef NDEBUG
-    printf("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
+//    printf("two level iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
 #endif
 
     index_iter_.Next();

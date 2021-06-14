@@ -30,7 +30,7 @@ class IteratorWrapper {
   // when Set() is invoked again.
   void Set(Iterator* iter) {
 #ifndef NDEBUG
-    printf("Delete iter_ when replacing the iterator, deleted iter_ is %p, new iterator is %p\n", iter_, iter);
+//    printf("Delete iter_ when replacing the iterator, deleted iter_ is %p, new iterator is %p\n", iter_, iter);
 #endif
     delete iter_;
 

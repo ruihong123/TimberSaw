@@ -138,7 +138,7 @@ class Block::Iter : public Iterator {
   }
   ~Iter(){
 #ifndef NDEBUG
-    printf("Block iter deallocate char p %p, iterator p %p\n", this->key_.c_str() , this);
+//    printf("Block iter deallocate char p %p, iterator p %p\n", this->key_.c_str() , this);
 #endif
 //    DEBUG_arg("Block iter deallocate %p", this->key_.c_str());
   }
