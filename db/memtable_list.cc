@@ -428,67 +428,68 @@ Status MemTableList::TryInstallMemtableFlushResults(
 
   // Retry until all completed flushes are committed. New flushes can finish
   // while the current thread is writing manifest where mutex is released.
-  while (s.ok()) {
-    auto& memlist = current_->memlist_;
-    // The back is the oldest; if flush_completed_ is not set to it, it means
-    // that we were assigned a more recent memtable. The memtables' flushes must
-    // be recorded in manifest in order. A concurrent flush thread, who is
-    // assigned to flush the oldest memtable, will later wake up and does all
-    // the pending writes to manifest, in order.
-    if (memlist.empty() || !memlist.back()->CheckFlushFinished()) {
-      //Unlock the spinlock and do not write to the version
+//  while (s.ok()) {
+  auto& memlist = current_->memlist_;
+  // The back is the oldest; if flush_completed_ is not set to it, it means
+  // that we were assigned a more recent memtable. The memtables' flushes must
+  // be recorded in manifest in order. A concurrent flush thread, who is
+  // assigned to flush the oldest memtable, will later wake up and does all
+  // the pending writes to manifest, in order.
+  if (memlist.empty() || !memlist.back()->CheckFlushFinished()) {
+    //Unlock the spinlock and do not write to the version
 //      imm_mtx->unlock();
-      break;
-    }
-    // scan all memtables from the earliest, and commit those
-    // (in that order) that have finished flushing. Memtables
-    // are always committed in the order that they were created.
-    uint64_t batch_file_number = 0;
-    size_t batch_count = 0;
+    commit_in_progress_ = false;
+    return s;
+  }
+  // scan all memtables from the earliest, and commit those
+  // (in that order) that have finished flushing. Memtables
+  // are always committed in the order that they were created.
+  uint64_t batch_file_number = 0;
+  size_t batch_count = 0;
 //    autovector<VersionEdit*> edit_list;
 //    autovector<MemTable*> memtables_to_flush;
-    // enumerate from the last (earliest) element to see how many batch finished
-    for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
-      MemTable* m = *it;
-      if (!m->CheckFlushFinished()) {
-        break;
-      }
-      assert(m->sstable != nullptr);
-      edit->AddFileIfNotExist(0,m->sstable);
-      batch_count++;
-      if (batch_count == 3){
-        DEBUG("check equals 3\n");
-        printf("Memtable list install 3 tables");
-      }
-      if (batch_count == 4)
-        DEBUG("check equals 4\n");
+  // enumerate from the last (earliest) element to see how many batch finished
+  for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
+    MemTable* m = *it;
+    if (!m->CheckFlushFinished()) {
+      break;
     }
-
-    // TODO(myabandeh): Not sure how batch_count could be 0 here.
-
-    DEBUG("try install inner loop\n");
-    // we will be changing the version in the next code path,
-    // so we better create a new one, since versions are immutable
-    InstallNewVersion();
-    size_t batch_count_for_fetch_sub = batch_count;
-    while (batch_count-- > 0) {
-      MemTable* m = current_->memlist_.back();
-
-      assert(m->sstable != nullptr);
-      autovector<MemTable*> dummy_to_delete = autovector<MemTable*>();
-      current_->Remove(m);
-      UpdateCachedValuesFromMemTableListVersion();
-      ResetTrimHistoryNeeded();
+    assert(m->sstable != nullptr);
+    edit->AddFileIfNotExist(0,m->sstable);
+    batch_count++;
+    if (batch_count == 3){
+      DEBUG("check equals 3\n");
+      printf("Memtable list install 3 tables");
     }
-    current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
-    DEBUG_arg("Install flushing result, current immutable number is %lu\n", current_memtable_num_.load());
-
-    lck.unlock();
-
-    s = vset->LogAndApply(edit);
-    job->write_stall_cv_->notify_all();
-
+    if (batch_count == 4)
+      DEBUG("check equals 4\n");
   }
+
+  // TODO(myabandeh): Not sure how batch_count could be 0 here.
+
+  DEBUG("try install inner loop\n");
+  // we will be changing the version in the next code path,
+  // so we better create a new one, since versions are immutable
+  InstallNewVersion();
+  size_t batch_count_for_fetch_sub = batch_count;
+  while (batch_count-- > 0) {
+    MemTable* m = current_->memlist_.back();
+
+    assert(m->sstable != nullptr);
+    autovector<MemTable*> dummy_to_delete = autovector<MemTable*>();
+    current_->Remove(m);
+    UpdateCachedValuesFromMemTableListVersion();
+    ResetTrimHistoryNeeded();
+  }
+  current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
+  DEBUG_arg("Install flushing result, current immutable number is %lu\n", current_memtable_num_.load());
+
+  lck.unlock();
+
+  s = vset->LogAndApply(edit);
+  job->write_stall_cv_->notify_all();
+
+//  }
 
   commit_in_progress_ = false;
   return s;
