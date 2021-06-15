@@ -345,7 +345,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 
     if (!m->CheckFlushInProcess()) {
       //The pickmemtable should never see the flush finished table.
-      assert(!m->CheckFlushFinished());
+//      assert(!m->CheckFlushFinished());
       num_flush_not_started_.fetch_sub(1);
       m->SetFlushState(MemTable::FLUSH_PROCESSING);
 //      if (num_flush_not_started_ == 0) {
