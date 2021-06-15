@@ -382,6 +382,7 @@ class VersionSet {
   WritableFile* descriptor_file_;
   log::Writer* descriptor_log_;
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
+  //TODO: make current_ an atomic variable.
   Version* current_;        // == dummy_versions_.prev_
   //TODO: make it spinmutex?
   port::Mutex version_mutex;
