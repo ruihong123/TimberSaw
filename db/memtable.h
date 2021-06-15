@@ -106,6 +106,9 @@ class MemTable {
   bool CheckFlushInProcess(){
     return flush_state_ == FLUSH_PROCESSING;
   }
+  bool CheckFlush_Requested(){
+    return flush_state_ == FLUSH_REQUESTED;
+  }
   bool CheckFlushFinished(){
     return flush_state_.load() == FLUSH_FINISHED;
   }

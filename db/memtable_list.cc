@@ -343,7 +343,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
   for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
     MemTable* m = *it;
 
-    if (!m->CheckFlushInProcess()) {
+    if (m->CheckFlush_Requested()) {
       //The pickmemtable should never see the flush finished table.
 //      assert(!m->CheckFlushFinished());
       num_flush_not_started_.fetch_sub(1);
