@@ -433,6 +433,9 @@ void TableBuilder::FlushData(){
         r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
       ibv_mr* new_local_mr;
       rdma_mg->Allocate_Local_RDMA_Slot(new_local_mr,"FlushBuffer");
+      if(r->data_inuse_start == 0){// if start is 0 then the insert will also increase the index of end.
+        r->data_inuse_end++;
+      }
       // insert new mr at start while increase start by 1.
       r->local_data_mr.insert(r->local_data_mr.begin() + r->data_inuse_start++, new_local_mr);
       DEBUG_arg("One more local write buffer is added, now %zu total\n", r->local_data_mr.size());
