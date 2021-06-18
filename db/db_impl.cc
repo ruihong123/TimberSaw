@@ -1337,7 +1337,7 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
     }
 
   }
-  DEBUG_arg("Subcompaction number is %zu", compact->sub_compact_states.size());
+  printf("Subcompaction number is %zu", compact->sub_compact_states.size());
   const size_t num_threads = compact->sub_compact_states.size();
   assert(num_threads > 0);
   const uint64_t start_micros = env_->NowMicros();
