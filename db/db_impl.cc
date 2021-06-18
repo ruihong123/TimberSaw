@@ -62,7 +62,7 @@ struct CompactionOutput {
 struct DBImpl::SubcompactionState {
   Compaction* const compaction;
 
-  // The boundaries of the key-range this compaction is interested in. No two
+  // The boundaries(UserKey) of the key-range this compaction is interested in. No two
   // subcompactions may have overlapping key-ranges.
   // 'start' is inclusive, 'end' is exclusive, and nullptr means unbounded
   Slice *start, *end;
@@ -74,7 +74,7 @@ struct DBImpl::SubcompactionState {
 
   // State kept for output being generated
   std::vector<CompactionOutput> outputs;
-  TableBuilder* builder;
+  TableBuilder* builder = nullptr;
 
   CompactionOutput* current_output() {
     if (outputs.empty()) {
@@ -1337,7 +1337,7 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
     }
 
   }
-
+  DEBUG_arg("Subcompaction number is %zu", compact->sub_compact_states.size());
   const size_t num_threads = compact->sub_compact_states.size();
   assert(num_threads > 0);
   const uint64_t start_micros = env_->NowMicros();
@@ -1387,7 +1387,9 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
 
 void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
   assert(sub_compact->builder == nullptr);
-//  assert(compact->outfile == nullptr);
+  //Start and End are userkeys.
+  Slice* start = sub_compact->start;
+  Slice* end = sub_compact->end;
   if (snapshots_.empty()) {
     sub_compact->smallest_snapshot = versions_->LastSequence();
   } else {
@@ -1398,8 +1400,8 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 
   // Release mutex while we're actually doing the compaction work
 //  undefine_mutex.Unlock();
-  if (sub_compact->start != nullptr) {
-    InternalKey start_internal(*sub_compact->start, kMaxSequenceNumber, kValueTypeForSeek);
+  if (start != nullptr) {
+    InternalKey start_internal(*start, kMaxSequenceNumber, kValueTypeForSeek);
 
     input->Seek(start_internal.Encode());
   } else {
@@ -1423,6 +1425,10 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 #endif
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     key = input->key();
+    if (end != nullptr &&
+        user_comparator()->Compare(ExtractUserKey(key), *end) >= 0) {
+      break;
+    }
 //    assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (sub_compact->compaction->ShouldStopBefore(key) &&
