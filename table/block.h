@@ -94,8 +94,13 @@ class Block::Iter : public Iterator {
   // current_ is offset in data_ of current entry.  >= restarts_ if !Valid
   uint32_t current_;
   uint32_t restart_index_;  // Index of restart block in which current_ falls
-  std::string key_;
-  Slice value_;
+//  std::string key_1;
+//  std::string key_2;
+  //Maitain two switched key holder in case that sometime iterator want to peek back the key and value.
+  std::string key_[2];
+  Slice value_[2];
+  int array_index;
+//  Slice value_1;
   Status status_;
 #ifndef NDEBUG
   std::string last_key;
@@ -107,7 +112,7 @@ class Block::Iter : public Iterator {
 
   // Return the offset in data_ just past the end of the current entry.
   inline uint32_t NextEntryOffset() const {
-    return (value_.data() + value_.size()) - data_;
+    return (value_[array_index].data() + value_[array_index].size()) - data_;
   }
 
   uint32_t GetRestartPoint(uint32_t index) {
@@ -116,13 +121,15 @@ class Block::Iter : public Iterator {
   }
 
   void SeekToRestartPoint(uint32_t index) {
-    key_.clear();
+    key_[1].clear();
+    key_[0].clear();
     restart_index_ = index;
     // current_ will be fixed by ParseNextKey();
 
     // ParseNextKey() starts at the end of value_, so set value_ accordingly
     uint32_t offset = GetRestartPoint(index);
-    value_ = Slice(data_ + offset, 0);
+    array_index = 0;
+    value_[array_index] = Slice(data_ + offset, 0);
   }
 
  public:
@@ -133,7 +140,8 @@ class Block::Iter : public Iterator {
         restarts_(restarts),
         num_restarts_(num_restarts),
         current_(restarts_),
-        restart_index_(num_restarts_) {
+        restart_index_(num_restarts_),
+        array_index(0){
     assert(num_restarts_ > 0);
   }
   ~Iter(){
@@ -146,11 +154,11 @@ class Block::Iter : public Iterator {
   Status status() const override { return status_; }
   Slice key() const override {
     assert(Valid());
-    return key_;
+    return key_[array_index];
   }
   Slice value() const override {
     assert(Valid());
-    return value_;
+    return value_[array_index];
   }
 
   void Next() override {
@@ -158,10 +166,10 @@ class Block::Iter : public Iterator {
     ParseNextKey();
 #ifndef NDEBUG
     if (num_entries > 0) {
-      assert(comparator_->Compare(key_, Slice(last_key)) >= 0);
+      assert(comparator_->Compare(key_[array_index], Slice(last_key)) >= 0);
     }
     num_entries++;
-    last_key = key_;
+    last_key = key_[array_index];
 #endif
   }
 
@@ -197,7 +205,7 @@ class Block::Iter : public Iterator {
       // If we're already scanning, use the current position as a starting
       // point. This is beneficial if the key we're seeking to is ahead of the
       // current position.
-      current_key_compare = Compare(key_, target);
+      current_key_compare = Compare(key_[array_index], target);
       if (current_key_compare < 0) {
         // key_ is smaller than target
         left = restart_index_;
@@ -248,7 +256,7 @@ class Block::Iter : public Iterator {
       if (!ParseNextKey()) {
         return;
       }
-      if (Compare(key_, target) >= 0) {
+      if (Compare(key_[array_index], target) >= 0) {
         return;
       }
     }
@@ -273,8 +281,10 @@ class Block::Iter : public Iterator {
     restart_index_ = num_restarts_;
     status_ = Status::Corruption("bad entry in block");
     DEBUG("bad entry in block\n");
-    key_.clear();
-    value_.clear();
+    key_[0].clear();
+    key_[1].clear();
+    value_[0].clear();
+    value_[1].clear();
   }
 
   bool ParseNextKey() {
@@ -292,16 +302,17 @@ class Block::Iter : public Iterator {
     // Decode next entry
     uint32_t shared, non_shared, value_length;
     p = DecodeEntry(p, limit, &shared, &non_shared, &value_length);
-    if (p == nullptr || key_.size() < shared) {
+    if (p == nullptr || key_[array_index].size() < shared) {
       CorruptionError();
 #ifndef NDEBUG
       printf("detect corruption block, when parsing the next, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
 #endif
       return false;
     } else {
-      key_.resize(shared);
-      key_.append(p, non_shared);
-      value_ = Slice(p + non_shared, value_length);
+      array_index = array_index == 0 ? 1:0;
+      key_[array_index].resize(shared);
+      key_[array_index].append(p, non_shared);
+      value_[array_index] = Slice(p + non_shared, value_length);
       while (restart_index_ + 1 < num_restarts_ &&
              GetRestartPoint(restart_index_ + 1) < current_) {
         ++restart_index_;
