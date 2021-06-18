@@ -253,13 +253,14 @@ class VersionSet {
   uint64_t ManifestFileNumber() const { return manifest_file_number_; }
 
   // Allocate and return a new file number
-  uint64_t NewFileNumber() { return next_file_number_++; }
+  uint64_t NewFileNumber() { return next_file_number_.fetch_add(1); }
 
   // Arrange to reuse "file_number" unless a newer file number has
   // already been allocated.
   // REQUIRES: "file_number" was returned by a call to NewFileNumber().
   void ReuseFileNumber(uint64_t file_number) {
-    if (next_file_number_ == file_number + 1) {
+    std::unique_lock<std::mutex> lck(version_mutex);
+    if (next_file_number_.load() == file_number + 1) {
       next_file_number_ = file_number;
     }
   }
@@ -372,7 +373,7 @@ class VersionSet {
   const Options* const options_;
   TableCache* const table_cache_;
   const InternalKeyComparator icmp_;
-  uint64_t next_file_number_;
+  std::atomic<uint64_t> next_file_number_;
   uint64_t manifest_file_number_;
   std::atomic<uint64_t> last_sequence_;
   uint64_t log_number_;
@@ -385,11 +386,12 @@ class VersionSet {
   //TODO: make current_ an atomic variable.
   Version* current_;        // == dummy_versions_.prev_
   //TODO: make it spinmutex?
-  port::Mutex version_mutex;
+  std::mutex version_mutex;
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_index_[config::kNumLevels];
 };
+
 
 // A Compaction encapsulates information about a compaction.
 class Compaction {
@@ -433,8 +435,12 @@ class Compaction {
   // Release the mem_vec version for the compaction, once the compaction
   // is successful.
   void ReleaseInputs();
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of mem_vec
+  void GenSubcompactionBoundaries();
 
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of mem_vec
+  std::vector<Slice>* GetBoundaries();
+  std::vector<uint64_t>* GetSizes();
+  uint64_t GetFileSizesForLevel(int level);
  private:
   friend class Version;
   friend class VersionSet;
@@ -463,6 +469,10 @@ class Compaction {
   // higher level than the ones involved in this compaction (i.e. for
   // all L >= level_ + 2).
   size_t level_ptrs_[config::kNumLevels];
+  // Stores the Slices that designate the boundaries for each subcompaction
+  std::vector<Slice> boundaries_;
+  // Stores the approx size of keys covered in the range of each subcompaction
+  std::vector<uint64_t> sizes_;
 };
 
 }  // namespace leveldb

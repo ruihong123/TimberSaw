@@ -752,7 +752,7 @@ void VersionSet::AppendVersion(Version* v) {
 Status VersionSet::LogAndApply(VersionEdit* edit) {
   if (edit->has_log_number_) {
     assert(edit->log_number_ >= log_number_);
-    assert(edit->log_number_ < next_file_number_);
+    assert(edit->log_number_ < next_file_number_.load());
   } else {
     edit->SetLogNumber(log_number_);
   }
@@ -761,12 +761,12 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
     edit->SetPrevLogNumber(prev_log_number_);
   }
 
-  edit->SetNextFile(next_file_number_);
+  edit->SetNextFile(next_file_number_.load());
   edit->SetLastSequence(last_sequence_);
   //Build an empty version.
   Version* v = new Version(this);
 
-  version_mutex.Lock();
+  std::unique_lock<std::mutex> lck(version_mutex);
   {
     // Decide what table to keep what to discard.
     Builder builder(this, current_);
@@ -836,7 +836,6 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //      env_->RemoveFile(new_manifest_file);
 //    }
   }
-  version_mutex.Unlock();
   return s;
 }
 
@@ -1003,8 +1002,9 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
   manifest_file_number_ = manifest_number;
   return true;
 }
-
+//Use mutex to synchronize between threads.
 void VersionSet::MarkFileNumberUsed(uint64_t number) {
+  std::unique_lock<std::mutex> lck(version_mutex);
   if (next_file_number_ <= number) {
     next_file_number_ = number + 1;
   }
@@ -1309,7 +1309,6 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
 bool VersionSet::PickFileToCompact(int level, Compaction* c){
   assert(c->inputs_[0].empty());
   assert(c->inputs_[1].empty());
-  version_mutex.AssertHeld();
   if (level==0){
     // if there is pending compaction, skip level 0
     if (current_->in_progress[level].size()>0){
@@ -1429,7 +1428,7 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
-  version_mutex.Lock();
+  std::unique_lock<std::mutex> lck(version_mutex);
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);
@@ -1468,11 +1467,9 @@ Compaction* VersionSet::PickCompaction() {
     c->input_version_->Ref();
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
-    version_mutex.Unlock();
     return c;
   }else{
     delete c;
-    version_mutex.Unlock();
     return nullptr;
   }
   //TODO: enable the file seek time compaciton in the future.
@@ -1770,6 +1767,70 @@ void Compaction::ReleaseInputs() {
     input_version_->Unref();
     input_version_ = nullptr;
   }
+}
+void Compaction::GenSubcompactionBoundaries() {
+  std::vector<Slice>& bounds = boundaries_;
+  std::vector<uint64_t>& sizes = sizes_;
+  //TODO: for the first time level 0 compaction, we do not have level 1 files, so
+  // we could use the data block index to find out the boundaries.
+
+//  //insert base level
+//  {
+//    auto level_inputs = inputs_[0];
+//    size_t num_files = level_inputs.size();
+//
+//    if (level() == 0) {
+//      // For level 0 add the starting and ending key of each file since the
+//      // files may have greatly differing key ranges (not range-partitioned)
+//      for (size_t i = 0; i < num_files; i++) {
+//        bounds.emplace_back(level_inputs[i]->smallest.Encode());
+//        bounds.emplace_back(level_inputs[i]->largest.Encode());
+//      }
+//    }else{
+//      bounds.emplace_back(level_inputs[0]->smallest.Encode());
+//      bounds.emplace_back(level_inputs[num_files - 1]->largest.Encode());
+//    }
+//  }
+  // insert output level
+  {
+    auto level_inputs = inputs_[1];
+    size_t num_files = level_inputs.size();
+    // For the last level include the starting keys of all files since
+    // the last level is the largest and probably has the widest key
+    // range. Since it's range partitioned, the ending key of one file
+    // and the starting key of the next are very close (or identical).
+    sizes.push_back(level_inputs[0]->file_size);
+    for (size_t i = 1; i < num_files; i++) {
+      bounds.emplace_back(level_inputs[i]->smallest.Encode());
+      sizes.push_back(level_inputs[i]->file_size);
+    }
+  }
+//  const VersionSet* vset = input_version_->vset_;
+//  // Scan to find earliest grandparent file that contains key.
+//  const auto* usr_comparator = vset->icmp_.user_comparator();
+//  // sort and remove duplicated boundaries.
+//  std::sort(bounds.begin(), bounds.end(),
+//            [usr_comparator](const Slice& a, const Slice& b) -> bool {
+//              return usr_comparator->Compare(ExtractUserKey(a),
+//                                             ExtractUserKey(b)) < 0;
+//            });
+//  // Remove duplicated entries from bounds
+//  bounds.erase(
+//      std::unique(bounds.begin(), bounds.end(),
+//                  [usr_comparator](const Slice& a, const Slice& b) -> bool {
+//                    return usr_comparator->Compare(ExtractUserKey(a),
+//                                                   ExtractUserKey(b)) == 0;
+//                  }),
+//      bounds.end());
+}
+std::vector<Slice>* Compaction::GetBoundaries(){
+  return &boundaries_;
+}
+std::vector<uint64_t>* Compaction::GetSizes() {
+  return &sizes_;
+}
+uint64_t Compaction::GetFileSizesForLevel(int level){
+  return inputs_[level].size();
 }
 
 }  // namespace leveldb

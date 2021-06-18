@@ -84,6 +84,7 @@ class DBImpl : public DB {
  private:
   friend class DB;
   struct CompactionState;
+  struct SubcompactionState;
   struct Writer;
 
   // Information for a manual compaction
@@ -158,8 +159,12 @@ class DBImpl : public DB {
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status DoCompactionWork(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
-
+  void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
+  Status DoCompactionWorkWithSubcompaction(CompactionState* compact);
+  Status OpenCompactionOutputFile(SubcompactionState* compact);
   Status OpenCompactionOutputFile(CompactionState* compact);
+  Status FinishCompactionOutputFile(SubcompactionState* compact,
+                                    Iterator* input);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
