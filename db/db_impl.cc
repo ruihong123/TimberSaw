@@ -1530,7 +1530,8 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
   }
   if (status.ok() && sub_compact->builder != nullptr) {
     assert(key.data()[0] == '0');
-    sub_compact->current_output()->largest.DecodeFrom(key);
+
+    sub_compact->current_output()->largest.SetFrom(ikey);
     status = FinishCompactionOutputFile(sub_compact, input);
   }
   if (status.ok()) {

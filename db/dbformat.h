@@ -144,12 +144,13 @@ class InternalKey {
   InternalKey(const Slice& user_key, SequenceNumber s, ValueType t) {
     AppendInternalKey(&rep_, ParsedInternalKey(user_key, s, t));
   }
-
+  InternalKey(ParsedInternalKey& key) {
+    AppendInternalKey(&rep_, key);
+  }
   bool DecodeFrom(const Slice& s) {
     rep_.assign(s.data(), s.size());
     return !rep_.empty();
   }
-
   Slice Encode() const {
     assert(!rep_.empty());
     return rep_;
