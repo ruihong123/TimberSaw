@@ -1467,6 +1467,8 @@ Compaction* VersionSet::PickCompaction() {
     c->input_version_->Ref();
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
+    if (c->inputs_[1].empty())
+      printf("mark here\n");
     return c;
   }else{
     delete c;
