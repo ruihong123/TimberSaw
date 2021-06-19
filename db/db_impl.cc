@@ -1284,7 +1284,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
       }
     }
   }
-
+  assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
   return versions_->LogAndApply(compact->compaction->edit());
 }
 Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {

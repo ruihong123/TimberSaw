@@ -107,7 +107,9 @@ class VersionEdit {
   void RemoveFile(int level, uint64_t file) {
     deleted_files_.insert(std::make_pair(level, file));
   }
-
+  size_t GetNewFilesNum(){
+    return new_files_.size();
+  }
   void EncodeTo(std::string* dst) const;
   Status DecodeFrom(const Slice& src);
 
