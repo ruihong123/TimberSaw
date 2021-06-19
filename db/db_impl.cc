@@ -1267,8 +1267,8 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     }
   }else{
     for(auto subcompact : compact->sub_compact_states){
-      for (size_t i = 0; i < compact->outputs.size(); i++) {
-        const CompactionOutput& out = compact->outputs[i];
+      for (size_t i = 0; i < subcompact.outputs.size(); i++) {
+        const CompactionOutput& out = subcompact.outputs[i];
         std::shared_ptr<RemoteMemTableMetaData> meta =
             std::make_shared<RemoteMemTableMetaData>();
         // TODO make all the metadata written into out
