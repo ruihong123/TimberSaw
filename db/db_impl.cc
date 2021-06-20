@@ -206,6 +206,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
+  printf("DBImpl deallocated\n");
   //TODO: shuttinh down and join all threads may have duplicated funciton. remove one
   // of it.
   env_->JoinAllThreads(false);
