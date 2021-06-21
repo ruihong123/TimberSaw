@@ -216,7 +216,7 @@ class DBImpl : public DB {
 
   // Set of table files to protect from deletion because they are
   // part of ongoing compactions.
-  std::set<uint64_t> pending_outputs_;
+//  std::set<uint64_t> pending_outputs_;
 
   // Has a background compaction been scheduled or is running?
   bool background_compaction_scheduled_;

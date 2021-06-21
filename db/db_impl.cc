@@ -291,8 +291,8 @@ void DBImpl::RemoveObsoleteFiles() {
   }
 
   // Make a set of all of the live files
-  std::set<uint64_t> live = pending_outputs_;
-  versions_->AddLiveFiles(&live);
+//  std::set<uint64_t> live = pending_outputs_;
+//  versions_->AddLiveFiles(&live);
 
   std::vector<std::string> filenames;
   env_->GetChildren(dbname_, &filenames);  // Ignoring errors on purpose
@@ -312,14 +312,14 @@ void DBImpl::RemoveObsoleteFiles() {
           // (in case there is a race that allows other incarnations)
           keep = (number >= versions_->ManifestFileNumber());
           break;
-        case kTableFile:
-          keep = (live.find(number) != live.end());
-          break;
-        case kTempFile:
-          // Any temp files that are currently being written to must
-          // be recorded in pending_outputs_, which is inserted into "live"
-          keep = (live.find(number) != live.end());
-          break;
+//        case kTableFile:
+//          keep = (live.find(number) != live.end());
+//          break;
+//        case kTempFile:
+//          // Any temp files that are currently being written to must
+//          // be recorded in pending_outputs_, which is inserted into "live"
+//          keep = (live.find(number) != live.end());
+//          break;
         case kCurrentFile:
         case kDBLockFile:
         case kInfoLogFile:
@@ -569,7 +569,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
-  pending_outputs_.insert(meta->number);
+//  pending_outputs_.insert(meta->number);
   Iterator* iter = imm_.MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta->number);
@@ -585,7 +585,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
 //      (unsigned long long)meta.number, (unsigned long long)meta.file_size,
 //      s.ToString().c_str());
   delete iter;
-  pending_outputs_.erase(meta->number);
+//  pending_outputs_.erase(meta->number);
 
   // Note that if file_size is zero, the file has been deleted and
   // should not be added to the manifest.
@@ -614,7 +614,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   const uint64_t start_micros = env_->NowMicros();
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
   meta->number = versions_->NewFileNumber();
-  pending_outputs_.insert(meta->number);
+//  pending_outputs_.insert(meta->number);
   Iterator* iter = job->NewIterator();
   Log(options_.info_log, "Level-0 table #%llu: started",
       (unsigned long long)meta->number);
@@ -630,7 +630,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
 //      (unsigned long long)meta.number, (unsigned long long)meta.file_size,
 //      s.ToString().c_str());
   delete iter;
-  pending_outputs_.erase(meta->number);
+//  pending_outputs_.erase(meta->number);
 
   // Note that if file_size is zero, the file has been deleted and
   // should not be added to the manifest.
@@ -1065,7 +1065,7 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
 //  delete compact->outfile;
   for (size_t i = 0; i < compact->outputs.size(); i++) {
     const CompactionOutput& out = compact->outputs[i];
-    pending_outputs_.erase(out.number);
+//    pending_outputs_.erase(out.number);
   }
   delete compact;
 }
@@ -1076,7 +1076,7 @@ Status DBImpl::OpenCompactionOutputFile(DBImpl::SubcompactionState* compact) {
   {
 //    undefine_mutex.Lock();
     file_number = versions_->NewFileNumber();
-    pending_outputs_.insert(file_number);
+//    pending_outputs_.insert(file_number);
     CompactionOutput out;
     out.number = file_number;
     out.smallest.Clear();
@@ -1101,7 +1101,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   {
 //    undefine_mutex.Lock();
     file_number = versions_->NewFileNumber();
-    pending_outputs_.insert(file_number);
+//    pending_outputs_.insert(file_number);
     CompactionOutput out;
     out.number = file_number;
     out.smallest.Clear();
