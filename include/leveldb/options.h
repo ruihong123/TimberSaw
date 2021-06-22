@@ -49,7 +49,7 @@ struct LEVELDB_EXPORT Options {
 
 
 
-  int max_background_compactions = 4;
+  int max_background_compactions = 6;
   bool usesubcompaction = true;
   // If true, the database will be created if it is missing.
   bool create_if_missing = false;
