@@ -23,9 +23,9 @@ namespace leveldb {
 // parameters set via options.
 namespace config {
 static const int kNumLevels = 7;
-static const int MaxImmuNumPerFlush = 1;
+static const int MaxImmuNumPerFlush = 2;
 // Immutable flushing will be triggered when hit this number
-static const int Immutable_FlushTrigger = 1;
+static const int Immutable_FlushTrigger = 2;
 // Maximum number of unflushed immutable files
 static const int Immutable_StopWritesTrigger = 10;
 // Level-0 compaction is started when we hit this many files.
@@ -44,7 +44,7 @@ static const int kL0_StopWritesTrigger = 36;
 // the largest level since that can generate a lot of wasted disk
 // space if the same key space is being repeatedly overwritten.
 static const int kMaxMemCompactLevel = 2;
-static const int MaxSubcompaction = 6;
+static const int MaxSubcompaction = 14;
 // Approximate gap in bytes between samples of data read during iteration.
 static const int kReadBytesPeriod = 1048576;
 
