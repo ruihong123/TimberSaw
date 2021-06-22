@@ -45,7 +45,7 @@ struct LEVELDB_EXPORT Options {
   // comparator provided to previous open calls on the same DB.
   const Comparator* comparator;
 
-  int max_background_flushes = 4;
+  int max_background_flushes = 8;
 
 
 
