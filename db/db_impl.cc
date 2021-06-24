@@ -2025,14 +2025,16 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   // First check whether we need to switch the table, we do not Lock here, because
   // most of the time the memtable will not be switched. we will Lock inside and
   // get the table
+  bool delayed = false;
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
     // for a new table.
     //Tothink(Ruihong important): whether we need to make versionset and immutable list using the same mutex,
     // or seperate the wait function below into two part, because Level 0 file number need to be
     // Guarded by versionset mutex
-    if (imm_.current_memtable_num()>= config::Immutable_StopWritesTrigger
-        || versions_->NumLevelFiles(0) >= config::kL0_StopWritesTrigger) {
+    size_t level0_filenum = versions_->NumLevelFiles(0);
+    if (imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger
+        || level0_filenum >= config::kL0_StopWritesTrigger) {
       // We have filled up the current memtable, but the previous
       // one is still being compacted, so we wait.
       // the wait will never get signalled.
@@ -2052,6 +2054,9 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         mem_r = mem_.load();
       }
 //      imm_mtx.unlock();
+    } else if(level0_filenum > config::kL0_SlowdownWritesTrigger && !delayed){
+      env_->SleepForMicroseconds(5);
+      delayed = true;
     }else{
       std::unique_lock<std::mutex> l(imm_mtx);
 //      assert(locked == false);
