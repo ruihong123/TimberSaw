@@ -410,7 +410,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
   std::unique_lock<std::mutex> lck(*imm_mtx);
 //  imm_mtx->lock();
   if (mems.size() == 1)
-    printf("check 1 memtable installation\n");
+    DEBUG("check 1 memtable installation\n");
   // Flush was successful
   // Record the status on the memtable object. Either this call or a call by a
   // concurrent flush thread will read the status and write it to manifest.
