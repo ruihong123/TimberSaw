@@ -252,7 +252,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
     if (actual != crc) {
 //      delete[] buf;
       DEBUG("Filter Checksum mismatch\n");
-      assert(false);
+//      assert(false);
       s = Status::Corruption("block checksum mismatch");
       return s;
     }
