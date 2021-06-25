@@ -22,7 +22,7 @@ FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy,
                                        std::string& type_string)
     : policy_(policy), rdma_mg_(rdma_mg),
       local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string),
-      result((char*)(*local_mrs)[0]->addr, 0) {}
+      result((char*)(*mrs)[0]->addr, 0) {}
 
 //TOTHINK: One block per bloom filter, then why there is a design for the while loop?
 // Is it a bad design?
