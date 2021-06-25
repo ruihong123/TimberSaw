@@ -880,7 +880,9 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
       s = it->status();
 #ifndef NDEBUG
       it->SeekToFirst();
+      size_t counter = 0;
       while(it->Valid()){
+        counter++;
         it->Next();
       }
 #endif
