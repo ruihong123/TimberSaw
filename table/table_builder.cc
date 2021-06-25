@@ -621,5 +621,8 @@ void TableBuilder::get_dataindexblocks_map(std::map<int, ibv_mr*>& map) {
 void TableBuilder::get_filter_map(std::map<int, ibv_mr*>& map) {
   map = rep_->remote_filter_mrs;
 }
+size_t TableBuilder::get_numentries() {
+  return rep_->num_entries;
+}
 
 }  // namespace leveldb

@@ -50,6 +50,7 @@ struct RemoteMemTableMetaData {
   std::map<int, ibv_mr*> remote_filter_mrs;
   //std::vector<ibv_mr*> remote_data_mrs
   uint64_t file_size;    // File size in bytes
+  size_t num_entries;
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
   bool UnderCompaction = false;

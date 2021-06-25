@@ -95,6 +95,7 @@ class LEVELDB_EXPORT TableBuilder {
   void get_datablocks_map(std::map<int, ibv_mr *>& map);
   void get_dataindexblocks_map(std::map<int, ibv_mr *>& map);
   void get_filter_map(std::map<int, ibv_mr *>& map);
+  size_t get_numentries();
  private:
   bool ok() const { return status().ok(); }
   void FinishDataBlock(BlockBuilder* block, BlockHandle* handle,

@@ -869,6 +869,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     for(auto iter : meta->remote_data_mrs){
       meta->file_size += iter.second->length;
     }
+    meta->num_entries = builder->get_numentries();
     DEBUG_arg("SSTable size is %lu \n", meta->file_size);
     assert(builder->FileSize() == meta->file_size);
     delete builder;
