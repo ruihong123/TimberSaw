@@ -348,7 +348,7 @@ void TableBuilder::FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* han
   Rep* r = rep_;
   block->Finish();
 
-  Slice* raw = &(r->index_block->buffer);
+  Slice* raw = &(r->filter_block->result);
   Slice* block_contents;
   switch (compressiontype) {
     case kNoCompression:
