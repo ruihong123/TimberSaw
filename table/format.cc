@@ -84,8 +84,8 @@ bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
 Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result) {
   result->data = Slice();
-  result->cachable = false;
-  result->heap_allocated = false;
+//  result->cachable = false;
+//  result->heap_allocated = false;
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
@@ -127,8 +127,8 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   switch (data[n]) {
     case kNoCompression:
         result->data = Slice(data, n);
-        result->heap_allocated = false;
-        result->cachable = false;  // Do not double-cache
+//        result->heap_allocated = false;
+//        result->cachable = false;  // Do not double-cache
 
 
       // Ok
@@ -165,8 +165,8 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
                           BlockContents* result) {
   result->data = Slice();
-  result->cachable = false;
-  result->heap_allocated = false;
+//  result->cachable = false;
+//  result->heap_allocated = false;
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
@@ -195,8 +195,8 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
     case kNoCompression:
       //block content do not contain compression type and check sum
       result->data = Slice(data, n);
-      result->heap_allocated = false;
-      result->cachable = false;  // Do not double-cache
+//      result->heap_allocated = false;
+//      result->cachable = false;  // Do not double-cache
 
 
       // Ok
@@ -221,7 +221,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
 //    }
     default:
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
-      DEBUG("illegal compression type\n");
+      DEBUG("index block illegal compression type\n");
       return Status::Corruption("bad block type");
   }
 
@@ -230,8 +230,8 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
 Status ReadFilterBlock(ibv_mr* remote_mr,
                           const ReadOptions& options, BlockContents* result) {
   result->data = Slice();
-  result->cachable = false;
-  result->heap_allocated = false;
+//  result->cachable = false;
+//  result->heap_allocated = false;
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
@@ -258,8 +258,8 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   switch (data[n]) {
     case kNoCompression:
       result->data = Slice(data, n);
-      result->heap_allocated = false;
-      result->cachable = false;  // Do not double-cache
+//      result->heap_allocated = false;
+//      result->cachable = false;  // Do not double-cache
 
 
       // Ok
@@ -284,7 +284,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
 //    }
     default:
       rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
-      DEBUG("illegal compression type\n");
+      DEBUG("Filter illegal compression type\n");
       return Status::Corruption("bad block type");
   }
 

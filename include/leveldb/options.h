@@ -156,7 +156,7 @@ struct LEVELDB_EXPORT ReadOptions {
 
   // If true, all data read from underlying storage will be
   // verified against corresponding checksums.
-  bool verify_checksums = false;
+  bool verify_checksums = true;
 
   // Should the data read for this iteration be cached in memory?
   // Callers may wish to set this field to false for bulk scans.

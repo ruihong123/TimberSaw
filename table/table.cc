@@ -26,10 +26,12 @@ struct Table::Rep {
 
   Options options;
   Status status;
+  // weak_ptr because if there is cached value in the table cache then the obsoleted SST
+  // will never be garbage collected.
   std::weak_ptr<RemoteMemTableMetaData> remote_table;
   uint64_t cache_id;
   FilterBlockReader* filter;
-  const char* filter_data;
+//  const char* filter_data;
 
   BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
   Block* index_block;
@@ -62,7 +64,7 @@ Status Table::Open(const Options& options, Table** table,
     rep->index_block = index_block;
     assert(rep->index_block->size() > 0);
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
-    rep->filter_data = nullptr;
+//    rep->filter_data = nullptr;
     rep->filter = nullptr;
     *table = new Table(rep);
     (*table)->ReadFilter();
@@ -88,9 +90,9 @@ void Table::ReadFilter() {
   if (!ReadFilterBlock(rep_->remote_table.lock()->remote_filter_mrs.begin()->second, opt, &block).ok()) {
     return;
   }
-  if (block.heap_allocated) {
-    rep_->filter_data = block.data.data();  // Will need to delete later
-  }
+//  if (block.heap_allocated) {
+//    rep_->filter_data = block.data.data();  // Will need to delete later
+//  }
   rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data, rep_->remote_table.lock()->rdma_mg);
 }
 
@@ -141,7 +143,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         s = ReadDataBlock(table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
         if (s.ok()) {
           block = new Block(contents, DataBlock);
-          if (contents.cachable && options.fill_cache) {
+          if (options.fill_cache) {
             cache_handle = block_cache->Insert(key, block, block->size(),
                                                &DeleteCachedBlock);
           }
