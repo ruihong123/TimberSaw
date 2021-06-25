@@ -38,8 +38,9 @@ class BloomFilterPolicy : public FilterPolicy {
 
     const size_t init_size = dst->size();
 //    dst->resize(init_size + bytes, 0);
+    dst->Reset(dst->data(), init_size + bytes);
       // Remember # of probes in filter
-    char* array = const_cast<char*>(dst->data());
+    char* array = const_cast<char*>(dst->data() + init_size);
     for (int i = 0; i < n; i++) {
       // Use double-hashing to generate a sequence of hash values.
       // See analysis in [Kirsch,Mitzenmacher 2006].
