@@ -527,9 +527,10 @@ Status TableBuilder::Finish() {
   // the result will append many bloom filters.
   //TOthink why not compress the block here.
   if (ok() && r->filter_block != nullptr) {
-//    r->filter_block->Finish();
-    assert(r->pending_index_filter_entry);
-    r->filter_block->StartBlock(r->offset);
+    if(r->pending_index_filter_entry){
+      r->filter_block->StartBlock(r->offset);
+    }
+
     size_t msg_size;
     FinishFilterBlock(r->filter_block, &filter_block_handle, kNoCompression, msg_size);
     FlushFilter(msg_size);
@@ -554,8 +555,7 @@ Status TableBuilder::Finish() {
 
   // Write index block
   if (ok()) {
-    assert(r->pending_index_filter_entry);
-    {
+    if(r->pending_index_filter_entry){
       r->options.comparator->FindShortSuccessor(&r->last_key);
       std::string handle_encoding;
       r->pending_data_handle.EncodeTo(&handle_encoding);

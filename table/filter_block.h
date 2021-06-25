@@ -61,7 +61,7 @@ class FilterBlockBuilder {
   std::vector<size_t> start_;    // Starting index in keys_ of each key
   //todo Make result Slice; make Policy->CreateFilter accept Slice rather than string
   std::vector<Slice> tmp_keys_;  // policy_->CreateFilter() argument
-  std::vector<uint32_t> filter_offsets_;
+  std::vector<uint32_t> filter_offsets_; // The filters' offset within the filter block.
   std::string type_string_;
   Slice result;           // Filter data computed so far
 

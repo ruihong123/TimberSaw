@@ -88,7 +88,7 @@ class Block::Iter : public Iterator {
  private:
   const Comparator* const comparator_;
   const char* const data_;       // underlying block contents
-  uint32_t const restarts_;      // Offset of restart array (list of fixed32)
+  uint32_t const restarts_;      // Offset of restart array (list of fixed32), should be the end of content.
   uint32_t const num_restarts_;  // Number of uint32_t entries in restart array
 
   // current_ is offset in data_ of current entry.  >= restarts_ if !Valid
