@@ -49,7 +49,6 @@ class FilterBlockBuilder {
   void Reset();
   void Flush();
   void Move_buffer(const char* p);
-  Slice result;           // Filter data computed so far
 
  private:
   void GenerateFilter();
@@ -64,6 +63,7 @@ class FilterBlockBuilder {
   std::vector<Slice> tmp_keys_;  // policy_->CreateFilter() argument
   std::vector<uint32_t> filter_offsets_;
   std::string type_string_;
+  Slice result;           // Filter data computed so far
 
 };
 

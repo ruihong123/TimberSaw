@@ -21,7 +21,8 @@ FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy,
                                        std::shared_ptr<RDMA_Manager> rdma_mg,
                                        std::string& type_string)
     : policy_(policy), rdma_mg_(rdma_mg),
-      local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string) {}
+      local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string),
+      result((char*)(*local_mrs)[0]->addr, 0) {}
 
 //TOTHINK: One block per bloom filter, then why there is a design for the while loop?
 // Is it a bad design?
@@ -34,7 +35,7 @@ void FilterBlockBuilder::StartBlock(uint64_t block_offset) {
 }
 size_t FilterBlockBuilder::CurrentSizeEstimate() {
   //result plus filter offsets plus array offset plus 1 char for kFilterBaseLg
-  return (result.size() +filter_offsets_.size()*4 +5);
+  return (result.size() + filter_offsets_.size()*4 +5);
 }
 void FilterBlockBuilder::AddKey(const Slice& key) {
   Slice k = key;

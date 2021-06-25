@@ -41,6 +41,7 @@ class BloomFilterPolicy : public FilterPolicy {
     dst->Reset(dst->data(), init_size + bytes);
       // Remember # of probes in filter
     char* array = const_cast<char*>(dst->data() + init_size);
+    assert(init_size + bytes < 1024*1024*1024); // this size should smaller than 1 write buffer size.
     for (int i = 0; i < n; i++) {
       // Use double-hashing to generate a sequence of hash values.
       // See analysis in [Kirsch,Mitzenmacher 2006].
