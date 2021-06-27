@@ -1,7 +1,10 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
-
+//#ifdef NUMA
+#include <numa.h>
+#include <numaif.h>
+//#endif
 #include <sys/types.h>
 
 #include <atomic>
@@ -114,7 +117,8 @@ static int FLAGS_key_prefix = 0;
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
 static bool FLAGS_use_existing_db = false;
-
+// whether the writer threads aware of the NUMA archetecture.
+static bool FLAGS_enable_numa = false;
 // If true, reuse existing log/MANIFEST files when re-opening a database.
 static bool FLAGS_reuse_logs = false;
 
@@ -491,6 +495,7 @@ class Benchmark {
   }
 
   void Run() {
+
     PrintHeader();
     Open();
 
@@ -650,6 +655,21 @@ class Benchmark {
 
     ThreadArg* arg = new ThreadArg[n];
     for (int i = 0; i < n; i++) {
+      if (FLAGS_enable_numa) {
+        // Performs a local allocation of memory to threads in numa node.
+        int n_nodes = numa_num_task_nodes();  // Number of nodes in NUMA.
+        numa_exit_on_error = 1;
+        int numa_node = i % n_nodes;
+        bitmask* nodes = numa_allocate_nodemask();
+        numa_bitmask_clearall(nodes);
+        numa_bitmask_setbit(nodes, numa_node);
+        // numa_bind() call binds the process to the node and these
+        // properties are passed on to the thread that is created in
+        // StartThread method called later in the loop.
+        numa_bind(nodes);
+        numa_set_strict(1);
+        numa_free_nodemask(nodes);
+      }
       arg[i].bm = this;
       arg[i].method = method;
       arg[i].shared = &shared;
@@ -850,6 +870,7 @@ class Benchmark {
 
   void ReadRandom(ThreadState* thread) {
     ReadOptions options;
+    //TODO(ruihong): specify the cache option.
     std::string value;
     int found = 0;
     KeyBuffer key;
@@ -1069,6 +1090,8 @@ int main(int argc, char** argv) {
       FLAGS_bloom_bits = n;
     } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
       FLAGS_open_files = n;
+    } else if (sscanf(argv[i], "--numa_awared=%d%c", &n, &junk) == 1) {
+      FLAGS_enable_numa = n;
     } else if (strncmp(argv[i], "--db=", 5) == 0) {
       FLAGS_db = argv[i] + 5;
     } else {
