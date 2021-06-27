@@ -1,10 +1,10 @@
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
-//#ifdef NUMA
+#ifdef NUMA
 #include <numa.h>
 #include <numaif.h>
-//#endif
+#endif
 #include <sys/types.h>
 
 #include <atomic>

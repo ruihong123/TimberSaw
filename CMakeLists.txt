@@ -298,12 +298,19 @@ endif(HAVE_SNAPPY)
 if(HAVE_TCMALLOC)
   target_link_libraries(leveldb tcmalloc)
 endif(HAVE_TCMALLOC)
+
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)
 target_link_libraries(leveldb Threads::Threads)
 find_package(ibverbs REQUIRED)
-target_link_libraries(leveldb Threads::Threads ibverbs::ibverbs)
+target_link_libraries(leveldb ibverbs::ibverbs)
+if(WITH_NUMA)
+  find_package(NUMA REQUIRED)
+  add_definitions(-DNUMA)
+  include_directories(${NUMA_INCLUDE_DIR})
+  target_link_libraries(leveldb NUMA::NUMA)
+endif()
 add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
