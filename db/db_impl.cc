@@ -191,7 +191,11 @@ void SuperVersion::Unref() {
   // fetch_sub returns the previous value of ref
   uint32_t previous_refs = refs.fetch_sub(1);
   assert(previous_refs > 0);
-  Cleanup();
+  assert(refs >=0);
+  if (refs == 0){
+    Cleanup();
+  }
+  delete this;
 }
 
 void SuperVersion::Cleanup() {
