@@ -274,7 +274,7 @@ class DBImpl : public DB {
   std::atomic<size_t> memtable_counter = 0;
   std::atomic<size_t> kv_counter0 = 0;
   std::atomic<size_t> kv_counter1 = 0;
-  std::atomic<SuperVersion*> super_version;
+  std::atomic<SuperVersion*> super_version = nullptr;
 };
 struct BGThreadMetadata {
   DBImpl* db;
