@@ -29,7 +29,6 @@
 
 namespace leveldb {
 
-class ColumnFamilyData;
 class InternalKeyComparator;
 class InstrumentedMutex;
 class MergeIteratorBuilder;
@@ -218,7 +217,7 @@ class MemTableList {
         current_memory_usage_(0),
         current_memory_usage_excluding_last_(0),
         current_has_history_(false), imm_mtx(mtx) {
-    current_->Ref();
+    current_.load()->Ref();
   }
 
   // Should not delete MemTableList without making sure MemTableList::current()
@@ -388,7 +387,7 @@ class MemTableList {
   std::atomic<size_t> current_memtable_num_;
 //  const int min_write_buffer_number_to_merge_;
 
-  MemTableListVersion* current_;
+  std::atomic<MemTableListVersion*> current_;
 
   // the number of elements that still need flushing
   std::atomic<int> num_flush_not_started_;

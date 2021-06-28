@@ -2324,7 +2324,7 @@ static void BM_LogAndApply(benchmark::State& state) {
 
   InternalKeyComparator cmp(BytewiseComparator());
   Options options;
-  VersionSet vset(dbname, &options, nullptr, &cmp);
+  VersionSet vset(dbname, &options, nullptr, &cmp, nullptr);
   bool save_manifest;
   ASSERT_LEVELDB_OK(vset.Recover(&save_manifest));
   VersionEdit vbase;

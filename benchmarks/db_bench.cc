@@ -655,6 +655,7 @@ class Benchmark {
 
     ThreadArg* arg = new ThreadArg[n];
     for (int i = 0; i < n; i++) {
+#ifdef NUMA
       if (FLAGS_enable_numa) {
         // Performs a local allocation of memory to threads in numa node.
         int n_nodes = numa_num_task_nodes();  // Number of nodes in NUMA.
@@ -670,6 +671,7 @@ class Benchmark {
         numa_set_strict(1);
         numa_free_nodemask(nodes);
       }
+#endif
       arg[i].bm = this;
       arg[i].method = method;
       arg[i].shared = &shared;

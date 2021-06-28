@@ -705,8 +705,8 @@ class VersionSet::Builder {
 };
 
 VersionSet::VersionSet(const std::string& dbname, const Options* options,
-                       TableCache* table_cache,
-                       const InternalKeyComparator* cmp)
+                       TableCache* table_cache, const InternalKeyComparator* cmp,
+                       std::mutex* mtx)
     : env_(options->env),
       dbname_(dbname),
       options_(options),
@@ -720,7 +720,8 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       descriptor_file_(nullptr),
       descriptor_log_(nullptr),
       dummy_versions_(this),
-      current_(nullptr) {
+      current_(nullptr),
+      sv_mtx(mtx){
   AppendVersion(new Version(this));
 
 }
@@ -766,7 +767,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
   //Build an empty version.
   Version* v = new Version(this);
 
-  std::unique_lock<std::mutex> lck(version_mutex);
+//  std::unique_lock<std::mutex> lck(sv_mtx);
   {
     // Decide what table to keep what to discard.
     Builder builder(this, current_);
@@ -1004,7 +1005,7 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
 }
 //Use mutex to synchronize between threads.
 void VersionSet::MarkFileNumberUsed(uint64_t number) {
-  std::unique_lock<std::mutex> lck(version_mutex);
+  std::unique_lock<std::mutex> lck(*sv_mtx);
   if (next_file_number_ <= number) {
     next_file_number_ = number + 1;
   }
@@ -1431,7 +1432,7 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
-  std::unique_lock<std::mutex> lck(version_mutex);
+  std::unique_lock<std::mutex> lck(*sv_mtx);
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);

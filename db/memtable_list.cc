@@ -77,9 +77,7 @@ void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
   assert(refs_ >= 1);
   --refs_;
   if (refs_ == 0) {
-    // if to_delete is equal to nullptr it means we're confident
-    // that refs_ will not be zero
-    assert(to_delete != nullptr);
+    //Unref all the memtable in the memtable list.
     for (const auto& m : memlist_) {
       m->Unref();
     }
@@ -91,13 +89,13 @@ void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
 }
 
 int MemTableList::NumNotFlushed() const {
-  int size = static_cast<int>(current_->memlist_.size());
+  int size = static_cast<int>(current_.load()->memlist_.size());
   assert(num_flush_not_started_ <= size);
   return size;
 }
 
 int MemTableList::NumFlushed() const {
-  return static_cast<int>(current_->memlist_history_.size());
+  return static_cast<int>(current_.load()->memlist_history_.size());
 }
 
 // Search all the memtables starting from the most recent one.
@@ -337,7 +335,8 @@ bool MemTableList::IsFlushPending() const {
 void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 //  AutoThreadOperationStageUpdater stage_updater(
 //      ThreadStatus::STAGE_PICK_MEMTABLES_TO_FLUSH);
-  const auto& memlist = current_->memlist_;
+  auto current = current_.load();// get a snapshot
+  const auto& memlist = current->memlist_;
   bool atomic_flush = false;
   int table_counter = 0;
   for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
@@ -365,7 +364,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 }
 
 MemTable* MemTableList::PickMemtablesSeqBelong(size_t seq) {
-    return current_->PickMemtablesSeqBelong(seq);
+    return current_.load()->PickMemtablesSeqBelong(seq);
 }
 
 
@@ -430,7 +429,7 @@ Status MemTableList::TryInstallMemtableFlushResults(
   // Retry until all completed flushes are committed. New flushes can finish
   // while the current thread is writing manifest where mutex is released.
 //  while (s.ok()) {
-  auto& memlist = current_->memlist_;
+  auto& memlist = current_.load()->memlist_;
   // The back is the oldest; if flush_completed_ is not set to it, it means
   // that we were assigned a more recent memtable. The memtables' flushes must
   // be recorded in manifest in order. A concurrent flush thread, who is
@@ -474,20 +473,21 @@ Status MemTableList::TryInstallMemtableFlushResults(
   InstallNewVersion();
   size_t batch_count_for_fetch_sub = batch_count;
   while (batch_count-- > 0) {
-    MemTable* m = current_->memlist_.back();
+    MemTable* m = current_.load()->memlist_.back();
 
     assert(m->sstable != nullptr);
     autovector<MemTable*> dummy_to_delete = autovector<MemTable*>();
-    current_->Remove(m);
+    current_.load()->Remove(m);
     UpdateCachedValuesFromMemTableListVersion();
     ResetTrimHistoryNeeded();
   }
   current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
   DEBUG_arg("Install flushing result, current immutable number is %lu\n", current_memtable_num_.load());
 
-  lck.unlock();
+
 
   s = vset->LogAndApply(edit);
+  lck.unlock();
   job->write_stall_cv_->notify_all();
 
 //  }
@@ -499,14 +499,14 @@ Status MemTableList::TryInstallMemtableFlushResults(
 // New memtables are inserted at the front of the list.
 // This should be guarded by imm_mtx
 void MemTableList::Add(MemTable* m) {
-  assert(static_cast<int>(current_->memlist_.size()) >= num_flush_not_started_);
+  assert(static_cast<int>(current_.load()->memlist_.size()) >= num_flush_not_started_);
   InstallNewVersion();
   // this method is used to move mutable memtable into an immutable list.
   // since mutable memtable is already refcounted by the DBImpl,
   // and when moving to the imutable list we don't unref it,
   // we don't have to ref the memtable here. we just take over the
   // reference from the DBImpl.
-  current_->Add(m);
+  current_.load()->Add(m);
   // Add memtable number atomically.
   current_memtable_num_.fetch_add(1);
   DEBUG_arg("Add a new file, current immtable number is %lu", current_memtable_num_.load());
@@ -521,7 +521,7 @@ void MemTableList::Add(MemTable* m) {
 
 bool MemTableList::TrimHistory(autovector<MemTable*>* to_delete, size_t usage) {
   InstallNewVersion();
-  bool ret = current_->TrimHistory(usage);
+  bool ret = current_.load()->TrimHistory(usage);
   UpdateCachedValuesFromMemTableListVersion();
   ResetTrimHistoryNeeded();
   return ret;
@@ -530,7 +530,7 @@ bool MemTableList::TrimHistory(autovector<MemTable*>* to_delete, size_t usage) {
 // Returns an estimate of the number of bytes of data in use.
 size_t MemTableList::ApproximateUnflushedMemTablesMemoryUsage() {
   size_t total_size = 0;
-  for (auto& memtable : current_->memlist_) {
+  for (auto& memtable : current_.load()->memlist_) {
     total_size += memtable->ApproximateMemoryUsage();
   }
   return total_size;
@@ -551,11 +551,11 @@ bool MemTableList::HasHistory() const {
 
 void MemTableList::UpdateCachedValuesFromMemTableListVersion() {
   const size_t total_memtable_size =
-      current_->ApproximateMemoryUsageExcludingLast();
+      current_.load()->ApproximateMemoryUsageExcludingLast();
   current_memory_usage_excluding_last_.store(total_memtable_size,
                                              std::memory_order_relaxed);
 
-  const bool has_history = current_->HasHistory();
+  const bool has_history = current_.load()->HasHistory();
   current_has_history_.store(has_history, std::memory_order_relaxed);
 }
 
@@ -567,13 +567,13 @@ void MemTableList::UpdateCachedValuesFromMemTableListVersion() {
 //}
 
 void MemTableList::InstallNewVersion() {
-  if (current_->refs_ == 1) {
+  if (current_.load()->refs_ == 1) {
     // we're the only one using the version, just keep using it
   } else {
     // somebody else holds the current version, we need to create new one
     MemTableListVersion* version = current_;
-    current_ = new MemTableListVersion(&current_memory_usage_, *version);
-    current_->Ref();
+    current_.store(new MemTableListVersion(&current_memory_usage_, *version));
+    current_.load()->Ref();
     version->Unref();
   }
 }

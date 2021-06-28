@@ -31,8 +31,47 @@ class Version;
 class VersionEdit;
 class VersionSet;
 class MemTableList;
-class Memtable_keeper{
-  std::deque<MemTable> memtables;
+struct SuperVersion {
+  // Accessing members of this class is not thread-safe and requires external
+  // synchronization (ie db mutex held or on write thread).
+  MemTable* mem;
+  MemTableListVersion* imm;
+  Version* current;
+  // Version number of the current SuperVersion
+  uint64_t version_number;
+  InstrumentedMutex* db_mutex;
+
+  // should be called outside the mutex
+  SuperVersion(MemTable* new_mem,
+               MemTableListVersion* new_imm, Version* new_current);
+  ~SuperVersion();
+  SuperVersion* Ref();
+  // If Unref() returns true, Cleanup() should be called with mutex held
+  // before deleting this SuperVersion.
+  void Unref();
+
+  // call these two methods with db mutex held
+  // Cleanup unrefs mem, imm and current. Also, it stores all memtables
+  // that needs to be deleted in to_delete vector. Unrefing those
+  // objects needs to be done in the mutex
+  void Cleanup();
+  void Init();
+
+  // The value of dummy is not actually used. kSVInUse takes its address as a
+  // mark in the thread local storage to indicate the SuperVersion is in use
+  // by thread. This way, the value of kSVInUse is guaranteed to have no
+  // conflict with SuperVersion object address and portable on different
+  // platform.
+  static int dummy;
+  static void* const kSVInUse;
+  static void* const kSVObsolete;
+
+ private:
+  std::atomic<uint32_t> refs;
+  // We need to_delete because during Cleanup(), imm->Unref() returns
+  // all memtables that we need to free through this vector. We then
+  // delete all those memtables outside of mutex, during destruction
+  autovector<MemTable*> to_delete;
 };
 // The structure for storing argument for thread pool.
 
@@ -168,7 +207,7 @@ class DBImpl : public DB {
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
-
+  void InstallSuperVersion();
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
@@ -192,11 +231,12 @@ class DBImpl : public DB {
   // State below is protected by undefine_mutex
   // we could rename it as superversion mutex
   port::Mutex undefine_mutex;
+  std::mutex FlushPickMTX;
 //  port::Mutex write_stall_mutex_;
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
-  std::condition_variable write_stall_cv GUARDED_BY(imm_mtx);
-  std::mutex imm_mtx;
+  std::condition_variable write_stall_cv GUARDED_BY(superversion_mtx);
+  std::mutex superversion_mtx;
   bool locked = false;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;
@@ -232,6 +272,7 @@ class DBImpl : public DB {
   std::atomic<size_t> memtable_counter = 0;
   std::atomic<size_t> kv_counter0 = 0;
   std::atomic<size_t> kv_counter1 = 0;
+  std::atomic<SuperVersion*> super_version;
 };
 struct BGThreadMetadata {
   DBImpl* db;

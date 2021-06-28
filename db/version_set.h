@@ -230,7 +230,8 @@ class Version {
 class VersionSet {
  public:
   VersionSet(const std::string& dbname, const Options* options,
-             TableCache* table_cache, const InternalKeyComparator*);
+             TableCache* table_cache, const InternalKeyComparator* cmp,
+             std::mutex* mtx);
   VersionSet(const VersionSet&) = delete;
   VersionSet& operator=(const VersionSet&) = delete;
 
@@ -259,7 +260,7 @@ class VersionSet {
   // already been allocated.
   // REQUIRES: "file_number" was returned by a call to NewFileNumber().
   void ReuseFileNumber(uint64_t file_number) {
-    std::unique_lock<std::mutex> lck(version_mutex);
+    std::unique_lock<std::mutex> lck(*sv_mtx);
     if (next_file_number_.load() == file_number + 1) {
       next_file_number_ = file_number;
     }
@@ -386,7 +387,7 @@ class VersionSet {
   //TODO: make current_ an atomic variable.
   Version* current_;        // == dummy_versions_.prev_
   //TODO: make it spinmutex?
-  std::mutex version_mutex;
+  std::mutex* sv_mtx;
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_index_[config::kNumLevels];
