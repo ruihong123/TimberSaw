@@ -1288,7 +1288,6 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
 }
 
 Status DBImpl::InstallCompactionResults(CompactionState* compact) {
-  undefine_mutex.AssertHeld();
   Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
       compact->compaction->num_input_files(0), compact->compaction->level(),
       compact->compaction->num_input_files(1), compact->compaction->level() + 1,
