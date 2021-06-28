@@ -254,7 +254,8 @@ DBImpl::~DBImpl() {
   if (db_lock_ != nullptr) {
     env_->UnlockFile(db_lock_);
   }
-  super_version.load()->Unref();
+  if (super_version.load()!= nullptr)
+    super_version.load()->Unref();
   delete versions_;
   if (mem_ != nullptr) mem_.load()->SimpleDelete();
 //  if (imm_ != nullptr) imm_.load()->SimpleDelete();
@@ -1334,7 +1335,9 @@ void DBImpl::InstallSuperVersion() {
     SuperVersion* old = super_version.load();
   super_version.store(new SuperVersion(mem_,imm_.current(), versions_->current()));
   super_version.load()->Ref();
-  old->Unref();//First replace the superverison then Unref().
+  if (old != nullptr){
+    old->Unref();//First replace the superverison then Unref().
+  }
 }
 Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
   Compaction* c = compact->compaction;
@@ -1840,7 +1843,6 @@ int64_t DBImpl::TEST_MaxNextLevelOverlappingBytes() {
 Status DBImpl::Get(const ReadOptions& options, const Slice& key,
                    std::string* value) {
   Status s;
-  MutexLock l(&undefine_mutex);
   SequenceNumber snapshot;
   if (options.snapshot != nullptr) {
     snapshot =
@@ -1848,10 +1850,10 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   } else {
     snapshot = versions_->LastSequence();
   }
-
-  MemTable* mem = mem_;
-  MemTableListVersion* imm = imm_.current();
-  Version* current = versions_->current();
+  auto sv = super_version.load();
+  MemTable* mem = sv->mem;
+  MemTableListVersion* imm = sv->imm;
+  Version* current = sv->current;
   mem->Ref();
   if (imm != nullptr) imm->Ref();
   current->Ref();

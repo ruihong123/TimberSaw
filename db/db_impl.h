@@ -31,6 +31,8 @@ class Version;
 class VersionEdit;
 class VersionSet;
 class MemTableList;
+//TODO: make memtableversionlist and LSM versionset 's function integrated into
+// Superversion.
 struct SuperVersion {
   // Accessing members of this class is not thread-safe and requires external
   // synchronization (ie db mutex held or on write thread).
