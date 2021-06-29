@@ -196,7 +196,7 @@ enum SaverState {
   kCorrupt,
 };
 struct Saver {
-  SaverState state;
+  SaverState state = kNotFound;// set as not found as default value.
   const Comparator* ucmp;
   Slice user_key;
   std::string* value;
@@ -208,7 +208,7 @@ static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
   if (!ParseInternalKey(ikey, &parsed_key)) {
     s->state = kCorrupt;
   } else {
-    if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {
+    if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {// if found mark as kFound
       s->state = (parsed_key.type == kTypeValue) ? kFound : kDeleted;
       if (s->state == kFound) {
         s->value->assign(v.data(), v.size());
@@ -295,9 +295,8 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
       state->last_file_read = f;
       state->last_file_read_level = level;
 
-      state->s = state->vset->table_cache_->Get(*state->options, f->number,
-                                                f->file_size, state->ikey,
-                                                &state->saver, SaveValue);
+      state->s = state->vset->table_cache_->Get(*state->options, f,
+          state->ikey, &state->saver, SaveValue);
       if (!state->s.ok()) {
         state->found = true;
         return false;

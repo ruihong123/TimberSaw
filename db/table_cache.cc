@@ -95,12 +95,13 @@ Iterator* TableCache::NewIterator(
   return result;
 }
 
-Status TableCache::Get(const ReadOptions& options, uint64_t file_number,
-                       uint64_t file_size, const Slice& k, void* arg,
+Status TableCache::Get(const ReadOptions& options,
+                       std::shared_ptr<RemoteMemTableMetaData> f,
+                       const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&,
                                              const Slice&)) {
   Cache::Handle* handle = nullptr;
-  Status s = FindTable(std::shared_ptr<RemoteMemTableMetaData>(), &handle);
+  Status s = FindTable(f, &handle);
   if (s.ok()) {
     Table* t = reinterpret_cast<TableAndFile*>(cache_->Value(handle))->table;
     s = t->InternalGet(options, k, arg, handle_result);

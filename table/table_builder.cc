@@ -273,7 +273,7 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
 //      break;
 //    }
   }
-  handle->set_offset(r->offset);
+  handle->set_offset(r->offset);// This is the offset of the begginning of this block.
   handle->set_size(block_contents->size());
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
