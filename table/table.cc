@@ -138,7 +138,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       cache_handle = block_cache->Lookup(key);
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
-        DEBUG("Cache hit\n");
+//        DEBUG("Cache hit\n");
       } else {
         s = ReadDataBlock(table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
         if (s.ok()) {
