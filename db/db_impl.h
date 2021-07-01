@@ -207,7 +207,8 @@ class DBImpl : public DB {
   Status FinishCompactionOutputFile(SubcompactionState* compact,
                                     Iterator* input);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
-  Status InstallCompactionResults(CompactionState* compact)
+  Status InstallCompactionResults(CompactionState* compact,
+                                  std::unique_lock<std::mutex>* lck_p)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status TryInstallMemtableFlushResults(
       FlushJob* job, VersionSet* vset,

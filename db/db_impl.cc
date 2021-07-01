@@ -1290,7 +1290,8 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   return s;
 }
 
-Status DBImpl::InstallCompactionResults(CompactionState* compact) {
+Status DBImpl::InstallCompactionResults(CompactionState* compact,
+                                        std::unique_lock<std::mutex>* lck_p) {
   Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
       compact->compaction->num_input_files(0), compact->compaction->level(),
       compact->compaction->num_input_files(1), compact->compaction->level() + 1,
@@ -1334,7 +1335,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
     }
   }
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
-
+  lck_p->lock();
   return versions_->LogAndApply(compact->compaction->edit());
 }
 Status DBImpl::TryInstallMemtableFlushResults(
@@ -1533,8 +1534,8 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
 
   Status status;
   {
-    std::unique_lock<std::mutex> l(superversion_mtx);
-    status = InstallCompactionResults(compact);
+    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
+    status = InstallCompactionResults(compact, &l);
     InstallSuperVersion();
   }
 
@@ -1872,7 +1873,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
   if (status.ok()) {
     std::unique_lock<std::mutex> l(superversion_mtx);
-    status = InstallCompactionResults(compact);
+    status = InstallCompactionResults(compact, &l);
     InstallSuperVersion();
   }
   undefine_mutex.Unlock();
