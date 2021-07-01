@@ -1960,9 +1960,10 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   sv->Ref();
   lck.unlock();
   MemTable* mem = sv->mem;
+  SuperVersion* sv_p;
   if (mem == nullptr){
     printf("The pointer for memtable in DBImpl is %p\n", mem_.load());
-    SuperVersion* sv_p = super_version.load();
+    sv_p = super_version.load();
     printf("mark here\n");
   }
   MemTableListVersion* imm = sv->imm;
