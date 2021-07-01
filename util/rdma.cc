@@ -371,7 +371,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(receive_msg_buf.content.mem_size));
       }
-
+      printf("Now the total Registered memory is %zu GB", local_mem_pool.size());
       *send_pointer = *mr;
       post_receive<computing_to_memory_msg>(recv_mr, client_ip);
       post_send<ibv_mr>(
