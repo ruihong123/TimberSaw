@@ -225,7 +225,7 @@ class MemTableList {
   // is Unref()'d.
   ~MemTableList() {}
 
-  MemTableListVersion* current() const { return current_; }
+  MemTableListVersion* current() const { return current_.load(); }
   InternalKeyComparator cmp;
   // so that background threads can detect non-nullptr pointer to
   // determine whether there is anything more to start flushing.
