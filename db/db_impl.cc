@@ -1071,7 +1071,7 @@ void DBImpl::BackgroundCompaction(void* p) {
         RecordBackgroundError(status);
       }
       CleanupCompaction(compact);
-      c->ReleaseInputs();
+//      c->ReleaseInputs();
 //    RemoveObsoleteFiles();
     }
     delete c;

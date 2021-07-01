@@ -1467,8 +1467,10 @@ Compaction* VersionSet::PickCompaction() {
     }
   }
   if (!c->inputs_[0].empty()) {
-    c->input_version_ = current_;
-    c->input_version_->Ref();
+    //We don't need to pin the current_ version because we have already set our input
+    // so it will not be garbage collected, this is enough.
+//    c->input_version_ = current_;
+//    c->input_version_->Ref();
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
     if (c->inputs_[1].empty())
