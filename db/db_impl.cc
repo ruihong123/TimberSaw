@@ -1977,7 +1977,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
 
   // Unlock while reading from files and memtables
   {
-    undefine_mutex.Unlock();
+//    undefine_mutex.Unlock();
     // First look in the memtable, then in the immutable memtable (if any).
     LookupKey lkey(key, snapshot);
     if (mem->Get(lkey, value, &s)) {
@@ -1988,15 +1988,16 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
       s = current->Get(options, lkey, value, &stats);
       have_stat_update = true;
     }
-    undefine_mutex.Lock();
+//    undefine_mutex.Lock();
   }
 
   if (have_stat_update && current->UpdateStats(stats)) {
     MaybeScheduleFlushOrCompaction();
   }
-  mem->Unref();
-  if (imm != nullptr) imm->Unref();
-  current->Unref();
+  //TOthink: whether we need a lock for the dereference
+  lck.lock();
+  sv->Unref();
+  lck.unlock();
   return s;
 }
 
