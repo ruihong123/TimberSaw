@@ -194,8 +194,10 @@ void SuperVersion::Unref() {
   assert(refs >=0);
   if (refs == 0){
     Cleanup();
+    DEBUG("Superversion garbage collected\n");
+    delete this;
   }
-  delete this;
+
 }
 
 void SuperVersion::Cleanup() {
