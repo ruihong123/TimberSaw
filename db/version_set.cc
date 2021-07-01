@@ -1700,15 +1700,13 @@ Compaction::~Compaction() {
 }
 
 bool Compaction::IsTrivialMove() const {
-  const VersionSet* vset = input_version_->vset_;
+//  const VersionSet* vset = input_version_->vset_;
   //TOTHINK: why the statement below is true.
 
   // Avoid a move if there is lots of overlapping grandparent data.
   // Otherwise, the move could create a parent file that will require
   // a very expensive merge later on.
-  return (num_input_files(0) == 1 && num_input_files(1) == 0 &&
-          TotalFileSize(grandparents_) <=
-              MaxGrandParentOverlapBytes(vset->options_));
+  return (num_input_files(0) == 1 && num_input_files(1) == 0);
 }
 
 void Compaction::AddInputDeletions(VersionEdit* edit) {

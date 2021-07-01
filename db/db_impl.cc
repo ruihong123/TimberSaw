@@ -1627,21 +1627,22 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         // Hidden by an newer entry for same user key
 
         drop = true;  // (A)
-      } else if (ikey.type == kTypeDeletion &&
-                 ikey.sequence <= sub_compact->smallest_snapshot &&
-                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-        // TOTHINK(0ruihong) :what is this for?
-        //  Generally delete can only be deleted when there is definitely no file contain the
-        //  same key in the upper level.
-        // For this user key:
-        // (1) there is no data in higher levels
-        // (2) data in lower levels will have larger sequence numbers
-        // (3) data in layers that are being compacted here and have
-        //     smaller sequence numbers will be dropped in the next
-        //     few iterations of this loop (by rule (A) above).
-        // Therefore this deletion marker is obsolete and can be dropped.
-        drop = true;
       }
+//      else if (ikey.type == kTypeDeletion &&
+//                 ikey.sequence <= sub_compact->smallest_snapshot &&
+//                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+//        // TOTHINK(0ruihong) :what is this for?
+//        //  Generally delete can only be deleted when there is definitely no file contain the
+//        //  same key in the upper level.
+//        // For this user key:
+//        // (1) there is no data in higher levels
+//        // (2) data in lower levels will have larger sequence numbers
+//        // (3) data in layers that are being compacted here and have
+//        //     smaller sequence numbers will be dropped in the next
+//        //     few iterations of this loop (by rule (A) above).
+//        // Therefore this deletion marker is obsolete and can be dropped.
+//        drop = true;
+//      }
 
       last_sequence_for_key = ikey.sequence;
     }
@@ -1780,21 +1781,22 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         // Hidden by an newer entry for same user key
 
         drop = true;  // (A)
-      } else if (ikey.type == kTypeDeletion &&
-                 ikey.sequence <= compact->smallest_snapshot &&
-                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-        // TOTHINK(0ruihong) :what is this for?
-        //  Generally delete can only be deleted when there is definitely no file contain the
-        //  same key in the upper level.
-        // For this user key:
-        // (1) there is no data in higher levels
-        // (2) data in lower levels will have larger sequence numbers
-        // (3) data in layers that are being compacted here and have
-        //     smaller sequence numbers will be dropped in the next
-        //     few iterations of this loop (by rule (A) above).
-        // Therefore this deletion marker is obsolete and can be dropped.
-        drop = true;
       }
+//      else if (ikey.type == kTypeDeletion &&
+//                 ikey.sequence <= compact->smallest_snapshot &&
+//                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+//        // TOTHINK(0ruihong) :what is this for?
+//        //  Generally delete can only be deleted when there is definitely no file contain the
+//        //  same key in the upper level.
+//        // For this user key:
+//        // (1) there is no data in higher levels
+//        // (2) data in lower levels will have larger sequence numbers
+//        // (3) data in layers that are being compacted here and have
+//        //     smaller sequence numbers will be dropped in the next
+//        //     few iterations of this loop (by rule (A) above).
+//        // Therefore this deletion marker is obsolete and can be dropped.
+//        drop = true;
+//      }
 
       last_sequence_for_key = ikey.sequence;
     }
