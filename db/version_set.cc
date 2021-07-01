@@ -400,7 +400,7 @@ void Version::Unref() {
   assert(refs_ >= 1);
   --refs_;
   if (refs_ == 0) {
-    DEBUG("Version get garbage collected\n");
+//    DEBUG("Version get garbage collected\n");
     delete this;
   }
 }

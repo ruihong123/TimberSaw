@@ -1872,7 +1872,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {
-    std::unique_lock<std::mutex> l(superversion_mtx);
+    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
     status = InstallCompactionResults(compact, &l);
     InstallSuperVersion();
   }
