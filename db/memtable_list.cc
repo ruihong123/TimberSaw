@@ -21,6 +21,8 @@
 
 namespace leveldb {
 
+std::mutex MemTableList::imm_mtx;
+
 class InternalKeyComparator;
 class Mutex;
 class VersionSet;

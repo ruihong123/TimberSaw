@@ -204,6 +204,7 @@ void SuperVersion::Cleanup() {
   assert(refs.load(std::memory_order_relaxed) == 0);
   imm->Unref();
   mem->Unref();
+  std::unique_lock<std::mutex> lck(VersionSet::version_set_mtx);
   current->Unref();
 
 }
@@ -1071,7 +1072,7 @@ void DBImpl::BackgroundCompaction(void* p) {
         RecordBackgroundError(status);
       }
       CleanupCompaction(compact);
-//      c->ReleaseInputs();
+      c->ReleaseInputs();
 //    RemoveObsoleteFiles();
     }
     delete c;

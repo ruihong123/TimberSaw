@@ -31,7 +31,7 @@
 namespace leveldb {
 
 class InternalKeyComparator;
-class InstrumentedMutex;
+
 class MergeIteratorBuilder;
 class MemTableList;
 
@@ -217,7 +217,8 @@ class MemTableList {
         flush_requested_(false),
         current_memory_usage_(0),
         current_memory_usage_excluding_last_(0),
-        current_has_history_(false), imm_mtx(mtx) {
+        current_has_history_(false),
+        sv_mtx(mtx) {
     current_.load()->Ref();
   }
 
@@ -410,7 +411,8 @@ class MemTableList {
 
   // Cached value of current_->HasHistory().
   std::atomic<bool> current_has_history_;
-  std::mutex* imm_mtx;
+  std::mutex* sv_mtx;
+  static std::mutex imm_mtx;
 };
 class FlushJob {
  public:

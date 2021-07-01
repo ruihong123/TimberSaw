@@ -41,7 +41,6 @@ struct SuperVersion {
   Version* current;
   // Version number of the current SuperVersion
   uint64_t version_number;
-  InstrumentedMutex* db_mutex;
 
   // should be called outside the mutex
   SuperVersion(MemTable* new_mem,

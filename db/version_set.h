@@ -97,6 +97,8 @@ class Version {
   // Reference count management (so Versions do not disappear out from
   // under live iterators)
   void Ref();
+  // Required to be guarded by version_set_mtx, in case that there is reference
+  // outside the control of superversion.
   void Unref();
 
   bool GetOverlappingInputs(
@@ -350,6 +352,7 @@ class VersionSet {
   friend class Compaction;
   friend class FlushJob;
   friend class Version;
+  friend class SuperVersion;
 
   bool ReuseManifest(const std::string& dscname, const std::string& dscbase);
 
@@ -389,7 +392,7 @@ class VersionSet {
   Version* current_;
   //TODO: make it spinmutex?
   std::mutex* sv_mtx;
-  std::mutex version_set_mtx;
+  static std::mutex version_set_mtx;
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_index_[config::kNumLevels];

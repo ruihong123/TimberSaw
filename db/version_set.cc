@@ -21,6 +21,8 @@
 
 namespace leveldb {
 
+std::mutex VersionSet::version_set_mtx;
+
 static size_t TargetFileSize(const Options* options) {
   return options->max_file_size;
 }
@@ -400,7 +402,7 @@ void Version::Unref() {
   assert(refs_ >= 1);
   --refs_;
   if (refs_ == 0) {
-//    DEBUG("Version get garbage collected\n");
+    DEBUG("Version get garbage collected\n");
     delete this;
   }
 }
@@ -1467,10 +1469,8 @@ Compaction* VersionSet::PickCompaction() {
     }
   }
   if (!c->inputs_[0].empty()) {
-    //We don't need to pin the current_ version because we have already set our input
-    // so it will not be garbage collected, this is enough.
-//    c->input_version_ = current_;
-//    c->input_version_->Ref();
+    c->input_version_ = current_;
+    c->input_version_->Ref();
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
     if (c->inputs_[1].empty())
@@ -1700,13 +1700,15 @@ Compaction::~Compaction() {
 }
 
 bool Compaction::IsTrivialMove() const {
-//  const VersionSet* vset = input_version_->vset_;
+  const VersionSet* vset = input_version_->vset_;
   //TOTHINK: why the statement below is true.
 
   // Avoid a move if there is lots of overlapping grandparent data.
   // Otherwise, the move could create a parent file that will require
   // a very expensive merge later on.
-  return (num_input_files(0) == 1 && num_input_files(1) == 0);
+  return (num_input_files(0) == 1 && num_input_files(1) == 0 &&
+          TotalFileSize(grandparents_) <=
+              MaxGrandParentOverlapBytes(vset->options_));
 }
 
 void Compaction::AddInputDeletions(VersionEdit* edit) {
