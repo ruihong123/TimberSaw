@@ -1960,6 +1960,10 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   sv->Ref();
   lck.unlock();
   MemTable* mem = sv->mem;
+  if (mem == nullptr){
+    printf("The pointer for memtable in DBImpl is %p\n", mem_.load());
+    printf("mark here\n");
+  }
   MemTableListVersion* imm = sv->imm;
   Version* current = sv->current;
 
@@ -1985,6 +1989,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
 //    undefine_mutex.Unlock();
     // First look in the memtable, then in the immutable memtable (if any).
     LookupKey lkey(key, snapshot);
+
     if (mem->Get(lkey, value, &s)) {
       // Done
     } else if (imm != nullptr && imm->Get(lkey, value, &s)) {
