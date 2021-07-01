@@ -207,6 +207,7 @@ void SuperVersion::Cleanup() {
 }
 SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
                            Version* new_current) {
+  //Guarded by superversion_mtx, so those pointer will always be valide
   mem = new_mem;
   imm = new_imm;
   current = new_current;
@@ -820,7 +821,7 @@ void DBImpl::CompactMemTable() {
   printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
 //  base->Unref();
 
-  imm_.TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
+  TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
 //  MaybeScheduleFlushOrCompaction();
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
@@ -1334,6 +1335,102 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact) {
 
   return versions_->LogAndApply(compact->compaction->edit());
 }
+Status DBImpl::TryInstallMemtableFlushResults(
+    FlushJob* job, VersionSet* vset,
+    std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit) {
+  autovector<MemTable*> mems = job->mem_vec;
+  assert(mems.size() >0);
+
+//  imm_mtx->lock();
+#ifndef NDEBUG
+  if (mems.size() == 1)
+    DEBUG("check 1 memtable installation\n");
+#endif
+  // Flush was successful
+  // Record the status on the memtable object. Either this call or a call by a
+  // concurrent flush thread will read the status and write it to manifest.
+  {
+    std::unique_lock<std::mutex> lck1(FlushPickMTX);
+    for (size_t i = 0; i < mems.size(); ++i) {
+      // First mark the flushing is finished in the immutables
+      mems[i]->MarkFlushed();
+      DEBUG_arg("Memtable %p marked as flushed\n", mems[i]);
+      mems[i]->sstable = sstable;
+    }
+  }
+
+
+  // if some other thread is already committing, then return
+  Status s;
+
+  // Retry until all completed flushes are committed. New flushes can finish
+  // while the current thread is writing manifest where mutex is released.
+//  while (s.ok()) {
+  std::unique_lock<std::mutex> lck2(superversion_mtx);
+  auto& memlist = imm_.current_.load()->memlist_;
+  // The back is the oldest; if flush_completed_ is not set to it, it means
+  // that we were assigned a more recent memtable. The memtables' flushes must
+  // be recorded in manifest in order. A concurrent flush thread, who is
+  // assigned to flush the oldest memtable, will later wake up and does all
+  // the pending writes to manifest, in order.
+  if (memlist.empty() || !memlist.back()->CheckFlushFinished()) {
+    //Unlock the spinlock and do not write to the version
+//      imm_mtx->unlock();
+    return s;
+  }
+  // scan all memtables from the earliest, and commit those
+  // (in that order) that have finished flushing. Memtables
+  // are always committed in the order that they were created.
+  uint64_t batch_file_number = 0;
+  size_t batch_count = 0;
+//    autovector<VersionEdit*> edit_list;
+//    autovector<MemTable*> memtables_to_flush;
+  // enumerate from the last (earliest) element to see how many batch finished
+  for (auto it = memlist.rbegin(); it != memlist.rend(); ++it) {
+    MemTable* m = *it;
+    if (!m->CheckFlushFinished()) {
+      break;
+    }
+    assert(m->sstable != nullptr);
+    edit->AddFileIfNotExist(0,m->sstable);
+    batch_count++;
+  }
+  if (batch_count == 0){
+    return s;
+  }
+  //TODO: seperate the logic of find out what file to
+
+  DEBUG("try install inner loop\n");
+  // we will be changing the version in the next code path,
+  // so we better create a new one, since versions are immutable
+
+  imm_.InstallNewVersion();
+  size_t batch_count_for_fetch_sub = batch_count;
+  MemTableListVersion* current = imm_.current_.load();
+  while (batch_count-- > 0) {
+    MemTable* m = current->memlist_.back();
+
+    assert(m->sstable != nullptr);
+    autovector<MemTable*> dummy_to_delete = autovector<MemTable*>();
+    current->Remove(m);
+    imm_.UpdateCachedValuesFromMemTableListVersion();
+    imm_.ResetTrimHistoryNeeded();
+  }
+  imm_.current_memtable_num_.fetch_sub(batch_count_for_fetch_sub);
+  DEBUG_arg("Install flushing result, current immutable number is %lu\n", imm_.current_memtable_num_.load());
+
+
+
+  s = vset->LogAndApply(edit);
+  InstallSuperVersion();
+  lck2.unlock();
+  job->write_stall_cv_->notify_all();
+
+//  }
+
+  return s;
+}
+
 void DBImpl::InstallSuperVersion() {
     SuperVersion* old = super_version.load();
   super_version.store(new SuperVersion(mem_,imm_.current(), versions_->current()));
@@ -1853,14 +1950,28 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   } else {
     snapshot = versions_->LastSequence();
   }
+  std::unique_lock<std::mutex> lck(superversion_mtx);
   auto sv = super_version.load();
+  sv->Ref();
+  lck.unlock();
   MemTable* mem = sv->mem;
   MemTableListVersion* imm = sv->imm;
   Version* current = sv->current;
-  mem->Ref();
-  if (imm != nullptr) imm->Ref();
-  current->Ref();
 
+//  if (sv != nullptr){
+//    sv->Ref();
+//    if (sv == super_version.load()){// there is no superversion change between.
+//      MemTable* mem = sv->mem;
+//      MemTableListVersion* imm = sv->imm;
+//      Version* current = sv->current;
+//      mem->Ref();
+//      if (imm != nullptr) imm->Ref();
+//      current->Ref();
+//    }else{
+//      sv->Unref();
+//    }
+//
+//  }
   bool have_stat_update = false;
   Version::GetStats stats;
 
@@ -2515,7 +2626,6 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
   v->Unref();
 }
-
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish

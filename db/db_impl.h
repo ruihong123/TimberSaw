@@ -209,6 +209,9 @@ class DBImpl : public DB {
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
+  Status TryInstallMemtableFlushResults(
+      FlushJob* job, VersionSet* vset,
+      std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
   void InstallSuperVersion();
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();

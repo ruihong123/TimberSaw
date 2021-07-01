@@ -750,18 +750,18 @@ void VersionSet::AppendVersion(Version* v) {
 }
 
 Status VersionSet::LogAndApply(VersionEdit* edit) {
-  if (edit->has_log_number_) {
-    assert(edit->log_number_ >= log_number_);
-    assert(edit->log_number_ < next_file_number_.load());
-  } else {
-    edit->SetLogNumber(log_number_);
-  }
-
-  if (!edit->has_prev_log_number_) {
-    edit->SetPrevLogNumber(prev_log_number_);
-  }
-
-  edit->SetNextFile(next_file_number_.load());
+//  if (edit->has_log_number_) {
+//    assert(edit->log_number_ >= log_number_);
+//    assert(edit->log_number_ < next_file_number_.load());
+//  } else {
+//    edit->SetLogNumber(log_number_);
+//  }
+//
+//  if (!edit->has_prev_log_number_) {
+//    edit->SetPrevLogNumber(prev_log_number_);
+//  }
+//
+//  edit->SetNextFile(next_file_number_.load());
   edit->SetLastSequence(last_sequence_);
   //Build an empty version.
   Version* v = new Version(this);
@@ -775,6 +775,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
     builder.Apply(edit);
     builder.SaveTo(v);
   }
+  std::unique_lock<std::mutex> lck(version_set_mtx);
   Finalize(v);
 
   // Initialize new descriptor log file if necessary by creating
@@ -823,8 +824,6 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
   // Install the new version
   if (s.ok()) {
     AppendVersion(v);
-    log_number_ = edit->log_number_;
-    prev_log_number_ = edit->prev_log_number_;
   } else {
     delete v;
     printf("installing new version failed");
@@ -836,6 +835,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //      env_->RemoveFile(new_manifest_file);
 //    }
   }
+  lck.unlock();
   return s;
 }
 
@@ -1431,7 +1431,7 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
-  std::unique_lock<std::mutex> lck(*sv_mtx);
+  std::unique_lock<std::mutex> lck(version_set_mtx);
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);

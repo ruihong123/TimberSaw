@@ -15,6 +15,7 @@
 #include "db/dbformat.h"
 //#include "db/logs_with_prep_tracker.h"
 #include "db/memtable.h"
+//#include "db/db_impl.h"
 //#include "db/range_del_aggregator.h"
 //#include "file/filename.h"
 //#include "logging/log_buffer.h"
@@ -130,7 +131,7 @@ class MemTableListVersion {
 
  private:
   friend class MemTableList;
-
+  friend class DBImpl;
 //  friend Status InstallMemtableAtomicFlushResults(
 //      const autovector<MemTableList*>* imm_lists,
 //      const autovector<ColumnFamilyData*>& cfds,
@@ -260,9 +261,9 @@ class MemTableList {
 
   // Try commit a successful flush in the manifest file. It might just return
   // Status::OK letting a concurrent flush to do the actual the recording.
-  Status TryInstallMemtableFlushResults(
-      FlushJob* job, VersionSet* vset,
-      std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
+//  Status TryInstallMemtableFlushResults(
+//      FlushJob* job, VersionSet* vset,
+//      std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
 
   // New memtables are inserted at the front of the list.
   // Takes ownership of the referenced held on *m by the caller of Add().
@@ -369,7 +370,11 @@ class MemTableList {
 //  void RemoveOldMemTables(uint64_t log_number,
 //                          autovector<MemTable*>* to_delete);
 
+  // DB mutex held
+  void InstallNewVersion();
+
  private:
+  friend class DBImpl;
 //  friend Status InstallMemtableAtomicFlushResults(
 //      const autovector<MemTableList*>* imm_lists,
 //      const autovector<ColumnFamilyData*>& cfds,
@@ -380,9 +385,7 @@ class MemTableList {
 //      autovector<MemTable*>* to_delete, FSDirectory* db_directory,
 //      LogBuffer* log_buffer);
 
-  // DB mutex held
-  void InstallNewVersion();
-// The current memtable number. This can only represent the number of memtbale
+  // The current memtable number. This can only represent the number of memtbale
   // in the latest version, which means there could be more table alive in the memory.
   std::atomic<size_t> current_memtable_num_;
 //  const int min_write_buffer_number_to_merge_;
