@@ -1435,6 +1435,11 @@ void DBImpl::InstallSuperVersion() {
     SuperVersion* old = super_version.load();
   super_version.store(new SuperVersion(mem_,imm_.current(), versions_->current()));
   super_version.load()->Ref();
+#ifndef NDEBUG
+  if (super_version.load()->mem == nullptr){
+    MemTable* mem = mem_.load();
+  }
+#endif
   if (old != nullptr){
     old->Unref();//First replace the superverison then Unref().
   }
