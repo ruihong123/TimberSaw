@@ -191,7 +191,8 @@ void SuperVersion::Unref() {
   // fetch_sub returns the previous value of ref
   uint32_t previous_refs = refs.fetch_sub(1);
   assert(previous_refs > 0);
-  assert(refs >=0);
+  // TODO change it back to assert(refs >=0);
+  assert(refs ==0);
   if (refs == 0){
     Cleanup();
     DEBUG("SuperVersion garbage collected\n");
@@ -204,7 +205,7 @@ void SuperVersion::Cleanup() {
   assert(refs.load(std::memory_order_relaxed) == 0);
   imm->Unref();
   mem->Unref();
-  std::unique_lock<std::mutex> lck(VersionSet::version_set_mtx);
+  std::unique_lock<std::mutex> lck(VersionSet::version_set_mtx);// in case that the version list is messed up
   current->Unref(4);
 
 }
