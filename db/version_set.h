@@ -96,10 +96,10 @@ class Version {
 
   // Reference count management (so Versions do not disappear out from
   // under live iterators)
-  void Ref();
+  void Ref(int mark);
   // Required to be guarded by version_set_mtx, in case that there is reference
   // outside the control of superversion.
-  void Unref();
+  void Unref(int mark);
 
   bool GetOverlappingInputs(
       int level,
@@ -226,6 +226,8 @@ class Version {
   // are initialized by Finalize().
   std::array<double, config::kNumLevels - 1> compaction_score_;
   std::array<int, config::kNumLevels - 1> compaction_level_;
+  std::vector<int> ref_mark_collection;
+  std::vector<int> unref_mark_collection;
 
 };
 

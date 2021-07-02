@@ -395,11 +395,15 @@ bool Version::RecordReadSample(Slice internal_key) {
   return false;
 }
 
-void Version::Ref() { ++refs_; }
+void Version::Ref(int mark) {
+  ref_mark_collection.push_back(mark);
+  ++refs_;
+}
 
-void Version::Unref() {
+void Version::Unref(int mark) {
   assert(this != &vset_->dummy_versions_);
   assert(refs_ >= 1);
+  unref_mark_collection.push_back(mark);
   --refs_;
   if (refs_ == 0) {
     DEBUG("Version get garbage collected\n");
@@ -555,7 +559,7 @@ class VersionSet::Builder {
  public:
   // Initialize a builder with the files from *base and other info from *vset
   Builder(VersionSet* vset, Version* base) : vset_(vset), base_(base) {
-    base_->Ref();
+    base_->Ref(3);
     BySmallestKey cmp;
     cmp.internal_comparator = &vset_->icmp_;
     for (int level = 0; level < config::kNumLevels; level++) {
@@ -581,7 +585,7 @@ class VersionSet::Builder {
 //        }
 //      }
     }
-    base_->Unref();
+    base_->Unref(3);
   }
 
   // Apply all of the edits in *edit to the current state.
@@ -733,7 +737,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
 }
 
 VersionSet::~VersionSet() {
-  current_->Unref();
+  current_->Unref(0);
   assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log_;
   delete descriptor_file_;
@@ -744,10 +748,10 @@ void VersionSet::AppendVersion(Version* v) {
   assert(v->refs_ == 0);
   assert(v != current_);
   if (current_ != nullptr) {
-    current_->Unref();
+    current_->Unref(1);
   }
   current_ = v;
-  v->Ref();
+  v->Ref(1);
 #ifndef NDEBUG
   version_remain++;
   version_all++;
@@ -777,6 +781,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
   Version* v = new Version(this);
 
 //  std::unique_lock<std::mutex> lck(sv_mtx);
+  std::unique_lock<std::mutex> lck(version_set_mtx);
   {
     // Decide what table to keep what to discard.
     Builder builder(this, current_);
@@ -785,7 +790,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
     builder.Apply(edit);
     builder.SaveTo(v);
   }
-  std::unique_lock<std::mutex> lck(version_set_mtx);
+
   Finalize(v);
 
   // Initialize new descriptor log file if necessary by creating
@@ -1477,7 +1482,7 @@ Compaction* VersionSet::PickCompaction() {
   }
   if (!c->inputs_[0].empty()) {
     c->input_version_ = current_;
-    c->input_version_->Ref();
+    c->input_version_->Ref(2);
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
     if (c->inputs_[1].empty())
@@ -1681,7 +1686,7 @@ Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
 
   Compaction* c = new Compaction(options_, level);
   c->input_version_ = current_;
-  c->input_version_->Ref();
+  c->input_version_->Ref(0);
   c->inputs_[0] = inputs;
   SetupOtherInputs(c);
   return c;
@@ -1702,7 +1707,7 @@ Compaction::Compaction(const Options* options, int level)
 
 Compaction::~Compaction() {
   if (input_version_ != nullptr) {
-    input_version_->Unref();
+    input_version_->Unref(0);
   }
 }
 
@@ -1779,7 +1784,7 @@ uint64_t Compaction::FirstLevelSize(){
 }
 void Compaction::ReleaseInputs() {
   if (input_version_ != nullptr) {
-    input_version_->Unref();
+    input_version_->Unref(2);
     input_version_ = nullptr;
   }
 }

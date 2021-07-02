@@ -205,7 +205,7 @@ void SuperVersion::Cleanup() {
   imm->Unref();
   mem->Unref();
   std::unique_lock<std::mutex> lck(VersionSet::version_set_mtx);
-  current->Unref();
+  current->Unref(4);
 
 }
 SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
@@ -216,7 +216,7 @@ SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
   current = new_current;
   mem->Ref();
   imm->Ref();
-  current->Ref();
+  current->Ref(4);
 }
 
 
@@ -1021,6 +1021,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       //if there is no task to pick up, just return.
       if (c== nullptr){
         DEBUG("compaction task executed but not found doable task.\n");
+        delete c;
         return;
       }
 
@@ -1908,7 +1909,7 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
   state->mu->Lock();
   state->mem->Unref();
   if (state->imm_version != nullptr) state->imm_version->Unref();
-  state->version->Unref();
+  state->version->Unref(0);
   state->mu->Unlock();
   delete state;
 }
@@ -1931,7 +1932,7 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   versions_->current()->AddIterators(options, &list);
   Iterator* internal_iter =
       NewMergingIterator(&internal_comparator_, &list[0], list.size());
-  versions_->current()->Ref();
+  versions_->current()->Ref(0);
 
   IterState* cleanup = new IterState(&undefine_mutex, mem_, imm, versions_->current());
   internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
@@ -2633,7 +2634,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
   // TODO(opt): better implementation
   MutexLock l(&undefine_mutex);
   Version* v = versions_->current();
-  v->Ref();
+  v->Ref(0);
 
   for (int i = 0; i < n; i++) {
     // Convert user_key into a corresponding internal key.
@@ -2644,7 +2645,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
     sizes[i] = (limit >= start ? limit - start : 0);
   }
 
-  v->Unref();
+  v->Unref(0);
 }
 
 // Default implementations of convenience methods that subclasses of DB
