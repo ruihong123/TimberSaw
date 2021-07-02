@@ -314,12 +314,12 @@ class Stats {
     // Pretend at least one op was done in case we are running a benchmark
     // that does not call FinishedSingleOp().
     if (done_ < 1) done_ = 1;
-
+    double elapsed = (finish_ - start_) * 1e-6;
     std::string extra;
     if (bytes_ > 0) {
       // Rate is computed on actual elapsed time, not the sum of per-thread
       // elapsed times.
-      double elapsed = (finish_ - start_) * 1e-6;
+
       char rate[100];
       std::snprintf(rate, sizeof(rate), "%6.1f MB/s",
                     (bytes_ / 1048576.0) / elapsed);
@@ -327,9 +327,10 @@ class Stats {
     }
     AppendWithSpace(&extra, message_);
 
-    std::fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n",
-                 name.ToString().c_str(), seconds_ * 1e6 / done_,
+    std::fprintf(stdout, "%-12s : %11.3f micros/op; %ld ops/sec;%s%s\n",
+                 name.ToString().c_str(), seconds_ * 1e6 / done_, (long)(done_/elapsed),
                  (extra.empty() ? "" : " "), extra.c_str());
+
     if (FLAGS_histogram) {
       std::fprintf(stdout, "Microseconds per op:\n%s\n",
                    hist_.ToString().c_str());
