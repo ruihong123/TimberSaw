@@ -238,7 +238,10 @@ class VersionSet {
   VersionSet& operator=(const VersionSet&) = delete;
 
   ~VersionSet();
-
+#ifndef NDEBUG
+  int version_remain;
+  int version_all;
+#endif
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new
   // current version.  Will release *mu while actually writing to the file.
@@ -390,6 +393,8 @@ class VersionSet {
   //TODO: make current_ an atomic variable.
 //  std::atomic<Version*> current_;        // == dummy_versions_.prev_
   Version* current_;
+
+
   //TODO: make it spinmutex?
   std::mutex* sv_mtx;
   static std::mutex version_set_mtx;

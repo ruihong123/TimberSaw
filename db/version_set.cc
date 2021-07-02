@@ -403,6 +403,10 @@ void Version::Unref() {
   --refs_;
   if (refs_ == 0) {
     DEBUG("Version get garbage collected\n");
+#ifndef NDEBUG
+    vset_->version_remain--;
+#endif
+
     delete this;
   }
 }
@@ -744,7 +748,10 @@ void VersionSet::AppendVersion(Version* v) {
   }
   current_ = v;
   v->Ref();
-
+#ifndef NDEBUG
+  version_remain++;
+  version_all++;
+#endif
   // Append to linked list
   v->prev_ = dummy_versions_.prev_;
   v->next_ = &dummy_versions_;
