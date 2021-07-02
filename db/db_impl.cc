@@ -192,7 +192,7 @@ void SuperVersion::Unref() {
   uint32_t previous_refs = refs.fetch_sub(1);
   assert(previous_refs > 0);
   // TODO change it back to assert(refs >=0);
-  assert(refs ==0);
+  assert(refs >=0);
   if (refs == 0){
     Cleanup();
     DEBUG("SuperVersion garbage collected\n");
