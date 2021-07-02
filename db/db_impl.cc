@@ -1037,6 +1037,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       c->edit()->AddFile(c->level() + 1, f);
       {
         std::unique_lock<std::mutex> l(superversion_mtx);
+        c->ReleaseInputs();
         status = versions_->LogAndApply(c->edit());
         InstallSuperVersion();
       }
@@ -1072,7 +1073,6 @@ void DBImpl::BackgroundCompaction(void* p) {
         RecordBackgroundError(status);
       }
       CleanupCompaction(compact);
-      c->ReleaseInputs();
 //    RemoveObsoleteFiles();
     }
     delete c;
@@ -1337,6 +1337,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   }
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
   lck_p->lock();
+  compact->compaction->ReleaseInputs();
   return versions_->LogAndApply(compact->compaction->edit());
 }
 Status DBImpl::TryInstallMemtableFlushResults(
