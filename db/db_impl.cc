@@ -1448,6 +1448,8 @@ void DBImpl::InstallSuperVersion() {
 #endif
   if (old != nullptr){
     old->Unref();//First replace the superverison then Unref().
+  }else{
+    DEBUG("Check not Unref\n");
   }
 }
 Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
