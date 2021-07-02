@@ -210,7 +210,7 @@ void SuperVersion::Cleanup() {
 
 }
 SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
-                           Version* new_current) {
+                           Version* new_current) :refs(0) {
   //Guarded by superversion_mtx, so those pointer will always be valide
   mem = new_mem;
   imm = new_imm;
