@@ -193,7 +193,7 @@ void SuperVersion::Unref() {
   assert(previous_refs > 0);
   // TODO change it back to assert(refs >=0);
   assert(refs >=0);
-  if (refs == 0){
+  if (previous_refs == 1){
     Cleanup();
     DEBUG("SuperVersion garbage collected\n");
     delete this;
