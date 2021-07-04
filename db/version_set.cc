@@ -1490,7 +1490,7 @@ Compaction* VersionSet::PickCompaction() {
     c->input_version_->Ref(2);
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
-    if (c->inputs_[1].empty())
+    if (c->inputs_[1].size() == 1)
       printf("mark here\n");
     return c;
   }else{

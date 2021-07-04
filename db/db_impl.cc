@@ -2018,9 +2018,9 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
     MaybeScheduleFlushOrCompaction();
   }
   //TOthink: whether we need a lock for the dereference
-//  lck.lock();
+  lck.lock();
   sv->Unref();
-//  lck.unlock();
+  lck.unlock();
   return s;
 }
 
