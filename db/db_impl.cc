@@ -1530,8 +1530,7 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
     } else {
       lck.lock();
     }
-    super_version->Ref();
-    sv = super_version;
+    sv = super_version->Ref();
     lck.unlock();
   }
   assert(sv != nullptr);
@@ -1544,6 +1543,7 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
 void DBImpl::InstallSuperVersion() {
   SuperVersion* old_superversion = super_version;
   super_version = new SuperVersion(mem_,imm_.current(), versions_->current());
+  super_version->Ref();
   ++super_version_number_;
   super_version->version_number = super_version_number_;
   if (old_superversion != nullptr) {
