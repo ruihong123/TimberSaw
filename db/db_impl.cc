@@ -39,7 +39,23 @@
 namespace leveldb {
 
 const int kNumNonTableCacheFiles = 10;
-
+int SuperVersion::dummy = 0;
+void* const SuperVersion::kSVInUse = &SuperVersion::dummy;
+void* const SuperVersion::kSVObsolete = nullptr;
+void SuperVersionUnrefHandle(void* ptr) {
+  // UnrefHandle is called when a thread exists or a ThreadLocalPtr gets
+  // destroyed. When former happens, the thread shouldn't see kSVInUse.
+  // When latter happens, we are in ~ColumnFamilyData(), no get should happen as
+  // well.
+  SuperVersion* sv = static_cast<SuperVersion*>(ptr);
+  bool was_last_ref __attribute__((__unused__));
+  was_last_ref = sv->Unref();
+  // Thread-local SuperVersions can't outlive ColumnFamilyData::super_version_.
+  // This is important because we can't do SuperVersion cleanup here.
+  // That would require locking DB mutex, which would deadlock because
+  // SuperVersionUnrefHandle is called with locked ThreadLocalPtr mutex.
+  assert(!was_last_ref);
+}
 // Information kept for every waiting writer
 struct DBImpl::Writer {
   explicit Writer(port::Mutex* mu)
@@ -187,17 +203,13 @@ SuperVersion* SuperVersion::Ref() {
   return this;
 }
 
-void SuperVersion::Unref() {
+bool SuperVersion::Unref() {
   // fetch_sub returns the previous value of ref
   uint32_t previous_refs = refs.fetch_sub(1);
   assert(previous_refs > 0);
   // TODO change it back to assert(refs >=0);
   assert(refs >=0);
-  if (previous_refs == 1){
-    Cleanup();
-    DEBUG("SuperVersion garbage collected\n");
-    delete this;
-  }
+  return previous_refs == 1;
 
 }
 
@@ -207,10 +219,11 @@ void SuperVersion::Cleanup() {
   mem->Unref();
   std::unique_lock<std::mutex> lck(VersionSet::version_set_mtx);// in case that the version list is messed up
   current->Unref(4);
+  delete this;
 
 }
 SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
-                           Version* new_current) :refs(0) {
+                           Version* new_current) :refs(0),version_number(0) {
   //Guarded by superversion_mtx, so those pointer will always be valide
   mem = new_mem;
   imm = new_imm;
@@ -245,7 +258,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
-                               &internal_comparator_, &superversion_mtx)) {}
+                               &internal_comparator_, &superversion_mtx)),
+      super_version_number_(0),
+      super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)){}
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
@@ -263,8 +278,8 @@ DBImpl::~DBImpl() {
   if (db_lock_ != nullptr) {
     env_->UnlockFile(db_lock_);
   }
-  if (super_version.load()!= nullptr)
-    super_version.load()->Unref();
+  if (super_version!= nullptr && super_version->Unref())
+    super_version->Cleanup();
   delete versions_;
   if (mem_ != nullptr) mem_.load()->SimpleDelete();
 //  if (imm_ != nullptr) imm_.load()->SimpleDelete();
@@ -1437,22 +1452,147 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
   return s;
 }
-
-void DBImpl::InstallSuperVersion() {
-    SuperVersion* old = super_version.load();
-  super_version.store(new SuperVersion(mem_,imm_.current(), versions_->current()));
-  super_version.load()->Ref();
-#ifndef NDEBUG
-  if (super_version.load()->mem == nullptr){
-    MemTable* mem = mem_.load();
-  }
-#endif
-  if (old != nullptr){
-    old->Unref();//First replace the superverison then Unref().
-  }else{
-    DEBUG("Check not Unref\n");
+//SuperVersion* DBImpl::GetReferencedSuperVersion(DBImpl* db) {
+//  SuperVersion* sv = GetThreadLocalSuperVersion(db);
+//  sv->Ref();
+//  if (!ReturnThreadLocalSuperVersion(sv)) {
+//    // This Unref() corresponds to the Ref() in GetThreadLocalSuperVersion()
+//    // when the thread-local pointer was populated. So, the Ref() earlier in
+//    // this function still prevents the returned SuperVersion* from being
+//    // deleted out from under the caller.
+//    sv->Unref();
+//  }
+//  return sv;
+//}
+void DBImpl::CleanupSuperVersion(SuperVersion* sv) {
+  // Release SuperVersion
+  if (sv->Unref()) {
+    {
+      std::unique_lock<std::mutex> lck(superversion_mtx);
+      sv->Cleanup();
+    }
   }
 }
+bool DBImpl::ReturnThreadLocalSuperVersion(SuperVersion* sv) {
+  assert(sv != nullptr);
+  // Put the SuperVersion back
+  void* expected = SuperVersion::kSVInUse;
+  if (local_sv_->CompareAndSwap(static_cast<void*>(sv), expected)) {
+    // When we see kSVInUse in the ThreadLocal, we are sure ThreadLocal
+    // storage has not been altered and no Scrape has happened. The
+    // SuperVersion is still current.
+    return true;
+  } else {
+    // ThreadLocal scrape happened in the process of this GetImpl call (after
+    // thread local Swap() at the beginning and before CompareAndSwap()).
+    // This means the SuperVersion it holds is obsolete.
+    assert(expected == SuperVersion::kSVObsolete);
+  }
+  return false;
+}
+
+void DBImpl::ReturnAndCleanupSuperVersion(SuperVersion* sv) {
+  if (!ReturnThreadLocalSuperVersion(sv)) {
+    CleanupSuperVersion(sv);
+  }
+}
+SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
+  // The SuperVersion is cached in thread local storage to avoid acquiring
+  // mutex when SuperVersion does not change since the last use. When a new
+  // SuperVersion is installed, the compaction or flush thread cleans up
+  // cached SuperVersion in all existing thread local storage. To avoid
+  // acquiring mutex for this operation, we use atomic Swap() on the thread
+  // local pointer to guarantee exclusive access. If the thread local pointer
+  // is being used while a new SuperVersion is installed, the cached
+  // SuperVersion can become stale. In that case, the background thread would
+  // have swapped in kSVObsolete. We re-check the value at when returning
+  // SuperVersion back to thread local, with an atomic compare and swap.
+  // The superversion will need to be released if detected to be stale.
+  void* ptr = local_sv_->Swap(SuperVersion::kSVInUse);
+  // Invariant:
+  // (1) Scrape (always) installs kSVObsolete in ThreadLocal storage
+  // (2) the Swap above (always) installs kSVInUse, ThreadLocal storage
+  // should only keep kSVInUse before ReturnThreadLocalSuperVersion call
+  // (if no Scrape happens).
+  assert(ptr != SuperVersion::kSVInUse);
+  SuperVersion* sv = static_cast<SuperVersion*>(ptr);
+  if (sv == SuperVersion::kSVObsolete ||
+      sv->version_number != super_version_number_.load()) {
+    SuperVersion* sv_to_delete = nullptr;
+    // if there is an old superversion unrefer old one and replace it as a new one
+    std::unique_lock<std::mutex> lck(superversion_mtx,std::defer_lock);
+    if (sv && sv->Unref()) {
+      lck.lock();
+      // NOTE: underlying resources held by superversion (sst files) might
+      // not be released until the next background job.
+      sv->Cleanup();
+
+    } else {
+      lck.lock();
+    }
+    super_version->Ref();
+    sv = super_version;
+    lck.unlock();
+  }
+  assert(sv != nullptr);
+  return sv;
+}
+
+
+
+
+void DBImpl::InstallSuperVersion() {
+  SuperVersion* old_superversion = super_version;
+  super_version = new SuperVersion(mem_,imm_.current(), versions_->current());
+  ++super_version_number_;
+  super_version->version_number = super_version_number_;
+  if (old_superversion != nullptr) {
+    // Reset SuperVersions cached in thread local storage.
+    // This should be done before old_superversion->Unref(). That's to ensure
+    // that local_sv_ never holds the last reference to SuperVersion, since
+    // it has no means to safely do SuperVersion cleanup.
+    ResetThreadLocalSuperVersions();
+
+    if (old_superversion->Unref()) {
+      old_superversion->Cleanup();
+    }
+  }
+}
+
+void DBImpl::ResetThreadLocalSuperVersions() {
+  autovector<void*> sv_ptrs;
+  // If there the default pointer for local_sv_ s are nullptr
+  local_sv_->Scrape(&sv_ptrs, SuperVersion::kSVObsolete);
+  for (auto ptr : sv_ptrs) {
+    assert(ptr);
+    if (ptr == SuperVersion::kSVInUse || ptr == nullptr) {
+      continue;
+    }
+    auto sv = static_cast<SuperVersion*>(ptr);
+    bool was_last_ref __attribute__((__unused__));
+    was_last_ref = sv->Unref();
+    // sv couldn't have been the last reference because
+    // ResetThreadLocalSuperVersions() is called before
+    // unref'ing super_version_.
+    assert(!was_last_ref);
+  }
+}
+
+//void DBImpl::InstallSuperVersion() {
+//    SuperVersion* old = super_version;
+//  super_version.store(new SuperVersion(mem_,imm_.current(), versions_->current()));
+//  super_version.load()->Ref();
+//#ifndef NDEBUG
+//  if (super_version.load()->mem == nullptr){
+//    MemTable* mem = mem_.load();
+//  }
+//#endif
+//  if (old != nullptr){
+//    old->Unref();//First replace the superverison then Unref().
+//  }else{
+//    DEBUG("Check not Unref\n");
+//  }
+//}
 Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
   Compaction* c = compact->compaction;
   c->GenSubcompactionBoundaries();
@@ -1966,17 +2106,10 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   } else {
     snapshot = versions_->LastSequence();
   }
-  std::unique_lock<std::mutex> lck(superversion_mtx);
-  auto sv = super_version.load();
-  sv->Ref();
-  lck.unlock();
+
+  auto sv = GetThreadLocalSuperVersion();
+
   MemTable* mem = sv->mem;
-  SuperVersion* sv_p;
-  if (mem == nullptr){
-    printf("The pointer for memtable in DBImpl is %p\n", mem_.load());
-    sv_p = super_version.load();
-    printf("mark here\n");
-  }
   MemTableListVersion* imm = sv->imm;
   Version* current = sv->current;
 
@@ -2018,9 +2151,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
     MaybeScheduleFlushOrCompaction();
   }
   //TOthink: whether we need a lock for the dereference
-  lck.lock();
-  sv->Unref();
-  lck.unlock();
+  ReturnAndCleanupSuperVersion(sv);
   return s;
 }
 

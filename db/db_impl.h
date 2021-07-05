@@ -49,7 +49,7 @@ struct SuperVersion {
   SuperVersion* Ref();
   // If Unref() returns true, Cleanup() should be called with mutex held
   // before deleting this SuperVersion.
-  void Unref();
+  bool Unref();
 
   // call these two methods with db mutex held
   // Cleanup unrefs mem, imm and current. Also, it stores all memtables
@@ -212,6 +212,12 @@ class DBImpl : public DB {
   Status TryInstallMemtableFlushResults(
       FlushJob* job, VersionSet* vset,
       std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
+//  SuperVersion* GetReferencedSuperVersion(DBImpl* db);
+  void CleanupSuperVersion(SuperVersion* sv);
+  void ReturnAndCleanupSuperVersion(SuperVersion* sv);
+  SuperVersion* GetThreadLocalSuperVersion();
+  bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
+  void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
@@ -277,7 +283,9 @@ class DBImpl : public DB {
   std::atomic<size_t> memtable_counter = 0;
   std::atomic<size_t> kv_counter0 = 0;
   std::atomic<size_t> kv_counter1 = 0;
-  std::atomic<SuperVersion*> super_version = nullptr;
+  std::atomic<uint64_t> super_version_number_;
+  SuperVersion* super_version;
+  std::unique_ptr<ThreadLocalPtr> local_sv_;
 };
 struct BGThreadMetadata {
   DBImpl* db;
