@@ -145,6 +145,9 @@ bool MemTableListVersion::Get(const LookupKey& key, std::string* value,
 bool MemTableListVersion::GetFromList(std::list<MemTable*>* list,
                                       const LookupKey& key, std::string* value,
                                       Status* s) {
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   for (auto& memtable : *list) {
     SequenceNumber current_seq = kMaxSequenceNumber;
 

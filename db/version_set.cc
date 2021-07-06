@@ -269,6 +269,9 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
 
 Status Version::Get(const ReadOptions& options, const LookupKey& k,
                     std::string* value, GetStats* stats) {
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   stats->seek_file = nullptr;
   stats->seek_file_level = -1;
 
@@ -340,7 +343,14 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
   state.saver.value = value;
 
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
+#ifdef GETANALYSIS
+  if (!state.found){
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  }
 
+#endif
   return state.found ? state.s : Status::NotFound(Slice());
 }
 

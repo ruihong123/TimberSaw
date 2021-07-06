@@ -115,6 +115,9 @@ Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 }
 
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   Slice memkey = key.memtable_key();
   Table::Iterator iter(&table_);
   iter.Seek(memkey.data());
@@ -139,6 +142,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
         case kTypeValue: {
           Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
           value->assign(v.data(), v.size());
+
           return true;
         }
         case kTypeDeletion:
@@ -147,6 +151,11 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
       }
     }
   }
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
+#endif
   return false;
 }
 
