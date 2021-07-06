@@ -11,6 +11,10 @@
 #include "util/coding.h"
 
 namespace leveldb {
+#ifdef GETANALYSIS
+std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
+std::atomic<uint64_t> MemTable::GetNum = 0;
+#endif
 //
 //static Slice GetLengthPrefixedSlice(const char* data) {
 //  uint32_t len;
@@ -154,7 +158,9 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
 #ifdef GETANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
+//  std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
+  GetTimeElapseSum.fetch_add(duration.count());
+  GetNum.fetch_add(1);
 #endif
   return false;
 }

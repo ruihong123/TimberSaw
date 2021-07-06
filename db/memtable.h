@@ -43,6 +43,10 @@ class MemTable {
   std::atomic<bool> able_to_flush = false;
   std::shared_ptr<RemoteMemTableMetaData> sstable;
   const KeyComparator comparator;
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> GetTimeElapseSum;
+  static std::atomic<uint64_t> GetNum;
+#endif
   explicit MemTable(const InternalKeyComparator& cmp);
   MemTable(const MemTable&) = delete;
   MemTable& operator=(const MemTable&) = delete;

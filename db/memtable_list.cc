@@ -89,7 +89,11 @@ void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
     delete this;
   }
 }
-
+MemTableList::~MemTableList(){
+#ifdef GETANALYSIS
+  printf("Memtable GET time statics is %zu, %zu, %zu\n", MemTable::GetTimeElapseSum.load(), MemTable::GetNum.load(), MemTable::GetTimeElapseSum.load()/MemTable::GetNum.load());
+#endif
+}
 int MemTableList::NumNotFlushed() const {
   int size = static_cast<int>(current_.load()->memlist_.size());
   assert(num_flush_not_started_ <= size);

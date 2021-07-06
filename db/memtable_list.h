@@ -224,7 +224,7 @@ class MemTableList {
 
   // Should not delete MemTableList without making sure MemTableList::current()
   // is Unref()'d.
-  ~MemTableList() {}
+  ~MemTableList();
 
   MemTableListVersion* current() const { return current_.load(); }
   InternalKeyComparator cmp;

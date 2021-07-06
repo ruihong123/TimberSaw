@@ -20,7 +20,10 @@
 #include "util/logging.h"
 
 namespace leveldb {
-
+#ifdef GETANALYSIS
+std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
+std::atomic<uint64_t> VersionSet::GetNum = 0;
+#endif
 std::mutex VersionSet::version_set_mtx;
 
 static size_t TargetFileSize(const Options* options) {
@@ -347,7 +350,9 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
   if (!state.found){
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+    VersionSet::GetTimeElapseSum.fetch_add(duration.count());
+    VersionSet::GetNum.fetch_add(1);
   }
 
 #endif
@@ -756,6 +761,9 @@ VersionSet::~VersionSet() {
   assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log_;
   delete descriptor_file_;
+#ifdef GETANALYSIS
+  printf("LSM Versionset GET time statics is %zu, %zu, %zu\n", VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(), VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
+#endif
 }
 
 void VersionSet::AppendVersion(Version* v) {
