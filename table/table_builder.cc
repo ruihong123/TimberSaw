@@ -23,6 +23,7 @@ struct TableBuilder::Rep {
         closed(false),
         pending_index_filter_entry(false) {
     //TOTHINK: why the block restart interval is 1 by default?
+    // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
     std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
     ibv_mr* temp_data_mr;
@@ -41,7 +42,7 @@ struct TableBuilder::Rep {
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
     local_filter_mr.push_back(temp_filter_mr);
-    data_block = new BlockBuilder(&index_block_options, local_data_mr[0]);
+    data_block = new BlockBuilder(&options, local_data_mr[0]);
     index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
     if (type_ == IO_type::Compact){
       type_string_ = "write_local_compact";

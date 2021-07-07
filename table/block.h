@@ -231,6 +231,7 @@ class Block::Iter : public Iterator {
 #endif
         return;
       }
+      // just used non_shared becasue this is a new restart point shared is 0
       Slice mid_key(key_ptr, non_shared);
       if (Compare(mid_key, target) < 0) {
         // Key at "mid" is smaller than "target".  Therefore all
@@ -290,7 +291,7 @@ class Block::Iter : public Iterator {
   bool ParseNextKey() {
     current_ = NextEntryOffset();
     const char* p = data_ + current_;
-    const char* limit = data_ + restarts_;  // Restarts come right after data
+    const char* limit = data_ + restarts_;  // restarts_ is the restart array offset
     if (p >= limit) {
       // No more entries to return.  Mark as invalid.
 //      printf("block is full, num of restart: %d, number of entries : %ld\n", num_restarts_, num_entries);
@@ -309,8 +310,11 @@ class Block::Iter : public Iterator {
 #endif
       return false;
     } else {
+      int old_array_index = array_index;
       array_index = array_index == 0 ? 1:0;
+      //TODO: copy the last shared part to this one, otherwise try not to use two string buffer
       key_[array_index].resize(shared);
+      key_[array_index].replace(0,shared, key_[old_array_index]);
       key_[array_index].append(p, non_shared);
       value_[array_index] = Slice(p + non_shared, value_length);
       while (restart_index_ + 1 < num_restarts_ &&
