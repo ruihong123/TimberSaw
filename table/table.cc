@@ -10,6 +10,7 @@
 #include "leveldb/filter_policy.h"
 #include "leveldb/options.h"
 #include "table/block.h"
+#include "db/table_cache.h"
 #include "table/filter_block.h"
 #include "table/format.h"
 #include "table/two_level_iterator.h"
@@ -192,7 +193,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     if (filter != nullptr && handle.DecodeFrom(&handle_value).ok() &&
         !filter->KeyMayMatch(handle.offset(), k)) {
       // Not found
+      TableCache::filtered.fetch_add(1);
     } else {
+      TableCache::not_filtered.fetch_add(1);
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
       if (block_iter->Valid()) {
