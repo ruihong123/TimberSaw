@@ -97,9 +97,11 @@ class Block::Iter : public Iterator {
 //  std::string key_1;
 //  std::string key_2;
   //Maitain two switched key holder in case that sometime iterator want to peek back the key and value.
-  IterKey key_[2];
-  Slice value_[2];
-  int array_index;
+  // This may not realize the peeking back correctly for the table compaction, because
+  // the block iterator may be discarded when crossing the boundary of data blocks.
+  IterKey key_;
+  Slice value_;
+//  int array_index;
 //  Slice value_1;
   Status status_;
 #ifndef NDEBUG
@@ -112,7 +114,7 @@ class Block::Iter : public Iterator {
 
   // Return the offset in data_ just past the end of the current entry.
   inline uint32_t NextEntryOffset() const {
-    return (value_[array_index].data() + value_[array_index].size()) - data_;
+    return (value_.data() + value_.size()) - data_;
   }
 
   uint32_t GetRestartPoint(uint32_t index) {
@@ -121,15 +123,13 @@ class Block::Iter : public Iterator {
   }
 
   void SeekToRestartPoint(uint32_t index) {
-    key_[1].Clear();
-    key_[0].Clear();
+    key_.Clear();
     restart_index_ = index;
     // current_ will be fixed by ParseNextKey();
 
     // ParseNextKey() starts at the end of value_, so set value_ accordingly
     uint32_t offset = GetRestartPoint(index);
-    array_index = 0;
-    value_[array_index] = Slice(data_ + offset, 0);
+    value_ = Slice(data_ + offset, 0);
   }
 
  public:
@@ -140,8 +140,7 @@ class Block::Iter : public Iterator {
         restarts_(restarts),
         num_restarts_(num_restarts),
         current_(restarts_),
-        restart_index_(num_restarts_),
-        array_index(0){
+        restart_index_(num_restarts_){
     assert(num_restarts_ > 0);
   }
   ~Iter(){
@@ -154,11 +153,11 @@ class Block::Iter : public Iterator {
   Status status() const override { return status_; }
   Slice key() const override {
     assert(Valid());
-    return key_[array_index].GetKey();
+    return key_.GetKey();
   }
   Slice value() const override {
     assert(Valid());
-    return value_[array_index];
+    return value_;
   }
 
   void Next() override {
@@ -166,10 +165,10 @@ class Block::Iter : public Iterator {
     ParseNextKey();
 #ifndef NDEBUG
     if (num_entries > 0) {
-      assert(comparator_->Compare(key_[array_index].GetKey(), Slice(last_key)) >= 0);
+      assert(comparator_->Compare(key_.GetKey(), Slice(last_key)) >= 0);
     }
     num_entries++;
-    last_key = key_[array_index].GetKey().ToString();
+    last_key = key_.GetKey().ToString();
 #endif
   }
 
@@ -205,7 +204,7 @@ class Block::Iter : public Iterator {
       // If we're already scanning, use the current position as a starting
       // point. This is beneficial if the key we're seeking to is ahead of the
       // current position.
-      current_key_compare = Compare(key_[array_index].GetKey(), target);
+      current_key_compare = Compare(key_.GetKey(), target);
       if (current_key_compare < 0) {
         // key_ is smaller than target
         left = restart_index_;
@@ -257,7 +256,7 @@ class Block::Iter : public Iterator {
       if (!ParseNextKey()) {
         return;
       }
-      if (Compare(key_[array_index].GetKey(), target) >= 0) {
+      if (Compare(key_.GetKey(), target) >= 0) {
         return;
       }
     }
@@ -282,10 +281,10 @@ class Block::Iter : public Iterator {
     restart_index_ = num_restarts_;
     status_ = Status::Corruption("bad entry in block");
     DEBUG("bad entry in block\n");
-    key_[0].Clear();
-    key_[1].Clear();
-    value_[0].clear();
-    value_[1].clear();
+    key_.Clear();
+
+    value_.clear();
+
   }
 
   bool ParseNextKey() {
@@ -303,15 +302,15 @@ class Block::Iter : public Iterator {
     // Decode next entry
     uint32_t shared, non_shared, value_length;
     p = DecodeEntry(p, limit, &shared, &non_shared, &value_length);
-    if (p == nullptr || key_[array_index].Size() < shared) {
+    if (p == nullptr || key_.Size() < shared) {
       CorruptionError();
 #ifndef NDEBUG
       printf("detect corruption block, when parsing the next, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
 #endif
       return false;
     } else {
-      int old_array_index = array_index;
-      array_index = array_index == 0 ? 1:0;
+//      int old_array_index = array_index;
+//      array_index = array_index == 0 ? 1:0;
       //TODO: copy the last shared part to this one, otherwise try not to use two string buffer
 //      auto start = std::chrono::high_resolution_clock::now();
 //      key_[array_index].resize(shared);
@@ -319,11 +318,11 @@ class Block::Iter : public Iterator {
 //      key_[array_index].append(p, non_shared);
 //      key_[array_index].SetKey(Slice(key_[old_array_index].GetKey().data(), shared));
 //      key_[array_index].AppendToBack(p, non_shared);
-      key_[array_index].TrimAppend(shared, p, non_shared);
+      key_.TrimAppend(shared, p, non_shared);
 //      auto stop = std::chrono::high_resolution_clock::now();
 //      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //      std::printf("string replace time elapse is %zu\n",  duration.count());
-      value_[array_index] = Slice(p + non_shared, value_length);
+      value_ = Slice(p + non_shared, value_length);
       while (restart_index_ + 1 < num_restarts_ &&
              GetRestartPoint(restart_index_ + 1) < current_) {
         ++restart_index_;

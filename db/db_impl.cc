@@ -1715,6 +1715,8 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
     InternalKey start_internal(*start, kMaxSequenceNumber, kValueTypeForSeek);
 
     input->Seek(start_internal.Encode());
+    // The sstable range is (start, end]
+    input->Next();
   } else {
     input->SeekToFirst();
   }
@@ -1736,14 +1738,14 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 #endif
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     key = input->key();
-    if (end != nullptr &&
-        user_comparator()->Compare(ExtractUserKey(key), *end) >= 0) {
-      break;
-    }
+
 //    assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (sub_compact->compaction->ShouldStopBefore(key) &&
         sub_compact->builder != nullptr) {
+      //TODO: record the largest key as the last ikey, find a more efficient way to record
+      // the last key of SSTable.
+      sub_compact->current_output()->largest.SetFrom(ikey);
       status = FinishCompactionOutputFile(sub_compact, input);
       if (!status.ok()) {
         break;
@@ -1791,6 +1793,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 //      }
 
       last_sequence_for_key = ikey.sequence;
+
     }
 #ifndef NDEBUG
     number_of_key++;
@@ -1822,11 +1825,16 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         }
       }
     }
+    if (end != nullptr &&
+        user_comparator()->Compare(ExtractUserKey(key), *end) >= 0) {
+      break;
+    }
 //    assert(key.data()[0] == '0');
     input->Next();
     //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
     // be invalid also.
 //    assert(key.data()[0] == '0');
+
   }
 //  reinterpret_cast<leveldb::MergingIterator>
   // You can not call prev here because the iterator is not valid any more
@@ -1843,7 +1851,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
   if (status.ok() && sub_compact->builder != nullptr) {
     assert(key.data()[0] == '0');
 
-    sub_compact->current_output()->largest.SetFrom(ikey);
+    sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
     status = FinishCompactionOutputFile(sub_compact, input);
   }
   if (status.ok()) {
