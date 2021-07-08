@@ -317,11 +317,12 @@ class Block::Iter : public Iterator {
       auto start = std::chrono::high_resolution_clock::now();
 
       key_[array_index].replace(0,shared, key_[old_array_index]);
+
+
+      key_[array_index].append(p, non_shared);
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       std::printf("string replace time elapse is %zu\n",  duration.count());
-
-      key_[array_index].append(p, non_shared);
       value_[array_index] = Slice(p + non_shared, value_length);
       while (restart_index_ + 1 < num_restarts_ &&
              GetRestartPoint(restart_index_ + 1) < current_) {
