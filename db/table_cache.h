@@ -24,7 +24,10 @@ class TableCache {
  public:
   TableCache(const std::string& dbname, const Options& options, int entries);
   ~TableCache();
-
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> GetTimeElapseSum;
+  static std::atomic<uint64_t> GetNum;
+#endif
   // Return an iterator for the specified file number (the corresponding
   // file length must be exactly "file_size" bytes).  If "tableptr" is
   // non-null, also sets "*tableptr" to point to the Table object

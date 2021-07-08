@@ -12,7 +12,10 @@
 #include "util/coding.h"
 
 namespace leveldb {
-
+#ifdef GETANALYSIS
+std::atomic<uint64_t> TableCache::GetTimeElapseSum = 0;
+std::atomic<uint64_t> TableCache::GetNum = 0;
+#endif
 struct TableAndFile {
 //  RandomAccessFile* file;
 //  std::weak_ptr<RemoteMemTableMetaData> remote_table;
@@ -39,7 +42,13 @@ TableCache::TableCache(const std::string& dbname, const Options& options,
       options_(options),
       cache_(NewLRUCache(entries)) {}
 
-TableCache::~TableCache() { delete cache_; }
+TableCache::~TableCache() {
+#ifdef GETANALYSIS
+  if (TableCache::GetNum.load() >0)
+    printf("Cache Get time statics is %zu, %zu, %zu\n", TableCache::GetTimeElapseSum.load(), TableCache::GetNum.load(), TableCache::GetTimeElapseSum.load()/TableCache::GetNum.load());
+#endif
+  delete cache_;
+}
 
 Status TableCache::FindTable(
     std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
@@ -100,6 +109,9 @@ Status TableCache::Get(const ReadOptions& options,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&,
                                              const Slice&)) {
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   Cache::Handle* handle = nullptr;
   Status s = FindTable(f, &handle);
   if (s.ok()) {
@@ -107,6 +119,13 @@ Status TableCache::Get(const ReadOptions& options,
     s = t->InternalGet(options, k, arg, handle_result);
     cache_->Release(handle);
   }
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  TableCache::GetTimeElapseSum.fetch_add(duration.count());
+  TableCache::GetNum.fetch_add(1);
+#endif
   return s;
 }
 
