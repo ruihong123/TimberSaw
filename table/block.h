@@ -318,16 +318,23 @@ class Block::Iter : public Iterator {
 //      key_[array_index].append(p, non_shared);
 //      key_[array_index].SetKey(Slice(key_[old_array_index].GetKey().data(), shared));
 //      key_[array_index].AppendToBack(p, non_shared);
-      key_.TrimAppend(shared, p, non_shared);
-//      key_.SetKey(Slice(p, non_shared));
-//      auto stop = std::chrono::high_resolution_clock::now();
-//      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//      std::printf("string replace time elapse is %zu\n",  duration.count());
-      value_ = Slice(p + non_shared, value_length);
-      while (restart_index_ + 1 < num_restarts_ &&
-             GetRestartPoint(restart_index_ + 1) < current_) {
-        ++restart_index_;
+      if (shared == 0){
+        key_.SetKey(Slice(p, non_shared), false /* copy */);
+        while (restart_index_ + 1 < num_restarts_ &&
+               GetRestartPoint(restart_index_ + 1) < current_) {
+          ++restart_index_;
+        }
+      }else{
+        key_.TrimAppend(shared, p, non_shared);
       }
+
+    //      key_.SetKey(Slice(p, non_shared));
+    //      auto stop = std::chrono::high_resolution_clock::now();
+    //      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    //      std::printf("string replace time elapse is %zu\n",  duration.count());
+      value_ = Slice(p + non_shared, value_length);
+
+
       return true;
     }
   }
