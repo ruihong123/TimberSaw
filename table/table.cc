@@ -193,9 +193,13 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     if (filter != nullptr && handle.DecodeFrom(&handle_value).ok() &&
         !filter->KeyMayMatch(handle.offset(), k)) {
       // Not found
+#ifdef GETANALYSIS
       TableCache::filtered.fetch_add(1);
+#endif
     } else {
+#ifdef GETANALYSIS
       TableCache::not_filtered.fetch_add(1);
+#endif
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
       if (block_iter->Valid()) {
