@@ -314,7 +314,13 @@ class Block::Iter : public Iterator {
       array_index = array_index == 0 ? 1:0;
       //TODO: copy the last shared part to this one, otherwise try not to use two string buffer
       key_[array_index].resize(shared);
+      auto start = std::chrono::high_resolution_clock::now();
+
       key_[array_index].replace(0,shared, key_[old_array_index]);
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      std::printf("string replace time elapse is %zu\n",  duration.count());
+
       key_[array_index].append(p, non_shared);
       value_[array_index] = Slice(p + non_shared, value_length);
       while (restart_index_ + 1 < num_restarts_ &&
