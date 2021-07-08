@@ -317,8 +317,9 @@ class Block::Iter : public Iterator {
 //      key_[array_index].resize(shared);
 //      key_[array_index].replace(0,shared, key_[old_array_index]);
 //      key_[array_index].append(p, non_shared);
-      key_[array_index].SetKey(Slice(key_[old_array_index].GetKey().data(), shared));
-      key_[array_index].AppendToBack(p, non_shared);
+//      key_[array_index].SetKey(Slice(key_[old_array_index].GetKey().data(), shared));
+//      key_[array_index].AppendToBack(p, non_shared);
+      key_[array_index].TrimAppend(shared, p, non_shared);
 //      auto stop = std::chrono::high_resolution_clock::now();
 //      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //      std::printf("string replace time elapse is %zu\n",  duration.count());
