@@ -95,6 +95,265 @@ void AppendInternalKey(std::string* result, const ParsedInternalKey& key);
 // On error, returns false, leaves "*result" in an undefined state.
 bool ParseInternalKey(const Slice& internal_key, ParsedInternalKey* result);
 
+// Pack a sequence number and a ValueType into a uint64_t
+inline uint64_t PackSequenceAndType(uint64_t seq, ValueType t) {
+  assert(seq <= kMaxSequenceNumber);
+  return (seq << 8) | t;
+}
+// Given the result of PackSequenceAndType, store the sequence number in *seq
+// and the ValueType in *t.
+inline void UnPackSequenceAndType(uint64_t packed, uint64_t* seq,
+                                  ValueType* t) {
+  *seq = packed >> 8;
+  *t = static_cast<ValueType>(packed & 0xff);
+
+  assert(*seq <= kMaxSequenceNumber);
+}
+// The class to store keys in an efficient way. It allows:
+// 1. Users can either copy the key into it, or have it point to an unowned
+//    address.
+// 2. For copied key, a short inline buffer is kept to reduce memory
+//    allocation for smaller keys.
+// 3. It tracks user key or internal key, and allow conversion between them.
+class IterKey {
+ public:
+  IterKey()
+      : buf_(space_),
+        key_(buf_),
+        key_size_(0),
+        buf_size_(sizeof(space_)),
+        is_user_key_(true) {}
+  // No copying allowed
+  IterKey(const IterKey&) = delete;
+  void operator=(const IterKey&) = delete;
+
+  ~IterKey() { ResetBuffer(); }
+
+  // The bool will be picked up by the next calls to SetKey
+  void SetIsUserKey(bool is_user_key) { is_user_key_ = is_user_key; }
+
+  // Returns the key in whichever format that was provided to KeyIter
+  Slice GetKey() const { return Slice(key_, key_size_); }
+
+  Slice GetInternalKey() const {
+    assert(!IsUserKey());
+    return Slice(key_, key_size_);
+  }
+
+  Slice GetUserKey() const {
+    if (IsUserKey()) {
+      return Slice(key_, key_size_);
+    } else {
+      assert(key_size_ >= 8);
+      return Slice(key_, key_size_ - 8);
+    }
+  }
+
+  size_t Size() const { return key_size_; }
+
+  void Clear() { key_size_ = 0; }
+
+  void AppendToBack(const char* data, size_t appended_size){
+    size_t total_size = key_size_ + appended_size;
+    if (IsKeyPinned() /* key is not in buf_ */) {
+      // Copy the key from external memory to buf_ (copy shared_len bytes)
+      EnlargeBufferIfNeeded(total_size);
+      memcpy(buf_, key_, key_size_);
+    } else if (total_size > buf_size_) {
+      // Need to allocate space, delete previous space
+      char* p = new char[total_size];
+      memcpy(p, key_, key_size_);
+
+      if (buf_ != space_) {
+        delete[] buf_;
+      }
+
+      buf_ = p;
+      buf_size_ = total_size;
+    }
+    memcpy(buf_ + key_size_, data, appended_size);
+    key_ = buf_;
+    key_size_ = total_size;
+  }
+  // Append "non_shared_data" to its back, from "shared_len"
+  // This function is used in Block::Iter::ParseNextKey
+  // shared_len: bytes in [0, shard_len-1] would be remained
+  // non_shared_data: data to be append, its length must be >= non_shared_len
+  void TrimAppend(const size_t shared_len, const char* non_shared_data,
+                  const size_t non_shared_len) {
+    assert(shared_len <= key_size_);
+    size_t total_size = shared_len + non_shared_len;
+
+    if (IsKeyPinned() /* key is not in buf_ */) {
+      // Copy the key from external memory to buf_ (copy shared_len bytes)
+      EnlargeBufferIfNeeded(total_size);
+      memcpy(buf_, key_, shared_len);
+    } else if (total_size > buf_size_) {
+      // Need to allocate space, delete previous space
+      char* p = new char[total_size];
+      memcpy(p, key_, shared_len);
+
+      if (buf_ != space_) {
+        delete[] buf_;
+      }
+
+      buf_ = p;
+      buf_size_ = total_size;
+    }
+
+    memcpy(buf_ + shared_len, non_shared_data, non_shared_len);
+    key_ = buf_;
+    key_size_ = total_size;
+  }
+
+  Slice SetKey(const Slice& key, bool copy = true) {
+    // is_user_key_ expected to be set already via SetIsUserKey
+    return SetKeyImpl(key, copy);
+  }
+
+  Slice SetUserKey(const Slice& key, bool copy = true) {
+    is_user_key_ = true;
+    return SetKeyImpl(key, copy);
+  }
+
+  Slice SetInternalKey(const Slice& key, bool copy = true) {
+    is_user_key_ = false;
+    return SetKeyImpl(key, copy);
+  }
+
+  // Copies the content of key, updates the reference to the user key in ikey
+  // and returns a Slice referencing the new copy.
+  Slice SetInternalKey(const Slice& key, ParsedInternalKey* ikey) {
+    size_t key_n = key.size();
+    assert(key_n >= 8);
+    SetInternalKey(key);
+    ikey->user_key = Slice(key_, key_n - 8);
+    return Slice(key_, key_n);
+  }
+
+  // Copy the key into IterKey own buf_
+  void OwnKey() {
+    assert(IsKeyPinned() == true);
+
+    Reserve(key_size_);
+    memcpy(buf_, key_, key_size_);
+    key_ = buf_;
+  }
+
+  // Update the sequence number in the internal key.  Guarantees not to
+  // invalidate slices to the key (and the user key).
+  void UpdateInternalKey(uint64_t seq, ValueType t) {
+    assert(!IsKeyPinned());
+    assert(key_size_ >= 8);
+    uint64_t newval = (seq << 8) | t;
+    EncodeFixed64(&buf_[key_size_ - 8], newval);
+  }
+
+  bool IsKeyPinned() const { return (key_ != buf_); }// Pinned key means the key is located outside buffer,
+  // whihc means you can not modify this pinned key.
+
+  void SetInternalKey(const Slice& key_prefix, const Slice& user_key,
+                      SequenceNumber s,
+                      ValueType value_type = kValueTypeForSeek,
+                      const Slice* ts = nullptr) {
+    size_t psize = key_prefix.size();
+    size_t usize = user_key.size();
+    size_t ts_sz = (ts != nullptr ? ts->size() : 0);
+    EnlargeBufferIfNeeded(psize + usize + sizeof(uint64_t) + ts_sz);
+    if (psize > 0) {
+      memcpy(buf_, key_prefix.data(), psize);
+    }
+    memcpy(buf_ + psize, user_key.data(), usize);
+    if (ts) {
+      memcpy(buf_ + psize + usize, ts->data(), ts_sz);
+    }
+    EncodeFixed64(buf_ + usize + psize + ts_sz,
+                  PackSequenceAndType(s, value_type));
+
+    key_ = buf_;
+    key_size_ = psize + usize + sizeof(uint64_t) + ts_sz;
+    is_user_key_ = false;
+  }
+
+  void SetInternalKey(const Slice& user_key, SequenceNumber s,
+                      ValueType value_type = kValueTypeForSeek,
+                      const Slice* ts = nullptr) {
+    SetInternalKey(Slice(), user_key, s, value_type, ts);
+  }
+
+  void Reserve(size_t size) {
+    EnlargeBufferIfNeeded(size);
+    key_size_ = size;
+  }
+
+  void SetInternalKey(const ParsedInternalKey& parsed_key) {
+    SetInternalKey(Slice(), parsed_key);
+  }
+
+  void SetInternalKey(const Slice& key_prefix,
+                      const ParsedInternalKey& parsed_key_suffix) {
+    SetInternalKey(key_prefix, parsed_key_suffix.user_key,
+                   parsed_key_suffix.sequence, parsed_key_suffix.type);
+  }
+
+  void EncodeLengthPrefixedKey(const Slice& key) {
+    auto size = key.size();
+    EnlargeBufferIfNeeded(size + static_cast<size_t>(VarintLength(size)));
+    char* ptr = EncodeVarint32(buf_, static_cast<uint32_t>(size));
+    memcpy(ptr, key.data(), size);
+    key_ = buf_;
+    is_user_key_ = true;
+  }
+
+  bool IsUserKey() const { return is_user_key_; }
+
+ private:
+  char* buf_;
+  const char* key_;
+  size_t key_size_;
+  size_t buf_size_;
+  char space_[32];  // Avoid allocation for short keys
+  bool is_user_key_;
+
+  Slice SetKeyImpl(const Slice& key, bool copy) {
+    size_t size = key.size();
+    if (copy) {
+      // Copy key to buf_
+      EnlargeBufferIfNeeded(size);
+      memcpy(buf_, key.data(), size);
+      key_ = buf_;
+    } else {
+      // Update key_ to point to external memory
+      key_ = key.data();
+    }
+    key_size_ = size;
+    return Slice(key_, key_size_);
+  }
+
+  void ResetBuffer() {
+    if (buf_ != space_) {
+      delete[] buf_;
+      buf_ = space_;
+    }
+    buf_size_ = sizeof(space_);
+    key_size_ = 0;
+  }
+
+  // Enlarge the buffer size if needed based on key_size.
+  // By default, static allocated buffer is used. Once there is a key
+  // larger than the static allocated buffer, another buffer is dynamically
+  // allocated, until a larger key buffer is requested. In that case, we
+  // reallocate buffer and delete the old one.
+  void EnlargeBufferIfNeeded(size_t key_size) {
+    // If size is smaller than buffer size, continue using current buffer,
+    // or the static allocated one, as default
+    if (key_size > buf_size_) {
+      EnlargeBuffer(key_size);
+    }
+  }
+
+  void EnlargeBuffer(size_t key_size);
+};
 // Returns the user key portion of an internal key.
 inline Slice ExtractUserKey(const Slice& internal_key) {
   assert(internal_key.size() >= 8);

@@ -12,12 +12,6 @@
 
 namespace leveldb {
 
-static uint64_t PackSequenceAndType(uint64_t seq, ValueType t) {
-  assert(seq <= kMaxSequenceNumber);
-  assert(t <= kValueTypeForSeek);
-  return (seq << 8) | t;
-}
-
 void AppendInternalKey(std::string* result, const ParsedInternalKey& key) {
   result->append(key.user_key.data(), key.user_key.size());
   PutFixed64(result, PackSequenceAndType(key.sequence, key.type));
@@ -133,4 +127,13 @@ LookupKey::LookupKey(const Slice& user_key, SequenceNumber s) {
   end_ = dst;
 }
 
+void IterKey::EnlargeBuffer(size_t key_size) {
+  // If size is smaller than buffer size, continue using current buffer,
+  // or the static allocated one, as default
+  assert(key_size > buf_size_);
+  // Need to enlarge the buffer.
+  ResetBuffer();
+  buf_ = new char[key_size];
+  buf_size_ = key_size;
+}
 }  // namespace leveldb

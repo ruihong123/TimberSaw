@@ -5,24 +5,24 @@
 #ifndef STORAGE_LEVELDB_TABLE_BLOCK_H_
 #define STORAGE_LEVELDB_TABLE_BLOCK_H_
 
+#include <algorithm>
 #include <cstddef>
 #include <cstdint>
-
-#include "leveldb/iterator.h"
-#include "util/rdma.h"
-
-#include <algorithm>
-#include <cstdint>
+#include <db/dbformat.h>
 #include <vector>
 
 #include "leveldb/comparator.h"
+#include "leveldb/iterator.h"
+
 #include "table/format.h"
 #include "util/coding.h"
 #include "util/logging.h"
+#include "util/rdma.h"
 namespace leveldb {
 
 struct BlockContents;
 class Comparator;
+//class IterKey;
 enum BlockType {DataBlock, IndexBlock, FilterBlock};
 class Block {
  public:
@@ -97,7 +97,7 @@ class Block::Iter : public Iterator {
 //  std::string key_1;
 //  std::string key_2;
   //Maitain two switched key holder in case that sometime iterator want to peek back the key and value.
-  std::string key_[2];
+  IterKey key_[2];
   Slice value_[2];
   int array_index;
 //  Slice value_1;
@@ -121,8 +121,8 @@ class Block::Iter : public Iterator {
   }
 
   void SeekToRestartPoint(uint32_t index) {
-    key_[1].clear();
-    key_[0].clear();
+    key_[1].Clear();
+    key_[0].Clear();
     restart_index_ = index;
     // current_ will be fixed by ParseNextKey();
 
@@ -154,7 +154,7 @@ class Block::Iter : public Iterator {
   Status status() const override { return status_; }
   Slice key() const override {
     assert(Valid());
-    return key_[array_index];
+    return key_[array_index].GetKey();
   }
   Slice value() const override {
     assert(Valid());
@@ -166,10 +166,10 @@ class Block::Iter : public Iterator {
     ParseNextKey();
 #ifndef NDEBUG
     if (num_entries > 0) {
-      assert(comparator_->Compare(key_[array_index], Slice(last_key)) >= 0);
+      assert(comparator_->Compare(key_[array_index].GetKey(), Slice(last_key)) >= 0);
     }
     num_entries++;
-    last_key = key_[array_index];
+    last_key = key_[array_index].GetKey().ToString();
 #endif
   }
 
@@ -205,7 +205,7 @@ class Block::Iter : public Iterator {
       // If we're already scanning, use the current position as a starting
       // point. This is beneficial if the key we're seeking to is ahead of the
       // current position.
-      current_key_compare = Compare(key_[array_index], target);
+      current_key_compare = Compare(key_[array_index].GetKey(), target);
       if (current_key_compare < 0) {
         // key_ is smaller than target
         left = restart_index_;
@@ -257,7 +257,7 @@ class Block::Iter : public Iterator {
       if (!ParseNextKey()) {
         return;
       }
-      if (Compare(key_[array_index], target) >= 0) {
+      if (Compare(key_[array_index].GetKey(), target) >= 0) {
         return;
       }
     }
@@ -282,8 +282,8 @@ class Block::Iter : public Iterator {
     restart_index_ = num_restarts_;
     status_ = Status::Corruption("bad entry in block");
     DEBUG("bad entry in block\n");
-    key_[0].clear();
-    key_[1].clear();
+    key_[0].Clear();
+    key_[1].Clear();
     value_[0].clear();
     value_[1].clear();
   }
@@ -303,7 +303,7 @@ class Block::Iter : public Iterator {
     // Decode next entry
     uint32_t shared, non_shared, value_length;
     p = DecodeEntry(p, limit, &shared, &non_shared, &value_length);
-    if (p == nullptr || key_[array_index].size() < shared) {
+    if (p == nullptr || key_[array_index].Size() < shared) {
       CorruptionError();
 #ifndef NDEBUG
       printf("detect corruption block, when parsing the next, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);
@@ -313,13 +313,12 @@ class Block::Iter : public Iterator {
       int old_array_index = array_index;
       array_index = array_index == 0 ? 1:0;
       //TODO: copy the last shared part to this one, otherwise try not to use two string buffer
-      key_[array_index].resize(shared);
       auto start = std::chrono::high_resolution_clock::now();
-
-      key_[array_index].replace(0,shared, key_[old_array_index]);
-
-
-      key_[array_index].append(p, non_shared);
+//      key_[array_index].resize(shared);
+//      key_[array_index].replace(0,shared, key_[old_array_index]);
+//      key_[array_index].append(p, non_shared);
+      key_[array_index].SetKey(Slice(key_[old_array_index].GetKey().data(), shared));
+      key_[array_index].AppendToBack(p, non_shared);
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
       std::printf("string replace time elapse is %zu\n",  duration.count());
