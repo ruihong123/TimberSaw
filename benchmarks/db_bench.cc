@@ -76,7 +76,8 @@ static int FLAGS_threads = 1;
 
 // Size of each value
 static int FLAGS_value_size = 100;
-
+// Size of each value
+static int FLAGS_key_size = 20;
 // Arrange to generate values that shrink to this fraction of
 // their original size after compression
 static double FLAGS_compression_ratio = 0.5;
@@ -200,7 +201,7 @@ class KeyBuffer {
 
   void Set(int k) {
     std::snprintf(buffer_ + FLAGS_key_prefix,
-                  sizeof(buffer_) - FLAGS_key_prefix, "%016d", k);
+                  sizeof(buffer_) - FLAGS_key_prefix, "%016d", k); //%016d means preceeding with 0s
   }
 
   Slice slice() const { return Slice(buffer_, FLAGS_key_prefix + 16); }
@@ -362,7 +363,7 @@ struct SharedState {
 // Per-thread state for concurrent executions of the same benchmark.
 struct ThreadState {
   int tid;      // 0..n-1 when running in n threads
-  Random rand;  // Has different seeds for different threads
+  Random64 rand;  // Has different seeds for different threads
   Stats stats;
   SharedState* shared;
 
@@ -494,7 +495,47 @@ class Benchmark {
     delete cache_;
     delete filter_policy_;
   }
+  Slice AllocateKey(std::unique_ptr<const char[]>* key_guard) {
+    char* data = new char[FLAGS_key_size];
+    const char* const_data = data;
+    key_guard->reset(const_data);
+    return Slice(key_guard->get(), FLAGS_key_size);
+  }
+  void GenerateKeyFromInt(uint64_t v, int64_t num_keys, Slice* key) {
 
+    char* start = const_cast<char*>(key->data());
+    char* pos = start;
+//    if (keys_per_prefix_ > 0) {
+//      int64_t num_prefix = num_keys / keys_per_prefix_;
+//      int64_t prefix = v % num_prefix;
+//      int bytes_to_fill = std::min(prefix_size_, 8);
+//      if (port::kLittleEndian) {
+//        for (int i = 0; i < bytes_to_fill; ++i) {
+//          pos[i] = (prefix >> ((bytes_to_fill - i - 1) << 3)) & 0xFF;
+//        }
+//      } else {
+//        memcpy(pos, static_cast<void*>(&prefix), bytes_to_fill);
+//      }
+//      if (prefix_size_ > 8) {
+//        // fill the rest with 0s
+//        memset(pos + 8, '0', prefix_size_ - 8);
+//      }
+//      pos += prefix_size_;
+//    }
+
+    int bytes_to_fill = std::min(FLAGS_key_size, 8);
+    if (port::kLittleEndian) {
+      for (int i = 0; i < bytes_to_fill; ++i) {
+        pos[i] = (v >> ((bytes_to_fill - i - 1) << 3)) & 0xFF;
+      }
+    } else {
+      memcpy(pos, static_cast<void*>(&v), bytes_to_fill);
+    }
+    pos += bytes_to_fill;
+    if (FLAGS_key_size > pos - start) {
+      memset(pos, '0', FLAGS_key_size - (pos - start));
+    }
+  }
   void Run() {
 
     PrintHeader();
@@ -824,16 +865,19 @@ class Benchmark {
     WriteBatch batch;
     Status s;
     int64_t bytes = 0;
-    KeyBuffer key;
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < num_; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
         //The key range should be adjustable.
 //        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num);
         const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
-        key.Set(k);
-        batch.Put(key.slice(), gen.Generate(value_size_));
-        bytes += value_size_ + key.slice().size();
+//        key.Set(k);
+        GenerateKeyFromInt(k, FLAGS_num, &key);
+        batch.Put(key, gen.Generate(value_size_));
+        bytes += value_size_ + key.size();
         thread->stats.FinishedSingleOp();
       }
       s = db_->Write(write_options_, &batch);
@@ -876,11 +920,14 @@ class Benchmark {
     //TODO(ruihong): specify the cache option.
     std::string value;
     int found = 0;
-    KeyBuffer key;
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < reads_; i++) {
-      const int k = thread->rand.Uniform(FLAGS_num);
-      key.Set(k);
-      if (db_->Get(options, key.slice(), &value).ok()) {
+      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+//      key.Set(k);
+      GenerateKeyFromInt(k, FLAGS_num, &key);
+      if (db_->Get(options, key, &value).ok()) {
         found++;
       }
       thread->stats.FinishedSingleOp();
@@ -1079,6 +1126,8 @@ int main(int argc, char** argv) {
       FLAGS_threads = n;
     } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
       FLAGS_value_size = n;
+    } else if (sscanf(argv[i], "--key_size=%d%c", &n, &junk) == 1) {
+      FLAGS_key_size = n;
     } else if (sscanf(argv[i], "--write_buffer_size=%d%c", &n, &junk) == 1) {
       FLAGS_write_buffer_size = n;
     } else if (sscanf(argv[i], "--max_file_size=%d%c", &n, &junk) == 1) {
