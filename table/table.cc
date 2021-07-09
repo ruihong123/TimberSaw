@@ -191,15 +191,15 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     TableCache::filtered.fetch_add(1);
 #endif
   } else {
-#ifdef GETANALYSIS
-    TableCache::not_filtered.fetch_add(1);
-#endif
+
     Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
 
     iiter->Seek(k);//binary search for block index
     if (iiter->Valid()) {
       Slice handle_value = iiter->value();
-
+#ifdef GETANALYSIS
+      TableCache::not_filtered.fetch_add(1);
+#endif
       BlockHandle handle;
 
       Iterator* block_iter = BlockReader(this, options, iiter->value());
