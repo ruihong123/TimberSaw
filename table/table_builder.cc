@@ -53,7 +53,7 @@ struct TableBuilder::Rep {
     }
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
-                    : new FilterBlockBuilder(opt.filter_policy, &local_filter_mr,
+                    : new FullFilterBlockBuilder(opt.filter_policy, &local_filter_mr,
                                       &remote_filter_mrs, options.env->rdma_mg,
                                              type_string_));
 
@@ -89,7 +89,7 @@ struct TableBuilder::Rep {
   std::string last_key;
   int64_t num_entries;
   bool closed;  // Either Finish() or Abandon() has been called.
-  FilterBlockBuilder* filter_block;
+  FullFilterBlockBuilder* filter_block;
 
   // We do not emit the index entry for a block until we have seen the
   // first key for the next data block.  This allows us to use shorter
@@ -108,7 +108,7 @@ struct TableBuilder::Rep {
 TableBuilder::TableBuilder(const Options& options, IO_type type)
     : rep_(new Rep(options, type)) {
   if (rep_->filter_block != nullptr) {
-    rep_->filter_block->StartBlock(0);
+    rep_->filter_block->RestartBlock(0);
   }
 }
 
@@ -197,10 +197,10 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
         size_t msg_size;
         FinishFilterBlock(r->filter_block, &dummy_handle, kNoCompression, msg_size);
         FlushFilter(msg_size);
-
+        r->filter_block->RestartBlock(r->offset);// put here for full filter
       }
 
-      r->filter_block->StartBlock(r->offset);
+//      r->filter_block->StartBlock(r->offset); // put here for block based filter
 
 
     }
@@ -342,7 +342,7 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
   block->Reset();
 
 }
-void TableBuilder::FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* handle,
+void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
                                      CompressionType compressiontype,
                                      size_t& block_size) {
   assert(ok());
@@ -529,7 +529,7 @@ Status TableBuilder::Finish() {
   //TOthink why not compress the block here.
   if (ok() && r->filter_block != nullptr) {
     if(r->pending_index_filter_entry){
-      r->filter_block->StartBlock(r->offset);
+      r->filter_block->RestartBlock(r->offset);
     }
 
     size_t msg_size;

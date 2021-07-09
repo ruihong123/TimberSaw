@@ -1,14 +1,9 @@
-// Copyright (c) 2012 The LevelDB Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
-// A filter block is stored near the end of a Table file.  It contains
-// filters (e.g., bloom filters) for all data blocks in the table combined
-// into a single filter block.
+// Created by ruihong on 7/9/21.
+//
 
-#ifndef STORAGE_LEVELDB_TABLE_FILTER_BLOCK_H_
-#define STORAGE_LEVELDB_TABLE_FILTER_BLOCK_H_
-
+#ifndef LEVELDB_FULL_FILTER_BLOCK_H
+#define LEVELDB_FULL_FILTER_BLOCK_H
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -25,24 +20,24 @@ namespace leveldb {
 class FilterPolicy;
 class Env;
 class Options;
-// A FilterBlockBuilder is used to construct all of the filters for a
+// A FullFilterBlockBuilder is used to construct all of the filters for a
 // particular Table.  It generates a single string which is stored as
 // a special block in the Table.
 //
-// The sequence of calls to FilterBlockBuilder must match the regexp:
+// The sequence of calls to FullFilterBlockBuilder must match the regexp:
 //      (StartBlock AddKey*)* Finish
-class FilterBlockBuilder {
+class FullFilterBlockBuilder {
  public:
-  explicit FilterBlockBuilder(const FilterPolicy* policy,
+  explicit FullFilterBlockBuilder(const FilterPolicy* policy,
                               std::vector<ibv_mr*>* mrs,
                               std::map<int, ibv_mr*>* remote_mrs,
                               std::shared_ptr<RDMA_Manager> rdma_mg,
                               std::string& type_string);
 
-  FilterBlockBuilder(const FilterBlockBuilder&) = delete;
-  FilterBlockBuilder& operator=(const FilterBlockBuilder&) = delete;
+  FullFilterBlockBuilder(const FullFilterBlockBuilder&) = delete;
+  FullFilterBlockBuilder& operator=(const FullFilterBlockBuilder&) = delete;
 
-  void StartBlock(uint64_t block_offset);
+  void RestartBlock(uint64_t block_offset);
   size_t CurrentSizeEstimate();
   void AddKey(const Slice& key);
   Slice Finish();
@@ -67,23 +62,20 @@ class FilterBlockBuilder {
 
 };
 
-class FilterBlockReader {
+class FullFilterBlockReader {
  public:
   // REQUIRES: "contents" and *policy must stay live while *this is live.
-  FilterBlockReader(const FilterPolicy* policy, const Slice& contents,
+  FullFilterBlockReader(const FilterPolicy* policy, const Slice& contents,
                     std::shared_ptr<RDMA_Manager> rdma_mg);
-  ~FilterBlockReader();
-  bool KeyMayMatch(uint64_t block_offset, const Slice& key);
+  ~FullFilterBlockReader();
   bool KeyMayMatch(const Slice& key); // full filter.
  private:
   const FilterPolicy* policy_;
-  const char* data_;    // Pointer to filter data (at block-start)
-  const char* offset_;  // Pointer to beginning of offset array (at block-end)
-  size_t num_;          // Number of entries in offset array
-  size_t base_lg_;      // Encoding parameter (see kFilterBaseLg in .cc file)
+  Slice filter_content;
+//  const char* data_;    // Pointer to filter data (at block-start)
+  size_t filter_size;
   std::shared_ptr<RDMA_Manager> rdma_mg_;
 };
 
 }  // namespace leveldb
-
-#endif  // STORAGE_LEVELDB_TABLE_FILTER_BLOCK_H_
+#endif  // LEVELDB_FULL_FILTER_BLOCK_H

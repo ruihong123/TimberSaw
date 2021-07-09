@@ -24,6 +24,7 @@
 #include "leveldb/options.h"
 #include "table/block_builder.h"
 #include "table/filter_block.h"
+#include "table/full_filter_block.h"
 #include "table/format.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
@@ -103,7 +104,7 @@ class LEVELDB_EXPORT TableBuilder {
   void FinishDataIndexBlock(BlockBuilder* block, BlockHandle* handle,
                             CompressionType compressiontype,
                             size_t& block_size);
-  void FinishFilterBlock(FilterBlockBuilder* block, BlockHandle* handle,
+  void FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
                             CompressionType compressiontype,
                             size_t& block_size);
   void WriteRawBlock(const Slice& data, CompressionType, BlockHandle* handle);

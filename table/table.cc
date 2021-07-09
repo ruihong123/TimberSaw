@@ -31,7 +31,7 @@ struct Table::Rep {
   // will never be garbage collected.
   std::weak_ptr<RemoteMemTableMetaData> remote_table;
   uint64_t cache_id;
-  FilterBlockReader* filter;
+  FullFilterBlockReader* filter;
 //  const char* filter_data;
 
   BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
@@ -94,7 +94,7 @@ void Table::ReadFilter() {
 //  if (block.heap_allocated) {
 //    rep_->filter_data = block.data.data();  // Will need to delete later
 //  }
-  rep_->filter = new FilterBlockReader(rep_->options.filter_policy, block.data, rep_->remote_table.lock()->rdma_mg);
+  rep_->filter = new FullFilterBlockReader(rep_->options.filter_policy, block.data, rep_->remote_table.lock()->rdma_mg);
 }
 
 Table::~Table() { delete rep_; }
@@ -184,22 +184,24 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {
   Status s;
-  Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
-  iiter->Seek(k);//binary search for block index
-  if (iiter->Valid()) {
-    Slice handle_value = iiter->value();
-    FilterBlockReader* filter = rep_->filter;
-    BlockHandle handle;
-    if (filter != nullptr && handle.DecodeFrom(&handle_value).ok() &&
-        !filter->KeyMayMatch(handle.offset(), k)) {
-      // Not found
+  FullFilterBlockReader* filter = rep_->filter;
+  if (filter != nullptr && !filter->KeyMayMatch(k)) {
+    // Not found
 #ifdef GETANALYSIS
-      TableCache::filtered.fetch_add(1);
+    TableCache::filtered.fetch_add(1);
 #endif
-    } else {
+  } else {
 #ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
+    TableCache::not_filtered.fetch_add(1);
 #endif
+    Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
+
+    iiter->Seek(k);//binary search for block index
+    if (iiter->Valid()) {
+      Slice handle_value = iiter->value();
+
+      BlockHandle handle;
+
       Iterator* block_iter = BlockReader(this, options, iiter->value());
       block_iter->Seek(k);
       if (block_iter->Valid()) {
@@ -208,11 +210,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       s = block_iter->status();
       delete block_iter;
     }
+    delete iiter;
   }
-  if (s.ok()) {
-    s = iiter->status();
-  }
-  delete iiter;
+
   return s;
 }
 

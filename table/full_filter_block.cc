@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "table/filter_block.h"
+#include "table/full_filter_block.h"
 
 #include "leveldb/filter_policy.h"
 #include "util/coding.h"
@@ -11,11 +11,8 @@ namespace leveldb {
 
 // See doc/table_format.md for an explanation of the filter block format.
 
-// Generate new filter every 2KB of data
-static const size_t kFilterBaseLg = 11;
-static const size_t kFilterBase = 1 << kFilterBaseLg;
 
-FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy,
+FullFilterBlockBuilder::FullFilterBlockBuilder(const FilterPolicy* policy,
                                        std::vector<ibv_mr*>* mrs,
                                        std::map<int, ibv_mr*>* remote_mrs,
                                        std::shared_ptr<RDMA_Manager> rdma_mg,
@@ -29,50 +26,47 @@ FilterBlockBuilder::FilterBlockBuilder(const FilterPolicy* policy,
 // Answer: Every bloomfilter corresponding to one block, but the filter offsets
 // was set every 2KB. for the starting KV of a data block which lies in the same 2KB
 // chunk of the last block, it was wronglly assigned to the last bloom filter
-void FilterBlockBuilder::StartBlock(uint64_t block_offset) {
-  uint64_t filter_index = (block_offset / kFilterBase);
-  assert(filter_index >= filter_offsets_.size());
-  while (filter_index > filter_offsets_.size()) {
+void FullFilterBlockBuilder::RestartBlock(uint64_t block_offset) {
+//  uint64_t filter_index = (block_offset / kFilterBase);
     GenerateFilter();
-  }
 }
-size_t FilterBlockBuilder::CurrentSizeEstimate() {
+size_t FullFilterBlockBuilder::CurrentSizeEstimate() {
   //result plus filter offsets plus array offset plus 1 char for kFilterBaseLg
   return (result.size() + filter_offsets_.size()*4 +5);
 }
-void FilterBlockBuilder::AddKey(const Slice& key) {
+void FullFilterBlockBuilder::AddKey(const Slice& key) {
   Slice k = key;
   start_.push_back(keys_.size());
   keys_.append(k.data(), k.size());
 }
 
-Slice FilterBlockBuilder::Finish() {
+Slice FullFilterBlockBuilder::Finish() {
   if (!start_.empty()) {
     GenerateFilter();
   }
 
   // Append array of per-filter offsets
-  const uint32_t array_offset = result.size();
-  for (size_t i = 0; i < filter_offsets_.size(); i++) {
-    PutFixed32(&result, filter_offsets_[i]);
-  }
-
-  PutFixed32(&result, array_offset);
-  char length_perfilter = static_cast<char>(kFilterBaseLg);
-  result.append(&length_perfilter,1);  // Save encoding parameter in result
+//  const uint32_t array_offset = result.size();
+//  for (size_t i = 0; i < filter_offsets_.size(); i++) {
+//    PutFixed32(&result, filter_offsets_[i]);
+//  }
+//
+//  PutFixed32(&result, array_offset);
+//  char length_perfilter = static_cast<char>(kFilterBaseLg);
+//  result.append(&length_perfilter,1);  // Save encoding parameter in result
 //  Flush();
   //TOFIX: Here could be some other data structures not been cleared.
 
 
   return Slice(result);
 }
-void FilterBlockBuilder::Reset() {
+void FullFilterBlockBuilder::Reset() {
   result.Reset(static_cast<char*>((*local_mrs)[0]->addr),0);
 }
-void FilterBlockBuilder::Move_buffer(const char* p){
+void FullFilterBlockBuilder::Move_buffer(const char* p){
   result.Reset(p,0);
 }
-void FilterBlockBuilder::Flush() {
+void FullFilterBlockBuilder::Flush() {
   ibv_mr* remote_mr;
   size_t msg_size = result.size();
   rdma_mg_->Allocate_Remote_RDMA_Slot(remote_mr);
@@ -84,7 +78,7 @@ void FilterBlockBuilder::Flush() {
     remote_mrs_->insert({remote_mrs_->rbegin()->first+1, remote_mr});
   }
 }
-void FilterBlockBuilder::GenerateFilter() {
+void FullFilterBlockBuilder::GenerateFilter() {
   const size_t num_keys = start_.size();
   if (num_keys == 0) {
     // Fast path if there are no keys for this filter
@@ -109,36 +103,35 @@ void FilterBlockBuilder::GenerateFilter() {
   start_.clear();
 }
 
-FilterBlockReader::FilterBlockReader(const FilterPolicy* policy,
+FullFilterBlockReader::FullFilterBlockReader(const FilterPolicy* policy,
                                      const Slice& contents,
                                      std::shared_ptr<RDMA_Manager> rdma_mg)
-    : policy_(policy), data_(nullptr), offset_(nullptr), num_(0), base_lg_(0), rdma_mg_(rdma_mg) {
-  size_t n = contents.size();
-  if (n < 5) return;  // 1 byte for base_lg_ and 4 for start of offset array
-  base_lg_ = contents[n - 1];
-  uint32_t last_word = DecodeFixed32(contents.data() + n - 5);
-  if (last_word > n - 5) return;
-  data_ = contents.data();
-  offset_ = data_ + last_word;
-  num_ = (n - 5 - last_word) / 4;
+    : policy_(policy), filter_content(contents), rdma_mg_(rdma_mg) {
+
+
 }
-bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
-  uint64_t index = block_offset >> base_lg_;
-  if (index < num_) {
-    uint32_t start = DecodeFixed32(offset_ + index * 4);
-    uint32_t limit = DecodeFixed32(offset_ + index * 4 + 4);
-    if (start <= limit && limit <= static_cast<size_t>(offset_ - data_)) {
-      Slice filter = Slice(data_ + start, limit - start);
-      return policy_->KeyMayMatch(key, filter);
-    } else if (start == limit) {
-      // Empty filters do not match any keys
-      return false;
-    }
-  }
-  return true;  // Errors are treated as potential matches
+//bool FullFilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
+//  uint64_t index = block_offset >> base_lg_;
+//  if (index < num_) {
+//    uint32_t start = DecodeFixed32(offset_ + index * 4);
+//    uint32_t limit = DecodeFixed32(offset_ + index * 4 + 4);
+//    if (start <= limit && limit <= static_cast<size_t>(offset_ - data_)) {
+//      Slice filter = Slice(data_ + start, limit - start);
+//      return policy_->KeyMayMatch(key, filter);
+//    } else if (start == limit) {
+//      // Empty filters do not match any keys
+//      return false;
+//    }
+//  }
+//  return true;  // Errors are treated as potential matches
+//}
+bool FullFilterBlockReader::KeyMayMatch(const Slice& key) {
+
+  return policy_->KeyMayMatch(key, filter_content);
+
 }
-FilterBlockReader::~FilterBlockReader() {
-  if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){
+FullFilterBlockReader::~FullFilterBlockReader() {
+  if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)filter_content.data(), "FilterBlock")){
     printf("Filter Block deregisteration failed\n");
   }else{
     printf("Filter block deregisteration successfully\n");
