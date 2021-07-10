@@ -9,6 +9,7 @@
 #include "db/log_writer.h"
 #include "db/snapshot.h"
 #include <atomic>
+#include <condition_variable>
 #include <deque>
 #include <set>
 #include <string>
@@ -280,9 +281,9 @@ class DBImpl : public DB {
   Status bg_error_;
 
   CompactionStats stats_[config::kNumLevels];
-  std::atomic<size_t> memtable_counter = 0;
-  std::atomic<size_t> kv_counter0 = 0;
-  std::atomic<size_t> kv_counter1 = 0;
+//  std::atomic<size_t> memtable_counter = 0;
+//  std::atomic<size_t> kv_counter0 = 0;
+//  std::atomic<size_t> kv_counter1 = 0;
   std::atomic<uint64_t> super_version_number_;
   SuperVersion* super_version;
   std::unique_ptr<ThreadLocalPtr> local_sv_;
