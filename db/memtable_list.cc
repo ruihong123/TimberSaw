@@ -825,7 +825,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     Slice key;
     for (; iter->Valid(); iter->Next()) {
       key = iter->key();
-      assert(key.data()[0] == '0');
+//      assert(key.data()[0] == '0');
       bool drop = false;
       if (!ParseInternalKey(key, &ikey)) {
         // Do not hide error keys
