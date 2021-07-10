@@ -1844,12 +1844,12 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
   printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
          Not_drop_counter);
 #endif
-  assert(key.data()[0] == '0');
+//  assert(key.data()[0] == '0');
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && sub_compact->builder != nullptr) {
-    assert(key.data()[0] == '0');
+//    assert(key.data()[0] == '0');
 
     sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
     status = FinishCompactionOutputFile(sub_compact, input);
@@ -1998,12 +1998,12 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
          Not_drop_counter);
 #endif
-  assert(key.data()[0] == '0');
+//  assert(key.data()[0] == '0');
   if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && compact->builder != nullptr) {
-    assert(key.data()[0] == '0');
+//    assert(key.data()[0] == '0');
     compact->current_output()->largest.DecodeFrom(key);
     status = FinishCompactionOutputFile(compact, input);
   }

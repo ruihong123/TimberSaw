@@ -858,7 +858,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     }
 
     if (s.ok()) {
-      assert(key.data()[0] == '0');
+//      assert(key.data()[0] == '0');
       meta->largest.DecodeFrom(key);
     } else{
       delete builder;
