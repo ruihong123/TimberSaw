@@ -865,9 +865,9 @@ class Benchmark {
     WriteBatch batch;
     Status s;
     int64_t bytes = 0;
-    KeyBuffer key;
-//    std::unique_ptr<const char[]> key_guard;
-//    Slice key = AllocateKey(&key_guard);
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < num_; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
@@ -875,12 +875,12 @@ class Benchmark {
 //        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
         const int k = seq ? i + j : thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 
-        key.Set(k);
-//        GenerateKeyFromInt(k, FLAGS_num, &key);
-        batch.Put(key.slice(), gen.Generate(value_size_));
-//        batch.Put(key, gen.Generate(value_size_));
-        bytes += value_size_ + key.slice().size();
-//        bytes += value_size_ + key.size();
+//        key.Set(k);
+        GenerateKeyFromInt(k, FLAGS_num, &key);
+//        batch.Put(key.slice(), gen.Generate(value_size_));
+        batch.Put(key, gen.Generate(value_size_));
+//        bytes += value_size_ + key.slice().size();
+        bytes += value_size_ + key.size();
         thread->stats.FinishedSingleOp();
       }
       s = db_->Write(write_options_, &batch);
@@ -923,21 +923,21 @@ class Benchmark {
     //TODO(ruihong): specify the cache option.
     std::string value;
     int found = 0;
-    KeyBuffer key;
-//    std::unique_ptr<const char[]> key_guard;
-//    Slice key = AllocateKey(&key_guard);
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < reads_; i++) {
 //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
-      const int k = thread->rand.Next()/(FLAGS_num*FLAGS_threads);
+      const int k = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 
-            key.Set(k);
-//      GenerateKeyFromInt(k, FLAGS_num, &key);
-      if (db_->Get(options, key.slice(), &value).ok()) {
-        found++;
-      }
-//      if (db_->Get(options, key, &value).ok()) {
+//            key.Set(k);
+      GenerateKeyFromInt(k, FLAGS_num, &key);
+//      if (db_->Get(options, key.slice(), &value).ok()) {
 //        found++;
 //      }
+      if (db_->Get(options, key, &value).ok()) {
+        found++;
+      }
       thread->stats.FinishedSingleOp();
     }
     char msg[100];
