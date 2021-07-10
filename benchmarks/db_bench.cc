@@ -926,8 +926,8 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < reads_; i++) {
-//      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
-      const int k = thread->rand.Next()/(FLAGS_num*FLAGS_threads);
+      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+//      const int k = thread->rand.Next()/(FLAGS_num*FLAGS_threads);
 
       //      key.Set(k);
       GenerateKeyFromInt(k, FLAGS_num, &key);
