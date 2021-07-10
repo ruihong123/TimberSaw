@@ -880,7 +880,8 @@ class Benchmark {
 //        GenerateKeyFromInt(k, FLAGS_num, &key);
         batch.Put(key.slice(), gen.Generate(value_size_));
 //        batch.Put(key, gen.Generate(value_size_));
-        bytes += value_size_ + key.size();
+        bytes += value_size_ + key.slice().size();
+//        bytes += value_size_ + key.size();
         thread->stats.FinishedSingleOp();
       }
       s = db_->Write(write_options_, &batch);
