@@ -872,7 +872,6 @@ class Benchmark {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
         //The key range should be adjustable.
-//        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num);
 //        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
         const int k = seq ? i + j : thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 
@@ -928,8 +927,8 @@ class Benchmark {
 //    std::unique_ptr<const char[]> key_guard;
 //    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < reads_; i++) {
-      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
-//      const int k = thread->rand.Next()/(FLAGS_num*FLAGS_threads);
+//      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+      const int k = thread->rand.Next()/(FLAGS_num*FLAGS_threads);
 
             key.Set(k);
 //      GenerateKeyFromInt(k, FLAGS_num, &key);
