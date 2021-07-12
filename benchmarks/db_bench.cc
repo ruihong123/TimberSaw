@@ -204,7 +204,7 @@ class KeyBuffer {
                   sizeof(buffer_) - FLAGS_key_prefix, "%020d", k); //%016d means preceeding with 0s
   }
 
-  Slice slice() const { return Slice(buffer_, FLAGS_key_prefix + 16); }
+  Slice slice() const { return Slice(buffer_, FLAGS_key_prefix + 20); }
 
  private:
   char buffer_[1024];
