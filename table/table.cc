@@ -209,6 +209,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       }
       s = block_iter->status();
       delete block_iter;
+    }else{
+      printf("block iterator invalid\n");
+      exit(1);
     }
     delete iiter;
   }
