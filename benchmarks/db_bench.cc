@@ -363,8 +363,8 @@ struct SharedState {
 // Per-thread state for concurrent executions of the same benchmark.
 struct ThreadState {
   int tid;      // 0..n-1 when running in n threads
-//  Random64 rand;  // Has different seeds for different threads
-  Random rand;
+  Random64 rand;  // Has different seeds for different threads
+//  Random rand;
   Stats stats;
   SharedState* shared;
 
