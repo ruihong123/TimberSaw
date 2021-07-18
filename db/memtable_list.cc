@@ -92,7 +92,10 @@ void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
 MemTableList::~MemTableList(){
 #ifdef GETANALYSIS
   if (MemTable::GetNum.load() >0)
-    printf("Memtable GET time statics is %zu, %zu, %zu\n", MemTable::GetTimeElapseSum.load(), MemTable::GetNum.load(), MemTable::GetTimeElapseSum.load()/MemTable::GetNum.load());
+    printf("Memtable GET time statics is %zu, %zu, %zu, Memtable found Num %zu\n",
+           MemTable::GetTimeElapseSum.load(), MemTable::GetNum.load(),
+           MemTable::GetTimeElapseSum.load()/MemTable::GetNum.load(),
+           MemTable::foundNum.load());
 #endif
 }
 int MemTableList::NumNotFlushed() const {

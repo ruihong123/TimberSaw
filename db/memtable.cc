@@ -14,6 +14,7 @@ namespace leveldb {
 #ifdef GETANALYSIS
 std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
 std::atomic<uint64_t> MemTable::GetNum = 0;
+std::atomic<uint64_t> MemTable::foundNum = 0;
 #endif
 //
 //static Slice GetLengthPrefixedSlice(const char* data) {
@@ -146,7 +147,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
         case kTypeValue: {
           Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
           value->assign(v.data(), v.size());
-
+          foundNum.fetch_add(1);
           return true;
         }
         case kTypeDeletion:

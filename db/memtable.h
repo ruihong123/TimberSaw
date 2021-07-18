@@ -46,6 +46,7 @@ class MemTable {
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
+  static std::atomic<uint64_t> foundNum;
 #endif
   explicit MemTable(const InternalKeyComparator& cmp);
   MemTable(const MemTable&) = delete;
