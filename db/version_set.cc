@@ -735,7 +735,9 @@ VersionSet::~VersionSet() {
   delete descriptor_file_;
 #ifdef GETANALYSIS
   if (VersionSet::GetNum.load() >0)
-    printf("LSM Version GET time statics is %zu, %zu, %zu\n", VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(), VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
+    printf("LSM Version GET time statics is %zu, %zu, %zu\n",
+           VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),
+           VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
 }
 

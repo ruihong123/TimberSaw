@@ -277,7 +277,7 @@ class VersionSet {
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
-  static std::atomic<uint64_t> SSTGetNum;
+
 #endif
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new

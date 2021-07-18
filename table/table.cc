@@ -228,6 +228,12 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       }
       s = block_iter->status();
       delete block_iter;
+#ifdef GETANALYSIS
+      Saver* saver = reinterpret_cast<Saver*>(arg);
+      if(saver->state == kFound){
+        TableCache::foundNum.fetch_add(1);
+      }
+#endif
     }else{
       printf("block iterator invalid\n");
       exit(1);

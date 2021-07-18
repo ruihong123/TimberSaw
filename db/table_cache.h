@@ -29,6 +29,7 @@ class TableCache {
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> not_filtered;
   static std::atomic<uint64_t> filtered;
+  static std::atomic<uint64_t> foundNum;
 #endif
   // Return an iterator for the specified file number (the corresponding
   // file length must be exactly "file_size" bytes).  If "tableptr" is
