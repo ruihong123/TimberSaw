@@ -41,6 +41,36 @@ class Version;
 class VersionSet;
 class WritableFile;
 
+namespace {
+enum SaverState {
+  kNotFound,
+  kFound,
+  kDeleted,
+  kCorrupt,
+};
+struct Saver {
+  SaverState state = kNotFound;// set as not found as default value.
+  const Comparator* ucmp;
+  Slice user_key;
+  std::string* value;
+};
+}  // namespace
+// Callback from TableCache::Get()
+
+static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
+  Saver* s = reinterpret_cast<Saver*>(arg);
+  ParsedInternalKey parsed_key;
+  if (!ParseInternalKey(ikey, &parsed_key)) {//TOTHINK: may be the parse internal key is too slow?
+    s->state = kCorrupt;
+  } else {
+    if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {// if found mark as kFound
+      s->state = (parsed_key.type == kTypeValue) ? kFound : kDeleted;
+      if (s->state == kFound) {
+        s->value->assign(v.data(), v.size());
+      }
+    }
+  }
+}
 // Return the smallest index i such that files[i]->largest >= key.
 // Return files.size() if there is no such file.
 // REQUIRES: "files" contains a sorted list of non-overlapping files.
@@ -247,6 +277,7 @@ class VersionSet {
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
+  static std::atomic<uint64_t> SSTGetNum;
 #endif
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new

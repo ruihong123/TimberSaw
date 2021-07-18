@@ -192,35 +192,7 @@ void Version::AddIterators(const ReadOptions& options,
   }
 }
 
-// Callback from TableCache::Get()
-namespace {
-enum SaverState {
-  kNotFound,
-  kFound,
-  kDeleted,
-  kCorrupt,
-};
-struct Saver {
-  SaverState state = kNotFound;// set as not found as default value.
-  const Comparator* ucmp;
-  Slice user_key;
-  std::string* value;
-};
-}  // namespace
-static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
-  Saver* s = reinterpret_cast<Saver*>(arg);
-  ParsedInternalKey parsed_key;
-  if (!ParseInternalKey(ikey, &parsed_key)) {//TOTHINK: may be the parse internal key is too slow?
-    s->state = kCorrupt;
-  } else {
-    if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {// if found mark as kFound
-      s->state = (parsed_key.type == kTypeValue) ? kFound : kDeleted;
-      if (s->state == kFound) {
-        s->value->assign(v.data(), v.size());
-      }
-    }
-  }
-}
+
 
 static bool NewestFirst(std::shared_ptr<RemoteMemTableMetaData> a, std::shared_ptr<RemoteMemTableMetaData> b) {
   return a->number > b->number;
