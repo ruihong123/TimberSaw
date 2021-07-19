@@ -28,6 +28,7 @@ class TableCache {
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> not_filtered;
+  static std::atomic<uint64_t> BinarySearchTimeElapseSum;
   static std::atomic<uint64_t> filtered;
   static std::atomic<uint64_t> foundNum;
 #endif
