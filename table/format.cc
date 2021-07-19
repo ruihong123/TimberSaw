@@ -89,7 +89,15 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
   Status s = Status::OK();
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("RDMA Read time elapse is %zu\n",  duration.count());
+#endif
   size_t n = static_cast<size_t>(handle.size());
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataBlock"]);
   ibv_mr* contents= nullptr;
@@ -102,15 +110,9 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 //#endif
 
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
-#ifdef GETANALYSIS
-    auto start = std::chrono::high_resolution_clock::now();
-#endif
+
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-#ifdef GETANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("RDMA Read time elapse is %zu\n",  duration.count());
-#endif
+
     rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
   }else{
