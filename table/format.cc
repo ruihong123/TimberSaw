@@ -100,17 +100,17 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 //      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
 //  assert( check_poll_number == 0);
 //#endif
-#ifdef GETANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+
   if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
+#ifdef GETANALYSIS
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
+    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
 #ifdef GETANALYSIS
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     printf("RDMA Read time elapse is %zu\n",  duration.count());
 #endif
-    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-
     rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
   }else{
