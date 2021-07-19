@@ -65,7 +65,7 @@ void Find_Remote_mr(std::map<int, ibv_mr*>* remote_data_blocks,
   uint64_t  position = handle.offset();
 //  auto iter = remote_data_blocks.begin();
   auto iter = remote_data_blocks->upper_bound(position);
-  position = position - iter->first;
+  position = position - (iter->first - iter->second->length);
   assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
 //  assert(handle.size() +kBlockTrailerSize <= )
   *(remote_mr) = *(iter->second);
