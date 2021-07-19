@@ -443,8 +443,19 @@ void TableBuilder::FlushData(){
     }
   }
   remote_mr->length = msg_size;
+//  if(r->remote_data_mrs.empty()){
+//    r->remote_data_mrs.insert({0, remote_mr});
+//  }else{
+//#ifndef NDEBUG
+//    for (auto iter : r->remote_data_mrs) {
+//      assert(remote_mr->addr != iter.second->addr);
+//
+//    }
+//#endif
+//    r->remote_data_mrs.insert({r->remote_data_mrs.rbegin()->first+1, remote_mr});
+//  }
   if(r->remote_data_mrs.empty()){
-    r->remote_data_mrs.insert({0, remote_mr});
+    r->remote_data_mrs.insert({r->offset, remote_mr});
   }else{
 #ifndef NDEBUG
     for (auto iter : r->remote_data_mrs) {
@@ -452,7 +463,7 @@ void TableBuilder::FlushData(){
 
     }
 #endif
-    r->remote_data_mrs.insert({r->remote_data_mrs.rbegin()->first+1, remote_mr});
+    r->remote_data_mrs.insert({r->offset, remote_mr});
   }
 
   r->offset_last_flushed = r->offset;

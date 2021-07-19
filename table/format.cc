@@ -63,21 +63,27 @@ Status Footer::DecodeFrom(Slice* input) {
 bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
                     const BlockHandle& handle, ibv_mr* remote_mr) {
   uint64_t  position = handle.offset();
-  auto iter = remote_data_blocks.begin();
-  while(iter != remote_data_blocks.end()){
-    if (position >= iter->second->length){// the missing of the equal, cause the
-                                          // problem of iterator sometime drop, make the compaction failed
-      position -= ((iter->second->length));
-      iter++;
-    }else{
-      assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
-      *(remote_mr) = *(iter->second);
+//  auto iter = remote_data_blocks.begin();
+  auto iter = remote_data_blocks.upper_bound(position);
+  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
+  *(remote_mr) = *(iter->second);
 //      DEBUG_arg("Block buffer position %lu\n", position);
-      remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
-      return true;
-    }
-  }
-  return false;
+  remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
+  return true;
+//  while(iter != remote_data_blocks.end()){
+//    if (position >= iter->second->length){// the missing of the equal, cause the
+//                                          // problem of iterator sometime drop, make the compaction failed
+//      position -= ((iter->second->length));
+//      iter++;
+//    }else{
+//      assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
+//      *(remote_mr) = *(iter->second);
+////      DEBUG_arg("Block buffer position %lu\n", position);
+//      remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
+//      return true;
+//    }
+//  }
+//  return false;
 }
 //TODO: Make the block mr searching and creating outside this function, so that datablock is
 // the same as data index block and filter block.
