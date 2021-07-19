@@ -144,7 +144,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 //#ifdef GETANALYSIS
 //        auto start = std::chrono::high_resolution_clock::now();
 //#endif
-        s = ReadDataBlock(table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+        s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
 //#ifdef GETANALYSIS
 //        auto stop = std::chrono::high_resolution_clock::now();
 //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -160,7 +160,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
-      s = ReadDataBlock(table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }

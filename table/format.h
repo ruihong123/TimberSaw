@@ -86,7 +86,7 @@ struct BlockContents {
 
 // Read the block identified by "handle" from "file".  On failure
 // return non-OK.  On success fill *result and return OK.
-Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOptions& options,
+Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result);
 Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
                           BlockContents* result);

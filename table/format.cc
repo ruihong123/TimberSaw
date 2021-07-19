@@ -60,16 +60,15 @@ Status Footer::DecodeFrom(Slice* input) {
   }
   return result;
 }
-bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
+void Find_Remote_mr(std::map<int, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, ibv_mr* remote_mr) {
   uint64_t  position = handle.offset();
 //  auto iter = remote_data_blocks.begin();
-  auto iter = remote_data_blocks.upper_bound(position);
+  auto iter = remote_data_blocks->upper_bound(position);
   assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
   *(remote_mr) = *(iter->second);
 //      DEBUG_arg("Block buffer position %lu\n", position);
   remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
-  return true;
 //  while(iter != remote_data_blocks.end()){
 //    if (position >= iter->second->length){// the missing of the equal, cause the
 //                                          // problem of iterator sometime drop, make the compaction failed
@@ -87,7 +86,7 @@ bool Find_Remote_mr(std::map<int, ibv_mr*> remote_data_blocks,
 }
 //TODO: Make the block mr searching and creating outside this function, so that datablock is
 // the same as data index block and filter block.
-Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOptions& options,
+Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result) {
   result->data = Slice();
 //  result->cachable = false;
@@ -111,19 +110,20 @@ Status ReadDataBlock(std::map<int, ibv_mr*> remote_data_blocks, const ReadOption
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
-  if (Find_Remote_mr(remote_data_blocks, handle, &remote_mr)){
+//  if (){
 //#ifdef GETANALYSIS
 //    auto stop = std::chrono::high_resolution_clock::now();
 //    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    printf("RDMA Read time elapse is %zu\n",  duration.count());
 //#endif
+    Find_Remote_mr(remote_data_blocks, handle, &remote_mr);
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
 
     rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
-
-  }else{
-    s = Status::Corruption("Remote memtable out of buffer");
-  }
+//
+//  }else{
+//    s = Status::Corruption("Remote memtable out of buffer");
+//  }
 //#ifndef NDEBUG
 //  usleep(100);
 //  check_poll_number = rdma_mg->try_poll_this_thread_completions(&wc,1);
