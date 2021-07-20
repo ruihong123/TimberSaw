@@ -237,7 +237,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 #ifdef GETANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
       block_iter->Seek(k);
