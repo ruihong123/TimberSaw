@@ -141,7 +141,7 @@ FilterBlockReader::~FilterBlockReader() {
   if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){
     printf("Filter Block deregisteration failed\n");
   }else{
-    printf("Filter block deregisteration successfully\n");
+//    printf("Filter block deregisteration successfully\n");
   }
 }
 
