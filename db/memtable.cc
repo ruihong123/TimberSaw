@@ -147,7 +147,9 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
         case kTypeValue: {
           Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
           value->assign(v.data(), v.size());
+#ifdef GETANALYSIS
           foundNum.fetch_add(1);
+#endif
           return true;
         }
         case kTypeDeletion:
