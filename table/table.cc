@@ -136,20 +136,32 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
       EncodeFixed64(cache_key_buffer + 8, handle.offset());
       Slice key(cache_key_buffer, sizeof(cache_key_buffer));
+#ifdef GETANALYSIS
+      auto start = std::chrono::high_resolution_clock::now();
+#endif
       cache_handle = block_cache->Lookup(key);
+#ifdef GETANALYSIS
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+#endif
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
 //        DEBUG("Cache hit\n");
+#ifdef GETANALYSIS
+        TableCache::cache_hit.fetch_add(1);
+        TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
+#endif
       } else {
-//#ifdef GETANALYSIS
-//        auto start = std::chrono::high_resolution_clock::now();
-//#endif
+#ifdef GETANALYSIS
+        start = std::chrono::high_resolution_clock::now();
+        TableCache::cache_miss.fetch_add(1);
+#endif
         s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-//#ifdef GETANALYSIS
-//        auto stop = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//        printf("Read block time elapse is %zu\n",  duration.count());
-//#endif
+#ifdef GETANALYSIS
+        stop = std::chrono::high_resolution_clock::now();
+        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
 
         if (s.ok()) {
           block = new Block(contents, DataBlock);
