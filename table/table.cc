@@ -221,9 +221,17 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
   } else {
 
     Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
-
+#ifdef GETANALYSIS
+    TableCache::not_filtered.fetch_add(1);
+    auto start = std::chrono::high_resolution_clock::now();
+#endif
     iiter->Seek(k);//binary search for block index
-
+#ifdef GETANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+    TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
+#endif
     if (iiter->Valid()) {
 
       Slice handle_value = iiter->value();
@@ -231,17 +239,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       BlockHandle handle;
 
       Iterator* block_iter = BlockReader(this, options, iiter->value());
-#ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+
       block_iter->Seek(k);
-#ifdef GETANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-      TableCache::BinarySearchTimeElapseSum.fetch_add(duration.count());
-#endif
+
       if (block_iter->Valid()) {
         (*handle_result)(arg, block_iter->key(), block_iter->value());
       }
