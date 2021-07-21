@@ -830,6 +830,7 @@ class Benchmark {
     options.write_buffer_size = FLAGS_write_buffer_size;
     options.max_file_size = FLAGS_max_file_size;
     options.block_size = FLAGS_block_size;
+    options.bloom_bits = FLAGS_bloom_bits;
     if (FLAGS_comparisons) {
       options.comparator = &count_comparator_;
     }

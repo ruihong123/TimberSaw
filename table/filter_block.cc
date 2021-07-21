@@ -83,6 +83,7 @@ void FilterBlockBuilder::Flush() {
   }else{
     remote_mrs_->insert({remote_mrs_->rbegin()->first+1, remote_mr});
   }
+  Reset();
 }
 void FilterBlockBuilder::GenerateFilter() {
   const size_t num_keys = start_.size();

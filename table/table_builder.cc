@@ -53,9 +53,9 @@ struct TableBuilder::Rep {
     }
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
-                    : new FullFilterBlockBuilder(opt.filter_policy, &local_filter_mr,
-                                      &remote_filter_mrs, options.env->rdma_mg,
-                                             type_string_));
+                    : new FullFilterBlockBuilder(
+                   opt.filter_policy, &local_filter_mr, &remote_filter_mrs,
+                   options.env->rdma_mg, type_string_, 0));
 
     status = Status::OK();
   }
@@ -190,15 +190,15 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
     }
     r->index_block->Add(r->last_key, Slice(handle_encoding));
     if (r->filter_block != nullptr) {
-      if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr[0]->length){
-        // Tofix: Finish itself contain Reset and Flush, Modify the filter block make
-        // it update the r->offset and add crc and make filter block compatible with Finish block.
-        BlockHandle dummy_handle;
-        size_t msg_size;
-        FinishFilterBlock(r->filter_block, &dummy_handle, kNoCompression, msg_size);
-        FlushFilter(msg_size);
-        r->filter_block->RestartBlock(r->offset);// put here for full filter
-      }
+//      if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr[0]->length){
+//        // Tofix: Finish itself contain Reset and Flush, Modify the filter block make
+//        // it update the r->offset and add crc and make filter block compatible with Finish block.
+//        BlockHandle dummy_handle;
+//        size_t msg_size;
+//        FinishFilterBlock(r->filter_block, &dummy_handle, kNoCompression, msg_size);
+//        FlushFilter(msg_size);
+//        r->filter_block->RestartBlock(r->offset);// put here for full filter
+//      }
 
 //      r->filter_block->StartBlock(r->offset); // put here for block based filter
 

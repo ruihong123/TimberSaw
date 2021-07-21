@@ -11,15 +11,16 @@ namespace leveldb {
 
 // See doc/table_format.md for an explanation of the filter block format.
 
-
-FullFilterBlockBuilder::FullFilterBlockBuilder(const FilterPolicy* policy,
-                                       std::vector<ibv_mr*>* mrs,
-                                       std::map<int, ibv_mr*>* remote_mrs,
-                                       std::shared_ptr<RDMA_Manager> rdma_mg,
-                                       std::string& type_string)
-    : policy_(policy), rdma_mg_(rdma_mg),
+FullFilterBlockBuilder::FullFilterBlockBuilder(
+    const FilterPolicy* policy, std::vector<ibv_mr*>* mrs,
+    std::map<int, ibv_mr*>* remote_mrs, std::shared_ptr<RDMA_Manager> rdma_mg,
+    std::string& type_string, int bloombits_per_key)
+    :rdma_mg_(rdma_mg),
       local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string),
-      result((char*)(*mrs)[0]->addr, 0) {}
+      bits_per_key_(bloombits_per_key), num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),
+      result((char*)(*mrs)[0]->addr,0) {
+//  filter_bits_builder_ = std::make_unique<LegacyBloomImpl>();
+}
 
 //TOTHINK: One block per bloom filter, then why there is a design for the while loop?
 // Is it a bad design?
@@ -28,37 +29,108 @@ FullFilterBlockBuilder::FullFilterBlockBuilder(const FilterPolicy* policy,
 // chunk of the last block, it was wronglly assigned to the last bloom filter
 void FullFilterBlockBuilder::RestartBlock(uint64_t block_offset) {
 //  uint64_t filter_index = (block_offset / kFilterBase);
-    GenerateFilter();
-}
-size_t FullFilterBlockBuilder::CurrentSizeEstimate() {
-  //result plus filter offsets plus array offset plus 1 char for kFilterBaseLg
-  return (result.size() + filter_offsets_.size()*4 +5);
-}
-void FullFilterBlockBuilder::AddKey(const Slice& key) {
-  Slice k = key;
-  start_.push_back(keys_.size());
-  keys_.append(k.data(), k.size());
-}
+  hash_entries_.clear();
 
-Slice FullFilterBlockBuilder::Finish() {
-  if (!start_.empty()) {
-    GenerateFilter();
+}
+//size_t FullFilterBlockBuilder::CurrentSizeEstimate() {
+//  //result plus filter offsets plus array offset plus 1 char for kFilterBaseLg
+//  return (result.size() + filter_offsets_.size()*4 +5);
+//}
+void FullFilterBlockBuilder::AddKey(const Slice& key) {
+  uint32_t hash = BloomHash(key);
+  if (hash_entries_.size() == 0 || hash != hash_entries_.back()) {
+    hash_entries_.push_back(hash);
+  }
+}
+inline void FullFilterBlockBuilder::AddHash(uint32_t h, char* data,
+                                            uint32_t num_lines,
+                                            uint32_t total_bits) {
+#ifdef NDEBUG
+  static_cast<void>(total_bits);
+#endif
+  assert(num_lines > 0 && total_bits > 0);
+
+  LegacyBloomImpl::AddHash(h, num_lines, num_probes_, data,
+                           std::log2(CACHE_LINE_SIZE));
+}
+uint32_t FullFilterBlockBuilder::GetTotalBitsForLocality(uint32_t total_bits) {
+  uint32_t num_lines =
+      (total_bits + CACHE_LINE_SIZE * 8 - 1) / (CACHE_LINE_SIZE * 8);
+
+  // Make num_lines an odd number to make sure more bits are involved
+  // when determining which block.
+  if (num_lines % 2 == 0) {
+    num_lines++;
+  }
+  return num_lines * (CACHE_LINE_SIZE * 8);
+}
+uint32_t FullFilterBlockBuilder::CalculateSpace(const int num_entry,
+                                                uint32_t* total_bits,
+                                                uint32_t* num_lines) {
+  assert(bits_per_key_);
+  if (num_entry != 0) {
+    uint32_t total_bits_tmp = static_cast<uint32_t>(num_entry * bits_per_key_);
+
+    *total_bits = GetTotalBitsForLocality(total_bits_tmp);
+    *num_lines = *total_bits / (CACHE_LINE_SIZE * 8);
+    assert(*total_bits > 0 && *total_bits % 8 == 0);
+  } else {
+    // filter is empty, just leave space for metadata
+    *total_bits = 0;
+    *num_lines = 0;
   }
 
-  // Append array of per-filter offsets
-//  const uint32_t array_offset = result.size();
-//  for (size_t i = 0; i < filter_offsets_.size(); i++) {
-//    PutFixed32(&result, filter_offsets_[i]);
-//  }
-//
-//  PutFixed32(&result, array_offset);
-//  char length_perfilter = static_cast<char>(kFilterBaseLg);
-//  result.append(&length_perfilter,1);  // Save encoding parameter in result
-//  Flush();
-  //TOFIX: Here could be some other data structures not been cleared.
+  // Reserve space for Filter
+  uint32_t sz = *total_bits / 8;
+  sz += 5;  // 4 bytes for num_lines, 1 byte for num_probes
+  return sz;
+}
+Slice FullFilterBlockBuilder::Finish() {
+  uint32_t total_bits, num_lines;
+  size_t num_entries = hash_entries_.size();
+  CalculateSpace(num_entries, &total_bits, &num_lines);
+//  char* data =
+//      ReserveSpace(static_cast<int>(num_entries), &total_bits, &num_lines);
+  char* data = static_cast<char*>(const_cast<char*>(result.data()));
+  assert(data);
+  assert(total_bits + 2 <= (*remote_mrs_)[0]->length);
+  if (total_bits != 0 && num_lines != 0) {
+    for (auto h : hash_entries_) {
+//      int log2_cache_line_bytes = std::log2(CACHE_LINE_SIZE);
+      AddHash(h, data, num_lines, total_bits);
+    }
 
+    // Check for excessive entries for 32-bit hash function
+    if (num_entries >= /* minimum of 3 million */ 3000000U) {
+      // More specifically, we can detect that the 32-bit hash function
+      // is causing significant increase in FP rate by comparing current
+      // estimated FP rate to what we would get with a normal number of
+      // keys at same memory ratio.
+      double est_fp_rate = LegacyBloomImpl::EstimatedFpRate(
+          num_entries, total_bits / 8, num_probes_);
+      double vs_fp_rate = LegacyBloomImpl::EstimatedFpRate(
+          1U << 16, (1U << 16) * bits_per_key_ / 8, num_probes_);
 
-  return Slice(result);
+      if (est_fp_rate >= 1.50 * vs_fp_rate) {
+        // For more details, see
+        // https://github.com/facebook/rocksdb/wiki/RocksDB-Bloom-Filter
+        printf(
+            "Using legacy SST/BBT Bloom filter with excessive key count "
+            "(%.1fM @ %dbpk), causing estimated %.1fx higher filter FP rate. "
+            "Consider using new Bloom with format_version>=5, smaller SST "
+            "file size, or partitioned filters.",
+            num_entries / 1000000.0, bits_per_key_, est_fp_rate / vs_fp_rate);
+      }
+    }
+  }
+  // See BloomFilterPolicy::GetFilterBitsReader for metadata
+  data[total_bits / 8] = static_cast<char>(num_probes_);
+  EncodeFixed32(data + total_bits / 8 + 1, static_cast<uint32_t>(num_lines));
+
+  const char* const_data = data;
+  hash_entries_.clear();
+
+  return Slice(data, total_bits / 8 + 5);
 }
 void FullFilterBlockBuilder::Reset() {
   result.Reset(static_cast<char*>((*local_mrs)[0]->addr),0);
@@ -77,39 +149,97 @@ void FullFilterBlockBuilder::Flush() {
   }else{
     remote_mrs_->insert({remote_mrs_->rbegin()->first+1, remote_mr});
   }
+  Reset();
 }
-void FullFilterBlockBuilder::GenerateFilter() {
-  const size_t num_keys = start_.size();
-  if (num_keys == 0) {
-    // Fast path if there are no keys for this filter
-    filter_offsets_.push_back(result.size());
-    return;
+//void FullFilterBlockBuilder::GenerateFilter() {
+//  const size_t num_keys = start_.size();
+//  if (num_keys == 0) {
+//    // Fast path if there are no keys for this filter
+//    filter_offsets_.push_back(result.size());
+//    return;
+//  }
+//
+//  // Make list of keys from flattened key structure
+//  start_.push_back(keys_.size());  // Simplify length computation
+//  tmp_keys_.resize(num_keys);
+//  for (size_t i = 0; i < num_keys; i++) {
+//    char* base = keys_.data() + start_[i];
+//    size_t length = start_[i + 1] - start_[i];
+//    tmp_keys_[i] = Slice(base, length);
+//  }
+//
+//  // Generate filter for current set of keys and append to result.
+//  filter_offsets_.push_back(result.size());
+//  policy_->CreateFilter(&tmp_keys_[0], static_cast<int>(num_keys), &result);
+//  tmp_keys_.clear();
+//  keys_.clear();
+//  start_.clear();
+//}
+
+FullFilterBlockReader::FullFilterBlockReader(
+    const Slice& contents, std::shared_ptr<RDMA_Manager> rdma_mg)
+    :filter_content(contents), data_(contents.data()), rdma_mg_(rdma_mg) {
+  uint32_t len_with_meta = static_cast<uint32_t>(contents.size());
+  if (len_with_meta <= 5) {
+    // filter is empty or broken. Treat like zero keys added.
+    std::cerr << "corrupt bloom filter" << std::endl;
   }
 
-  // Make list of keys from flattened key structure
-  start_.push_back(keys_.size());  // Simplify length computation
-  tmp_keys_.resize(num_keys);
-  for (size_t i = 0; i < num_keys; i++) {
-    char* base = keys_.data() + start_[i];
-    size_t length = start_[i + 1] - start_[i];
-    tmp_keys_[i] = Slice(base, length);
+  // Legacy Bloom filter data:
+  //             0 +-----------------------------------+
+  //               | Raw Bloom filter data             |
+  //               | ...                               |
+  //           len +-----------------------------------+
+  //               | byte for num_probes or            |
+  //               |   marker for new implementations  |
+  //         len+1 +-----------------------------------+
+  //               | four bytes for number of cache    |
+  //               |   lines                           |
+  // len_with_meta +-----------------------------------+
+
+  num_probes_ =
+      static_cast<int>(contents.data()[len_with_meta - 5]);
+  // NB: *num_probes > 30 and < 128 probably have not been used, because of
+  // BloomFilterPolicy::initialize, unless directly calling
+  // LegacyBloomBitsBuilder as an API, but we are leaving those cases in
+  // limbo with LegacyBloomBitsReader for now.
+
+  if (num_probes_ < 1) {
+    // Note: < 0 (or unsigned > 127) indicate special new implementations
+    // (or reserved for future use)
+    if (num_probes_ == -1) {
+      // Marker for newer Bloom implementations
+      std::cerr << "corrupt bloom filter" << std::endl;
+      exit(1);
+
+    }
+    // otherwise
+    // Treat as zero probes (always FP) for now.
+    std::cerr << "corrupt bloom filter" << std::endl;
+    exit(1);
+
   }
+  // else attempt decode for LegacyBloomBitsReader
 
-  // Generate filter for current set of keys and append to result.
-  filter_offsets_.push_back(result.size());
-  policy_->CreateFilter(&tmp_keys_[0], static_cast<int>(num_keys), &result);
-  tmp_keys_.clear();
-  keys_.clear();
-  start_.clear();
+  assert(num_probes_ >= 1);
+  assert(num_probes_ <= 127);
+
+  uint32_t len = len_with_meta - 5;
+  assert(len > 0);
+
+  num_lines_ = DecodeFixed32(contents.data() + len_with_meta - 4);
+//  uint32_t log2_cache_line_size;
+  if (num_lines_ * CACHE_LINE_SIZE == len) {
+    // Common case
+    log2_cache_line_size_ = std::log2(CACHE_LINE_SIZE);
+  } else if (num_lines_ == 0 || len % num_lines_ != 0) {
+    // Invalid (no solution to num_lines * x == len)
+    // Treat as zero probes (always FP) for now.
+    std::cerr << "corrupt bloom filter" << std::endl;
+    exit(1);
+  }
 }
 
-FullFilterBlockReader::FullFilterBlockReader(const FilterPolicy* policy,
-                                     const Slice& contents,
-                                     std::shared_ptr<RDMA_Manager> rdma_mg)
-    : policy_(policy), filter_content(contents), rdma_mg_(rdma_mg) {
-
-
-}
 //bool FullFilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
 //  uint64_t index = block_offset >> base_lg_;
 //  if (index < num_) {
@@ -127,7 +257,12 @@ FullFilterBlockReader::FullFilterBlockReader(const FilterPolicy* policy,
 //}
 bool FullFilterBlockReader::KeyMayMatch(const Slice& key) {
 
-  return policy_->KeyMayMatch(key, filter_content);
+  uint32_t hash = BloomHash(key);
+  uint32_t byte_offset;
+  LegacyBloomImpl::PrepareHashMayMatch(
+      hash, num_lines_, data_, /*out*/ &byte_offset, log2_cache_line_size_);
+  return LegacyBloomImpl::HashMayMatchPrepared(
+      hash, num_probes_, data_ + byte_offset, log2_cache_line_size_);
 
 }
 FullFilterBlockReader::~FullFilterBlockReader() {
