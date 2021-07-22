@@ -541,7 +541,7 @@ Status TableBuilder::Finish() {
   //TOthink why not compress the block here.
   if (ok() && r->filter_block != nullptr) {
     if(r->pending_index_filter_entry){
-      r->filter_block->RestartBlock(r->offset);
+//      r->filter_block->RestartBlock(r->offset);
     }
 
     size_t msg_size;
