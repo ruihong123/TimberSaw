@@ -4,6 +4,8 @@
 
 #include "table/full_filter_block.h"
 
+#include <utility>
+
 #include "leveldb/filter_policy.h"
 #include "util/coding.h"
 
@@ -15,7 +17,7 @@ FullFilterBlockBuilder::FullFilterBlockBuilder(
     std::vector<ibv_mr*>* mrs, std::map<int, ibv_mr*>* remote_mrs,
     std::shared_ptr<RDMA_Manager> rdma_mg, std::string& type_string,
     int bloombits_per_key)
-    :rdma_mg_(rdma_mg),
+    :rdma_mg_(std::move(rdma_mg)),
       local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string),
       bits_per_key_(bloombits_per_key), num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),
       result((char*)(*mrs)[0]->addr,0) {
@@ -93,7 +95,7 @@ Slice FullFilterBlockBuilder::Finish() {
 //      ReserveSpace(static_cast<int>(num_entries), &total_bits, &num_lines);
   char* data = static_cast<char*>(const_cast<char*>(result.data()));
   assert(data);
-  assert(total_bits + 2 <= (*remote_mrs_)[0]->length);
+  assert(total_bits + 2 <= (*local_mrs)[0]->length);
   if (total_bits != 0 && num_lines != 0) {
     for (auto h : hash_entries_) {
 //      int log2_cache_line_bytes = std::log2(CACHE_LINE_SIZE);
