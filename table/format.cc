@@ -312,7 +312,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
       DEBUG("Filter illegal compression type\n");
       return Status::Corruption("bad block type");
   }
-
+  assert(result->data.size() != 0);
   return Status::OK();
 }
 }  // namespace leveldb
