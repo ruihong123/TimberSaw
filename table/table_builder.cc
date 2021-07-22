@@ -379,6 +379,7 @@ void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle*
     crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
     EncodeFixed32(trailer + 1, crc32c::Mask(crc));
     block_contents->append(trailer, kBlockTrailerSize);
+    assert(block_contents->size() <= r->local_filter_mr[0]->length);
   }
   r->compressed_output.clear();
   block_size = block_contents->size();

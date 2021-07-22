@@ -94,7 +94,8 @@ Slice FullFilterBlockBuilder::Finish() {
 //  char* data =
 //      ReserveSpace(static_cast<int>(num_entries), &total_bits, &num_lines);
   char* data = static_cast<char*>(const_cast<char*>(result.data()));
-  result.Reset(result.data(), total_bits);
+  assert(total_bits%8 == 0);
+  result.Reset(result.data(), total_bits/8);
   assert(data);
   assert(total_bits + 5 <= (*local_mrs)[0]->length);
   if (total_bits != 0 && num_lines != 0) {
