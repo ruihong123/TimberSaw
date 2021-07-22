@@ -879,7 +879,7 @@ class Benchmark {
       s = db_->Write(write_options_, &batch);
       validation_keys.push_back(key.ToString());
     }
-    printf("validation wirte finished\n");
+    printf("validation write finished\n");
   }
   void Validation_Read() {
     ReadOptions options;
@@ -936,6 +936,7 @@ class Benchmark {
       }
     }
     thread->stats.AddBytes(bytes);
+    printf("DoWrite Finished\n");
   }
 
   void ReadSequential(ThreadState* thread) {
