@@ -386,6 +386,7 @@ class Benchmark {
   int heap_counter_;
   CountComparator count_comparator_;
   int total_thread_count_;
+  std::vector<std::string> validation_keys;
 
   void PrintHeader() {
     const int kKeySize = 16 + FLAGS_key_prefix;
@@ -543,6 +544,7 @@ class Benchmark {
     Open();
 
     const char* benchmarks = FLAGS_benchmarks;
+    Validation_Write();
     while (benchmarks != nullptr) {
       const char* sep = strchr(benchmarks, ',');
       Slice name;
@@ -654,6 +656,7 @@ class Benchmark {
         RunBenchmark(num_threads, name, method);
       }
     }
+    Validation_Read();
   }
 
  private:
@@ -855,7 +858,43 @@ class Benchmark {
   void WriteSeq(ThreadState* thread) { DoWrite(thread, true); }
 
   void WriteRandom(ThreadState* thread) { DoWrite(thread, false); }
-
+  void Validation_Write() {
+    Random64 rand(123);
+    RandomGenerator gen;
+    Status s;
+    std::unique_ptr<const char[]> key_guard;
+    WriteBatch batch;
+    Slice key = AllocateKey(&key_guard);
+    for (int i = 0; i < 10; i++) {
+      batch.Clear();
+      //The key range should be adjustable.
+//        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
+      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
+      GenerateKeyFromInt(k, FLAGS_num, &key);
+      char to_be_append = 'v';// add an extra char to make key different from write bench.
+      key.append(&to_be_append, 1);
+      batch.Put(key, gen.Generate(value_size_));
+      s = db_->Write(write_options_, &batch);
+      validation_keys.push_back(key.ToString());
+    }
+  }
+  void Validation_Read() {
+    ReadOptions options;
+    //TODO(ruihong): specify the cache option.
+    std::string value;
+    int found = 0;
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+    for (int i = 0; i < 10; i++) {
+      key = validation_keys[i];
+      if (db_->Get(options, key, &value).ok()) {
+        found++;
+      }else{
+        printf("Validation failed\n");
+      }
+    }
+  }
   void DoWrite(ThreadState* thread, bool seq) {
     if (num_ != FLAGS_num) {
       char msg[100];
