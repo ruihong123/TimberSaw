@@ -54,8 +54,8 @@ struct TableBuilder::Rep {
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
                     : new FullFilterBlockBuilder(
-                   opt.filter_policy, &local_filter_mr, &remote_filter_mrs,
-                   options.env->rdma_mg, type_string_, 0));
+                              &local_filter_mr, &remote_filter_mrs,
+                              options.env->rdma_mg, type_string_, opt.bloom_bits));
 
     status = Status::OK();
   }

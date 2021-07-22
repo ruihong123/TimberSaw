@@ -12,9 +12,9 @@ namespace leveldb {
 // See doc/table_format.md for an explanation of the filter block format.
 
 FullFilterBlockBuilder::FullFilterBlockBuilder(
-    const FilterPolicy* policy, std::vector<ibv_mr*>* mrs,
-    std::map<int, ibv_mr*>* remote_mrs, std::shared_ptr<RDMA_Manager> rdma_mg,
-    std::string& type_string, int bloombits_per_key)
+    std::vector<ibv_mr*>* mrs, std::map<int, ibv_mr*>* remote_mrs,
+    std::shared_ptr<RDMA_Manager> rdma_mg, std::string& type_string,
+    int bloombits_per_key)
     :rdma_mg_(rdma_mg),
       local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string),
       bits_per_key_(bloombits_per_key), num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),

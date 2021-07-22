@@ -30,8 +30,7 @@ class Options;
 //      (StartBlock AddKey*)* Finish
 class FullFilterBlockBuilder {
  public:
-  explicit FullFilterBlockBuilder(const FilterPolicy* policy,
-                                  std::vector<ibv_mr*>* mrs,
+  explicit FullFilterBlockBuilder(std::vector<ibv_mr*>* mrs,
                                   std::map<int, ibv_mr*>* remote_mrs,
                                   std::shared_ptr<RDMA_Manager> rdma_mg,
                                   std::string& type_string,
