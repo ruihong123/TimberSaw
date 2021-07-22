@@ -94,8 +94,9 @@ Slice FullFilterBlockBuilder::Finish() {
 //  char* data =
 //      ReserveSpace(static_cast<int>(num_entries), &total_bits, &num_lines);
   char* data = static_cast<char*>(const_cast<char*>(result.data()));
+  result.Reset(result.data(), total_bits);
   assert(data);
-  assert(total_bits + 2 <= (*local_mrs)[0]->length);
+  assert(total_bits + 5 <= (*local_mrs)[0]->length);
   if (total_bits != 0 && num_lines != 0) {
     for (auto h : hash_entries_) {
 //      int log2_cache_line_bytes = std::log2(CACHE_LINE_SIZE);
