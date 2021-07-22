@@ -655,6 +655,8 @@ class Benchmark {
 
       if (method != nullptr) {
         RunBenchmark(num_threads, name, method);
+        printf("Benchmark finished\n");
+
       }
     }
     Validation_Read();
@@ -698,7 +700,7 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
-//    Validation_Write();
+    Validation_Write();
     SharedState shared(n);
 
     ThreadArg* arg = new ThreadArg[n];
@@ -936,7 +938,6 @@ class Benchmark {
       }
     }
     thread->stats.AddBytes(bytes);
-    printf("DoWrite Finished\n");
   }
 
   void ReadSequential(ThreadState* thread) {
