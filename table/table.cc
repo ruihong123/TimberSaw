@@ -227,7 +227,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
         (*handle_result)(arg, block_iter->key(), block_iter->value());
       }
       Saver* saver = reinterpret_cast<Saver*>(arg);
-      assert(saver->state == kNotFound);
+//      assert(saver->state == kNotFound);
       delete block_iter;
     }
 #endif
