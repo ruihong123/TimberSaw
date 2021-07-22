@@ -345,11 +345,11 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
 void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
                                      CompressionType compressiontype,
                                      size_t& block_size) {
-  assert(ok());
   Rep* r = rep_;
   block->Finish();
 
   Slice* raw = &(r->filter_block->result);
+  assert(raw->size()!=0);
   Slice* block_contents;
   switch (compressiontype) {
     case kNoCompression:
