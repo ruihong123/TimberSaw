@@ -43,7 +43,7 @@ class FullFilterBlockBuilder {
 //  size_t CurrentSizeEstimate();
   void AddKey(const Slice& key);
 //  void AddHash(uint32_t h, char* data, uint32_t num_lines, uint32_t total_bits);
-  Slice Finish();
+  void Finish();
   void Reset();
   void Flush();
   void Move_buffer(const char* p);

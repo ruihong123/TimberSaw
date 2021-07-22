@@ -87,7 +87,7 @@ uint32_t FullFilterBlockBuilder::CalculateSpace(const int num_entry,
   sz += 5;  // 4 bytes for num_lines, 1 byte for num_probes
   return sz;
 }
-Slice FullFilterBlockBuilder::Finish() {
+void FullFilterBlockBuilder::Finish() {
   uint32_t total_bits, num_lines;
   size_t num_entries = hash_entries_.size();
   CalculateSpace(num_entries, &total_bits, &num_lines);
@@ -133,8 +133,8 @@ Slice FullFilterBlockBuilder::Finish() {
 
   const char* const_data = data;
   hash_entries_.clear();
-
-  return Slice(data, total_bits / 8 + 5);
+  result.Reset(data, total_bits / 8 + 5);
+//  return Slice(data, total_bits / 8 + 5);
 }
 void FullFilterBlockBuilder::Reset() {
   result.Reset(static_cast<char*>((*local_mrs)[0]->addr),0);
