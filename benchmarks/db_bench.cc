@@ -879,6 +879,7 @@ class Benchmark {
       s = db_->Write(write_options_, &batch);
       validation_keys.push_back(key.ToString());
     }
+    printf("validation wirte finished\n");
   }
   void Validation_Read() {
     ReadOptions options;
@@ -894,8 +895,10 @@ class Benchmark {
         found++;
       }else{
         printf("Validation failed\n");
+        assert(false);
       }
     }
+    printf("validation read finished\n");
   }
   void DoWrite(ThreadState* thread, bool seq) {
     if (num_ != FLAGS_num) {
