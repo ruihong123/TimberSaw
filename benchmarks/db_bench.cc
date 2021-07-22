@@ -544,7 +544,7 @@ class Benchmark {
     Open();
 
     const char* benchmarks = FLAGS_benchmarks;
-    Validation_Write();
+//    Validation_Write();
     while (benchmarks != nullptr) {
       const char* sep = strchr(benchmarks, ',');
       Slice name;
@@ -697,6 +697,7 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
+    Validation_Write();
     SharedState shared(n);
 
     ThreadArg* arg = new ThreadArg[n];
