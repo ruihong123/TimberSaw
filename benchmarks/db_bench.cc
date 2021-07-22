@@ -546,6 +546,7 @@ class Benchmark {
     const char* benchmarks = FLAGS_benchmarks;
 //    Validation_Write();
     while (benchmarks != nullptr) {
+      printf("The second benchmark start.\n");
       const char* sep = strchr(benchmarks, ',');
       Slice name;
       if (sep == nullptr) {
