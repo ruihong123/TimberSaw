@@ -229,9 +229,11 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       Saver* saver = reinterpret_cast<Saver*>(arg);
 //      assert(saver->state == kNotFound);
       if(saver->state == kNotFound){
-        printf("filtered key not found");
+//        printf("filtered key not found\n");
+        int dummy = 0;
       }else{
-        printf("filtered key found");
+//        printf("filtered key found\n");
+        int dummy = 0;
       }
       delete block_iter;
     }
