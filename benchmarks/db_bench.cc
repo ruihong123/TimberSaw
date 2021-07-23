@@ -558,7 +558,8 @@ class Benchmark {
       }
 
       // Reset parameters that may be overridden below
-      num_ = FLAGS_num;
+      num_ = FLAGS_num; invalid next size (fast)") at malloc.c:5342
+#4  0x00007ffff6e16c11 in _int_free (have
       reads_ = (FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads);
       value_size_ = FLAGS_value_size;
       entries_per_batch_ = 1;
@@ -879,7 +880,7 @@ class Benchmark {
       key.append(&to_be_append, 1);
       batch.Put(key, gen.Generate(value_size_));
       s = db_->Write(write_options_, &batch);
-      validation_keys.push_back(key.ToString());
+//      validation_keys.push_back(key.ToString());
     }
     printf("validation write finished\n");
   }
