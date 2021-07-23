@@ -876,9 +876,9 @@ class Benchmark {
       const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
       GenerateKeyFromInt(k, FLAGS_num, &key);
       char to_be_append = 'v';// add an extra char to make key different from write bench.
-      key.append(&to_be_append, 1);
+//      key.append(&to_be_append, 1);
 ////      batch.Put(key, gen.Generate(value_size_));
-      batch.Put(key, key);
+//      batch.Put(key, key);
 //
 //      s = db_->Write(write_options_, &batch);
 //      validation_keys.push_back(key.ToString());
