@@ -278,13 +278,14 @@ DBImpl::~DBImpl() {
   if (db_lock_ != nullptr) {
     env_->UnlockFile(db_lock_);
   }
+  delete local_sv_;
   if (super_version!= nullptr && super_version->Unref())
     super_version->Cleanup();
 //  if (local_sv_.get()->Get() != nullptr){
 //    CleanupSuperVersion(static_cast<SuperVersion*>(local_sv_.get()->Get()));
 //  }
 //  local_sv_->Reset(nullptr);
-  delete local_sv_;
+
   delete versions_;
   if (mem_ != nullptr) mem_.load()->SimpleDelete();
 //  if (imm_ != nullptr) imm_.load()->SimpleDelete();
