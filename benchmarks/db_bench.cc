@@ -898,20 +898,21 @@ class Benchmark {
     ReadOptions options;
     //TODO(ruihong): specify the cache option.
     std::string value;
-    int found = 0;
+    int not_found = 0;
 //    KeyBuffer key;
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < 1000; i++) {
       key = validation_keys[i];
       if (db_->Get(options, key, &value).ok()) {
-        found++;
+
       }else{
-        printf("Validation failed\n");
+//        printf("Validation failed\n");
+        not_found++;
         assert(false);
       }
     }
-    printf("validation read finished, \n");
+    printf("validation read finished, found num,  \n");
   }
   void DoWrite(ThreadState* thread, bool seq) {
     if (num_ != FLAGS_num) {
