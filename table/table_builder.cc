@@ -166,7 +166,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   // *   Second, if new block finished, check whether the write buffer can hold a new block size.
   // *           if not, the flush temporal buffer content to the remote memory.
   const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
-  if (estimated_block_size + key.size() + value.size() +sizeof (uint32_t) + kBlockTrailerSize >= r->options.block_size) {
+  if (estimated_block_size + key.size() + value.size() +sizeof(size_t) + kBlockTrailerSize >= r->options.block_size) {
     UpdateFunctionBLock();
     if (r->local_data_mr[0]->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
       FlushData();
