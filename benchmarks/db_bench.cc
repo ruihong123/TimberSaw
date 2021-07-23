@@ -503,6 +503,12 @@ class Benchmark {
     key_guard->reset(const_data);
     return Slice(key_guard->get(), FLAGS_key_size);
   }
+  Slice AllocateKey(std::unique_ptr<const char[]>* key_guard, size_t key_size) {
+    char* data = new char[key_size];
+    const char* const_data = data;
+    key_guard->reset(const_data);
+    return Slice(key_guard->get(), key_size);
+  }
   void GenerateKeyFromInt(uint64_t v, int64_t num_keys, Slice* key) {
 
     char* start = const_cast<char*>(key->data());
@@ -868,7 +874,7 @@ class Benchmark {
     Status s;
     std::unique_ptr<const char[]> key_guard;
     WriteBatch batch;
-    Slice key = AllocateKey(&key_guard);
+    Slice key = AllocateKey(&key_guard, FLAGS_key_size+1);
     for (int i = 0; i < 10; i++) {
       batch.Clear();
 //      //The key range should be adjustable.
@@ -876,12 +882,12 @@ class Benchmark {
       const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
       GenerateKeyFromInt(k, FLAGS_num, &key);
       char to_be_append = 'v';// add an extra char to make key different from write bench.
-//      key.append(&to_be_append, 1);
+      key.append(&to_be_append, 1);
 ////      batch.Put(key, gen.Generate(value_size_));
-//      batch.Put(key, key);
-//
-//      s = db_->Write(write_options_, &batch);
-//      validation_keys.push_back(key.ToString());
+      batch.Put(key, key);
+
+      s = db_->Write(write_options_, &batch);
+      validation_keys.push_back(key.ToString());
     }
     printf("validation write finished\n");
   }
