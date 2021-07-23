@@ -864,11 +864,11 @@ class Benchmark {
   void WriteRandom(ThreadState* thread) { DoWrite(thread, false); }
   void Validation_Write() {
     Random64 rand(123);
-//    RandomGenerator gen;
-//    Status s;
-//    std::unique_ptr<const char[]> key_guard;
-//    WriteBatch batch;
-//    Slice key = AllocateKey(&key_guard);
+    RandomGenerator gen;
+    Status s;
+    std::unique_ptr<const char[]> key_guard;
+    WriteBatch batch;
+    Slice key = AllocateKey(&key_guard);
 //    for (int i = 0; i < 10; i++) {
 //      batch.Clear();
 //      //The key range should be adjustable.
@@ -883,7 +883,7 @@ class Benchmark {
 //      s = db_->Write(write_options_, &batch);
 //      validation_keys.push_back(key.ToString());
 //    }
-    printf("validation write finished\n");
+//    printf("validation write finished\n");
   }
   void Validation_Read() {
     ReadOptions options;
