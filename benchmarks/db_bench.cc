@@ -880,8 +880,8 @@ class Benchmark {
       batch.Clear();
 //      //The key range should be adjustable.
 ////        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
-      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
-      GenerateKeyFromInt(k, FLAGS_num, &key);
+//      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
+      GenerateKeyFromInt(i, FLAGS_num, &key);
       key.Reset(key.data(), key.size()-1);
       char to_be_append = 'v';// add an extra char to make key different from write bench.
       assert(key.size() == FLAGS_key_size);
