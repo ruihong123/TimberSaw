@@ -274,13 +274,13 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
 //      break;
 //    }
   }
-#ifndef NDEBUG
-  if (r->offset == 72100)
-    printf("mark!!\n");
-#endif
+//#ifndef NDEBUG
+//  if (r->offset == 72100)
+//    printf("mark!!\n");
+//#endif
   handle->set_offset(r->offset);// This is the offset of the begginning of this block.
   handle->set_size(block_contents->size());
-  assert(block_contents->size() <= r->local_data_mr[0]->length - kBlockTrailerSize);
+  assert(block_contents->size() <= r->options.block_size - kBlockTrailerSize);
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
     trailer[0] = compressiontype;
