@@ -706,7 +706,8 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
-    Validation_Write();
+    if (name.ToString() == "fillrandom")
+      Validation_Write();
     SharedState shared(n);
 
     ThreadArg* arg = new ThreadArg[n];
