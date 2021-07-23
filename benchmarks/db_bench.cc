@@ -869,21 +869,21 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     WriteBatch batch;
     Slice key = AllocateKey(&key_guard);
-//    for (int i = 0; i < 10; i++) {
-//      batch.Clear();
+    for (int i = 0; i < 10; i++) {
+      batch.Clear();
 //      //The key range should be adjustable.
 ////        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
-//      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
-//      GenerateKeyFromInt(k, FLAGS_num, &key);
-//      char to_be_append = 'v';// add an extra char to make key different from write bench.
-//      key.append(&to_be_append, 1);
+      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
+      GenerateKeyFromInt(k, FLAGS_num, &key);
+      char to_be_append = 'v';// add an extra char to make key different from write bench.
+      key.append(&to_be_append, 1);
 ////      batch.Put(key, gen.Generate(value_size_));
-//      batch.Put(key, key);
+      batch.Put(key, key);
 //
 //      s = db_->Write(write_options_, &batch);
 //      validation_keys.push_back(key.ToString());
-//    }
-//    printf("validation write finished\n");
+    }
+    printf("validation write finished\n");
   }
   void Validation_Read() {
     ReadOptions options;
