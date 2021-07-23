@@ -876,6 +876,7 @@ class Benchmark {
     WriteBatch batch;
     Slice key = AllocateKey(&key_guard, FLAGS_key_size+1);
     key.Reset(key.data(), key.size()-1);
+    assert(key.size() == FLAGS_key_size);
     for (int i = 0; i < 10; i++) {
       batch.Clear();
 //      //The key range should be adjustable.
