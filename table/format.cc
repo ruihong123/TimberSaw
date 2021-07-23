@@ -100,7 +100,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
 
   size_t n = static_cast<size_t>(handle.size());
-  assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataBlock"]);
+  assert(n + kBlockTrailerSize <= rdma_mg->name_to_size["DataBlock"]);
   ibv_mr* contents= nullptr;
   ibv_mr remote_mr;
 //#ifndef NDEBUG

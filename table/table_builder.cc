@@ -276,6 +276,7 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
   }
   handle->set_offset(r->offset);// This is the offset of the begginning of this block.
   handle->set_size(block_contents->size());
+  assert(block_contents->size() <= r->local_data_mr[0]->length - kBlockTrailerSize);
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
     trailer[0] = compressiontype;

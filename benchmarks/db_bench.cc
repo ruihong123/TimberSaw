@@ -876,7 +876,7 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     WriteBatch batch;
     Slice key = AllocateKey(&key_guard, FLAGS_key_size+1);
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100; i++) {
       batch.Clear();
 //      //The key range should be adjustable.
 ////        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
@@ -902,7 +902,7 @@ class Benchmark {
 //    KeyBuffer key;
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
-    for (int i = 0; i < 1000; i++) {
+    for (int i = 0; i < 100; i++) {
       key = validation_keys[i];
       if (db_->Get(options, key, &value).ok()) {
 
