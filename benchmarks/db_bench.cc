@@ -875,6 +875,7 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     WriteBatch batch;
     Slice key = AllocateKey(&key_guard, FLAGS_key_size+1);
+    key.Reset(key.data(), key.size()-1);
     for (int i = 0; i < 10; i++) {
       batch.Clear();
 //      //The key range should be adjustable.
