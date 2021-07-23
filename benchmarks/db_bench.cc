@@ -912,7 +912,7 @@ class Benchmark {
         assert(false);
       }
     }
-    printf("validation read finished, found num,  \n");
+    printf("validation read finished, found num %d\n", not_found);
   }
   void DoWrite(ThreadState* thread, bool seq) {
     if (num_ != FLAGS_num) {
