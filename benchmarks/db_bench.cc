@@ -558,8 +558,7 @@ class Benchmark {
       }
 
       // Reset parameters that may be overridden below
-      num_ = FLAGS_num; invalid next size (fast)") at malloc.c:5342
-#4  0x00007ffff6e16c11 in _int_free (have
+      num_ = FLAGS_num;
       reads_ = (FLAGS_reads < 0 ? FLAGS_num : FLAGS_reads);
       value_size_ = FLAGS_value_size;
       entries_per_batch_ = 1;
