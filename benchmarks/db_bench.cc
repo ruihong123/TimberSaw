@@ -665,7 +665,7 @@ class Benchmark {
 
       }
     }
-    Validation_Read();
+//    Validation_Read();
   }
 
  private:
