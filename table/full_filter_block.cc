@@ -39,8 +39,11 @@ void FullFilterBlockBuilder::RestartBlock(uint64_t block_offset) {
 //  return (result.size() + filter_offsets_.size()*4 +5);
 //}
 void FullFilterBlockBuilder::AddKey(const Slice& key) {
+#ifndef NDEBUG
   if (key.size() == 29)
-    DEBUG("here\n");
+    printf("here\n");
+#endif
+
   uint32_t hash = BloomHash(key);
   if (hash_entries_.size() == 0 || hash != hash_entries_.back()) {
     hash_entries_.push_back(hash);
