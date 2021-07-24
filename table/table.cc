@@ -233,6 +233,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
         int dummy = 0;
       }else{
         assert(false);
+        exit(1);
 //        printf("filtered key found\n");
         int dummy = 0;
       }
