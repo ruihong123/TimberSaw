@@ -92,7 +92,7 @@
 //#define TIMEPRINT
 
 #define GETANALYSIS
-#define BLOOMANALYSIS
+//#define BLOOMANALYSIS
 #include "port/thread_annotations.h"
 namespace leveldb {
 
