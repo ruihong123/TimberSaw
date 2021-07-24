@@ -210,6 +210,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
   if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
     // Not found
 #ifdef GETANALYSIS
+    int dummy = 0;
     TableCache::filtered.fetch_add(1);
 #endif
 #ifdef BLOOMANALYSIS
