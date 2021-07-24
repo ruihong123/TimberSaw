@@ -909,7 +909,7 @@ class Benchmark {
       }else{
 //        printf("Validation failed\n");
         not_found++;
-        assert(false);
+//        assert(false);
       }
     }
     printf("validation read finished, not found num %d\n", not_found);
