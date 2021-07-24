@@ -212,7 +212,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 #ifdef GETANALYSIS
     TableCache::filtered.fetch_add(1);
 #endif
-#ifndef BLOOMANALYSIS
+#ifdef BLOOMANALYSIS
     //assert that bloom filter is correct
     Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
 
