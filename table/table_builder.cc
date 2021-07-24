@@ -5,7 +5,7 @@
 #include "leveldb/table_builder.h"
 
 #include <cassert>
-
+#include "db/dbformat.h"
 
 
 namespace leveldb {
@@ -208,7 +208,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
   }
 
   if (r->filter_block != nullptr) {
-    r->filter_block->AddKey(key);
+    r->filter_block->AddKey(ExtractUserKey(key));
   }
 
   r->last_key.assign(key.data(), key.size());

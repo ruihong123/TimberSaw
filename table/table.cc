@@ -207,7 +207,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                                                 const Slice&)) {
   Status s;
   FullFilterBlockReader* filter = rep_->filter;
-  if (filter != nullptr && !filter->KeyMayMatch(k)) {
+  if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
     // Not found
 #ifdef GETANALYSIS
     TableCache::filtered.fetch_add(1);
