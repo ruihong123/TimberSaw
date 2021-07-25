@@ -35,13 +35,21 @@ struct TableBuilder::Rep {
     rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
+    memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
     local_filter_mr.push_back(temp_filter_mr);
+    delete temp_data_mr;
+    delete temp_index_mr;
+    delete temp_filter_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(temp_data_mr, "FlushBuffer");
     rdma_mg->Allocate_Local_RDMA_Slot(temp_index_mr, "FlushBuffer");
     rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
+    memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
     local_filter_mr.push_back(temp_filter_mr);
+    delete temp_data_mr;
+    delete temp_index_mr;
+    delete temp_filter_mr;
     data_block = new BlockBuilder(&options, local_data_mr[0]);
     index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
     if (type_ == IO_type::Compact){
