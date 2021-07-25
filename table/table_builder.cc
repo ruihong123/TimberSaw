@@ -37,9 +37,9 @@ struct TableBuilder::Rep {
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
     local_filter_mr.push_back(temp_filter_mr);
-    delete temp_data_mr;
-    delete temp_index_mr;
-    delete temp_filter_mr;
+//    delete temp_data_mr;
+//    delete temp_index_mr;
+//    delete temp_filter_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(temp_data_mr, "FlushBuffer");
     rdma_mg->Allocate_Local_RDMA_Slot(temp_index_mr, "FlushBuffer");
     rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
@@ -47,9 +47,9 @@ struct TableBuilder::Rep {
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
     local_filter_mr.push_back(temp_filter_mr);
-    delete temp_data_mr;
-    delete temp_index_mr;
-    delete temp_filter_mr;
+//    delete temp_data_mr;
+//    delete temp_index_mr;
+//    delete temp_filter_mr;
     data_block = new BlockBuilder(&options, local_data_mr[0]);
     index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
     if (type_ == IO_type::Compact){
@@ -128,12 +128,15 @@ TableBuilder::~TableBuilder() {
   std::shared_ptr<RDMA_Manager> rdma_mg = rep_->options.env->rdma_mg;
   for(auto iter : rep_->local_data_mr){
     rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+    delete iter;
   }
   for(auto iter : rep_->local_index_mr){
     rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+    delete iter;
   }
   for(auto iter : rep_->local_filter_mr){
     rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+    delete iter;
   }
   delete rep_->data_block;
   delete rep_->index_block;
