@@ -29,7 +29,7 @@ static const int Immutable_FlushTrigger = 1;
 // Maximum number of unflushed immutable files
 static const int Immutable_StopWritesTrigger = 10;
 // Level-0 compaction is started when we hit this many files.
-static const int kL0_CompactionTrigger = 4;
+static const int kL0_CompactionTrigger = 1;
 
 // Soft limit on number of level-0 files.  We slow down writes at this point.
 static const int kL0_SlowdownWritesTrigger = 20;
