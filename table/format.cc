@@ -111,18 +111,25 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
 //#endif
 
 //  if (){
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
 
+    Find_Remote_mr(remote_data_blocks, handle, &remote_mr);
+//#ifdef GETANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  printf("Find mr time elapse is %zu\n",  duration.count());
+//#endif
 #ifdef GETANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
-    Find_Remote_mr(remote_data_blocks, handle, &remote_mr);
-#ifdef GETANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    printf("Find mr time elapse is %zu\n",  duration.count());
-#endif
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("Find mr time elapse is %zu\n",  duration.count());
+#endif
     rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 //
 //  }else{
