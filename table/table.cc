@@ -154,8 +154,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 #endif
       } else {
 #ifdef GETANALYSIS
-        start = std::chrono::high_resolution_clock::now();
         TableCache::cache_miss.fetch_add(1);
+        start = std::chrono::high_resolution_clock::now();
+
 #endif
         s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
 #ifdef GETANALYSIS
