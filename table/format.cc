@@ -90,9 +90,9 @@ void Find_Remote_mr(std::map<int, ibv_mr*>* remote_data_blocks,
 // the same as data index block and filter block.
 Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result) {
-#ifdef GETANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
   result->data = Slice();
 //  result->cachable = false;
 //  result->heap_allocated = false;
@@ -122,15 +122,15 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Find mr time elapse is %zu\n",  duration.count());
 //#endif
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
+#ifdef GETANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Local memory allocation time elapse is %zu\n",  duration.count());
-//#endif
+#ifdef GETANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("Local memory allocation time elapse is %zu\n",  duration.count());
+#endif
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
@@ -200,11 +200,11 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
       DEBUG("Data block illegal compression type\n");
       return Status::Corruption("bad block type");
   }
-#ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("CRC check elapse is %zu\n",  duration.count());
-#endif
+//#ifdef GETANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  printf("CRC check elapse is %zu\n",  duration.count());
+//#endif
   return Status::OK();
 }
 
