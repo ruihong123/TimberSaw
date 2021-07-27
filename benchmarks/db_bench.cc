@@ -12,6 +12,7 @@
 #include <cstdlib>
 
 #include "leveldb/cache.h"
+#include "db/table_cache.h"
 #include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
@@ -660,6 +661,9 @@ class Benchmark {
       }
 
       if (method != nullptr) {
+        if (name == "readrandom"){
+          TableCache::CleanAll();
+        }
         RunBenchmark(num_threads, name, method);
         printf("Benchmark finished\n");
 
@@ -708,6 +712,8 @@ class Benchmark {
                     void (Benchmark::*method)(ThreadState*)) {
 //    if (name.ToString() == "fillrandom")
 //      Validation_Write();
+//    if (name.ToString() == "readrandom"){
+//    }
     SharedState shared(n);
 
     ThreadArg* arg = new ThreadArg[n];
