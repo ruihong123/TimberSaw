@@ -262,7 +262,6 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
       BlockHandle handle;
 #ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
       start = std::chrono::high_resolution_clock::now();
 #endif
       Iterator* block_iter = BlockReader(this, options, iiter->value());
@@ -273,7 +272,6 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
 #endif
 #ifdef GETANALYSIS
-      TableCache::not_filtered.fetch_add(1);
       start = std::chrono::high_resolution_clock::now();
 #endif
       block_iter->Seek(k);
