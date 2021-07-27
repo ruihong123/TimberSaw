@@ -1098,7 +1098,7 @@ End of socket operations
 ******************************************************************************/
 
 // return 0 means success
-int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
+  int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
                             size_t msg_size, std::string q_id, size_t send_flag,
                             int poll_num) {
   //  auto start = std::chrono::high_resolution_clock::now();

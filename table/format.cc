@@ -131,15 +131,16 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Local memory allocation time elapse is %zu\n",  duration.count());
 //#endif
-#ifdef GETANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
-    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
-#ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("RDMA read time elapse is %zu\n",  duration.count());
-#endif
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
+    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize,
+                     "read_local", IBV_SEND_SIGNALED, 1);
+//#ifdef GETANALYSIS
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//  printf("RDMA read time elapse is %zu\n",  duration.count());
+//#endif
     //
 //  }else{
 //    s = Status::Corruption("Remote memtable out of buffer");

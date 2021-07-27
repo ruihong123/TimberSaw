@@ -897,7 +897,6 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
       it->SeekToFirst();
       size_t counter = 0;
       while(it->Valid()){
-        printf("you are fucking kidding me");
         counter++;
         it->Next();
       }
