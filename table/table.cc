@@ -155,6 +155,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       } else {
 #ifdef GETANALYSIS
         TableCache::cache_miss.fetch_add(1);
+        assert(TableCache::cache_miss < TableCache::not_filtered);
         start = std::chrono::high_resolution_clock::now();
 
 #endif
@@ -246,7 +247,6 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
     Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
 #ifdef GETANALYSIS
-    TableCache::not_filtered.fetch_add(1);
     auto start = std::chrono::high_resolution_clock::now();
 #endif
     iiter->Seek(k);//binary search for block index
@@ -262,6 +262,8 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
       BlockHandle handle;
 #ifdef GETANALYSIS
+      TableCache::not_filtered.fetch_add(1);
+
       start = std::chrono::high_resolution_clock::now();
 #endif
       Iterator* block_iter = BlockReader(this, options, iiter->value());
