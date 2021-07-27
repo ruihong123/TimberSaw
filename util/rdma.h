@@ -388,6 +388,10 @@ class RDMA_Manager {
       name_to_mem_pool;
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
+#ifdef GETANALYSIS
+  static std::atomic<uint64_t> RDMAReadTimeElapseSum;
+  static std::atomic<uint64_t> ReadCount;
+#endif
   //  std::unordered_map<std::string, ibv_mr*> fs_image;
   //  std::unordered_map<std::string, ibv_mr*> log_image;
   //  std::unique_ptr<ibv_mr, IBV_Deleter> log_image_mr;
