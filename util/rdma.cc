@@ -78,9 +78,7 @@ RDMA_Manager::~RDMA_Manager() {
       }
     }
   printf("RDMA Manager get destroyed\n");
-#ifdef GETANALYSIS
-  printf("RDMA read operatoion average time duration: %zu\n", RDMAReadTimeElapseSum.load()/ReadCount);
-#endif
+
   //  delete qp_local_write_flush;
   //  delete  cq_local_write_flush;
   //  delete t_local_1;
