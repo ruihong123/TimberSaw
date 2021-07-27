@@ -155,7 +155,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       } else {
 #ifdef GETANALYSIS
         TableCache::cache_miss.fetch_add(1);
-        assert(TableCache::cache_miss < TableCache::not_filtered);
+        if(TableCache::cache_miss < TableCache::not_filtered){
+          printf("warning\n");
+        };
         start = std::chrono::high_resolution_clock::now();
 
 #endif
