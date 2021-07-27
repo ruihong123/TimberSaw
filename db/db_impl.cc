@@ -274,7 +274,8 @@ DBImpl::~DBImpl() {
     env_->SleepForMicroseconds(10);
   }
 #ifdef GETANALYSIS
-  printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
+  if (RDMA_Manager::ReadCount.load() != 0)
+    printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
 #endif
 //  undefine_mutex.Unlock();
 
