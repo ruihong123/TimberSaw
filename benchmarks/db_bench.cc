@@ -665,7 +665,7 @@ class Benchmark {
 
       }
     }
-    Validation_Read();
+//    Validation_Read();
   }
 
  private:
@@ -706,8 +706,8 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
-    if (name.ToString() == "fillrandom")
-      Validation_Write();
+//    if (name.ToString() == "fillrandom")
+//      Validation_Write();
     SharedState shared(n);
 
     ThreadArg* arg = new ThreadArg[n];
