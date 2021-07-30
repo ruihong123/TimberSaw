@@ -43,7 +43,7 @@ namespace {
 struct LRUHandle {
   void* value;
   void (*deleter)(const Slice&, void* value);
-  LRUHandle* next_hash;
+  LRUHandle* next_hash;// Next LRUhandle in the hash
   LRUHandle* next;
   LRUHandle* prev;
   size_t charge;  // TODO(opt): Only allow uint32_t?
@@ -254,7 +254,7 @@ void LRUCache::LRU_Append(LRUHandle* list, LRUHandle* e) {
 
 Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash) {
   MutexLock l(&mutex_);
-  //TOTHINK: shoul we update the lru list after look up a key?
+  //TOTHINK(ruihong): shoul we update the lru list after look up a key?
   //  Answer: Ref will refer this key and later, the outer function has to call
   // Unref or release which will update the lRU list.
   LRUHandle* e = table_.Lookup(key, hash);
@@ -291,7 +291,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
     e->in_cache = true;
     LRU_Append(&in_use_, e);// Finally it will be pushed into LRU list
     usage_ += charge;
-    FinishErase(table_.Insert(e));
+    FinishErase(table_.Insert(e));//table_.Insert(e) will return LRUhandle with duplicate key as e, and then delete it by FinishErase
   } else {  // don't cache. (capacity_==0 is supported and turns off caching.)
     // next is read by key() in an assert, so it must be initialized
     e->next = nullptr;

@@ -21,6 +21,8 @@ struct RemoteMemTableMetaData {
   RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
   //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {
+    //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
+    // home node to deference. Or the remote dereference is conducted in the granularity of version.
     DEBUG("Destroying RemoteMemtableMetaData\n");
     if(Remote_blocks_deallocate(remote_data_mrs) &&
         Remote_blocks_deallocate(remote_dataindex_mrs) &&

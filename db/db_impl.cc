@@ -260,7 +260,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       versions_(new VersionSet(dbname_, &options_, table_cache_,
                                &internal_comparator_, &superversion_mtx)),
       super_version_number_(0),
-      super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)){}
+      super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)){
+//        main_comm_threads.emplace_back(Clientmessagehandler());
+}
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
@@ -1454,6 +1456,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
 
   s = vset->LogAndApply(edit);
+//  Edit_sync_to_remote(edit);
   InstallSuperVersion();
   lck2.unlock();
   job->write_stall_cv_->notify_all();
@@ -1568,7 +1571,10 @@ void DBImpl::InstallSuperVersion() {
     }
   }
 }
-
+void DBImpl::Communication_To_Home_Node() {
+  ibv_wc wc[3] = {};
+  env_->rdma_mg->poll_completion(wc, 1, "main", false);
+}
 void DBImpl::ResetThreadLocalSuperVersions() {
   autovector<void*> sv_ptrs;
   // If there the default pointer for local_sv_ s are nullptr
@@ -2799,6 +2805,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
   v->Unref(0);
 }
+
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish

@@ -115,7 +115,10 @@ RDMA_Manager::~RDMA_Manager() {
   //    delete res->SST_buf;
   if (!res->cq_map.empty())
     for (auto it = res->cq_map.begin(); it != res->cq_map.end(); it++) {
-      if (ibv_destroy_cq(it->second)) {
+      if (ibv_destroy_cq(it->second.first)) {
+        fprintf(stderr, "failed to destroy CQ\n");
+      }
+      if (it->second.second!= nullptr && ibv_destroy_cq(it->second.second)){
         fprintf(stderr, "failed to destroy CQ\n");
       }
     }
@@ -490,7 +493,7 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string client_ip, int socket_fd) 
 
   /* exchange using TCP sockets info required to connect QPs */
   printf("checkpoint1");
-  ibv_qp* qp = create_qp(client_ip);
+  ibv_qp* qp = create_qp(client_ip, true);
   local_con_data.qp_num = htonl(res->qp_map[client_ip]->qp_num);
   local_con_data.lid = htons(res->port_attr.lid);
   memcpy(local_con_data.gid, &res->my_gid, 16);
@@ -735,7 +738,7 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
   } else
     memset(&my_gid, 0, sizeof my_gid);
   /* exchange using TCP sockets info required to connect QPs */
-  ibv_qp* qp = create_qp(qp_id);
+  ibv_qp* qp = create_qp(qp_id, false);
   local_con_data.qp_num = htonl(res->qp_map[qp_id]->qp_num);
   local_con_data.lid = htons(res->port_attr.lid);
   memcpy(local_con_data.gid, &my_gid, 16);
@@ -773,32 +776,42 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
 
   return false;
 }
-ibv_qp* RDMA_Manager::create_qp(std::string& id) {
+ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
   struct ibv_qp_init_attr qp_init_attr;
 
   /* each side will send only one WR, so Completion Queue with 1 entry is enough
    */
   int cq_size = 2500;
-  ibv_cq* cq = ibv_create_cq(res->ib_ctx, cq_size, NULL, NULL, 0);
-  if (!cq) {
+  // cq1 send queue, cq2 receive queue
+  ibv_cq* cq1 = ibv_create_cq(res->ib_ctx, cq_size, NULL, NULL, 0);
+  ibv_cq* cq2;
+  if (seperated_cq)
+    cq2 = ibv_create_cq(res->ib_ctx, cq_size, NULL, NULL, 0);
+
+  if (!cq1) {
     fprintf(stderr, "failed to create CQ with %u entries\n", cq_size);
   }
   std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
   if (id == "read_local" )
-    cq_local_read->Reset(cq);
+    cq_local_read->Reset(cq1);
   else if(id == "write_local_compact")
-    cq_local_write_compact->Reset(cq);
+    cq_local_write_compact->Reset(cq1);
   else if(id == "write_local_flush")
-    cq_local_write_flush->Reset(cq);
+    cq_local_write_flush->Reset(cq1);
+  else if (seperated_cq)
+    res->cq_map.insert({id, std::make_pair(cq1, cq2)});
   else
-    res->cq_map[id] = cq;
+    res->cq_map.insert({id, std::make_pair(cq1, nullptr)});
 
   /* create the Queue Pair */
   memset(&qp_init_attr, 0, sizeof(qp_init_attr));
   qp_init_attr.qp_type = IBV_QPT_RC;
   qp_init_attr.sq_sig_all = 0;
-  qp_init_attr.send_cq = cq;
-  qp_init_attr.recv_cq = cq;
+  qp_init_attr.send_cq = cq1;
+  if (seperated_cq)
+    qp_init_attr.recv_cq = cq2;
+  else
+    qp_init_attr.recv_cq = cq1;
   qp_init_attr.cap.max_send_wr = 2500;
   qp_init_attr.cap.max_recv_wr = 2500;
   qp_init_attr.cap.max_send_sge = 30;
@@ -1120,7 +1133,7 @@ End of socket operations
     //  auto start = std::chrono::high_resolution_clock::now();
     //  while(std::chrono::high_resolution_clock::now
     //  ()-start < std::chrono::nanoseconds(msg_size+200000));
-    rc = poll_completion(wc, poll_num, q_id);
+    rc = poll_completion(wc, poll_num, q_id, false);
     if (rc != 0) {
       std::cout << "RDMA Read Failed" << std::endl;
       std::cout << "q id is" << q_id << std::endl;
@@ -1209,7 +1222,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
     //  auto start = std::chrono::high_resolution_clock::now();
     //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
     // wait until the job complete.
-    rc = poll_completion(wc, poll_num, q_id);
+    rc = poll_completion(wc, poll_num, q_id, false);
     if (rc != 0) {
       std::cout << "RDMA Write Failed" << std::endl;
       std::cout << "q id is" << q_id << std::endl;
@@ -1585,7 +1598,7 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id) {
 *
 ******************************************************************************/
 int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
-                                  std::string q_id) {
+                                  std::string q_id, bool send_cq) {
   // unsigned long start_time_msec;
   // unsigned long cur_time_msec;
   // struct timeval cur_time;
@@ -1610,7 +1623,10 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
 
   }
   else{
-    cq = res->cq_map.at(q_id);
+    if (send_cq)
+      cq = res->cq_map.at(q_id).first;
+    else
+      cq = res->cq_map.at(q_id).second;
     assert(cq != nullptr);
   }
   l.unlock();
@@ -1652,7 +1668,8 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
 }
 int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
                                                    int num_entries,
-                                                   std::string q_id) {
+                                                   std::string q_id,
+                                                   bool send_cq) {
   int poll_result;
   int poll_num = 0;
   int rc = 0;
@@ -1672,7 +1689,10 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
 
   }
   else{
-    cq = res->cq_map.at(q_id);
+    if (send_cq)
+      cq = res->cq_map.at(q_id).first;
+    else
+      cq = res->cq_map.at(q_id).second;
     assert(cq != nullptr);
   }
 
@@ -1760,8 +1780,8 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   //  }
   //  assert(wc.opcode == IBV_WC_RECV);
   printf("Remote memory registeration, size: %zu", size);
-  if (!poll_completion(
-          wc, 2, std::string("main"))) {  // poll the receive for 2 entires
+  if (!poll_completion(wc, 1, std::string("main"),true)&&
+  !poll_completion(wc, 1, std::string("main"), false)) {  // poll the receive for 2 entires
     auto* temp_pointer = new ibv_mr();
     // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
     // Please remember to delete it when diregistering mem region from the remote memory
@@ -1789,7 +1809,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
-  ibv_qp* qp = create_qp(qp_id);
+  ibv_qp* qp = create_qp(qp_id, false);
 
   union ibv_gid my_gid;
   int rc;
@@ -1831,7 +1851,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   //  }
   //  assert(wc.opcode == IBV_WC_RECV);
 
-  if (!poll_completion(wc, 2, std::string("main"))) {
+  if (!poll_completion(wc, 1, std::string("main"), true) &&
+  !poll_completion(wc, 1, std::string("main"), false)) {
     // poll the receive for 2 entires
     registered_qp_config temp_buff = *receive_pointer;
     fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->qp_num);

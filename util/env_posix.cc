@@ -819,6 +819,8 @@ PosixEnv::PosixEnv()
   //client will try to connect to the remote memory, now there is only one remote memory.
   rdma_mg->Client_Set_Up_Resources();
 
+
+
       }
 
 void PosixEnv::Schedule(

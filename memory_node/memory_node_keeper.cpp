@@ -32,6 +32,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     char temp_receive[2];
     char temp_send[] = "Q";
     int rc = 0;
+    rdma_mg_->ConnectQPThroughSocket(client_ip, socket_fd);
     ibv_mr* send_mr;
     char* send_buff;
     if (!rdma_mg_->Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
@@ -72,7 +73,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     //  ibv_wc wc[3] = {};
     // TODO: implement a heart beat mechanism.
     while (true) {
-      rdma_mg_->poll_completion(wc, 1, client_ip);
+      rdma_mg_->poll_completion(wc, 1, client_ip, false);
       memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
@@ -91,7 +92,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         *send_pointer = *mr;
         rdma_mg_->post_receive<computing_to_memory_msg>(recv_mr, client_ip);
         rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
-        rdma_mg_->poll_completion(wc, 1, client_ip);
+        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf.command == create_qp_) {
         char gid_str[17];
         memset(gid_str, 0, 17);
@@ -107,7 +108,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         fprintf(stdout, "Remote LID = 0x%x\n",
                 receive_msg_buf.content.qp_config.lid);
         registered_qp_config* send_pointer = (registered_qp_config*)send_buff;
-        ibv_qp* qp = rdma_mg_->create_qp(new_qp_id);
+        ibv_qp* qp = rdma_mg_->create_qp(new_qp_id, false);
         if (rdma_mg_->rdma_config.gid_idx >= 0) {
           rc = ibv_query_gid(rdma_mg_->res->ib_ctx, rdma_mg_->rdma_config.ib_port,
                              rdma_mg_->rdma_config.gid_idx, &(rdma_mg_->res->my_gid));
@@ -125,7 +126,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         rdma_mg_->connect_qp(receive_msg_buf.content.qp_config, qp);
         rdma_mg_->post_receive<computing_to_memory_msg>(recv_mr, client_ip);
         rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
-        rdma_mg_->poll_completion(wc, 1, client_ip);
+        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else {
         printf("corrupt message from client.");
       }

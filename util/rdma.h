@@ -87,10 +87,16 @@ struct fs_sync_command {
   int data_size;
   file_type type;
 };
+//TODO (ruihong): add the reply message address to avoid request&response conflict for the same queue pair.
+// In other word, the threads will not need to figure out whether this message is a reply or response,
+// when receive a message from the main queue pair.
 union RDMA_Command_Content {
   size_t mem_size;
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
+  void* reply_buffer;
+  uint32_t rkey;
+
 };
 
 struct computing_to_memory_msg {
@@ -190,7 +196,7 @@ struct resources {
   //  std::vector<registered_qp_config> remote_mem_regions; /* memory buffers for RDMA */
   struct ibv_context* ib_ctx = nullptr;  /* device handle */
   struct ibv_pd* pd = nullptr;           /* PD handle */
-  std::map<std::string, ibv_cq*> cq_map; /* CQ Map */
+  std::map<std::string, std::pair<ibv_cq*, ibv_cq*>> cq_map; /* CQ Map */
   std::map<std::string, ibv_qp*> qp_map; /* QP Map */
   struct ibv_mr* mr_receive = nullptr;   /* MR handle for receive_buf */
   struct ibv_mr* mr_send = nullptr;      /* MR handle for send_buf */
@@ -291,7 +297,12 @@ class RDMA_Manager {
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
                  std::string q_id, size_t send_flag, int poll_num);
   int RDMA_Send();
-  int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id);
+  // For a non-thread-local queue pair, send_cq==true poll the cq of send queue, send_cq==false poll the cq of receive queue
+  // the coder need to figure out whether the queue pair has two seperated queue,
+  // if not, only send_cq==true is a valid option.
+  // For a thread-local queue pair, the send_cq does not matter.
+  int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id,
+                      bool send_cq);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                   std::string buffer_type);
   bool Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type);
@@ -313,7 +324,7 @@ class RDMA_Manager {
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
   int try_poll_this_thread_completions(ibv_wc* wc_p, int num_entries,
-                                       std::string q_id);
+                                       std::string q_id, bool send_cq);
   void fs_serialization(
       char*& buff, size_t& size, std::string& db_name,
       std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
@@ -392,7 +403,7 @@ class RDMA_Manager {
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid,
                        uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
-  ibv_qp* create_qp(std::string& id);
+  ibv_qp* create_qp(std::string& id, bool seperated_cq);
   int connect_qp(registered_qp_config remote_con_data, ibv_qp* qp);
   int resources_destroy();
   void print_config(void);

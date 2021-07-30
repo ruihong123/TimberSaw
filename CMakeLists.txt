@@ -123,7 +123,7 @@ endif(BUILD_SHARED_LIBS)
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(leveldb memory_node/memory_node_keeper.h memory_node/memory_node_keeper.cpp util/ThreadPool.cpp util/ThreadPool.h)
+add_library(leveldb util/ThreadPool.h)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
@@ -160,6 +160,10 @@ target_sources(leveldb
     "db/version_set.h"
     "db/write_batch_internal.h"
     "db/write_batch.cc"
+    "memory_node/memory_node_keeper.h"
+    "memory_node/memory_node_keeper.cpp"
+    "util/ThreadPool.cpp"
+    "util/ThreadPool.h"
     "util/allocator.h"
     "port/port_posix.h"
     "port/port_posix.cc"

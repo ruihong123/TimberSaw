@@ -220,6 +220,8 @@ class DBImpl : public DB {
   bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
   void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
+  void Communication_To_Home_Node();
+  void Edit_sync_to_remote(VersionEdit* edit);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
@@ -288,6 +290,7 @@ class DBImpl : public DB {
   SuperVersion* super_version;
 //  std::unique_ptr<ThreadLocalPtr> local_sv_;
   ThreadLocalPtr* local_sv_;
+  std::vector<std::thread> main_comm_threads;
 
 };
 struct BGThreadMetadata {
