@@ -20,6 +20,7 @@
 
 #include "leveldb/export.h"
 #include "leveldb/status.h"
+#include "util/ThreadPool.h"
 #include "util/rdma.h"
 
 // This workaround can be removed when leveldb::Env::DeleteFile is removed.
@@ -51,7 +52,6 @@ class WritableFile;
 
 class LEVELDB_EXPORT Env {
  public:
-  enum ThreadPoolType{FlushThreadPool, CompactionThreadPool, SubcompactionThreadPool};
   Env();
 
   Env(const Env&) = delete;
@@ -220,7 +220,7 @@ class LEVELDB_EXPORT Env {
 
   // Sleep/delay the thread for the prescribed number of micro-seconds.
   virtual void SleepForMicroseconds(int micros) = 0;
-  virtual void SetBackgroundThreads(int num,  Env::ThreadPoolType type) = 0;
+  virtual void SetBackgroundThreads(int num,  ThreadPoolType type) = 0;
   std::shared_ptr<RDMA_Manager> rdma_mg;
 };
 

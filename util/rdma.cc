@@ -217,86 +217,276 @@ sock_connect_exit:
   }
   return sockfd;
 }
-// connection code for server side, will get prepared for multiple connection
-// on the same port.
-int RDMA_Manager::server_sock_connect(const char* servername, int port) {
-  struct addrinfo* resolved_addr = NULL;
-  struct addrinfo* iterator;
-  char service[6];
-  int sockfd = -1;
-  int listenfd = 0;
-  struct sockaddr address;
-  socklen_t len = sizeof(struct sockaddr);
-  struct addrinfo hints = {
-      .ai_flags = AI_PASSIVE, .ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
-  if (sprintf(service, "%d", port) < 0) goto sock_connect_exit;
-  /* Resolve DNS address, use sockfd as temp storage */
-  sockfd = getaddrinfo(servername, service, &hints, &resolved_addr);
-  if (sockfd < 0) {
-    fprintf(stderr, "%s for %s:%d\n", gai_strerror(sockfd), servername, port);
-    goto sock_connect_exit;
-  }
 
-  /* Search through results and find the one we want */
-  for (iterator = resolved_addr; iterator; iterator = iterator->ai_next) {
-    sockfd = socket(iterator->ai_family, iterator->ai_socktype,
-                    iterator->ai_protocol);
-    int option = 1;
-    setsockopt(sockfd,SOL_SOCKET,SO_REUSEADDR,&option,sizeof(int));
-    if (sockfd >= 0) {
-      /* Server mode. Set up listening socket an accept a connection */
-      listenfd = sockfd;
-      sockfd = -1;
-      if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
-        goto sock_connect_exit;
-      listen(listenfd, 20);
-      while (1) {
-        sockfd = accept(listenfd, &address, &len);
-        std::string client_id =
-            std::string(
-                inet_ntoa(((struct sockaddr_in*)(&address))->sin_addr)) +
-            std::to_string(((struct sockaddr_in*)(&address))->sin_port);
-        // Client id must be composed of ip address and port number.
-        std::cout << "connection built up from" << client_id << std::endl;
-        std::cout << "connection family is " << address.sa_family << std::endl;
-        if (sockfd < 0) {
-          fprintf(stderr, "Connection accept error, erron: %d\n", errno);
-          break;
-        }
-        thread_pool.push_back(std::thread(
-            [this](std::string client_ip, int socketfd) {
-              this->server_communication_thread(client_ip, socketfd);
-            },
-            std::string(address.sa_data), sockfd));
-        //        thread_pool.back().detach();
-      }
-    }
-  }
-sock_connect_exit:
+//void RDMA_Manager::server_communication_thread(std::string client_ip,
+//                                               int socket_fd) {
+//  printf("A new shared memory thread start\n");
+//  printf("checkpoint1");
+//  char temp_receive[2];
+//  char temp_send[] = "Q";
+//  struct registered_qp_config local_con_data;
+//  struct registered_qp_config remote_con_data;
+//  struct registered_qp_config tmp_con_data;
+//  //  std::string qp_id = "main";
+//  int rc = 0;
+//
+//  /* exchange using TCP sockets info required to connect QPs */
+//  printf("checkpoint1");
+//  ibv_qp* qp = create_qp(client_ip);
+//  local_con_data.qp_num = htonl(res->qp_map[client_ip]->qp_num);
+//  local_con_data.lid = htons(res->port_attr.lid);
+//  memcpy(local_con_data.gid, &res->my_gid, 16);
+//  printf("checkpoint2");
+//
+//  fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
+//  if (sock_sync_data(socket_fd, sizeof(struct registered_qp_config),
+//                     (char*)&local_con_data, (char*)&tmp_con_data) < 0) {
+//    fprintf(stderr, "failed to exchange connection data between sides\n");
+//    rc = 1;
+//  }
+//  remote_con_data.qp_num = ntohl(tmp_con_data.qp_num);
+//  remote_con_data.lid = ntohs(tmp_con_data.lid);
+//  memcpy(remote_con_data.gid, tmp_con_data.gid, 16);
+//  fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data.qp_num);
+//  fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data.lid);
+//  if (connect_qp(remote_con_data, qp)) {
+//    fprintf(stderr, "failed to connect QPs\n");
+//  }
+//
+//  ibv_mr* send_mr;
+//  char* send_buff;
+//  if (!Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
+//    fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
+//  }
+//  ibv_mr* recv_mr;
+//  char* recv_buff;
+//  if (!Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
+//    fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
+//  }
+//  //  post_receive<int>(recv_mr, client_ip);
+//
+//  post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//
+//  // sync after send & recv buffer creation and receive request posting.
+//  if (sock_sync_data(socket_fd, 1, temp_send,
+//                     temp_receive)) /* just send a dummy char back and forth */
+//  {
+//    fprintf(stderr, "sync error after QPs are were moved to RTS\n");
+//    rc = 1;
+//  }
+//  shutdown(socket_fd, 2);
+//  close(socket_fd);
+//  //  post_send<int>(res->mr_send, client_ip);
+//  ibv_wc wc[3] = {};
+//  //  if(poll_completion(wc, 2, client_ip))
+//  //    printf("The main qp not create correctly");
+//  //  else
+//  //    printf("The main qp not create correctly");
+//  // Computing node and share memory connection succeed.
+//  // Now is the communication through rdma.
+//  computing_to_memory_msg receive_msg_buf;
+//
+//  //  receive_msg_buf = (computing_to_memory_msg*)recv_buff;
+//  //  receive_msg_buf->command = ntohl(receive_msg_buf->command);
+//  //  receive_msg_buf->content.qp_config.qp_num = ntohl(receive_msg_buf->content.qp_config.qp_num);
+//  //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
+//  //  ibv_wc wc[3] = {};
+//  // TODO: implement a heart beat mechanism.
+//  while (true) {
+//    poll_completion(wc, 1, client_ip);
+//    memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
+//    // copy the pointer of receive buf to a new place because
+//    // it is the same with send buff pointer.
+//    if (receive_msg_buf.command == create_mr_) {
+//      std::cout << "create memory region command receive for" << client_ip
+//                << std::endl;
+//      ibv_mr* send_pointer = (ibv_mr*)send_buff;
+//      ibv_mr* mr;
+//      char* buff;
+//      if (!Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
+//                                 std::string())) {
+//        fprintf(stderr, "memory registering failed by size of 0x%x\n",
+//                static_cast<unsigned>(receive_msg_buf.content.mem_size));
+//      }
+//      printf("Now the total Registered memory is %zu GB", local_mem_pool.size());
+//      *send_pointer = *mr;
+//      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      post_send<ibv_mr>(
+//          send_mr,
+//          client_ip);  // note here should be the mr point to the send buffer.
+//      poll_completion(wc, 1, client_ip);
+//    } else if (receive_msg_buf.command == create_qp_) {
+//      char gid_str[17];
+//      memset(gid_str, 0, 17);
+//      memcpy(gid_str, receive_msg_buf.content.qp_config.gid, 16);
+//      std::string new_qp_id =
+//          std::string(gid_str) +
+//          std::to_string(receive_msg_buf.content.qp_config.lid) +
+//          std::to_string(receive_msg_buf.content.qp_config.qp_num);
+//      std::cout << "create query pair command receive for" << client_ip
+//                << std::endl;
+//      fprintf(stdout, "Remote QP number=0x%x\n",
+//              receive_msg_buf.content.qp_config.qp_num);
+//      fprintf(stdout, "Remote LID = 0x%x\n",
+//              receive_msg_buf.content.qp_config.lid);
+//      registered_qp_config* send_pointer = (registered_qp_config*)send_buff;
+//      ibv_qp* qp = create_qp(new_qp_id);
+//      if (rdma_config.gid_idx >= 0) {
+//        rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port,
+//                           rdma_config.gid_idx, &(res->my_gid));
+//        if (rc) {
+//          fprintf(stderr, "could not get gid for port %d, index %d\n",
+//                  rdma_config.ib_port, rdma_config.gid_idx);
+//          return;
+//        }
+//      } else
+//        memset(&(res->my_gid), 0, sizeof(res->my_gid));
+//      /* exchange using TCP sockets info required to connect QPs */
+//      send_pointer->qp_num = res->qp_map[new_qp_id]->qp_num;
+//      send_pointer->lid = res->port_attr.lid;
+//      memcpy(send_pointer->gid, &(res->my_gid), 16);
+//      connect_qp(receive_msg_buf.content.qp_config, qp);
+//      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      post_send<registered_qp_config>(send_mr, client_ip);
+//      poll_completion(wc, 1, client_ip);
+//      //    }else if (receive_msg_buf.command == retrieve_fs_serialized_data){
+//      //      printf("retrieve_fs_serialized_data message received successfully\n"); post_receive(recv_mr,client_ip, 1000);
+//      //      post_send<int>(send_mr,client_ip);
+//      //      // prepare the receive for db name, the name should not exceed 1000byte
+//      //
+//      //      poll_completion(wc, 2, client_ip);
+//      //      std::string dbname;
+//      //      // Here could be some problem.
+//      //      dbname = std::string(recv_buff);
+//      //      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+//      //      ibv_mr* local_data_mr;
+//      //      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
+//      //      if (fs_image.find(dbname)!= fs_image.end()){
+//      //        local_data_mr = fs_image.at(dbname);
+//      //        l.unlock();
+//      //        *(reinterpret_cast<size_t*>(send_buff)) = local_data_mr->length;
+//      //        post_send<size_t>(send_mr,client_ip);
+//      //        post_receive<char>(recv_mr,client_ip);
+//      //        post_send(local_data_mr,client_ip, local_data_mr->length);
+//      //        poll_completion(wc, 3, client_ip);
+//      //      }else{
+//      //        l.unlock();
+//      //        *(reinterpret_cast<size_t*>(send_buff)) = 0;
+//      //        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      //        post_send<size_t>(send_mr,client_ip);
+//      //        poll_completion(wc, 1, client_ip);
+//      //      }
+//      //
+//      //
+//      //    }else if (receive_msg_buf.command == save_fs_serialized_data){
+//      //      printf("save_fs_serialized_data message received successfully\n");
+//      //      int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
+//      //      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
+//      //
+//      //      char* buff = static_cast<char*>(malloc(buff_size));
+//      //      ibv_mr* local_data_mr;
+//      //      int mr_flags =
+//      //          IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+//      //      local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); post_receive(local_data_mr,client_ip, buff_size);
+//      //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      //      post_send<char>(recv_mr,client_ip);
+//      //      poll_completion(wc, 2, client_ip);
+//      //
+//      //      char* temp = static_cast<char*>(local_data_mr->addr);
+//      //      size_t namenumber_net;
+//      //      memcpy(&namenumber_net, temp, sizeof(size_t));
+//      //      size_t namenumber = htonl(namenumber_net);
+//      //      temp = temp + sizeof(size_t);
+//      //
+//      //      char dbname_[namenumber+1];
+//      //      memcpy(dbname_, temp, namenumber);
+//      //      dbname_[namenumber] = '\0';
+//      //      temp = temp + namenumber;
+//      //      std::string db_name = std::string(dbname_);
+//      //      std::cout << "save db_name is: " << db_name <<std::endl;
+//      //      if (fs_image.find(db_name)!= fs_image.end()){
+//      //        void* to_delete = fs_image.at(db_name)->addr;
+//      //        ibv_dereg_mr(fs_image.at(db_name));
+//      //        free(to_delete);
+//      //        fs_image.at(db_name) = local_data_mr;
+//      //      }else{
+//      //        fs_image[db_name] = local_data_mr;
+//      //      }
+//      //
+//      //
+//      //
+//      //
+//      //
+//      ////      break;
+//      //    }else if(receive_msg_buf.command == save_log_serialized_data){
+//      //      printf("retrieve_log_serialized_data message received successfully\n");
+//      //
+//      //      int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
+//      //      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
+//      //      post_receive(recv_mr,client_ip, 1000);
+//      //
+//      //      post_send<int>(send_mr,client_ip);
+//      //      poll_completion(wc, 2, client_ip);
+//      //
+//      //      std::string dbname;
+//      //      // Here could be some problem.
+//      //      dbname = std::string(recv_buff);
+//      //      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+//      //      ibv_mr* local_data_mr;
+//      //      if (log_image.find(dbname) == log_image.end()){
+//      //        void* buff = malloc(1024*1024);
+//      //        int mr_flags =
+//      //            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+//      //        local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); log_image.insert({dbname, local_data_mr});
+//      //      }else{
+//      //        local_data_mr = log_image.at(dbname);
+//      //      }
+//      //      post_receive(local_data_mr, client_ip, buff_size);
+//      //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      //      post_send<int>(send_mr,client_ip);
+//      //      poll_completion(wc, 2, client_ip);
+//      //
+//      //
+//      //    }else if(receive_msg_buf.command == retrieve_log_serialized_data){
+//      ////      printf("retrieve_log_serialized_data message received successfully\n"); /      post_receive(recv_mr,client_ip, 1000); /      post_send<int>(send_mr,client_ip); /      // prepare the receive for db name, the name should not exceed 1000byte
+//      ////
+//      ////      poll_completion(wc, 2, client_ip);
+//      ////      std::string dbname;
+//      ////      // Here could be some problem.
+//      ////      dbname = std::string(recv_buff);
+//      ////      std::cout << "retrieve db_name is: " << dbname <<std::endl;
+//      ////      ibv_mr* local_data_mr;
+//      ////      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
+//      ////      if (log_image.find(dbname)!= fs_image.end()){
+//      ////        local_data_mr = fs_image.at(dbname);
+//      ////        l.unlock();
+//      ////        *(reinterpret_cast<size_t*>(send_buff)) = local_data_mr->length;
+//      ////        post_send<size_t>(send_mr,client_ip);
+//      ////        post_receive<char>(recv_mr,client_ip);
+//      ////        post_send(local_data_mr,client_ip, local_data_mr->length);
+//      ////        poll_completion(wc, 3, client_ip);
+//      ////      }else{
+//      ////        l.unlock();
+//      ////        *(reinterpret_cast<size_t*>(send_buff)) = 0;
+//      ////        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+//      ////        post_send<size_t>(send_mr,client_ip);
+//      ////        poll_completion(wc, 1, client_ip);
+//      ////      }
+//    } else {
+//      printf("corrupt message from client.");
+//    }
+//  }
+//  return;
+//  // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
+//}
 
-  if (listenfd) close(listenfd);
-  if (resolved_addr) freeaddrinfo(resolved_addr);
-  if (sockfd < 0) {
-    if (servername)
-      fprintf(stderr, "Couldn't connect to %s:%d\n", servername, port);
-    else {
-      perror("server accept");
-      fprintf(stderr, "accept() failed\n");
-    }
-  }
-  return sockfd;
-}
-void RDMA_Manager::server_communication_thread(std::string client_ip,
-                                               int socket_fd) {
-  printf("A new shared memory thread start\n");
-  printf("checkpoint1");
-  char temp_receive[2];
-  char temp_send[] = "Q";
+void RDMA_Manager::ConnectQPThroughSocket(std::string client_ip, int socket_fd) {
+
   struct registered_qp_config local_con_data;
   struct registered_qp_config remote_con_data;
   struct registered_qp_config tmp_con_data;
   //  std::string qp_id = "main";
-  int rc = 0;
+
 
   /* exchange using TCP sockets info required to connect QPs */
   printf("checkpoint1");
@@ -308,9 +498,8 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
 
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
   if (sock_sync_data(socket_fd, sizeof(struct registered_qp_config),
-                     (char*)&local_con_data, (char*)&tmp_con_data) < 0) {
+      (char*)&local_con_data, (char*)&tmp_con_data) < 0) {
     fprintf(stderr, "failed to exchange connection data between sides\n");
-    rc = 1;
   }
   remote_con_data.qp_num = ntohl(tmp_con_data.qp_num);
   remote_con_data.lid = ntohs(tmp_con_data.lid);
@@ -321,251 +510,7 @@ void RDMA_Manager::server_communication_thread(std::string client_ip,
     fprintf(stderr, "failed to connect QPs\n");
   }
 
-  ibv_mr* send_mr;
-  char* send_buff;
-  if (!Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
-    fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
-  }
-  ibv_mr* recv_mr;
-  char* recv_buff;
-  if (!Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
-    fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
-  }
-  //  post_receive<int>(recv_mr, client_ip);
-
-  post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-
-  // sync after send & recv buffer creation and receive request posting.
-  if (sock_sync_data(socket_fd, 1, temp_send,
-                     temp_receive)) /* just send a dummy char back and forth */
-  {
-    fprintf(stderr, "sync error after QPs are were moved to RTS\n");
-    rc = 1;
-  }
-  shutdown(socket_fd, 2);
-  close(socket_fd);
-  //  post_send<int>(res->mr_send, client_ip);
-  ibv_wc wc[3] = {};
-  //  if(poll_completion(wc, 2, client_ip))
-  //    printf("The main qp not create correctly");
-  //  else
-  //    printf("The main qp not create correctly");
-  // Computing node and share memory connection succeed.
-  // Now is the communication through rdma.
-  computing_to_memory_msg receive_msg_buf;
-
-  //  receive_msg_buf = (computing_to_memory_msg*)recv_buff;
-  //  receive_msg_buf->command = ntohl(receive_msg_buf->command);
-  //  receive_msg_buf->content.qp_config.qp_num = ntohl(receive_msg_buf->content.qp_config.qp_num);
-  //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
-  //  ibv_wc wc[3] = {};
-  // TODO: implement a heart beat mechanism.
-  while (true) {
-    poll_completion(wc, 1, client_ip);
-    memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
-    // copy the pointer of receive buf to a new place because
-    // it is the same with send buff pointer.
-    if (receive_msg_buf.command == create_mr_) {
-      std::cout << "create memory region command receive for" << client_ip
-                << std::endl;
-      ibv_mr* send_pointer = (ibv_mr*)send_buff;
-      ibv_mr* mr;
-      char* buff;
-      if (!Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
-                                 std::string())) {
-        fprintf(stderr, "memory registering failed by size of 0x%x\n",
-                static_cast<unsigned>(receive_msg_buf.content.mem_size));
-      }
-      printf("Now the total Registered memory is %zu GB", local_mem_pool.size());
-      *send_pointer = *mr;
-      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      post_send<ibv_mr>(
-          send_mr,
-          client_ip);  // note here should be the mr point to the send buffer.
-      poll_completion(wc, 1, client_ip);
-    } else if (receive_msg_buf.command == create_qp_) {
-      char gid_str[17];
-      memset(gid_str, 0, 17);
-      memcpy(gid_str, receive_msg_buf.content.qp_config.gid, 16);
-      std::string new_qp_id =
-          std::string(gid_str) +
-          std::to_string(receive_msg_buf.content.qp_config.lid) +
-          std::to_string(receive_msg_buf.content.qp_config.qp_num);
-      std::cout << "create query pair command receive for" << client_ip
-                << std::endl;
-      fprintf(stdout, "Remote QP number=0x%x\n",
-              receive_msg_buf.content.qp_config.qp_num);
-      fprintf(stdout, "Remote LID = 0x%x\n",
-              receive_msg_buf.content.qp_config.lid);
-      registered_qp_config* send_pointer = (registered_qp_config*)send_buff;
-      ibv_qp* qp = create_qp(new_qp_id);
-      if (rdma_config.gid_idx >= 0) {
-        rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port,
-                           rdma_config.gid_idx, &(res->my_gid));
-        if (rc) {
-          fprintf(stderr, "could not get gid for port %d, index %d\n",
-                  rdma_config.ib_port, rdma_config.gid_idx);
-          return;
-        }
-      } else
-        memset(&(res->my_gid), 0, sizeof(res->my_gid));
-      /* exchange using TCP sockets info required to connect QPs */
-      send_pointer->qp_num = res->qp_map[new_qp_id]->qp_num;
-      send_pointer->lid = res->port_attr.lid;
-      memcpy(send_pointer->gid, &(res->my_gid), 16);
-      connect_qp(receive_msg_buf.content.qp_config, qp);
-      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      post_send<registered_qp_config>(send_mr, client_ip);
-      poll_completion(wc, 1, client_ip);
-      //    }else if (receive_msg_buf.command == retrieve_fs_serialized_data){
-      //      printf("retrieve_fs_serialized_data message received successfully\n"); post_receive(recv_mr,client_ip, 1000);
-      //      post_send<int>(send_mr,client_ip);
-      //      // prepare the receive for db name, the name should not exceed 1000byte
-      //
-      //      poll_completion(wc, 2, client_ip);
-      //      std::string dbname;
-      //      // Here could be some problem.
-      //      dbname = std::string(recv_buff);
-      //      std::cout << "retrieve db_name is: " << dbname <<std::endl;
-      //      ibv_mr* local_data_mr;
-      //      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
-      //      if (fs_image.find(dbname)!= fs_image.end()){
-      //        local_data_mr = fs_image.at(dbname);
-      //        l.unlock();
-      //        *(reinterpret_cast<size_t*>(send_buff)) = local_data_mr->length;
-      //        post_send<size_t>(send_mr,client_ip);
-      //        post_receive<char>(recv_mr,client_ip);
-      //        post_send(local_data_mr,client_ip, local_data_mr->length);
-      //        poll_completion(wc, 3, client_ip);
-      //      }else{
-      //        l.unlock();
-      //        *(reinterpret_cast<size_t*>(send_buff)) = 0;
-      //        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      //        post_send<size_t>(send_mr,client_ip);
-      //        poll_completion(wc, 1, client_ip);
-      //      }
-      //
-      //
-      //    }else if (receive_msg_buf.command == save_fs_serialized_data){
-      //      printf("save_fs_serialized_data message received successfully\n");
-      //      int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
-      //      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
-      //
-      //      char* buff = static_cast<char*>(malloc(buff_size));
-      //      ibv_mr* local_data_mr;
-      //      int mr_flags =
-      //          IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-      //      local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); post_receive(local_data_mr,client_ip, buff_size);
-      //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      //      post_send<char>(recv_mr,client_ip);
-      //      poll_completion(wc, 2, client_ip);
-      //
-      //      char* temp = static_cast<char*>(local_data_mr->addr);
-      //      size_t namenumber_net;
-      //      memcpy(&namenumber_net, temp, sizeof(size_t));
-      //      size_t namenumber = htonl(namenumber_net);
-      //      temp = temp + sizeof(size_t);
-      //
-      //      char dbname_[namenumber+1];
-      //      memcpy(dbname_, temp, namenumber);
-      //      dbname_[namenumber] = '\0';
-      //      temp = temp + namenumber;
-      //      std::string db_name = std::string(dbname_);
-      //      std::cout << "save db_name is: " << db_name <<std::endl;
-      //      if (fs_image.find(db_name)!= fs_image.end()){
-      //        void* to_delete = fs_image.at(db_name)->addr;
-      //        ibv_dereg_mr(fs_image.at(db_name));
-      //        free(to_delete);
-      //        fs_image.at(db_name) = local_data_mr;
-      //      }else{
-      //        fs_image[db_name] = local_data_mr;
-      //      }
-      //
-      //
-      //
-      //
-      //
-      ////      break;
-      //    }else if(receive_msg_buf.command == save_log_serialized_data){
-      //      printf("retrieve_log_serialized_data message received successfully\n");
-      //
-      //      int buff_size = receive_msg_buf.content.fs_sync_cmd.data_size;
-      //      file_type filetype = receive_msg_buf.content.fs_sync_cmd.type;
-      //      post_receive(recv_mr,client_ip, 1000);
-      //
-      //      post_send<int>(send_mr,client_ip);
-      //      poll_completion(wc, 2, client_ip);
-      //
-      //      std::string dbname;
-      //      // Here could be some problem.
-      //      dbname = std::string(recv_buff);
-      //      std::cout << "retrieve db_name is: " << dbname <<std::endl;
-      //      ibv_mr* local_data_mr;
-      //      if (log_image.find(dbname) == log_image.end()){
-      //        void* buff = malloc(1024*1024);
-      //        int mr_flags =
-      //            IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-      //        local_data_mr = ibv_reg_mr(res->pd, static_cast<void*>(buff), buff_size, mr_flags); log_image.insert({dbname, local_data_mr});
-      //      }else{
-      //        local_data_mr = log_image.at(dbname);
-      //      }
-      //      post_receive(local_data_mr, client_ip, buff_size);
-      //      post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      //      post_send<int>(send_mr,client_ip);
-      //      poll_completion(wc, 2, client_ip);
-      //
-      //
-      //    }else if(receive_msg_buf.command == retrieve_log_serialized_data){
-      ////      printf("retrieve_log_serialized_data message received successfully\n"); /      post_receive(recv_mr,client_ip, 1000); /      post_send<int>(send_mr,client_ip); /      // prepare the receive for db name, the name should not exceed 1000byte
-      ////
-      ////      poll_completion(wc, 2, client_ip);
-      ////      std::string dbname;
-      ////      // Here could be some problem.
-      ////      dbname = std::string(recv_buff);
-      ////      std::cout << "retrieve db_name is: " << dbname <<std::endl;
-      ////      ibv_mr* local_data_mr;
-      ////      std::shared_lock<std::shared_mutex> l(fs_image_mutex);
-      ////      if (log_image.find(dbname)!= fs_image.end()){
-      ////        local_data_mr = fs_image.at(dbname);
-      ////        l.unlock();
-      ////        *(reinterpret_cast<size_t*>(send_buff)) = local_data_mr->length;
-      ////        post_send<size_t>(send_mr,client_ip);
-      ////        post_receive<char>(recv_mr,client_ip);
-      ////        post_send(local_data_mr,client_ip, local_data_mr->length);
-      ////        poll_completion(wc, 3, client_ip);
-      ////      }else{
-      ////        l.unlock();
-      ////        *(reinterpret_cast<size_t*>(send_buff)) = 0;
-      ////        post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-      ////        post_send<size_t>(send_mr,client_ip);
-      ////        poll_completion(wc, 1, client_ip);
-      ////      }
-    } else {
-      printf("corrupt message from client.");
-    }
-  }
-  return;
-  // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
 }
-void RDMA_Manager::Server_to_Client_Communication() {
-  if (resources_create()) {
-    fprintf(stderr, "failed to create resources\n");
-  }
-  int rc;
-  if (rdma_config.gid_idx >= 0) {
-    printf("checkpoint0");
-    rc = ibv_query_gid(res->ib_ctx, rdma_config.ib_port, rdma_config.gid_idx,
-                       &(res->my_gid));
-    if (rc) {
-      fprintf(stderr, "could not get gid for port %d, index %d\n",
-              rdma_config.ib_port, rdma_config.gid_idx);
-      return;
-    }
-  } else
-    memset(&(res->my_gid), 0, sizeof res->my_gid);
-  server_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
-}
-
 //    Register the memory through ibv_reg_mr on the local side. this function will be called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
@@ -2476,6 +2421,7 @@ void RDMA_Manager::fs_deserilization(
   ibv_dereg_mr(local_mr);
   free(buff);
 }
+
 // bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
 //                                               char* buff, size_t buff_size,
 //                                               file_type type,

@@ -11,7 +11,6 @@
 #include <inttypes.h>
 #include <endian.h>
 #include <byteswap.h>
-//#include <getopt.h>
 #include <cassert>
 #include <algorithm>
 
@@ -33,16 +32,6 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <vector>
-//#include <util/thread_local.h>
-//#ifdef __cplusplus
-//extern "C" { //only need to export C interface if
-//// used by C++ source code
-//#endif
-
-/* poll CQ timeout in millisec (2 seconds) */
-#define MAX_POLL_CQ_TIMEOUT 1000000
-#define MSG "SEND operation "
-
 
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 //template <typename T>
@@ -254,28 +243,11 @@ struct IBV_Deleter {
 //};
 // QP_Deleter qpdeleter;
 // CQ_Deleter cqdeleter;
+class Memory_Node_Keeper;
 class RDMA_Manager {
-  //    class QP_Wrapper{
-  //    public:
-  //        ibv_qp* qp;
-  //        QP_Wrapper(std::string q_id){
-  //            if (qp == NULL){
-  //                Remote_Query_Pair_Connection(q_id);
-  //                qp = static_cast<ibv_qp*>(qp_local_write_flush.get());
-  //            }
-  //        }
-  //        void operator()(ibv_qp* ptr){
-  //            if (ptr == nullptr)
-  //                return;
-  //            else if (ibv_destroy_qp(static_cast<ibv_qp*>(ptr))) {
-  //                fprintf(stderr, "Thread local qp failed to destroy QP\n");
-  //            }
-  //            else{
-  //                printf("thread local qp destroy successfully!");
-  //            }
-  //        }
-  //    };
+
  public:
+  friend class Memory_Node_Keeper;
   RDMA_Manager(config_t config, size_t remote_block_size);
   //  RDMA_Manager(config_t config) : rdma_config(config){
   //    res = new resources();
@@ -295,9 +267,8 @@ class RDMA_Manager {
   //  bool client_save_serialized_data(const std::string& db_name, char* buff,
   //                                   size_t buff_size, file_type type,
   //                                   ibv_mr* local_data_mr);
-  // this function is for the server.
-  void Server_to_Client_Communication();
-  void server_communication_thread(std::string client_ip, int socket_fd);
+
+  void ConnectQPThroughSocket(std::string client_ip, int socket_fd);
   // Local memory register will register RDMA memory in local machine,
   // Both Computing node and share memory will call this function.
   // it also push the new block bit map to the Remote_Mem_Bitmap
@@ -374,7 +345,6 @@ class RDMA_Manager {
   std::shared_mutex rw_mutex;
   std::shared_mutex main_qp_mutex;
   std::shared_mutex qp_cq_map_mutex;
-  std::vector<std::thread> thread_pool;
   //  ThreadLocalPtr* t_local_1;
   ThreadLocalPtr* qp_local_write_flush;
   ThreadLocalPtr* cq_local_write_flush;
@@ -406,7 +376,7 @@ class RDMA_Manager {
   //  std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta_;
   //  std::shared_mutex* fs_mutex_;
   int client_sock_connect(const char* servername, int port);
-  int server_sock_connect(const char* servername, int port);
+
   int sock_sync_data(int sock, int xfer_size, char* local_data,
                      char* remote_data);
   template <typename T>
