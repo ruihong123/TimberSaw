@@ -1552,7 +1552,7 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
                                                    int num_entries,
                                                    std::string q_id,
                                                    bool send_cq) {
-  int poll_result;
+  int poll_result = 0;
   int poll_num = 0;
   int rc = 0;
   ibv_cq* cq;
@@ -1662,8 +1662,11 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   //  }
   //  assert(wc.opcode == IBV_WC_RECV);
   printf("Remote memory registeration, size: %zu", size);
-  if (!poll_completion(wc, 1, std::string("main"),true)&&
-  !poll_completion(wc, 1, std::string("main"), false)) {  // poll the receive for 2 entires
+  if (!poll_completion(wc, 1, std::string("main"),true) &&
+   !poll_completion(wc, 1, std::string("main"), false)) {  // poll the receive for 2 entires
+    usleep(1000);
+    assert(try_poll_this_thread_completions(wc, 1, std::string("main"), true) == 0);
+    assert(try_poll_this_thread_completions(wc, 1, std::string("main"), false) == 0);
     auto* temp_pointer = new ibv_mr();
     // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
     // Please remember to delete it when diregistering mem region from the remote memory
@@ -1679,9 +1682,6 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
     //    std::unique_lock l(remote_pool_mutex);
     Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
     //    l.unlock();
-
-    // NOTICE: Couold be problematic because the pushback may not an absolute
-    //   value copy. it could raise a segment fault(Double check it)
   } else {
     fprintf(stderr, "failed to poll receive for remote memory register\n");
     return false;
