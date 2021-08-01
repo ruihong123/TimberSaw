@@ -738,7 +738,7 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
   } else
     memset(&my_gid, 0, sizeof my_gid);
   /* exchange using TCP sockets info required to connect QPs */
-  ibv_qp* qp = create_qp(qp_id, false);
+  ibv_qp* qp = create_qp(qp_id, true);
   local_con_data.qp_num = htonl(res->qp_map[qp_id]->qp_num);
   local_con_data.lid = htons(res->port_attr.lid);
   memcpy(local_con_data.gid, &my_gid, 16);
@@ -1504,6 +1504,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
 
   }
   else{
+//    assert(res->cq_map.contains());
     if (send_cq)
       cq = res->cq_map.at(q_id).first;
     else
