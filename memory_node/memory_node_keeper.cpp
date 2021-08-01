@@ -83,7 +83,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         ibv_mr* send_pointer = (ibv_mr*)send_buff;
         ibv_mr* mr;
         char* buff;
-        if (!rdma_mg_->Local_Memory_Register(&buff, &send_pointer, receive_msg_buf.content.mem_size,
+        if (!rdma_mg_->Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
                                    std::string())) {
           fprintf(stderr, "memory registering failed by size of 0x%x\n",
                   static_cast<unsigned>(receive_msg_buf.content.mem_size));
