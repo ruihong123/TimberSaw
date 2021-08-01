@@ -1664,7 +1664,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   printf("Remote memory registeration, size: %zu", size);
   if (!poll_completion(wc, 1, std::string("main"),true) &&
    !poll_completion(wc, 1, std::string("main"), false)) {  // poll the receive for 2 entires
-    sleep(1);
+//    sleep(1);
     assert(try_poll_this_thread_completions(wc, 1, std::string("main"), true) == 0);
     assert(try_poll_this_thread_completions(wc, 1, std::string("main"), false) == 0);
     auto* temp_pointer = new ibv_mr();

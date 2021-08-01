@@ -81,7 +81,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         std::cout << "create memory region command receive for" << client_ip
         << std::endl;
         ibv_mr* send_pointer = (ibv_mr*)send_buff;
-//        ibv_mr* mr;
+        ibv_mr* mr;
         char* buff;
         if (!rdma_mg_->Local_Memory_Register(&buff, &send_pointer, receive_msg_buf.content.mem_size,
                                    std::string())) {
@@ -89,7 +89,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
                   static_cast<unsigned>(receive_msg_buf.content.mem_size));
         }
         printf("Now the total Registered memory is %zu GB", rdma_mg_->local_mem_pool.size());
-//        *send_pointer = *mr;
+        *send_pointer = *mr;
         rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
         rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
         rdma_mg_->poll_completion(wc, 1, client_ip, true);
