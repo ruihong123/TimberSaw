@@ -1285,69 +1285,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
 //  }
 //  return rc;
 //}
-/******************************************************************************
-* Function: post_send
-*
-* Input
-* res pointer to resources structure
-* opcode IBV_WR_SEND, IBV_WR_RDMA_READ or IBV_WR_RDMA_WRITE
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-* This function will create and post a send work request
-******************************************************************************/
-template <typename T>
-int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id) {
-  struct ibv_send_wr sr;
-  struct ibv_sge sge;
-  struct ibv_send_wr* bad_wr = NULL;
-  int rc;
-  //  if (!rdma_config.server_name) {
-  // server side.
-  /* prepare the scatter/gather entry */
-  memset(&sge, 0, sizeof(sge));
-  sge.addr = (uintptr_t)mr->addr;
-  sge.length = sizeof(T);
-  sge.lkey = mr->lkey;
-  //  }
-  //  else {
-  //    //client side
-  //    /* prepare the scatter/gather entry */
-  //    memset(&sge, 0, sizeof(sge));
-  //    sge.addr = (uintptr_t)res->send_buf;
-  //    sge.length = sizeof(T);
-  //    sge.lkey = res->mr_send->lkey;
-  //  }
 
-  /* prepare the send work request */
-  memset(&sr, 0, sizeof(sr));
-  sr.next = NULL;
-  sr.wr_id = 0;
-  sr.sg_list = &sge;
-  sr.num_sge = 1;
-  sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
-  sr.send_flags = IBV_SEND_SIGNALED;
-
-  /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
-  //*(start) = std::chrono::steady_clock::now();
-  // start = std::chrono::steady_clock::now();
-
-  if (rdma_config.server_name)
-    rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
-  else
-    rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
-  if (rc)
-    fprintf(stderr, "failed to post SR\n");
-  else {
-    fprintf(stdout, "Send Request was posted\n");
-  }
-  return rc;
-}
 int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
   struct ibv_send_wr sr;
   struct ibv_sge sge;
@@ -1502,63 +1440,6 @@ int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id, size_t size) {
   //    memset(&sge, 0, sizeof(sge));
   //    sge.addr = (uintptr_t)res->receive_buf;
   //    sge.length = size;
-  //    sge.lkey = res->mr_receive->lkey;
-  //  }
-
-  /* prepare the receive work request */
-  memset(&rr, 0, sizeof(rr));
-  rr.next = NULL;
-  rr.wr_id = 0;
-  rr.sg_list = &sge;
-  rr.num_sge = 1;
-  /* post the Receive Request to the RQ */
-  if (rdma_config.server_name)
-    rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
-  else
-    rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
-  if (rc)
-    fprintf(stderr, "failed to post RR\n");
-  else
-    fprintf(stdout, "Receive Request was posted\n");
-  return rc;
-}
-
-/******************************************************************************
-* Function: post_receive
-*
-* Input
-* res pointer to resources structure
-*
-* Output
-* none
-*
-* Returns
-* 0 on success, error code on failure
-*
-* Description
-*
-******************************************************************************/
-// TODO: Add templete for post send and post receive, making the type of transfer data configurable.
-template <typename T>
-int RDMA_Manager::post_receive(ibv_mr* mr, std::string qp_id) {
-  struct ibv_recv_wr rr;
-  struct ibv_sge sge;
-  struct ibv_recv_wr* bad_wr;
-  int rc;
-  //  if (!rdma_config.server_name) {
-  //    /* prepare the scatter/gather entry */
-
-  memset(&sge, 0, sizeof(sge));
-  sge.addr = (uintptr_t)mr->addr;
-  sge.length = sizeof(T);
-  sge.lkey = mr->lkey;
-
-  //  }
-  //  else {
-  //    /* prepare the scatter/gather entry */
-  //    memset(&sge, 0, sizeof(sge));
-  //    sge.addr = (uintptr_t)res->receive_buf;
-  //    sge.length = sizeof(T);
   //    sge.lkey = res->mr_receive->lkey;
   //  }
 
@@ -1762,14 +1643,14 @@ void RDMA_Manager::usage(const char* argv0) {
 bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
-  computing_to_memory_msg* send_pointer;
-  send_pointer = (computing_to_memory_msg*)res->send_buf;
+  Computing_to_memory_msg* send_pointer;
+  send_pointer = (Computing_to_memory_msg*)res->send_buf;
   send_pointer->command = create_mr_;
   send_pointer->content.mem_size = size;
   ibv_mr* receive_pointer;
   receive_pointer = (ibv_mr*)res->receive_buf;
   post_receive<ibv_mr>(res->mr_receive, std::string("main"));
-  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+  post_send<Computing_to_memory_msg>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
   //  while(wc.opcode != IBV_WC_RECV){
   //    poll_completion(&wc);
@@ -1828,8 +1709,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   // lock should be here because from here on we will modify the send buffer.
   // TODO: Try to understand whether this kind of memcopy without serialization is correct.
   // Could be wrong on different machine, because of the alignment
-  computing_to_memory_msg* send_pointer;
-  send_pointer = (computing_to_memory_msg*)res->send_buf;
+  Computing_to_memory_msg* send_pointer;
+  send_pointer = (Computing_to_memory_msg*)res->send_buf;
   send_pointer->command = create_qp_;
   send_pointer->content.qp_config.qp_num = qp->qp_num;
   fprintf(stdout, "QP num to be sent = 0x%x\n", qp->qp_num);
@@ -1840,7 +1721,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   receive_pointer = (registered_qp_config*)res->receive_buf;
 
   post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
-  post_send<computing_to_memory_msg>(res->mr_send, std::string("main"));
+  post_send<Computing_to_memory_msg>(res->mr_send, std::string("main"));
   ibv_wc wc[2] = {};
   //  while(wc.opcode != IBV_WC_RECV){
   //    poll_completion(&wc);

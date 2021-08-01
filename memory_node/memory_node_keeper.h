@@ -13,6 +13,7 @@
 namespace leveldb{
 class Memory_Node_Keeper {
  public:
+//  friend class RDMA_Manager;
   Memory_Node_Keeper();
   void Schedule(
       void (*background_work_function)(void* background_work_arg),
@@ -22,10 +23,6 @@ class Memory_Node_Keeper {
   // this function is for the server.
   void Server_to_Client_Communication();
   void SetBackgroundThreads(int num,  ThreadPoolType type);
-
-
-
-
 
  private:
   std::shared_ptr<RDMA_Manager> rdma_mg_;

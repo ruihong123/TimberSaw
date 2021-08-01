@@ -1,7 +1,7 @@
 //
 // Created by ruihong on 7/29/21.
 //
-#include "memory_node_keeper.h"
+#include "memory_node/memory_node_keeper.h"
 namespace leveldb{
 leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     struct leveldb::config_t config = {
@@ -45,8 +45,8 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     }
     //  post_receive<int>(recv_mr, client_ip);
 
-    rdma_mg_->post_receive<computing_to_memory_msg>(recv_mr, client_ip);
-
+    rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
+//    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
     if (rdma_mg_->sock_sync_data(socket_fd, 1, temp_send,
                        temp_receive)) /* just send a dummy char back and forth */
@@ -64,7 +64,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     //    printf("The main qp not create correctly");
     // Computing node and share memory connection succeed.
     // Now is the communication through rdma.
-    computing_to_memory_msg receive_msg_buf;
+    Computing_to_memory_msg receive_msg_buf;
 
     //  receive_msg_buf = (computing_to_memory_msg*)recv_buff;
     //  receive_msg_buf->command = ntohl(receive_msg_buf->command);
@@ -74,7 +74,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     // TODO: implement a heart beat mechanism.
     while (true) {
       rdma_mg_->poll_completion(wc, 1, client_ip, false);
-      memcpy(&receive_msg_buf, recv_buff, sizeof(computing_to_memory_msg));
+      memcpy(&receive_msg_buf, recv_buff, sizeof(Computing_to_memory_msg));
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf.command == create_mr_) {
@@ -90,7 +90,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         }
         printf("Now the total Registered memory is %zu GB", rdma_mg_->local_mem_pool.size());
 //        *send_pointer = *mr;
-        rdma_mg_->post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+        rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
         rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
         rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf.command == create_qp_) {
@@ -124,7 +124,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         send_pointer->lid = rdma_mg_->res->port_attr.lid;
         memcpy(send_pointer->gid, &(rdma_mg_->res->my_gid), 16);
         rdma_mg_->connect_qp(receive_msg_buf.content.qp_config, qp);
-        rdma_mg_->post_receive<computing_to_memory_msg>(recv_mr, client_ip);
+        rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
         rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
         rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else {

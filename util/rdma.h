@@ -96,7 +96,7 @@ union RDMA_Command_Content {
   fs_sync_command fs_sync_cmd;
 };
 
-struct computing_to_memory_msg {
+struct Computing_to_memory_msg {
   RDMA_Command_Type command;
   RDMA_Command_Content content;
   void* reply_buffer;
@@ -295,8 +295,7 @@ class RDMA_Manager {
                 std::string q_id, size_t send_flag, int poll_num);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
                  std::string q_id, size_t send_flag, int poll_num);
-  int RDMA_Send();
-  // For a non-thread-local queue pair, send_cq==true poll the cq of send queue, send_cq==false poll the cq of receive queue
+
   // the coder need to figure out whether the queue pair has two seperated queue,
   // if not, only send_cq==true is a valid option.
   // For a thread-local queue pair, the send_cq does not matter.
@@ -307,9 +306,7 @@ class RDMA_Manager {
   bool Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type);
   //  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
   bool Deallocate_Remote_RDMA_Slot(void* p);
-  //  void fs_meta_save(){
-  //    std::shared_lock<std::shared_mutex> read_lock(*fs_mutex_);
-  //    //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow. char* buff = static_cast<char*>(malloc(1024*1024)); size_t size_dummy;
+  //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow. char* buff = static_cast<char*>(malloc(1024*1024)); size_t size_dummy;
   //    fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap)); printf("Serialized data size: %zu", size_dummy);
   //    client_save_serialized_data(*db_name_, buff, size_dummy, log_type, nullptr);}
   // Allocate an empty remote SST, return the index for the memory slot
@@ -389,12 +386,10 @@ class RDMA_Manager {
 
   int sock_sync_data(int sock, int xfer_size, char* local_data,
                      char* remote_data);
-  template <typename T>
-  int post_send(ibv_mr* mr, std::string qp_id = "main");
+
   int post_send(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
   //  int post_receives(int len);
-  template <typename T>
-  int post_receive(ibv_mr* mr, std::string qp_id = "main");
+
   int post_receive(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
 
   int resources_create();
@@ -410,7 +405,91 @@ class RDMA_Manager {
 
   int post_receive(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
   int post_send(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
+  template <typename T>
+  int post_receive(ibv_mr* mr, std::string qp_id = "main"){
+    struct ibv_recv_wr rr;
+    struct ibv_sge sge;
+    struct ibv_recv_wr* bad_wr;
+    int rc;
+    //  if (!rdma_config.server_name) {
+    //    /* prepare the scatter/gather entry */
 
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)mr->addr;
+    sge.length = sizeof(T);
+    sge.lkey = mr->lkey;
+
+    //  }
+    //  else {
+    //    /* prepare the scatter/gather entry */
+    //    memset(&sge, 0, sizeof(sge));
+    //    sge.addr = (uintptr_t)res->receive_buf;
+    //    sge.length = sizeof(T);
+    //    sge.lkey = res->mr_receive->lkey;
+    //  }
+
+    /* prepare the receive work request */
+    memset(&rr, 0, sizeof(rr));
+    rr.next = NULL;
+    rr.wr_id = 0;
+    rr.sg_list = &sge;
+    rr.num_sge = 1;
+    /* post the Receive Request to the RQ */
+    if (rdma_config.server_name)
+      rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
+    else
+      rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
+    if (rc)
+      fprintf(stderr, "failed to post RR\n");
+    else
+      fprintf(stdout, "Receive Request was posted\n");
+    return rc;
+  }  // For a non-thread-local queue pair, send_cq==true poll the cq of send queue, send_cq==false poll the cq of receive queue
+  template <typename T>
+  int post_send(ibv_mr* mr, std::string qp_id = "main"){struct ibv_send_wr sr;
+    struct ibv_sge sge;
+    struct ibv_send_wr* bad_wr = NULL;
+    int rc;
+    //  if (!rdma_config.server_name) {
+    // server side.
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)mr->addr;
+    sge.length = sizeof(T);
+    sge.lkey = mr->lkey;
+    //  }
+    //  else {
+    //    //client side
+    //    /* prepare the scatter/gather entry */
+    //    memset(&sge, 0, sizeof(sge));
+    //    sge.addr = (uintptr_t)res->send_buf;
+    //    sge.length = sizeof(T);
+    //    sge.lkey = res->mr_send->lkey;
+    //  }
+
+    /* prepare the send work request */
+    memset(&sr, 0, sizeof(sr));
+    sr.next = NULL;
+    sr.wr_id = 0;
+    sr.sg_list = &sge;
+    sr.num_sge = 1;
+    sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
+    sr.send_flags = IBV_SEND_SIGNALED;
+
+    /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+    //*(start) = std::chrono::steady_clock::now();
+    // start = std::chrono::steady_clock::now();
+
+    if (rdma_config.server_name)
+      rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
+    else
+      rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+    if (rc)
+      fprintf(stderr, "failed to post SR\n");
+    else {
+      fprintf(stdout, "Send Request was posted\n");
+    }
+    return rc;}
 };
 
 }
