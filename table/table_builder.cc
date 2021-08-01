@@ -26,23 +26,23 @@ struct TableBuilder::Rep {
     // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
     std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
-    ibv_mr* temp_data_mr;
-    ibv_mr* temp_index_mr;
-    ibv_mr* temp_filter_mr;
+    ibv_mr* temp_data_mr = new ibv_mr();
+    ibv_mr* temp_index_mr = new ibv_mr();
+    ibv_mr* temp_filter_mr = new ibv_mr();
     //first create two buffer for each slot.
-    rdma_mg->Allocate_Local_RDMA_Slot(temp_data_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(temp_index_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_data_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_index_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_filter_mr, "FlushBuffer");
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
     local_filter_mr.push_back(temp_filter_mr);
-//    delete temp_data_mr;
-//    delete temp_index_mr;
-//    delete temp_filter_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(temp_data_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(temp_index_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(temp_filter_mr, "FlushBuffer");
+    temp_data_mr = new ibv_mr();
+    temp_index_mr = new ibv_mr();
+    temp_filter_mr = new ibv_mr();
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_data_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_index_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_filter_mr, "FlushBuffer");
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
@@ -405,9 +405,9 @@ void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle*
 void TableBuilder::FlushData(){
   Rep* r = rep_;
   size_t msg_size = r->offset - r->offset_last_flushed;
-  ibv_mr* remote_mr;
+  ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
   //TOTHINK: check the logic below.
   // I was thinking that the start represent the oldest outgoing buffer, while the
   // end is the latest buffer. When polling a result, the start index will moving forward
@@ -449,8 +449,8 @@ void TableBuilder::FlushData(){
     // if not allocate a new one and insert it to the vector
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
         r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
-      ibv_mr* new_local_mr;
-      rdma_mg->Allocate_Local_RDMA_Slot(new_local_mr,"FlushBuffer");
+      ibv_mr* new_local_mr = new ibv_mr();
+      rdma_mg->Allocate_Local_RDMA_Slot(*new_local_mr,"FlushBuffer");
       if(r->data_inuse_start == 0){// if start is 0 then the insert will also increase the index of end.
         r->data_inuse_end++;
       }
@@ -499,9 +499,9 @@ void TableBuilder::FlushData(){
 }
 void TableBuilder::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
-  ibv_mr* remote_mr;
+  ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
   rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
@@ -517,9 +517,9 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
 }
 void TableBuilder::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
-  ibv_mr* remote_mr;
+  ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
   rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){

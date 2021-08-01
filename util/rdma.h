@@ -306,12 +306,10 @@ class RDMA_Manager {
   bool Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type);
   //  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
   bool Deallocate_Remote_RDMA_Slot(void* p);
-  //TODO: make the buff size dynamically changed, otherwise there will be bug of buffer overflow. char* buff = static_cast<char*>(malloc(1024*1024)); size_t size_dummy;
-  //    fs_serialization(buff, size_dummy, *db_name_, *file_to_sst_meta_, *(Remote_Mem_Bitmap)); printf("Serialized data size: %zu", size_dummy);
-  //    client_save_serialized_data(*db_name_, buff, size_dummy, log_type, nullptr);}
-  // Allocate an empty remote SST, return the index for the memory slot
-  void Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr);
-  void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, std::string pool_name);
+  //TOFIX: There will be memory leak for the remote_mr and mr_input for local/remote memory
+  // allocation.
+  void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr);
+  void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, std::string pool_name);
   // this function will determine whether the pointer is with in the registered memory
   bool CheckInsideLocalBuff(
       void* p,

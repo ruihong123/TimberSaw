@@ -73,9 +73,9 @@ void FilterBlockBuilder::Move_buffer(const char* p){
   result.Reset(p,0);
 }
 void FilterBlockBuilder::Flush() {
-  ibv_mr* remote_mr;
+  ibv_mr* remote_mr = new ibv_mr();
   size_t msg_size = result.size();
-  rdma_mg_->Allocate_Remote_RDMA_Slot(remote_mr);
+  rdma_mg_->Allocate_Remote_RDMA_Slot(*remote_mr);
   rdma_mg_->RDMA_Write(remote_mr, (*local_mrs)[0], msg_size, type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(remote_mrs_->empty()){

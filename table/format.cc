@@ -104,8 +104,8 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
 
   size_t n = static_cast<size_t>(handle.size());
   assert(n + kBlockTrailerSize <= rdma_mg->name_to_size["DataBlock"]);
-  ibv_mr* contents= nullptr;
-  ibv_mr remote_mr;
+  ibv_mr contents = {};
+  ibv_mr remote_mr = {};
 //#ifndef NDEBUG
 //  ibv_wc wc;
 //  int check_poll_number =
@@ -134,7 +134,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
 #ifdef GETANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
-    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize,
+    rdma_mg->RDMA_Read(&remote_mr, &contents, n + kBlockTrailerSize,
                      "read_local", IBV_SEND_SIGNALED, 1);
 #ifdef GETANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
@@ -157,7 +157,7 @@ Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptio
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
+  const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
@@ -224,12 +224,12 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   size_t n = remote_mr->length - kBlockTrailerSize;
   assert(n>0);
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataIndexBlock"]);
-  ibv_mr* contents;
+  ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataIndexBlock");
-  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
   // Check the crc of the type and the block contents
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
+  const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
@@ -289,12 +289,12 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = remote_mr->length - kBlockTrailerSize;
   assert(n + kBlockTrailerSize < rdma_mg->name_to_size["FilterBlock"]);
-  ibv_mr* contents;
+  ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, "FilterBlock");
-  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
   // Check the crc of the type and the block contents
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
+  const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);

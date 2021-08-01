@@ -58,6 +58,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
   Remote_Mem_Bitmap = new std::map<void*, In_Use_Array>;
   //  Write_Local_Mem_Bitmap = Write_Bitmap;
   //  Read_Local_Mem_Bitmap = Read_Bitmap;
+  name_to_size.insert({std::string("message"), 4096});
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -694,9 +695,9 @@ int RDMA_Manager::resources_create() {
   //              static_cast<unsigned>(rdma_config.init_local_buffer_size));
   //    }
   //  }
-  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 1000, std::string());
-  Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 1000,
-                        std::string());
+  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 2500*4096, std::string("message"));
+  Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 2500*4096,
+                        std::string("message"));
   //        if(condition){
   //          fprintf(stderr, "Local memory registering failed\n");
   //
@@ -1754,9 +1755,9 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   //    return false;
 }
 
-void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr) {
+void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
   // If the Remote buffer is empty, register one from the remote memory.
-  remote_mr = new ibv_mr;
+//  remote_mr = new ibv_mr;
   if (Remote_Mem_Bitmap->empty()) {
     // this lock is to prevent the system register too much remote memory at the
     // begginning.
@@ -1775,10 +1776,10 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr) {
     // find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr* second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get from the remote memory. The memory was divided into chunks with size == SSTable size.
     int sst_index = ptr->second.allocate_memory_slot();
     if (sst_index >= 0) {
-      *(remote_mr) = *((ptr->second).get_mr_ori());
-      remote_mr->addr = static_cast<void*>(static_cast<char*>(remote_mr->addr) +
+      remote_mr = *((ptr->second).get_mr_ori());
+      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
                                            sst_index * Table_Size);
-      remote_mr->length = Table_Size;
+      remote_mr.length = Table_Size;
 //        remote_data_mrs->fname = file_name;
 //        remote_data_mrs->map_pointer =
 //          (ptr->second).get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
@@ -1803,16 +1804,16 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr) {
   mem_write_lock.unlock();
 
   //  sst_meta->mr = new ibv_mr();
-  *(remote_mr) = *(mr_last);
-  remote_mr->addr = static_cast<void*>(static_cast<char*>(remote_mr->addr) +
+  remote_mr = *(mr_last);
+  remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
                                        sst_index * Table_Size);
-  remote_mr->length = Table_Size;
+  remote_mr.length = Table_Size;
   //    remote_data_mrs->fname = file_name;
   //    remote_data_mrs->map_pointer = mr_last;
   return;
 }
 // A function try to allocate RDMA registered local memory
-void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
+void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
                                             std::string pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
   size_t chunk_size;
@@ -1837,12 +1838,12 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
     }
     int block_index = ptr->second.allocate_memory_slot();
     if (block_index >= 0) {
-      mr_input = new ibv_mr();
+//      mr_input = new ibv_mr();
       //      map_pointer = (ptr->second).get_mr_ori();
-      *(mr_input) = *((ptr->second).get_mr_ori());
-      mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
+      mr_input = *((ptr->second).get_mr_ori());
+      mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
                                           block_index * chunk_size);
-      mr_input->length = chunk_size;
+      mr_input.length = chunk_size;
 
       return;
     } else
@@ -1864,12 +1865,12 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr*& mr_input,
                         .allocate_memory_slot();
   mem_write_lock.unlock();
   if (block_index >= 0) {
-    mr_input = new ibv_mr();
+//    mr_input = new ibv_mr();
     //    map_pointer = mr_to_allocate;
-    *(mr_input) = *(mr_to_allocate);
-    mr_input->addr = static_cast<void*>(static_cast<char*>(mr_input->addr) +
+    mr_input = *(mr_to_allocate);
+    mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
                                         block_index * chunk_size);
-    mr_input->length = chunk_size;
+    mr_input.length = chunk_size;
     //  mr_input.fname = file_name;
     return;
   }
