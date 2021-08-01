@@ -94,14 +94,13 @@ union RDMA_Command_Content {
   size_t mem_size;
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
-  void* reply_buffer;
-  uint32_t rkey;
-
 };
 
 struct computing_to_memory_msg {
   RDMA_Command_Type command;
   RDMA_Command_Content content;
+  void* reply_buffer;
+  uint32_t rkey;
 } __attribute__((packed));
 
 // Structure for the file handle in RDMA file system. it could be a link list
