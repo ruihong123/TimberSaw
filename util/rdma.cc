@@ -1799,6 +1799,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr*& remote_mr) {
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
   int sst_index = Remote_Mem_Bitmap->at(mr_last->addr).allocate_memory_slot();
+  assert(sst_index >= 0);
   mem_write_lock.unlock();
 
   //  sst_meta->mr = new ibv_mr();

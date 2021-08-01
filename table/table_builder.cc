@@ -477,7 +477,6 @@ void TableBuilder::FlushData(){
 #ifndef NDEBUG
     for (auto iter : r->remote_data_mrs) {
       assert(remote_mr->addr != iter.second->addr);
-
     }
 #endif
     r->remote_data_mrs.insert({r->offset, remote_mr});
