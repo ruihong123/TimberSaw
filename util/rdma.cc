@@ -56,9 +56,9 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
 
   //  res->sock = -1;
   Remote_Mem_Bitmap = new std::map<void*, In_Use_Array>;
-  //  Write_Local_Mem_Bitmap = Write_Bitmap;
-  //  Read_Local_Mem_Bitmap = Read_Bitmap;
-  name_to_size.insert({std::string("message"), 4096});
+
+  //Initialize a message memory pool
+  Mempool_initialize(std::string("message"), 4096);
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
