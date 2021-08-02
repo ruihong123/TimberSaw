@@ -1632,7 +1632,6 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
                                                    bool send_cq) {
   int poll_result = 0;
   int poll_num = 0;
-  int rc = 0;
   ibv_cq* cq;
   /* poll the completion for a while before giving up of doing it .. */
   // gettimeofday(&cur_time, NULL);
@@ -1657,6 +1656,17 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
   }
 
   poll_result = ibv_poll_cq(cq, num_entries, &wc_p[poll_num]);
+#ifndef NDEBUG
+  if (poll_result > 0){
+    if (wc_p[poll_result-1].status !=
+    IBV_WC_SUCCESS)  // TODO:: could be modified into check all the entries in the array
+      {
+      fprintf(stderr,
+              "number %d got bad completion with status: 0x%x, vendor syndrome: 0x%x\n",
+              poll_result-1, wc_p[poll_result-1].status, wc_p[poll_result-1].vendor_err);
+      }
+  }
+#endif
   return poll_result;
 }
 /******************************************************************************
@@ -1794,10 +1804,10 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = create_qp_;
   send_pointer->content.qp_config.qp_num = qp->qp_num;
-  fprintf(stdout, "QP num to be sent = 0x%x\n", qp->qp_num);
+  fprintf(stdout, "\nQP num to be sent = 0x%x\n", qp->qp_num);
   send_pointer->content.qp_config.lid = res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &my_gid, 16);
-  fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
+  fprintf(stdout, "Local LID = 0x%x\n", res->port_attr.lid);
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
