@@ -39,9 +39,32 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   }
 //  size_t
 }
-Status RemoteMemTableMetaData::DecodeFrom(const Slice& src) {
+Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   Status s = Status::OK();
-  GetFixed64(src)
+  GetFixed64(&src, &level);
+  GetFixed64(&src, &number);
+  GetFixed64(&src, &file_size);
+  Slice temp;
+  GetLengthPrefixedSlice(&src, &temp);
+  smallest.DecodeFrom(temp);
+  GetLengthPrefixedSlice(&src, &temp);
+  largest.DecodeFrom(temp);
+  uint64_t remote_data_chunk_num;
+  uint64_t remote_dataindex_chunk_num;
+  uint64_t remote_filter_chunk_num;
+  GetFixed64(&src, &remote_data_chunk_num);
+  GetFixed64(&src, &remote_dataindex_chunk_num);
+  GetFixed64(&src, &remote_filter_chunk_num);
+  uint64_t context;
+  uint64_t pd;
+  uint32_t handle;
+  uint32_t lkey;
+  uint32_t rkey;
+  GetFixed64(&src, &context);
+  GetFixed64(&src, &pd);
+  GetFixed32(&src, &handle);
+  GetFixed32(&src, &lkey);
+  GetFixed32(&src, &rkey);
   return s;
 }
 void RemoteMemTableMetaData::mr_serialization(std::string* dst, ibv_mr* mr) const {

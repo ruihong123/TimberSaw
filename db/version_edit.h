@@ -43,7 +43,7 @@ struct RemoteMemTableMetaData {
     return true;
   }
   void EncodeTo(std::string* dst) const;
-  Status DecodeFrom(const Slice& src);
+  Status DecodeFrom(Slice& src);
   void mr_serialization(std::string* dst, ibv_mr* mr) const;
   static std::shared_ptr<RDMA_Manager> rdma_mg;
   uint64_t refs;
