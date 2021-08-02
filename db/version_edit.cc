@@ -68,9 +68,9 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   for(auto i = 0; i< remote_data_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.
     ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
-                            pd: reinterpret_cast<ibv_pd*>(pd_temp),
-                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp
-    };
+                            pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
+                            length: 0,
+                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
 //    remote_data_mrs
