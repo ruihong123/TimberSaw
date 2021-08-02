@@ -27,9 +27,9 @@ void PutFixed64(std::string* dst, uint64_t value) {
   EncodeFixed64(buf, value);
   dst->append(buf, sizeof(buf));
 }
-char* EncodeVarint32(char* dst, uint32_t v) {
+char* EncodeVarint32(char* buf, uint32_t v) {
   // Operate on characters as unsigneds
-  uint8_t* ptr = reinterpret_cast<uint8_t*>(dst);
+  uint8_t* ptr = reinterpret_cast<uint8_t*>(buf);
   static const int B = 128;
   if (v < (1 << 7)) {
     *(ptr++) = v;
@@ -65,9 +65,9 @@ void PutVarint32(std::string* dst, uint32_t v) {
   char* ptr = EncodeVarint32(buf, v);
   dst->append(buf, ptr - buf);
 }
-char* EncodeVarint64(char* dst, uint64_t v) {
+char* EncodeVarint64(char* buf, uint64_t v) {
   static const int B = 128;
-  uint8_t* ptr = reinterpret_cast<uint8_t*>(dst);
+  uint8_t* ptr = reinterpret_cast<uint8_t*>(buf);
   while (v >= B) {
     *(ptr++) = v | B;
     v >>= 7;

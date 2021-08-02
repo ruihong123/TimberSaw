@@ -42,10 +42,12 @@ struct RemoteMemTableMetaData {
     }
     return true;
   }
+  void EncodeTo(std::string* dst) const;
+  Status DecodeFrom(const Slice& src);
   static std::shared_ptr<RDMA_Manager> rdma_mg;
-  int refs;
-  int level;
-  int allowed_seeks;  // Seeks allowed until compaction
+  uint64_t refs;
+  uint64_t level;
+  uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
   std::map<int, ibv_mr*> remote_data_mrs;
   std::map<int, ibv_mr*> remote_dataindex_mrs;

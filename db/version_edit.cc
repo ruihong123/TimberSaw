@@ -9,6 +9,18 @@
 
 namespace leveldb {
 std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
+void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
+  PutFixed64(dst, level);
+  PutFixed64(dst, number);
+  PutFixed64(dst, file_size);
+  PutLengthPrefixedSlice(dst, smallest.Encode());
+  PutLengthPrefixedSlice(dst, largest.Encode());
+  remote_data_mrs.size();
+//  size_t
+}
+Status RemoteMemTableMetaData::DecodeFrom(const Slice& src) {
+  return Status();
+}
 // Tag numbers for serialized VersionEdit.  These numbers are written to
 // disk and should not be changed.
 enum Tag {
@@ -74,12 +86,9 @@ void VersionEdit::EncodeTo(std::string* dst) const {
 
   for (size_t i = 0; i < new_files_.size(); i++) {
     const std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;
-    PutVarint32(dst, kNewFile);
-    PutVarint32(dst, new_files_[i].first);  // level
-    PutVarint64(dst, f->number);
-    PutVarint64(dst, f->file_size);
-    PutLengthPrefixedSlice(dst, f->smallest.Encode());
-    PutLengthPrefixedSlice(dst, f->largest.Encode());
+    PutFixed32(dst, kNewFile);
+    PutFixed32(dst, new_files_[i].first);  // level
+
   }
 }
 
