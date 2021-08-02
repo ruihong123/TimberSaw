@@ -1812,7 +1812,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
-
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
 //  post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
   post_send<RDMA_Request>(&send_mr, std::string("main"));
   ibv_wc wc[2] = {};
@@ -1834,7 +1835,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   fprintf(stdout, "Remote LID = 0x%x\n", temp_buff.lid);
   // te,p_buff will have the informatin for the remote query pair,
   // use this information for qp connection.
-  connect_qp(receive_pointer->content.qp_config, qp);
+  connect_qp(temp_buff, qp);
   Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   Deallocate_Local_RDMA_Slot(receive_mr.addr, "message");
   return true;
