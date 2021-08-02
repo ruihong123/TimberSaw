@@ -90,19 +90,27 @@ struct fs_sync_command {
 //TODO (ruihong): add the reply message address to avoid request&response conflict for the same queue pair.
 // In other word, the threads will not need to figure out whether this message is a reply or response,
 // when receive a message from the main queue pair.
-union RDMA_Command_Content {
+union RDMA_Request_Content {
   size_t mem_size;
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
 };
-
-struct Computing_to_memory_msg {
+union RDMA_Reply_Content {
+  ibv_mr mr;
+  registered_qp_config qp_config;
+};
+struct RDMA_Request {
   RDMA_Command_Type command;
-  RDMA_Command_Content content;
+  RDMA_Request_Content content;
   void* reply_buffer;
   uint32_t rkey;
 } __attribute__((packed));
 
+struct RDMA_Reply {
+//  RDMA_Command_Type command;
+  RDMA_Reply_Content content;
+  bool received;
+} __attribute__((packed));
 // Structure for the file handle in RDMA file system. it could be a link list
 // for large files
 struct SST_Metadata {
@@ -295,7 +303,8 @@ class RDMA_Manager {
                 std::string q_id, size_t send_flag, int poll_num);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
                  std::string q_id, size_t send_flag, int poll_num);
-
+  int RDMA_Write(void* addr, uint32_t rkey, ibv_mr* local_mr, size_t msg_size,
+                 std::string q_id, size_t send_flag, int poll_num);
   // the coder need to figure out whether the queue pair has two seperated queue,
   // if not, only send_cq==true is a valid option.
   // For a thread-local queue pair, the send_cq does not matter.
@@ -380,6 +389,7 @@ class RDMA_Manager {
   //  std::string* db_name_;
   //  std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta_;
   //  std::shared_mutex* fs_mutex_;
+  bool poll_reply_buffer(RDMA_Reply* rdma_reply);
   int client_sock_connect(const char* servername, int port);
 
   int sock_sync_data(int sock, int xfer_size, char* local_data,

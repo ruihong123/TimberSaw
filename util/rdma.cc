@@ -142,13 +142,10 @@ RDMA_Manager::~RDMA_Manager() {
 
   delete res;
 }
-/******************************************************************************
-Socket operations
-For simplicity, the example program uses TCP sockets to exchange control
-information. If a TCP/IP stack/connection is not available, connection manager
-(CM) may be used to pass this information. Use of CM is beyond the scope of
-this example
-******************************************************************************/
+bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
+  while(!rdma_reply->received);
+  return true;
+}
 /******************************************************************************
 * Function: sock_connect
 *
@@ -1134,7 +1131,7 @@ End of socket operations
     //  auto start = std::chrono::high_resolution_clock::now();
     //  while(std::chrono::high_resolution_clock::now
     //  ()-start < std::chrono::nanoseconds(msg_size+200000));
-    rc = poll_completion(wc, poll_num, q_id, false);
+    rc = poll_completion(wc, poll_num, q_id, true);
     if (rc != 0) {
       std::cout << "RDMA Read Failed" << std::endl;
       std::cout << "q id is" << q_id << std::endl;
@@ -1223,7 +1220,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
     //  auto start = std::chrono::high_resolution_clock::now();
     //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
     // wait until the job complete.
-    rc = poll_completion(wc, poll_num, q_id, false);
+    rc = poll_completion(wc, poll_num, q_id, true);
     if (rc != 0) {
       std::cout << "RDMA Write Failed" << std::endl;
       std::cout << "q id is" << q_id << std::endl;
@@ -1235,6 +1232,86 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
   //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA Write post send and poll size: %zu elapse: %ld\n", msg_size, duration.count());
   return rc;
 }
+int RDMA_Manager::RDMA_Write(void* addr, uint32_t rkey, ibv_mr* local_mr, size_t msg_size,
+                             std::string q_id, size_t send_flag, int poll_num) {
+    //  auto start = std::chrono::high_resolution_clock::now();
+    struct ibv_send_wr sr;
+    struct ibv_sge sge;
+    struct ibv_send_wr* bad_wr = NULL;
+    int rc;
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)local_mr->addr;
+    sge.length = msg_size;
+    sge.lkey = local_mr->lkey;
+    /* prepare the send work request */
+    memset(&sr, 0, sizeof(sr));
+    sr.next = NULL;
+    sr.wr_id = 0;
+    sr.sg_list = &sge;
+    sr.num_sge = 1;
+    sr.opcode = IBV_WR_RDMA_WRITE;
+    if (send_flag != 0) sr.send_flags = send_flag;
+    sr.wr.rdma.remote_addr = (uint64_t)addr;
+    sr.wr.rdma.rkey = rkey;
+    /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+    //*(start) = std::chrono::steady_clock::now();
+    // start = std::chrono::steady_clock::now();
+    //  auto stop = std::chrono::high_resolution_clock::now();
+    //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA Write send preparation size: %zu elapse: %ld\n", msg_size, duration.count()); start = std::chrono::high_resolution_clock::now();
+
+    if (q_id == "read_local"){
+      assert(false);// Never comes to here
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_read->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_read->Get());
+      }
+      rc = ibv_post_send(qp, &sr, &bad_wr);
+    }else if (q_id == "write_local_flush"){
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+      }
+      rc = ibv_post_send(qp, &sr, &bad_wr);
+    }else if (q_id == "write_local_compact"){
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+      }
+      rc = ibv_post_send(qp, &sr, &bad_wr);
+    } else {
+      std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+      rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
+      l.unlock();
+    }
+
+    //  start = std::chrono::high_resolution_clock::now();
+    if (rc) fprintf(stderr, "failed to post SR, return is %d\n", rc);
+    //  else
+    //  {
+    //      fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
+    //  }
+    if (poll_num != 0) {
+      ibv_wc* wc = new ibv_wc[poll_num]();
+      //  auto start = std::chrono::high_resolution_clock::now();
+      //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
+      // wait until the job complete.
+      rc = poll_completion(wc, poll_num, q_id, true);
+      if (rc != 0) {
+        std::cout << "RDMA Write Failed" << std::endl;
+        std::cout << "q id is" << q_id << std::endl;
+        fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+      }
+      delete[] wc;
+    }
+    //  stop = std::chrono::high_resolution_clock::now();
+    //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA Write post send and poll size: %zu elapse: %ld\n", msg_size, duration.count());
+    return rc;
+}
+
 // int RDMA_Manager::post_atomic(int opcode)
 //{
 //  struct ibv_send_wr sr;
@@ -1645,50 +1722,48 @@ void RDMA_Manager::usage(const char* argv0) {
 bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
-  Computing_to_memory_msg* send_pointer;
-  send_pointer = (Computing_to_memory_msg*)res->send_buf;
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr receive_mr = {};
+  Allocate_Local_RDMA_Slot(send_mr, "message");
+  Allocate_Local_RDMA_Slot(receive_mr, "message");
+  send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = create_mr_;
   send_pointer->content.mem_size = size;
-  ibv_mr* receive_pointer;
-  receive_pointer = (ibv_mr*)res->receive_buf;
-  post_receive<ibv_mr>(res->mr_receive, std::string("main"));
-  post_send<Computing_to_memory_msg>(res->mr_send, std::string("main"));
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  post_send<RDMA_Request>(&send_mr, std::string("main"));
   ibv_wc wc[2] = {};
-  //  while(wc.opcode != IBV_WC_RECV){
-  //    poll_completion(&wc);
-  //    if (wc.status != 0){
-  //      fprintf(stderr, "Work completion status is %d \n", wc.status);
-  //    }
-  //
-  //  }
-  //  assert(wc.opcode == IBV_WC_RECV);
-  printf("Remote memory registeration, size: %zu", size);
-  if (!poll_completion(wc, 1, std::string("main"),true) &&
-   !poll_completion(wc, 1, std::string("main"), false)) {  // poll the receive for 2 entires
-//    sleep(1);
-    assert(try_poll_this_thread_completions(wc, 1, std::string("main"), true) == 0);
-    assert(try_poll_this_thread_completions(wc, 1, std::string("main"), false) == 0);
-    auto* temp_pointer = new ibv_mr();
-    // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
-    // Please remember to delete it when diregistering mem region from the remote memory
-    *temp_pointer = *receive_pointer;  // create a new ibv_mr for storing the new remote memory region handler
-    remote_mem_pool.push_back(
-        temp_pointer);  // push the new pointer for the new ibv_mr (different from the receive buffer) to remote_mem_pool
 
-    // push the bitmap of the new registed buffer to the bitmap vector in resource.
-    int placeholder_num =
-        static_cast<int>(temp_pointer->length) /
-        (Table_Size);  // here we supposing the SSTables are 4 megabytes
-    In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
-    //    std::unique_lock l(remote_pool_mutex);
-    Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
-    //    l.unlock();
-  } else {
-    fprintf(stderr, "failed to poll receive for remote memory register\n");
+  printf("Remote memory registeration, size: %zu", size);
+  if (poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }
-  //  l.unlock();
+  poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
 
+  auto* temp_pointer = new ibv_mr();
+  // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
+  // Please remember to delete it when diregistering mem region from the remote memory
+  *temp_pointer = receive_pointer->content.mr;  // create a new ibv_mr for storing the new remote memory region handler
+  remote_mem_pool.push_back(
+      temp_pointer);  // push the new pointer for the new ibv_mr (different from the receive buffer) to remote_mem_pool
+
+  // push the bitmap of the new registed buffer to the bitmap vector in resource.
+  int placeholder_num =
+      static_cast<int>(temp_pointer->length) /
+      (Table_Size);  // here we supposing the SSTables are 4 megabytes
+  In_Use_Array in_use_array(placeholder_num, Table_Size, temp_pointer);
+  //    std::unique_lock l(remote_pool_mutex);
+  Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
+  //    l.unlock();
+  //  l.unlock();
+  Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  Deallocate_Local_RDMA_Slot(receive_mr.addr, "message");
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
@@ -1711,19 +1786,25 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   // lock should be here because from here on we will modify the send buffer.
   // TODO: Try to understand whether this kind of memcopy without serialization is correct.
   // Could be wrong on different machine, because of the alignment
-  Computing_to_memory_msg* send_pointer;
-  send_pointer = (Computing_to_memory_msg*)res->send_buf;
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr receive_mr = {};
+  Allocate_Local_RDMA_Slot(send_mr, "message");
+  Allocate_Local_RDMA_Slot(receive_mr, "message");
+  send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = create_qp_;
   send_pointer->content.qp_config.qp_num = qp->qp_num;
   fprintf(stdout, "QP num to be sent = 0x%x\n", qp->qp_num);
   send_pointer->content.qp_config.lid = res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &my_gid, 16);
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
-  registered_qp_config* receive_pointer;
-  receive_pointer = (registered_qp_config*)res->receive_buf;
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
 
-  post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
-  post_send<Computing_to_memory_msg>(res->mr_send, std::string("main"));
+//  post_receive<registered_qp_config>(res->mr_receive, std::string("main"));
+  post_send<RDMA_Request>(&send_mr, std::string("main"));
   ibv_wc wc[2] = {};
   //  while(wc.opcode != IBV_WC_RECV){
   //    poll_completion(&wc);
@@ -1733,19 +1814,18 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   //
   //  }
   //  assert(wc.opcode == IBV_WC_RECV);
-
-  if (!poll_completion(wc, 1, std::string("main"), true) &&
-  !poll_completion(wc, 1, std::string("main"), false)) {
-    // poll the receive for 2 entires
-    registered_qp_config temp_buff = *receive_pointer;
-    fprintf(stdout, "Remote QP number=0x%x\n", receive_pointer->qp_num);
-    fprintf(stdout, "Remote LID = 0x%x\n", receive_pointer->lid);
-    // te,p_buff will have the informatin for the remote query pair,
-    // use this information for qp connection.
-    connect_qp(temp_buff, qp);
-    return true;
-  } else
+  if (poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
+  }
+  poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
+  registered_qp_config temp_buff = receive_pointer->content.qp_config;
+  fprintf(stdout, "Remote QP number=0x%x\n", temp_buff.qp_num);
+  fprintf(stdout, "Remote LID = 0x%x\n", temp_buff.lid);
+  // te,p_buff will have the informatin for the remote query pair,
+  // use this information for qp connection.
+  connect_qp(temp_buff, qp);
+  return true;
   //  // sync the communication by rdma.
   //  post_receive<registered_qp_config>(receive_pointer, std::string("main"));
   //  post_send<computing_to_memory_msg>(send_pointer, std::string("main"));

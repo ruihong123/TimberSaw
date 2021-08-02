@@ -33,19 +33,22 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     char temp_send[] = "Q";
     int rc = 0;
     rdma_mg_->ConnectQPThroughSocket(client_ip, socket_fd);
-    ibv_mr* send_mr;
-    char* send_buff;
-    if (!rdma_mg_->Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
-      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
-    }
-    ibv_mr* recv_mr;
-    char* recv_buff;
-    if (!rdma_mg_->Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
-      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
-    }
+    ibv_mr send_mr = {};
+    rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+//    char* send_buff;
+//    if (!rdma_mg_->Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
+//      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
+//    }
+    ibv_mr recv_mr = {};
+    rdma_mg_->Allocate_Local_RDMA_Slot(recv_mr, "message");
+
+//    char* recv_buff;
+//    if (!rdma_mg_->Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
+//      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
+//    }
     //  post_receive<int>(recv_mr, client_ip);
 
-    rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
+    rdma_mg_->post_receive<RDMA_Request>(&recv_mr, client_ip);
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
     if (rdma_mg_->sock_sync_data(socket_fd, 1, temp_send,
@@ -64,7 +67,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     //    printf("The main qp not create correctly");
     // Computing node and share memory connection succeed.
     // Now is the communication through rdma.
-    Computing_to_memory_msg receive_msg_buf;
+    RDMA_Request receive_msg_buf;
 
     //  receive_msg_buf = (computing_to_memory_msg*)recv_buff;
     //  receive_msg_buf->command = ntohl(receive_msg_buf->command);
@@ -74,13 +77,13 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     // TODO: implement a heart beat mechanism.
     while (true) {
       rdma_mg_->poll_completion(wc, 1, client_ip, false);
-      memcpy(&receive_msg_buf, recv_buff, sizeof(Computing_to_memory_msg));
+      memcpy(&receive_msg_buf, recv_mr.addr, sizeof(RDMA_Request));
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf.command == create_mr_) {
         std::cout << "create memory region command receive for" << client_ip
         << std::endl;
-        ibv_mr* send_pointer = (ibv_mr*)send_buff;
+        RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
         ibv_mr* mr;
         char* buff;
         if (!rdma_mg_->Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
@@ -89,11 +92,16 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
                   static_cast<unsigned>(receive_msg_buf.content.mem_size));
         }
         printf("Now the total Registered memory is %zu GB", rdma_mg_->local_mem_pool.size());
-        *send_pointer = *mr;
-        rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
-        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
-        rdma_mg_->poll_completion(wc, 1, client_ip, true);
+        send_pointer->content.mr = *mr;
+        send_pointer->received = true;
+        rdma_mg_->post_receive<RDMA_Request>(&recv_mr, client_ip);
+        rdma_mg_->RDMA_Write(receive_msg_buf.reply_buffer, receive_msg_buf.rkey,
+                             &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+//        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
+//        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf.command == create_qp_) {
+        assert(receive_msg_buf.reply_buffer != nullptr);
+        assert(receive_msg_buf.rkey != 0);
         char gid_str[17];
         memset(gid_str, 0, 17);
         memcpy(gid_str, receive_msg_buf.content.qp_config.gid, 16);
@@ -107,7 +115,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
                 receive_msg_buf.content.qp_config.qp_num);
         fprintf(stdout, "Remote LID = 0x%x\n",
                 receive_msg_buf.content.qp_config.lid);
-        registered_qp_config* send_pointer = (registered_qp_config*)send_buff;
+        RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
         ibv_qp* qp = rdma_mg_->create_qp(new_qp_id, false);
         if (rdma_mg_->rdma_config.gid_idx >= 0) {
           rc = ibv_query_gid(rdma_mg_->res->ib_ctx, rdma_mg_->rdma_config.ib_port,
@@ -120,13 +128,16 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         } else
           memset(&(rdma_mg_->res->my_gid), 0, sizeof(rdma_mg_->res->my_gid));
         /* exchange using TCP sockets info required to connect QPs */
-        send_pointer->qp_num = rdma_mg_->res->qp_map[new_qp_id]->qp_num;
-        send_pointer->lid = rdma_mg_->res->port_attr.lid;
-        memcpy(send_pointer->gid, &(rdma_mg_->res->my_gid), 16);
+        send_pointer->content.qp_config.qp_num = rdma_mg_->res->qp_map[new_qp_id]->qp_num;
+        send_pointer->content.qp_config.lid = rdma_mg_->res->port_attr.lid;
+        memcpy(send_pointer->content.qp_config.gid, &(rdma_mg_->res->my_gid), 16);
         rdma_mg_->connect_qp(receive_msg_buf.content.qp_config, qp);
-        rdma_mg_->post_receive<Computing_to_memory_msg>(recv_mr, client_ip);
-        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
-        rdma_mg_->poll_completion(wc, 1, client_ip, true);
+        rdma_mg_->post_receive<RDMA_Request>(&recv_mr, client_ip);
+        rdma_mg_->RDMA_Write(receive_msg_buf.reply_buffer, receive_msg_buf.rkey,
+                             &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+//        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
+//        rdma_mg_->poll_completion(wc, 1, client_ip, true);
+
       } else {
         printf("corrupt message from client.");
       }
