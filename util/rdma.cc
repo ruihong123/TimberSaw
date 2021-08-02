@@ -538,7 +538,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
         mr_flags, size, local_mem_pool.size());
     return false;
-  } else  {  // for the send buffer and receive buffer they will not be
+  } else if(pool_name!= "") {
+    // if pool name == "", then no bit map will be created. The registered memory is used for remote compute node RDMA read and write
     // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
 
     int placeholder_num =
