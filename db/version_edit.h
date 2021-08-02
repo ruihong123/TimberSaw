@@ -32,8 +32,8 @@ struct RemoteMemTableMetaData {
       DEBUG("Remote memory collection failed\n");
     }
   }
-  bool Remote_blocks_deallocate(std::map<int, ibv_mr*> map){
-    std::map<int, ibv_mr*>::iterator it;
+  bool Remote_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
+    std::map<uint32_t , ibv_mr*>::iterator it;
 
     for (it = map.begin(); it != map.end(); it++){
       if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr)){
@@ -50,9 +50,9 @@ struct RemoteMemTableMetaData {
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
-  std::map<int, ibv_mr*> remote_data_mrs;
-  std::map<int, ibv_mr*> remote_dataindex_mrs;
-  std::map<int, ibv_mr*> remote_filter_mrs;
+  std::map<uint32_t , ibv_mr*> remote_data_mrs;
+  std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
+  std::map<uint32_t, ibv_mr*> remote_filter_mrs;
   //std::vector<ibv_mr*> remote_data_mrs
   uint64_t file_size;    // File size in bytes
   size_t num_entries;

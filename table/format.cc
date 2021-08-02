@@ -60,7 +60,7 @@ Status Footer::DecodeFrom(Slice* input) {
   }
   return result;
 }
-void Find_Remote_mr(std::map<int, ibv_mr*>* remote_data_blocks,
+void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, ibv_mr* remote_mr) {
   uint64_t  position = handle.offset();
 //  auto iter = remote_data_blocks.begin();
@@ -88,7 +88,7 @@ void Find_Remote_mr(std::map<int, ibv_mr*>* remote_data_blocks,
 }
 //TODO: Make the block mr searching and creating outside this function, so that datablock is
 // the same as data index block and filter block.
-Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
+Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result) {
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();

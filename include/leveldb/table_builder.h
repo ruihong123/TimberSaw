@@ -93,9 +93,9 @@ class LEVELDB_EXPORT TableBuilder {
   // Size of the file generated so far.  If invoked after a successful
   // Finish() call, returns the size of the final generated file.
   uint64_t FileSize() const;
-  void get_datablocks_map(std::map<int, ibv_mr *>& map);
-  void get_dataindexblocks_map(std::map<int, ibv_mr *>& map);
-  void get_filter_map(std::map<int, ibv_mr *>& map);
+  void get_datablocks_map(std::map<uint32_t, ibv_mr*>& map);
+  void get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map);
+  void get_filter_map(std::map<uint32_t, ibv_mr*>& map);
   size_t get_numentries();
  private:
   bool ok() const { return status().ok(); }

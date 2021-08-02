@@ -85,9 +85,9 @@ struct TableBuilder::Rep {
   std::vector<ibv_mr*> local_index_mr;
   std::vector<ibv_mr*> local_filter_mr;
   //TODO: make the map offset -> ibv_mr*
-  std::map<int, ibv_mr*> remote_data_mrs;
-  std::map<int, ibv_mr*> remote_dataindex_mrs;
-  std::map<int, ibv_mr*> remote_filter_mrs;
+  std::map<uint32_t, ibv_mr*> remote_data_mrs;
+  std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
+  std::map<uint32_t, ibv_mr*> remote_filter_mrs;
 //  std::vector<size_t> remote_mr_real_length;
   uint64_t offset_last_flushed;
   uint64_t offset;
@@ -641,13 +641,13 @@ void TableBuilder::Abandon() {
 uint64_t TableBuilder::NumEntries() const { return rep_->num_entries; }
 
 uint64_t TableBuilder::FileSize() const { return rep_->offset; }
-void TableBuilder::get_datablocks_map(std::map<int, ibv_mr*>& map) {
+void TableBuilder::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_data_mrs;
 }
-void TableBuilder::get_dataindexblocks_map(std::map<int, ibv_mr*>& map) {
+void TableBuilder::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_dataindex_mrs;
 }
-void TableBuilder::get_filter_map(std::map<int, ibv_mr*>& map) {
+void TableBuilder::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_filter_mrs;
 }
 size_t TableBuilder::get_numentries() {

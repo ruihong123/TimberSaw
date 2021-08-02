@@ -31,7 +31,7 @@ class Options;
 class FullFilterBlockBuilder {
  public:
   explicit FullFilterBlockBuilder(std::vector<ibv_mr*>* mrs,
-                                  std::map<int, ibv_mr*>* remote_mrs,
+                                  std::map<uint32_t, ibv_mr*>* remote_mrs,
                                   std::shared_ptr<RDMA_Manager> rdma_mg,
                                   std::string& type_string,
                                   int bloombits_per_key);
@@ -58,7 +58,7 @@ class FullFilterBlockBuilder {
 //  const FilterPolicy* policy_;
   std::shared_ptr<RDMA_Manager> rdma_mg_;
   std::vector<ibv_mr*>* local_mrs;
-  std::map<int, ibv_mr*>* remote_mrs_;
+  std::map<uint32_t, ibv_mr*>* remote_mrs_;
 //  std::unique_ptr<LegacyBloomImpl> filter_bits_builder_;
   int bits_per_key_;
   int num_probes_;

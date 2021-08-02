@@ -55,16 +55,26 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   GetFixed64(&src, &remote_data_chunk_num);
   GetFixed64(&src, &remote_dataindex_chunk_num);
   GetFixed64(&src, &remote_filter_chunk_num);
-  uint64_t context;
-  uint64_t pd;
-  uint32_t handle;
-  uint32_t lkey;
-  uint32_t rkey;
-  GetFixed64(&src, &context);
-  GetFixed64(&src, &pd);
-  GetFixed32(&src, &handle);
-  GetFixed32(&src, &lkey);
-  GetFixed32(&src, &rkey);
+  uint64_t context_temp;
+  uint64_t pd_temp;
+  uint32_t handle_temp;
+  uint32_t lkey_temp;
+  uint32_t rkey_temp;
+  GetFixed64(&src, &context_temp);
+  GetFixed64(&src, &pd_temp);
+  GetFixed32(&src, &handle_temp);
+  GetFixed32(&src, &lkey_temp);
+  GetFixed32(&src, &rkey_temp);
+  for(auto i = 0; i< remote_data_chunk_num; i++){
+    //Todo: check whether the reinterpret_cast here make the correct value.
+    ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
+                            pd: reinterpret_cast<ibv_pd*>(pd_temp),
+                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp
+    };
+    GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
+    GetFixed64(&src, &mr->length);
+//    remote_data_mrs
+  }
   return s;
 }
 void RemoteMemTableMetaData::mr_serialization(std::string* dst, ibv_mr* mr) const {
