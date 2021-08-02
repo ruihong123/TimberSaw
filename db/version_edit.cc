@@ -15,11 +15,44 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, file_size);
   PutLengthPrefixedSlice(dst, smallest.Encode());
   PutLengthPrefixedSlice(dst, largest.Encode());
-  remote_data_mrs.size();
+  uint64_t remote_data_chunk_num = remote_data_mrs.size();
+  uint64_t remote_dataindex_chunk_num = remote_dataindex_mrs.size();
+  uint64_t remote_filter_chunk_num = remote_filter_mrs.size();
+  PutFixed64(dst, remote_data_chunk_num);
+  PutFixed64(dst, remote_dataindex_chunk_num);
+  PutFixed64(dst, remote_filter_chunk_num);
+  //Here we suppose all the remote memory chuck for the same table have similar infomation  below,
+  // the only difference is the addr and lenght
+  PutFixed64(dst, (uint64_t)remote_data_mrs.begin()->second->context);
+  PutFixed64(dst, (uint64_t)remote_data_mrs.begin()->second->pd);
+  PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->handle);
+  PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->lkey);
+  PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->rkey);
+  for(auto iter : remote_data_mrs){
+    mr_serialization(dst,iter.second);
+  }
+  for(auto iter : remote_dataindex_mrs){
+    mr_serialization(dst,iter.second);
+  }
+  for(auto iter : remote_filter_mrs){
+    mr_serialization(dst,iter.second);
+  }
 //  size_t
 }
 Status RemoteMemTableMetaData::DecodeFrom(const Slice& src) {
-  return Status();
+  Status s = Status::OK();
+  GetFixed64(src)
+  return s;
+}
+void RemoteMemTableMetaData::mr_serialization(std::string* dst, ibv_mr* mr) const {
+//  PutFixed64(dst, (uint64_t)mr->context);
+//  PutFixed64(dst, (uint64_t)mr->pd);
+  PutFixed64(dst, (uint64_t)mr->addr);
+  PutFixed64(dst, mr->length);
+//  PutFixed32(dst, mr->handle);
+//  PutFixed32(dst, mr->lkey);
+//  PutFixed32(dst, mr->rkey);
+
 }
 // Tag numbers for serialized VersionEdit.  These numbers are written to
 // disk and should not be changed.

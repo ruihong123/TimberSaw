@@ -57,12 +57,12 @@
 #include "util/random.h"
 
 namespace leveldb {
-static Slice GetLengthPrefixedSlice(const char* data) {
-  uint32_t len;
-  const char* p = data;
-  p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
-  return Slice(p, len);
-}
+//static Slice GetLengthPrefixedSlice(const char* data) {
+//  uint32_t len;
+//  const char* p = data;
+//  p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
+//  return Slice(p, len);
+//}
 template <class Comparator>
 class InlineSkipList {
  private:

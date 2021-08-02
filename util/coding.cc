@@ -1,35 +1,28 @@
+//  Copyright (c) 2011-present, Facebook, Inc.  All rights reserved.
+//  This source code is licensed under both the GPLv2 (found in the
+//  COPYING file in the root directory) and Apache 2.0 License
+//  (found in the LICENSE.Apache file in the root directory).
+//
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "util/coding.h"
 
+#include <algorithm>
+#include "leveldb//slice.h"
+//#include "leveldb/slice_transform.h"
+
 namespace leveldb {
-//TODO accellerate the Encoding process, avoid the data copy, put the encoded data directly onto Slice
-void PutFixed32(Slice* dst, uint32_t value) {
-  char buf[sizeof(value)];
-  EncodeFixed32(buf, value);
-  dst->append(buf, sizeof(buf));
-}
-void PutFixed32(std::string* dst, uint32_t value) {
-  char buf[sizeof(value)];
-  EncodeFixed32(buf, value);
-  dst->append(buf, sizeof(buf));
-}
-//TODO make overwrite versions of those function so that the code is compactible with the old versions.
-void PutFixed64(Slice* dst, uint64_t value) {
-  char buf[sizeof(value)];
-  EncodeFixed64(buf, value);
-  dst->append(buf, sizeof(buf));
-}
-void PutFixed64(std::string* dst, uint64_t value) {
-  char buf[sizeof(value)];
-  EncodeFixed64(buf, value);
-  dst->append(buf, sizeof(buf));
-}
-char* EncodeVarint32(char* buf, uint32_t v) {
+
+// conversion' conversion from 'type1' to 'type2', possible loss of data
+#if defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4244)
+#endif
+char* EncodeVarint32(char* dst, uint32_t v) {
   // Operate on characters as unsigneds
-  uint8_t* ptr = reinterpret_cast<uint8_t*>(buf);
+  unsigned char* ptr = reinterpret_cast<unsigned char*>(dst);
   static const int B = 128;
   if (v < (1 << 7)) {
     *(ptr++) = v;
@@ -54,60 +47,15 @@ char* EncodeVarint32(char* buf, uint32_t v) {
   }
   return reinterpret_cast<char*>(ptr);
 }
-
-void PutVarint32(Slice* dst, uint32_t v) {
-  char buf[5];
-  char* ptr = EncodeVarint32(buf, v);
-  dst->append(buf, ptr - buf);
-}
-void PutVarint32(std::string* dst, uint32_t v) {
-  char buf[5];
-  char* ptr = EncodeVarint32(buf, v);
-  dst->append(buf, ptr - buf);
-}
-char* EncodeVarint64(char* buf, uint64_t v) {
-  static const int B = 128;
-  uint8_t* ptr = reinterpret_cast<uint8_t*>(buf);
-  while (v >= B) {
-    *(ptr++) = v | B;
-    v >>= 7;
-  }
-  *(ptr++) = static_cast<uint8_t>(v);
-  return reinterpret_cast<char*>(ptr);
-}
-
-void PutVarint64(Slice* dst, uint64_t v) {
-  char buf[10];
-  char* ptr = EncodeVarint64(buf, v);
-  dst->append(buf, ptr - buf);
-}
-void PutVarint64(std::string* dst, uint64_t v) {
-  char buf[10];
-  char* ptr = EncodeVarint64(buf, v);
-  dst->append(buf, ptr - buf);
-}
-void PutLengthPrefixedSlice(Slice* dst, const Slice& value) {
-  PutVarint32(dst, value.size());
-  dst->append(value.data(), value.size());
-}
-void PutLengthPrefixedSlice(std::string* dst, const Slice& value) {
-  PutVarint32(dst, value.size());
-  dst->append(value.data(), value.size());
-}
-int VarintLength(uint64_t v) {
-  int len = 1;
-  while (v >= 128) {
-    v >>= 7;
-    len++;
-  }
-  return len;
-}
+#if defined(_MSC_VER)
+#pragma warning(pop)
+#endif
 
 const char* GetVarint32PtrFallback(const char* p, const char* limit,
                                    uint32_t* value) {
   uint32_t result = 0;
   for (uint32_t shift = 0; shift <= 28 && p < limit; shift += 7) {
-    uint32_t byte = *(reinterpret_cast<const uint8_t*>(p));
+    uint32_t byte = *(reinterpret_cast<const unsigned char*>(p));
     p++;
     if (byte & 128) {
       // More bytes are present
@@ -119,24 +67,12 @@ const char* GetVarint32PtrFallback(const char* p, const char* limit,
     }
   }
   return nullptr;
-}
-
-bool GetVarint32(Slice* input, uint32_t* value) {
-  const char* p = input->data();
-  const char* limit = p + input->size();
-  const char* q = GetVarint32Ptr(p, limit, value);
-  if (q == nullptr) {
-    return false;
-  } else {
-    *input = Slice(q, limit - q);
-    return true;
-  }
 }
 
 const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
   uint64_t result = 0;
   for (uint32_t shift = 0; shift <= 63 && p < limit; shift += 7) {
-    uint64_t byte = *(reinterpret_cast<const uint8_t*>(p));
+    uint64_t byte = *(reinterpret_cast<const unsigned char*>(p));
     p++;
     if (byte & 128) {
       // More bytes are present
@@ -150,44 +86,4 @@ const char* GetVarint64Ptr(const char* p, const char* limit, uint64_t* value) {
   return nullptr;
 }
 
-bool GetVarint64(Slice* input, uint64_t* value) {
-  const char* p = input->data();
-  const char* limit = p + input->size();
-  const char* q = GetVarint64Ptr(p, limit, value);
-  if (q == nullptr) {
-    return false;
-  } else {
-    *input = Slice(q, limit - q);
-    return true;
-  }
-}
-
-const char* GetLengthPrefixedSlice(const char* p, const char* limit,
-                                   Slice* result) {
-  uint32_t len;
-  p = GetVarint32Ptr(p, limit, &len);
-  if (p == nullptr) return nullptr;
-  if (p + len > limit) return nullptr;
-  *result = Slice(p, len);
-  return p + len;
-}
-
-bool GetLengthPrefixedSlice(Slice* input, Slice* result) {
-  uint32_t len;
-  if (GetVarint32(input, &len) && input->size() >= len) {
-    *result = Slice(input->data(), len);
-    input->remove_prefix(len);
-    return true;
-  } else {
-    return false;
-  }
-}
-//inline Slice GetLengthPrefixedSlice(const char* data) {
-//  uint32_t len = 0;
-//  // +5: we assume "data" is not corrupted
-//  // unsigned char is 7 bits, uint32_t is 32 bits, need 5 unsigned char
-//  auto p = GetVarint32Ptr(data, data + 5 /* limit */, &len);
-//  return Slice(p, len);
-//}
-
-}  // namespace leveldb
+}  // namespace ROCKSDB_NAMESPACE
