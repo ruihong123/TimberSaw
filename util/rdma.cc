@@ -1834,7 +1834,9 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   fprintf(stdout, "Remote LID = 0x%x\n", temp_buff.lid);
   // te,p_buff will have the informatin for the remote query pair,
   // use this information for qp connection.
-  connect_qp(temp_buff, qp);
+  connect_qp(receive_pointer->content.qp_config, qp);
+  Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  Deallocate_Local_RDMA_Slot(receive_mr.addr, "message");
   return true;
   //  // sync the communication by rdma.
   //  post_receive<registered_qp_config>(receive_pointer, std::string("main"));
