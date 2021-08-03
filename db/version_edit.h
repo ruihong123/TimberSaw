@@ -18,7 +18,7 @@ class RDMA_Manager;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
 // Solved
 struct RemoteMemTableMetaData {
-  RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
+  RemoteMemTableMetaData() : allowed_seeks(1 << 30) {}
   //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
@@ -46,7 +46,7 @@ struct RemoteMemTableMetaData {
   Status DecodeFrom(Slice& src);
   void mr_serialization(std::string* dst, ibv_mr* mr) const;
   static std::shared_ptr<RDMA_Manager> rdma_mg;
-  uint64_t refs;
+//  uint64_t refs;
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;

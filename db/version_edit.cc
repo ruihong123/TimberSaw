@@ -44,6 +44,7 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
 }
 Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   Status s = Status::OK();
+  rdma_mg = Env::Default()->rdma_mg;
   GetFixed64(&src, &level);
   GetFixed64(&src, &number);
   GetFixed64(&src, &file_size);
@@ -216,7 +217,6 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
   // Temporary storage for parsing
   int level;
   uint64_t number;
-  std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>();
   Slice str;
   InternalKey key;
 
@@ -281,6 +281,7 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
 
       case kNewFile:
         if (GetLevel(&input, &level)) {
+          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>();
           f->DecodeFrom(input);
           new_files_.push_back(std::make_pair(level, f));
         } else {

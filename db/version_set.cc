@@ -600,7 +600,7 @@ class VersionSet::Builder {
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
       std::shared_ptr<RemoteMemTableMetaData> f = edit->new_files_[i].second;
-      f->refs = 1;
+//      f->refs = 1;
 
       // We arrange to automatically compact this file after
       // a certain number of seeks.  Let's assume:
@@ -697,7 +697,7 @@ class VersionSet::Builder {
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
                                     f->smallest) < 0);
       }
-      f->refs++;
+//      f->refs++;
       files->push_back(f);
       if (f->UnderCompaction){
         in_progresses->push_back(f);
