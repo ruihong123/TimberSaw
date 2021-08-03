@@ -29,12 +29,15 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->lkey);
   PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->rkey);
   for(auto iter : remote_data_mrs){
+    PutFixed32(dst, iter.first);
     mr_serialization(dst,iter.second);
   }
   for(auto iter : remote_dataindex_mrs){
+    PutFixed32(dst, iter.first);
     mr_serialization(dst,iter.second);
   }
   for(auto iter : remote_filter_mrs){
+    PutFixed32(dst, iter.first);
     mr_serialization(dst,iter.second);
   }
 //  size_t
@@ -71,9 +74,35 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
                             pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
                             length: 0,
                             handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
+    uint32_t offset = 0;
+    GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
-//    remote_data_mrs
+    remote_data_mrs.insert({offset, mr});
+  }
+  for(auto i = 0; i< remote_dataindex_chunk_num; i++){
+    //Todo: check whether the reinterpret_cast here make the correct value.
+    ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
+                            pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
+                            length: 0,
+                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
+    uint32_t offset = 0;
+    GetFixed32(&src, &offset);
+    GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
+    GetFixed64(&src, &mr->length);
+    remote_data_mrs.insert({offset, mr});
+  }
+  for(auto i = 0; i< remote_filter_chunk_num; i++){
+    //Todo: check whether the reinterpret_cast here make the correct value.
+    ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
+                            pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
+                            length: 0,
+                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
+    uint32_t offset = 0;
+    GetFixed32(&src, &offset);
+    GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
+    GetFixed64(&src, &mr->length);
+    remote_data_mrs.insert({offset, mr});
   }
   return s;
 }
@@ -154,6 +183,7 @@ void VersionEdit::EncodeTo(std::string* dst) const {
     const std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;
     PutFixed32(dst, kNewFile);
     PutFixed32(dst, new_files_[i].first);  // level
+    f->EncodeTo(dst);
 
   }
 }
@@ -250,10 +280,8 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
         break;
 
       case kNewFile:
-        if (GetLevel(&input, &level) && GetVarint64(&input, &f->number) &&
-            GetVarint64(&input, &f->file_size) &&
-            GetInternalKey(&input, &f->smallest) &&
-            GetInternalKey(&input, &f->largest)) {
+        if (GetLevel(&input, &level)) {
+          f->DecodeFrom(input);
           new_files_.push_back(std::make_pair(level, f));
         } else {
           msg = "new-file entry";

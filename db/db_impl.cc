@@ -1457,6 +1457,13 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
   s = vset->LogAndApply(edit);
 //  Edit_sync_to_remote(edit);
+#ifndef NDEBUG
+  std::string temp_buf;
+  edit->EncodeTo(&temp_buf);
+  VersionEdit new_edit;
+  new_edit.DecodeFrom(temp_buf);
+  printf("check\n");
+#endif
   InstallSuperVersion();
   lck2.unlock();
   job->write_stall_cv_->notify_all();
@@ -1729,7 +1736,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 //  undefine_mutex.Unlock();
   if (start != nullptr) {
     InternalKey start_internal(*start, kMaxSequenceNumber, kValueTypeForSeek);
-
+    //tofix(ruihong): too much data copy for the seek here!
     input->Seek(start_internal.Encode());
     // The sstable range is (start, end]
     input->Next();
