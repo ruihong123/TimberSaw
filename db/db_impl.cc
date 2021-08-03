@@ -1458,11 +1458,11 @@ Status DBImpl::TryInstallMemtableFlushResults(
   s = vset->LogAndApply(edit);
 //  Edit_sync_to_remote(edit);
 #ifndef NDEBUG
-  std::string temp_buf;
-  edit->EncodeTo(&temp_buf);
-  VersionEdit new_edit;
-  new_edit.DecodeFrom(temp_buf);
-  printf("check\n");
+//  std::string temp_buf;
+//  edit->EncodeTo(&temp_buf);
+//  VersionEdit new_edit;
+//  new_edit.DecodeFrom(temp_buf);
+//  printf("check\n");
 #endif
   InstallSuperVersion();
   lck2.unlock();
