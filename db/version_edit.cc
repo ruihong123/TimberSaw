@@ -181,8 +181,8 @@ void VersionEdit::EncodeTo(std::string* dst) const {
 
   for (size_t i = 0; i < new_files_.size(); i++) {
     const std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;
-    PutFixed32(dst, kNewFile);
-    PutFixed32(dst, new_files_[i].first);  // level
+    PutVarint32(dst, kNewFile);
+    PutVarint32(dst, new_files_[i].first);  // level
     f->EncodeTo(dst);
 
   }
