@@ -311,10 +311,10 @@ DBImpl::~DBImpl() {
 
 Status DBImpl::NewDB() {
   VersionEdit new_db;
-  new_db.SetComparatorName(user_comparator()->Name());
-  new_db.SetLogNumber(0);
-  new_db.SetNextFile(2);
-  new_db.SetLastSequence(0);
+//  new_db.SetComparatorName(user_comparator()->Name());
+//  new_db.SetLogNumber(0);
+//  new_db.SetNextFile(2);
+//  new_db.SetLastSequence(0);
 
   const std::string manifest = DescriptorFileName(dbname_, 1);
   WritableFile* file;
