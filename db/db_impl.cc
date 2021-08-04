@@ -1460,9 +1460,9 @@ Status DBImpl::TryInstallMemtableFlushResults(
 #ifndef NDEBUG
   std::string temp_buf;
   edit->EncodeTo(&temp_buf);
-//  VersionEdit new_edit;
-//  new_edit.DecodeFrom(temp_buf);
-//  printf("check\n");
+  VersionEdit new_edit;
+  new_edit.DecodeFrom(temp_buf);
+  printf("check\n");
 #endif
   InstallSuperVersion();
   lck2.unlock();
