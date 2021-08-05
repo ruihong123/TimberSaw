@@ -18,19 +18,25 @@ class RDMA_Manager;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
 // Solved
 struct RemoteMemTableMetaData {
-  RemoteMemTableMetaData() : allowed_seeks(1 << 30) {}
+  RemoteMemTableMetaData() : table_type(0), allowed_seeks(1 << 30) {}
+  RemoteMemTableMetaData(int type) : table_type(type), allowed_seeks(1 << 30) {}
   //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
     // home node to deference. Or the remote dereference is conducted in the granularity of version.
     DEBUG("Destroying RemoteMemtableMetaData\n");
-    if(Remote_blocks_deallocate(remote_data_mrs) &&
-        Remote_blocks_deallocate(remote_dataindex_mrs) &&
-    Remote_blocks_deallocate(remote_filter_mrs)){
-      DEBUG("Remote blocks deleted successfully\n");
+    if (table_type == 0){
+      if(Remote_blocks_deallocate(remote_data_mrs) &&
+      Remote_blocks_deallocate(remote_dataindex_mrs) &&
+      Remote_blocks_deallocate(remote_filter_mrs)){
+        DEBUG("Remote blocks deleted successfully\n");
+      }else{
+        DEBUG("Remote memory collection failed\n");
+      }
     }else{
-      DEBUG("Remote memory collection failed\n");
+      //TODO: memory collection for the remote memory.
     }
+
   }
   bool Remote_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
     std::map<uint32_t , ibv_mr*>::iterator it;
@@ -46,6 +52,7 @@ struct RemoteMemTableMetaData {
   Status DecodeFrom(Slice& src);
   void mr_serialization(std::string* dst, ibv_mr* mr) const;
   static std::shared_ptr<RDMA_Manager> rdma_mg;
+  int table_type;
 //  uint64_t refs;
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction

@@ -33,22 +33,31 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     char temp_send[] = "Q";
     int rc = 0;
     rdma_mg_->ConnectQPThroughSocket(client_ip, socket_fd);
-    ibv_mr send_mr = {};
-    rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+    //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
+    ibv_mr send_mr[32] = {};
+    for(int i = 0; i<=32; i++){
+      rdma_mg_->Allocate_Local_RDMA_Slot(send_mr[i], "message");
+    }
+
 //    char* send_buff;
 //    if (!rdma_mg_->Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
 //      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
 //    }
-    ibv_mr recv_mr = {};
-    rdma_mg_->Allocate_Local_RDMA_Slot(recv_mr, "message");
+//    int buffer_number = 32;
+    ibv_mr recv_mr[32] = {};
+    for(int i = 0; i<=32; i++){
+      rdma_mg_->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
+    }
+
 
 //    char* recv_buff;
 //    if (!rdma_mg_->Local_Memory_Register(&recv_buff, &recv_mr, 1000, std::string())) {
 //      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
 //    }
     //  post_receive<int>(recv_mr, client_ip);
-
-    rdma_mg_->post_receive<RDMA_Request>(&recv_mr, client_ip);
+    for(int i = 0; i<=32; i++) {
+      rdma_mg_->post_receive<RDMA_Request>(&recv_mr[i], client_ip);
+    }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
     if (rdma_mg_->sock_sync_data(socket_fd, 1, temp_send,
@@ -75,74 +84,36 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
     //  ibv_wc wc[3] = {};
     // TODO: implement a heart beat mechanism.
+    int buffer_counter = 0;
     while (true) {
       rdma_mg_->poll_completion(wc, 1, client_ip, false);
-      memcpy(&receive_msg_buf, recv_mr.addr, sizeof(RDMA_Request));
+      memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+      if (buffer_counter== 31){
+        buffer_counter = 0;
+      } else{
+        buffer_counter++;
+      }
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf.command == create_mr_) {
-        std::cout << "create memory region command receive for" << client_ip
-        << std::endl;
-        RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
-        ibv_mr* mr;
-        char* buff;
-        if (!rdma_mg_->Local_Memory_Register(&buff, &mr, receive_msg_buf.content.mem_size,
-                                   std::string())) {
-          fprintf(stderr, "memory registering failed by size of 0x%x\n",
-                  static_cast<unsigned>(receive_msg_buf.content.mem_size));
-        }
-        printf("Now the total Registered memory is %zu GB", rdma_mg_->local_mem_pool.size());
-        send_pointer->content.mr = *mr;
-        send_pointer->received = true;
-        rdma_mg_->post_receive<RDMA_Request>(&recv_mr, client_ip);
-        rdma_mg_->RDMA_Write(receive_msg_buf.reply_buffer, receive_msg_buf.rkey,
-                             &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+        rdma_mg_->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+
+        create_mr_handler(receive_msg_buf, client_ip);
 //        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf.command == create_qp_) {
-        assert(receive_msg_buf.reply_buffer != nullptr);
-        assert(receive_msg_buf.rkey != 0);
-        char gid_str[17];
-        memset(gid_str, 0, 17);
-        memcpy(gid_str, receive_msg_buf.content.qp_config.gid, 16);
-        std::string new_qp_id =
-            std::string(gid_str) +
-            std::to_string(receive_msg_buf.content.qp_config.lid) +
-            std::to_string(receive_msg_buf.content.qp_config.qp_num);
-        std::cout << "create query pair command receive for" << client_ip
-        << std::endl;
-        fprintf(stdout, "Remote QP number=0x%x\n",
-                receive_msg_buf.content.qp_config.qp_num);
-        fprintf(stdout, "Remote LID = 0x%x\n",
-                receive_msg_buf.content.qp_config.lid);
-        RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
-        ibv_qp* qp = rdma_mg_->create_qp(new_qp_id, false);
-        if (rdma_mg_->rdma_config.gid_idx >= 0) {
-          rc = ibv_query_gid(rdma_mg_->res->ib_ctx, rdma_mg_->rdma_config.ib_port,
-                             rdma_mg_->rdma_config.gid_idx, &(rdma_mg_->res->my_gid));
-          if (rc) {
-            fprintf(stderr, "could not get gid for port %d, index %d\n",
-                    rdma_mg_->rdma_config.ib_port, rdma_mg_->rdma_config.gid_idx);
-            return;
-          }
-        } else
-          memset(&(rdma_mg_->res->my_gid), 0, sizeof(rdma_mg_->res->my_gid));
-        /* exchange using TCP sockets info required to connect QPs */
-        send_pointer->content.qp_config.qp_num = rdma_mg_->res->qp_map[new_qp_id]->qp_num;
-        send_pointer->content.qp_config.lid = rdma_mg_->res->port_attr.lid;
-        memcpy(send_pointer->content.qp_config.gid, &(rdma_mg_->res->my_gid), 16);
-        rdma_mg_->connect_qp(receive_msg_buf.content.qp_config, qp);
-        rdma_mg_->post_receive<RDMA_Request>(&recv_mr, client_ip);
-        rdma_mg_->RDMA_Write(receive_msg_buf.reply_buffer, receive_msg_buf.rkey,
-                             &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-//        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
+        rdma_mg_->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        create_qp_handler(receive_msg_buf, client_ip);
+        //        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
+      } else if (receive_msg_buf.command == install_version_edit) {
+        rdma_mg_->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
 
       } else {
         printf("corrupt message from client.");
+        break;
       }
     }
-    return;
     // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
   }
   void Memory_Node_Keeper::Server_to_Client_Communication() {
@@ -236,6 +207,85 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::JoinAllThreads(bool wait_for_jobs_to_complete) {
   message_handler_pool_.JoinThreads(wait_for_jobs_to_complete);
   }
+  void Memory_Node_Keeper::create_mr_handler(RDMA_Request request,
+                                             std::string& client_ip) {
+  std::cout << "create memory region command receive for" << client_ip
+  << std::endl;
+  //TODO: consider the edianess of the RDMA request and reply.
+  ibv_mr send_mr;
+  rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+  RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+
+  ibv_mr* mr;
+  char* buff;
+  if (!rdma_mg_->Local_Memory_Register(&buff, &mr, request.content.mem_size,
+                                       std::string())) {
+    fprintf(stderr, "memory registering failed by size of 0x%x\n",
+            static_cast<unsigned>(request.content.mem_size));
   }
+  printf("Now the total Registered memory is %zu GB", rdma_mg_->local_mem_pool.size());
+  send_pointer->content.mr = *mr;
+  send_pointer->received = true;
+
+  rdma_mg_->RDMA_Write(request.reply_buffer, request.rkey,
+                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg_->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  }
+  void Memory_Node_Keeper::create_qp_handler(RDMA_Request request,
+                                             std::string& client_ip) {
+    int rc;
+  assert(request.reply_buffer != nullptr);
+  assert(request.rkey != 0);
+  char gid_str[17];
+  memset(gid_str, 0, 17);
+  memcpy(gid_str, request.content.qp_config.gid, 16);
+  std::string new_qp_id =
+      std::string(gid_str) +
+      std::to_string(request.content.qp_config.lid) +
+      std::to_string(request.content.qp_config.qp_num);
+  std::cout << "create query pair command receive for" << client_ip
+  << std::endl;
+  fprintf(stdout, "Remote QP number=0x%x\n",
+          request.content.qp_config.qp_num);
+  fprintf(stdout, "Remote LID = 0x%x\n",
+          request.content.qp_config.lid);
+  ibv_mr send_mr;
+  rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+  RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+  ibv_qp* qp = rdma_mg_->create_qp(new_qp_id, false);
+  if (rdma_mg_->rdma_config.gid_idx >= 0) {
+    rc = ibv_query_gid(rdma_mg_->res->ib_ctx, rdma_mg_->rdma_config.ib_port,
+                       rdma_mg_->rdma_config.gid_idx, &(rdma_mg_->res->my_gid));
+    if (rc) {
+      fprintf(stderr, "could not get gid for port %d, index %d\n",
+              rdma_mg_->rdma_config.ib_port, rdma_mg_->rdma_config.gid_idx);
+      return;
+    }
+  } else
+    memset(&(rdma_mg_->res->my_gid), 0, sizeof(rdma_mg_->res->my_gid));
+  /* exchange using TCP sockets info required to connect QPs */
+  send_pointer->content.qp_config.qp_num = rdma_mg_->res->qp_map[new_qp_id]->qp_num;
+  send_pointer->content.qp_config.lid = rdma_mg_->res->port_attr.lid;
+  memcpy(send_pointer->content.qp_config.gid, &(rdma_mg_->res->my_gid), 16);
+  rdma_mg_->connect_qp(request.content.qp_config, qp);
+
+  rdma_mg_->RDMA_Write(request.reply_buffer, request.rkey,
+                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  }
+  void Memory_Node_Keeper::install_version_edit_handler(RDMA_Request request,
+                                                        std::string& client_ip) {
+  ibv_mr send_mr;
+  rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+  RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+  send_pointer->content.ive = {};
+  ibv_mr edit_recv_mr;
+  rdma_mg_->Allocate_Local_RDMA_Slot(edit_recv_mr, "message");
+  send_pointer->reply_buffer = edit_recv_mr.addr;
+  send_pointer->rkey = edit_recv_mr.rkey;
+  rdma_mg_->RDMA_Write(request.reply_buffer, request.rkey,
+                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+
+  }
+}
 
 

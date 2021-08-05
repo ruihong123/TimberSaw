@@ -31,5 +31,9 @@ class Memory_Node_Keeper {
   VersionSet* versions_;
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
+  void create_mr_handler(RDMA_Request request, std::string& client_ip);
+  void create_qp_handler(RDMA_Request request, std::string& client_ip);
+
+  void install_version_edit_handler(RDMA_Request request, std::string& client_ip);
 };
 }

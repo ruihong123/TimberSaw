@@ -74,9 +74,12 @@ struct registered_qp_config {
   uint16_t lid;    /* LID of the IB port */
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
+struct install_versionedit {
+} __attribute__((packed));
 enum RDMA_Command_Type {
   create_qp_,
   create_mr_,
+  install_version_edit,
   save_fs_serialized_data,
   retrieve_fs_serialized_data,
   save_log_serialized_data,
@@ -98,6 +101,7 @@ union RDMA_Request_Content {
 union RDMA_Reply_Content {
   ibv_mr mr;
   registered_qp_config qp_config;
+  install_versionedit ive;
 };
 struct RDMA_Request {
   RDMA_Command_Type command;
@@ -109,6 +113,8 @@ struct RDMA_Request {
 struct RDMA_Reply {
 //  RDMA_Command_Type command;
   RDMA_Reply_Content content;
+  void* reply_buffer;
+  uint32_t rkey;
   bool received;
 } __attribute__((packed));
 // Structure for the file handle in RDMA file system. it could be a link list
@@ -383,13 +389,60 @@ class RDMA_Manager {
   //  std::shared_mutex fs_image_mutex;
   // use thread local qp and cq instead of map, this could be lock free.
   //  static __thread std::string thread_id;
- private:
-  config_t rdma_config;
+  template <typename T>
+  int post_send(ibv_mr* mr, std::string qp_id = "main"){struct ibv_send_wr sr;
+    struct ibv_sge sge;
+    struct ibv_send_wr* bad_wr = NULL;
+    int rc;
+    //  if (!rdma_config.server_name) {
+    // server side.
+    /* prepare the scatter/gather entry */
+    memset(&sge, 0, sizeof(sge));
+    sge.addr = (uintptr_t)mr->addr;
+    sge.length = sizeof(T);
+    sge.lkey = mr->lkey;
+    //  }
+    //  else {
+    //    //client side
+    //    /* prepare the scatter/gather entry */
+    //    memset(&sge, 0, sizeof(sge));
+    //    sge.addr = (uintptr_t)res->send_buf;
+    //    sge.length = sizeof(T);
+    //    sge.lkey = res->mr_send->lkey;
+    //  }
+
+    /* prepare the send work request */
+    memset(&sr, 0, sizeof(sr));
+    sr.next = NULL;
+    sr.wr_id = 0;
+    sr.sg_list = &sge;
+    sr.num_sge = 1;
+    sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
+    sr.send_flags = IBV_SEND_SIGNALED;
+
+    /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+    //*(start) = std::chrono::steady_clock::now();
+    // start = std::chrono::steady_clock::now();
+
+    if (rdma_config.server_name)
+      rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
+    else
+      rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+    if (rc)
+      fprintf(stderr, "failed to post SR\n");
+    else {
+      fprintf(stdout, "Send Request was posted\n");
+    }
+    return rc;}
+
   // three variables below are from rdma file system.
   //  std::string* db_name_;
   //  std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta_;
   //  std::shared_mutex* fs_mutex_;
   bool poll_reply_buffer(RDMA_Reply* rdma_reply);
+
+ private:
+  config_t rdma_config;
   int client_sock_connect(const char* servername, int port);
 
   int sock_sync_data(int sock, int xfer_size, char* local_data,
@@ -453,51 +506,6 @@ class RDMA_Manager {
       fprintf(stdout, "Receive Request was posted\n");
     return rc;
   }  // For a non-thread-local queue pair, send_cq==true poll the cq of send queue, send_cq==false poll the cq of receive queue
-  template <typename T>
-  int post_send(ibv_mr* mr, std::string qp_id = "main"){struct ibv_send_wr sr;
-    struct ibv_sge sge;
-    struct ibv_send_wr* bad_wr = NULL;
-    int rc;
-    //  if (!rdma_config.server_name) {
-    // server side.
-    /* prepare the scatter/gather entry */
-    memset(&sge, 0, sizeof(sge));
-    sge.addr = (uintptr_t)mr->addr;
-    sge.length = sizeof(T);
-    sge.lkey = mr->lkey;
-    //  }
-    //  else {
-    //    //client side
-    //    /* prepare the scatter/gather entry */
-    //    memset(&sge, 0, sizeof(sge));
-    //    sge.addr = (uintptr_t)res->send_buf;
-    //    sge.length = sizeof(T);
-    //    sge.lkey = res->mr_send->lkey;
-    //  }
-
-    /* prepare the send work request */
-    memset(&sr, 0, sizeof(sr));
-    sr.next = NULL;
-    sr.wr_id = 0;
-    sr.sg_list = &sge;
-    sr.num_sge = 1;
-    sr.opcode = static_cast<ibv_wr_opcode>(IBV_WR_SEND);
-    sr.send_flags = IBV_SEND_SIGNALED;
-
-    /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
-    //*(start) = std::chrono::steady_clock::now();
-    // start = std::chrono::steady_clock::now();
-
-    if (rdma_config.server_name)
-      rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
-    else
-      rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
-    if (rc)
-      fprintf(stderr, "failed to post SR\n");
-    else {
-      fprintf(stdout, "Send Request was posted\n");
-    }
-    return rc;}
 };
 
 }

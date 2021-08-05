@@ -58,7 +58,8 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
   Remote_Mem_Bitmap = new std::map<void*, In_Use_Array>;
 
   //Initialize a message memory pool
-  Mempool_initialize(std::string("message"), 4096);
+  Mempool_initialize(std::string("message"), std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
+  Mempool_initialize(std::string("version_edit"), 4096);
 }
 /******************************************************************************
 * Function: ~RDMA_Manager

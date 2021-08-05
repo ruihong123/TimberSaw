@@ -1456,7 +1456,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
 
   s = vset->LogAndApply(edit);
-//  Edit_sync_to_remote(edit);
+  Edit_sync_to_remote(edit);
 #ifndef NDEBUG
   std::string temp_buf;
   edit->EncodeTo(&temp_buf);
@@ -1581,6 +1581,33 @@ void DBImpl::InstallSuperVersion() {
 void DBImpl::Communication_To_Home_Node() {
   ibv_wc wc[3] = {};
   env_->rdma_mg->poll_completion(wc, 1, "main", false);
+}
+void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
+//  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // register the memory block from the remote memory
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_ve = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+  rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
 }
 void DBImpl::ResetThreadLocalSuperVersions() {
   autovector<void*> sv_ptrs;
