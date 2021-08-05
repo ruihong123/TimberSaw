@@ -34,10 +34,10 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     int rc = 0;
     rdma_mg_->ConnectQPThroughSocket(client_ip, socket_fd);
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
-    ibv_mr send_mr[32] = {};
-    for(int i = 0; i<=32; i++){
-      rdma_mg_->Allocate_Local_RDMA_Slot(send_mr[i], "message");
-    }
+//    ibv_mr send_mr[32] = {};
+//    for(int i = 0; i<=32; i++){
+//      rdma_mg_->Allocate_Local_RDMA_Slot(send_mr[i], "message");
+//    }
 
 //    char* send_buff;
 //    if (!rdma_mg_->Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
