@@ -35,7 +35,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     rdma_mg_->ConnectQPThroughSocket(client_ip, socket_fd);
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
     ibv_mr send_mr[32] = {};
-    for(int i = 0; i<=32; i++){
+    for(int i = 0; i<32; i++){
       rdma_mg_->Allocate_Local_RDMA_Slot(send_mr[i], "message");
     }
 
@@ -45,7 +45,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
 //    }
 //    int buffer_number = 32;
     ibv_mr recv_mr[32] = {};
-    for(int i = 0; i<=32; i++){
+    for(int i = 0; i<32; i++){
       rdma_mg_->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
     }
 
