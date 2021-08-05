@@ -2,7 +2,7 @@
 // Created by ruihong on 7/29/21.
 //
 #include "memory_node/memory_node_keeper.h"
-#define R_SIZE 1
+#define R_SIZE 32
 namespace leveldb{
 leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     struct leveldb::config_t config = {
@@ -57,7 +57,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
 //      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
 //    }
     //  post_receive<int>(recv_mr, client_ip);
-    for(int i = 0; i<=R_SIZE; i++) {
+    for(int i = 0; i<R_SIZE; i++) {
       rdma_mg_->post_receive<RDMA_Request>(&recv_mr[i], client_ip);
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
