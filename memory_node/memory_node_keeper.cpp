@@ -274,6 +274,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   rdma_mg_->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg_->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   }
   void Memory_Node_Keeper::install_version_edit_handler(RDMA_Request request,
                                                         std::string& client_ip) {
