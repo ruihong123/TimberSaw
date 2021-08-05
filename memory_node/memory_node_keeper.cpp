@@ -269,6 +269,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.qp_config.qp_num = rdma_mg_->res->qp_map[new_qp_id]->qp_num;
   send_pointer->content.qp_config.lid = rdma_mg_->res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &(rdma_mg_->res->my_gid), 16);
+  send_pointer->received = true;
   rdma_mg_->connect_qp(request.content.qp_config, qp);
 
   rdma_mg_->RDMA_Write(request.reply_buffer, request.rkey,

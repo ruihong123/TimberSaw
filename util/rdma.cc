@@ -1827,6 +1827,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   //  }
   //  assert(wc.opcode == IBV_WC_RECV);
   if (poll_completion(wc, 1, std::string("main"),true)){
+//    assert(try_poll_this_thread_completions(wc, 1, std::string("main"),true) == 0);
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }
