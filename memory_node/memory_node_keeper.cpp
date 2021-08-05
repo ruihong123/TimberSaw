@@ -2,6 +2,7 @@
 // Created by ruihong on 7/29/21.
 //
 #include "memory_node/memory_node_keeper.h"
+#define R_SIZE 1
 namespace leveldb{
 leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     struct leveldb::config_t config = {
@@ -25,6 +26,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
     message_handler_pool_.SetBackgroundThreads(num);
   }
+
   void Memory_Node_Keeper::server_communication_thread(std::string client_ip,
                                                  int socket_fd) {
     printf("A new shared memory thread start\n");
@@ -44,8 +46,8 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
 //      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
 //    }
 //    int buffer_number = 32;
-    ibv_mr recv_mr[32] = {};
-    for(int i = 0; i<32; i++){
+    ibv_mr recv_mr[R_SIZE] = {};
+    for(int i = 0; i<R_SIZE; i++){
       rdma_mg_->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
     }
 
@@ -55,7 +57,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
 //      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
 //    }
     //  post_receive<int>(recv_mr, client_ip);
-    for(int i = 0; i<=32; i++) {
+    for(int i = 0; i<=R_SIZE; i++) {
       rdma_mg_->post_receive<RDMA_Request>(&recv_mr[i], client_ip);
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
@@ -110,7 +112,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
         break;
       }
       // increase the buffer index
-      if (buffer_counter== 31){
+      if (buffer_counter== R_SIZE-1 ){
         buffer_counter = 0;
       } else{
         buffer_counter++;
