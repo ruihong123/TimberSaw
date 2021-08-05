@@ -88,11 +88,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     while (true) {
       rdma_mg_->poll_completion(wc, 1, client_ip, false);
       memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
-      if (buffer_counter== 31){
-        buffer_counter = 0;
-      } else{
-        buffer_counter++;
-      }
+
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf.command == create_mr_) {
@@ -112,6 +108,12 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
       } else {
         printf("corrupt message from client.");
         break;
+      }
+      // increase the buffer index
+      if (buffer_counter== 31){
+        buffer_counter = 0;
+      } else{
+        buffer_counter++;
       }
     }
     // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
