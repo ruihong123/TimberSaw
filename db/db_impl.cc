@@ -874,13 +874,13 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
     env_->Schedule(BGWork_Flush, static_cast<void*>(thread_pool_args), ThreadPoolType::FlushThreadPool);
     DEBUG("Schedule a flushing !\n");
   }
-  if (versions_->NeedsCompaction()) {
-//    background_compaction_scheduled_ = true;
-    void* function_args = nullptr;
-    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
-    DEBUG("Schedule a Compaction !\n");
-  }
+//  if (versions_->NeedsCompaction()) {
+////    background_compaction_scheduled_ = true;
+//    void* function_args = nullptr;
+//    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+//    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
+//    DEBUG("Schedule a Compaction !\n");
+//  }
 }
 
 void DBImpl::BGWork_Flush(void* thread_arg) {
