@@ -1779,9 +1779,9 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         last_sequence_for_key = kMaxSequenceNumber;
         // this will result in the key not drop, next if will always be false because of
         // the last_sequence_for_key.
-      }
-
-      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
+//      }
+//
+//      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
         // Hidden by an newer entry for same user key
 
         drop = true;  // (A)
