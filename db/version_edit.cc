@@ -208,7 +208,7 @@ static bool GetLevel(Slice* input, int* level) {
   }
 }
 
-Status VersionEdit::DecodeFrom(const Slice& src) {
+Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
   Clear();
   Slice input = src;
   const char* msg = nullptr;
@@ -281,7 +281,7 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
 
       case kNewFile:
         if (GetLevel(&input, &level)) {
-          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>();
+          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(sstable_type);
           f->DecodeFrom(input);
           new_files_.push_back(std::make_pair(level, f));
         } else {

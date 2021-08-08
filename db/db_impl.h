@@ -124,8 +124,8 @@ class DBImpl : public DB {
 
  private:
   friend class DB;
-  struct CompactionState;
-  struct SubcompactionState;
+//  struct CompactionState;
+//  struct SubcompactionState;
   struct Writer;
 
   // Information for a manual compaction
@@ -137,21 +137,7 @@ class DBImpl : public DB {
     InternalKey tmp_storage;   // Used to keep track of compaction progress
   };
 
-  // Per level compaction stats.  stats_[level] stores the stats for
-  // compactions that produced data for the specified "level".
-  struct CompactionStats {
-    CompactionStats() : micros(0), bytes_read(0), bytes_written(0) {}
 
-    void Add(const CompactionStats& c) {
-      this->micros += c.micros;
-      this->bytes_read += c.bytes_read;
-      this->bytes_written += c.bytes_written;
-    }
-
-    int64_t micros;
-    int64_t bytes_read;
-    int64_t bytes_written;
-  };
 
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
@@ -293,10 +279,7 @@ class DBImpl : public DB {
   std::vector<std::thread> main_comm_threads;
 
 };
-struct BGThreadMetadata {
-  DBImpl* db;
-  void* func_args;
-};
+
 // Sanitize db options.  The caller should delete result.info_log if
 // it is not equal to src.info_log.
 Options SanitizeOptions(const std::string& db,

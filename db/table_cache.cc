@@ -2,13 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include <utility>
-
 #include "db/table_cache.h"
 
 #include "db/filename.h"
+#include <table/table_memoryside.h>
+#include <utility>
+
 #include "leveldb/env.h"
 #include "leveldb/table.h"
+
 #include "util/coding.h"
 
 namespace leveldb {
@@ -27,15 +29,16 @@ std::atomic<uint64_t> TableCache::cache_miss_block_fetch_time = 0;
 std::atomic<uint64_t> TableCache::cache_hit = 0;
 std::atomic<uint64_t> TableCache::cache_miss = 0;
 #endif
-struct TableAndFile {
+union SSTable {
 //  RandomAccessFile* file;
 //  std::weak_ptr<RemoteMemTableMetaData> remote_table;
-  Table* table;
+  Table* table_compute;
+  Table_Memory_Side* table_memory;
 };
 
 static void DeleteEntry(const Slice& key, void* value) {
-  TableAndFile* tf = reinterpret_cast<TableAndFile*>(value);
-  delete tf->table;
+  SSTable* tf = reinterpret_cast<SSTable*>(value);
+  delete tf->table_compute;
 //  delete tf->file;
   delete tf;
 }
@@ -100,10 +103,10 @@ Status TableCache::FindTable(
       // We do not cache error results so that if the error is transient,
       // or somebody repairs the file, we recover automatically.
     } else {
-      TableAndFile* tf = new TableAndFile;
+      SSTable* tf = new SSTable;
 //      tf->file = file;
 //      tf->remote_table = Remote_memtable_meta;
-      tf->table = table;
+      tf->table_compute = table;
       assert(table->rep_ != nullptr);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
     }
@@ -124,7 +127,7 @@ Iterator* TableCache::NewIterator(
     return NewErrorIterator(s);
   }
 
-  Table* table = reinterpret_cast<TableAndFile*>(cache_->Value(handle))->table;
+  Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
   Iterator* result = table->NewIterator(options);
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
@@ -132,7 +135,28 @@ Iterator* TableCache::NewIterator(
   }
   return result;
 }
+Iterator* TableCache::NewIterator_MemorySide(
+    const ReadOptions& options,
+    std::shared_ptr<RemoteMemTableMetaData> remote_table,
+    Table_Memory_Side** tableptr) {
+  if (tableptr != nullptr) {
+    *tableptr = nullptr;
+  }
 
+  Cache::Handle* handle = nullptr;
+  Status s = FindTable(std::move(remote_table), &handle);
+  if (!s.ok()) {
+    return NewErrorIterator(s);
+  }
+
+  Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
+  Iterator* result = table->NewIterator(options);
+  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+  if (tableptr != nullptr) {
+    *tableptr = table;
+  }
+  return result;
+}
 Status TableCache::Get(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
@@ -144,7 +168,7 @@ Status TableCache::Get(const ReadOptions& options,
   Cache::Handle* handle = nullptr;
   Status s = FindTable(f, &handle);
   if (s.ok()) {
-    Table* t = reinterpret_cast<TableAndFile*>(cache_->Value(handle))->table;
+    Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
     s = t->InternalGet(options, k, arg, handle_result);
     cache_->Release(handle);
   }

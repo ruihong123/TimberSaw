@@ -5,16 +5,17 @@
 #ifndef LEVELDB_HOME_NODE_KEEPER_H
 #define LEVELDB_HOME_NODE_KEEPER_H
 
-#endif  // LEVELDB_HOME_NODE_KEEPER_H
+
 #include <queue>
 #include "util/rdma.h"
 #include "util/ThreadPool.h"
 #include "db/version_set.h"
+
 namespace leveldb{
 class Memory_Node_Keeper {
  public:
 //  friend class RDMA_Manager;
-  Memory_Node_Keeper();
+  Memory_Node_Keeper(bool use_sub_compaction);
   void Schedule(
       void (*background_work_function)(void* background_work_arg),
       void* background_work_arg, ThreadPoolType type);
@@ -23,17 +24,38 @@ class Memory_Node_Keeper {
   // this function is for the server.
   void Server_to_Client_Communication();
   void SetBackgroundThreads(int num,  ThreadPoolType type);
+  void MaybeScheduleFlushOrCompaction();
+  static void BGWork_Compaction(void* thread_args);
+  void BackgroundCompaction(void* p);
+  void CleanupCompaction(CompactionState* compact);
+  Status DoCompactionWork(CompactionState* compact);
+  void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
+  Status DoCompactionWorkWithSubcompaction(CompactionState* compact);
+  Status OpenCompactionOutputFile(SubcompactionState* compact);
+  Status OpenCompactionOutputFile(CompactionState* compact);
+  Status FinishCompactionOutputFile(SubcompactionState* compact,
+                                    Iterator* input);
+  Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
 
  private:
+  Options opts;
+  const InternalKeyComparator internal_comparator_;
+  bool usesubcompaction;
   std::shared_ptr<RDMA_Manager> rdma_mg_;
   std::vector<std::thread> main_comm_threads;
   ThreadPool message_handler_pool_;
+  std::mutex versions_mtx;
   VersionSet* versions_;
+  Status InstallCompactionResults(CompactionState* compact,
+                                  std::unique_lock<std::mutex>* lck_p);
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
   void create_mr_handler(RDMA_Request request, std::string& client_ip);
   void create_qp_handler(RDMA_Request request, std::string& client_ip);
-
+  const Comparator* user_comparator() const {
+    return internal_comparator_.user_comparator();
+  }
   void install_version_edit_handler(RDMA_Request request, std::string& client_ip);
 };
 }
+#endif  // LEVELDB_HOME_NODE_KEEPER_H

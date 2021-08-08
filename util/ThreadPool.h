@@ -13,12 +13,17 @@
 #include <port/port_posix.h>
 #include <assert.h>
 namespace leveldb{
+class DBImpl;
 enum ThreadPoolType{FlushThreadPool, CompactionThreadPool, SubcompactionThreadPool};
 struct BGItem {
   //  void* tag = nullptr;
   std::function<void(void* args)> function;
   void* args;
   //  std::function<void()> unschedFunction;
+};
+struct BGThreadMetadata {
+  void* db;
+  void* func_args;
 };
 class ThreadPool{
  public:

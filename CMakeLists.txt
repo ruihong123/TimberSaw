@@ -160,8 +160,6 @@ target_sources(leveldb
     "db/version_set.h"
     "db/write_batch_internal.h"
     "db/write_batch.cc"
-    "memory_node/memory_node_keeper.h"
-    "memory_node/memory_node_keeper.cpp"
     "util/ThreadPool.cpp"
     "util/ThreadPool.h"
     "util/allocator.h"
@@ -323,7 +321,9 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
-add_executable(Server server.cc)
+add_executable(Server server.cc table/table_memoryside.h table/table_memoryside.cpp
+        table/table_builder_memoryside.h table/table_builder_memoryside.cpp  memory_node/memory_node_keeper.h
+        memory_node/memory_node_keeper.cpp)
 target_link_libraries(Server leveldb)
 if(LEVELDB_BUILD_TESTS)
   enable_testing()

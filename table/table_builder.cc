@@ -61,9 +61,7 @@ struct TableBuilder::Rep {
     }
     filter_block = (opt.filter_policy == nullptr
                     ? nullptr
-                    : new FullFilterBlockBuilder(
-                              &local_filter_mr, &remote_filter_mrs,
-                              options.env->rdma_mg, type_string_, opt.bloom_bits));
+                    : new FullFilterBlockBuilder(local_filter_mr[0], opt.bloom_bits));
 
     status = Status::OK();
   }
@@ -530,11 +528,6 @@ void TableBuilder::FlushFilter(size_t& msg_size) {
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
   r->filter_block->Move_buffer(static_cast<char*>(r->local_filter_mr[0]->addr));
-
-}
-void TableBuilder::WriteRawBlock(const Slice& block_contents,
-                                 CompressionType type, BlockHandle* handle) {
-  Rep* r = rep_;
 
 }
 

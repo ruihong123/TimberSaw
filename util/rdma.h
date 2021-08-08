@@ -75,6 +75,7 @@ struct registered_qp_config {
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
 struct install_versionedit {
+  size_t buffer_size;
 } __attribute__((packed));
 enum RDMA_Command_Type {
   create_qp_,
@@ -97,6 +98,7 @@ union RDMA_Request_Content {
   size_t mem_size;
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
+  install_versionedit ive;
 };
 union RDMA_Reply_Content {
   ibv_mr mr;

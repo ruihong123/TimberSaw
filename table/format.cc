@@ -86,6 +86,17 @@ void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 //  }
 //  return false;
 }
+void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                    const BlockHandle& handle, Slice& data) {
+  uint64_t  position = handle.offset();
+  //  auto iter = remote_data_blocks.begin();
+  auto iter = remote_data_blocks->upper_bound(position);
+  position = position - (iter->first - iter->second->length);
+  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
+  //  assert(handle.size() +kBlockTrailerSize <= )
+  //      DEBUG_arg("Block buffer position %lu\n", position);
+  data.Reset((static_cast<char*>(iter->second->addr) + position), handle.size());
+}
 //TODO: Make the block mr searching and creating outside this function, so that datablock is
 // the same as data index block and filter block.
 Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,

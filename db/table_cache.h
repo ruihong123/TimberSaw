@@ -7,19 +7,21 @@
 #ifndef STORAGE_LEVELDB_DB_TABLE_CACHE_H_
 #define STORAGE_LEVELDB_DB_TABLE_CACHE_H_
 
+#include "db/dbformat.h"
+#include "db/version_edit.h"
 #include <cstdint>
 #include <string>
+//#include <table/table_memoryside.h>
 
-#include "db/dbformat.h"
 #include "leveldb/cache.h"
 #include "leveldb/table.h"
-#include "db/version_edit.h"
+
 #include "port/port.h"
 
 namespace leveldb {
 
 class Env;
-
+class Table_Memory_Side;
 class TableCache {
  public:
   TableCache(const std::string& dbname, const Options& options, int entries);
@@ -50,6 +52,9 @@ class TableCache {
   Iterator* NewIterator(const ReadOptions& options,
                         std::shared_ptr<RemoteMemTableMetaData> remote_table,
                         Table** tableptr = nullptr);
+  Iterator* NewIterator_MemorySide(const ReadOptions& options,
+                        std::shared_ptr<RemoteMemTableMetaData> remote_table,
+      Table_Memory_Side** tableptr = nullptr);
   static void CleanAll(){
     GetTimeElapseSum = 0;
     GetNum = 0;

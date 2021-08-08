@@ -166,6 +166,13 @@ static Iterator* GetFileIterator(
   TableCache* cache = reinterpret_cast<TableCache*>(arg);
     return cache->NewIterator(options, remote_table);
 }
+static Iterator* GetFileIterator_Memoryside(
+    void* arg, const ReadOptions& options,
+    std::shared_ptr<RemoteMemTableMetaData> remote_table) {
+  TableCache* cache = reinterpret_cast<TableCache*>(arg);
+  return cache->NewIterator_MemorySide(options, remote_table);
+}
+
 
 Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
                                             int level) const {
@@ -903,7 +910,7 @@ Status VersionSet::Recover(bool* save_manifest) {
     while (reader.ReadRecord(&record, &scratch) && s.ok()) {
       ++read_records;
       VersionEdit edit;
-      s = edit.DecodeFrom(record);
+      s = edit.DecodeFrom(record, 0);
       if (s.ok()) {
         if (edit.has_comparator_ &&
             edit.comparator_ != icmp_.user_comparator()->Name()) {
@@ -1231,7 +1238,7 @@ void VersionSet::GetRange2(const std::vector<std::shared_ptr<RemoteMemTableMetaD
   all.insert(all.end(), inputs2.begin(), inputs2.end());
   GetRange(all, smallest, largest);
 }
-
+//TODO: make two overwriten functions one from compute node, the other from memory node.
 Iterator* VersionSet::MakeInputIterator(Compaction* c) {
   ReadOptions options;
   options.verify_checksums = options_->paranoid_checks;
@@ -1264,7 +1271,53 @@ Iterator* VersionSet::MakeInputIterator(Compaction* c) {
   delete[] list;
   return result;
 }
+Iterator* VersionSet::MakeInputIteratorMemoryServer(Compaction* c) {
+  ReadOptions options;
+  options.verify_checksums = options_->paranoid_checks;
+  options.fill_cache = false;
 
+  // Level-0 files have to be merged together.  For other levels,
+  // we will make a concatenating iterator per level.
+  // TODO(opt): use concatenating iterator for level-0 if there is no overlap
+  const int space = (c->level() == 0 ? c->inputs_[0].size() + 1 : 2);
+  Iterator** list = new Iterator*[space];
+  int num = 0;
+  for (int which = 0; which < 2; which++) {
+    if (!c->inputs_[which].empty()) {
+      if (c->level() + which == 0) {
+        const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = c->inputs_[which];
+        for (size_t i = 0; i < files.size(); i++) {
+          list[num++] = table_cache_->NewIterator_MemorySide(options, files[i]);
+        }
+      } else {
+        // Create concatenating iterator for the files from this level
+        // one iterator will responsible for multiple remote memtables.
+        list[num++] = NewTwoLevelFileIterator(
+            new Version::LevelFileNumIterator(icmp_, &c->inputs_[which]),
+            &GetFileIterator_Memoryside, table_cache_, options);
+      }
+    }
+  }
+  assert(num <= space);
+  Iterator* result = NewMergingIterator(&icmp_, list, num);
+  delete[] list;
+  return result;
+}
+//Iterator* VersionSet::NewIterator(std::shared_ptr<RemoteMemTableMetaData> f) {
+//  Cache::Handle* handle = nullptr;
+//  Status s = FindTable(std::move(remote_table), &handle);
+//  if (!s.ok()) {
+//    return NewErrorIterator(s);
+//  }
+//
+//  Table_Memory_Side* table = Table_Memory_Side::Open(table, f);
+//  Iterator* result = table->NewIterator(options);
+//  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+//  if (tableptr != nullptr) {
+//    *tableptr = table;
+//  }
+//  return result;
+//}
 //Compaction* VersionSet::PickCompaction() {
 //  Compaction* c;
 //  int level;

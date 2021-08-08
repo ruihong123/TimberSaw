@@ -17,7 +17,7 @@ class Env;
 class FilterPolicy;
 class Logger;
 class Snapshot;
-
+static size_t RDMA_WRITE_BLOCK = 1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
 // sequence of key,value pairs.  Each block may be compressed before
 // being stored in a file.  The following enum describes which

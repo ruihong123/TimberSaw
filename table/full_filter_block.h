@@ -30,12 +30,7 @@ class Options;
 //      (StartBlock AddKey*)* Finish
 class FullFilterBlockBuilder {
  public:
-  explicit FullFilterBlockBuilder(std::vector<ibv_mr*>* mrs,
-                                  std::map<uint32_t, ibv_mr*>* remote_mrs,
-                                  std::shared_ptr<RDMA_Manager> rdma_mg,
-                                  std::string& type_string,
-                                  int bloombits_per_key);
-
+  explicit FullFilterBlockBuilder(ibv_mr* mr, int bloombits_per_key);
   FullFilterBlockBuilder(const FullFilterBlockBuilder&) = delete;
   FullFilterBlockBuilder& operator=(const FullFilterBlockBuilder&) = delete;
 
@@ -45,7 +40,7 @@ class FullFilterBlockBuilder {
 //  void AddHash(uint32_t h, char* data, uint32_t num_lines, uint32_t total_bits);
   void Finish();
   void Reset();
-  void Flush();
+//  void Flush();
   void Move_buffer(const char* p);
   void AddHash(uint32_t h, char* data, uint32_t num_lines, uint32_t total_bits);
   uint32_t GetTotalBitsForLocality(uint32_t total_bits);
@@ -56,9 +51,9 @@ class FullFilterBlockBuilder {
 //  void GenerateFilter();
 
 //  const FilterPolicy* policy_;
-  std::shared_ptr<RDMA_Manager> rdma_mg_;
-  std::vector<ibv_mr*>* local_mrs;
-  std::map<uint32_t, ibv_mr*>* remote_mrs_;
+//  std::shared_ptr<RDMA_Manager> rdma_mg_;
+  ibv_mr* local_mrs;
+//  std::map<uint32_t, ibv_mr*>* remote_mrs_;
 //  std::unique_ptr<LegacyBloomImpl> filter_bits_builder_;
   int bits_per_key_;
   int num_probes_;
@@ -68,7 +63,7 @@ class FullFilterBlockBuilder {
   //todo Make result Slice; make Policy->CreateFilter accept Slice rather than string
 //  std::vector<Slice> tmp_keys_;  // policy_->CreateFilter() argument
 //  std::vector<uint32_t> filter_offsets_; // The filters' offset within the filter block.
-  std::string type_string_;
+//  std::string type_string_;
 
 };
 class FullFilterBlockReader {

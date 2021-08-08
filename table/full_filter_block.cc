@@ -13,14 +13,11 @@ namespace leveldb {
 
 // See doc/table_format.md for an explanation of the filter block format.
 
-FullFilterBlockBuilder::FullFilterBlockBuilder(
-    std::vector<ibv_mr*>* mrs, std::map<uint32_t, ibv_mr*>* remote_mrs,
-    std::shared_ptr<RDMA_Manager> rdma_mg, std::string& type_string,
-    int bloombits_per_key)
-    :rdma_mg_(std::move(rdma_mg)),
-      local_mrs(mrs), remote_mrs_(remote_mrs), type_string_(type_string),
-      bits_per_key_(bloombits_per_key), num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),
-      result((char*)(*mrs)[0]->addr,0) {
+FullFilterBlockBuilder::FullFilterBlockBuilder(ibv_mr* mr,
+                                               int bloombits_per_key)
+    :local_mrs(mr), bits_per_key_(bloombits_per_key),
+      num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),
+      result((char*)mr->addr,0) {
 //  filter_bits_builder_ = std::make_unique<LegacyBloomImpl>();
 }
 
@@ -102,7 +99,7 @@ void FullFilterBlockBuilder::Finish() {
   assert(total_bits%8 == 0);
 //  result.Reset(result.data(), total_bits/8);
   assert(data);
-  assert(total_bits/8 + 5 <= (*local_mrs)[0]->length);
+  assert(total_bits/8 + 5 <= local_mrs->length);
   if (total_bits != 0 && num_lines != 0) {
     for (auto h : hash_entries_) {
 //      int log2_cache_line_bytes = std::log2(CACHE_LINE_SIZE);
@@ -142,24 +139,24 @@ void FullFilterBlockBuilder::Finish() {
 //  return Slice(data, total_bits / 8 + 5);
 }
 void FullFilterBlockBuilder::Reset() {
-  result.Reset(static_cast<char*>((*local_mrs)[0]->addr),0);
+  result.Reset(static_cast<char*>(local_mrs->addr),0);
 }
 void FullFilterBlockBuilder::Move_buffer(const char* p){
   result.Reset(p,0);
 }
-void FullFilterBlockBuilder::Flush() {
-  ibv_mr* remote_mr = new ibv_mr();
-  size_t msg_size = result.size();
-  rdma_mg_->Allocate_Remote_RDMA_Slot(*remote_mr);
-  rdma_mg_->RDMA_Write(remote_mr, (*local_mrs)[0], msg_size, type_string_,IBV_SEND_SIGNALED, 0);
-  remote_mr->length = msg_size;
-  if(remote_mrs_->empty()){
-    remote_mrs_->insert({0, remote_mr});
-  }else{
-    remote_mrs_->insert({remote_mrs_->rbegin()->first+1, remote_mr});
-  }
-  Reset();
-}
+//void FullFilterBlockBuilder::Flush() {
+//  ibv_mr* remote_mr = new ibv_mr();
+//  size_t msg_size = result.size();
+//  rdma_mg_->Allocate_Remote_RDMA_Slot(*remote_mr);
+//  rdma_mg_->RDMA_Write(remote_mr, (*local_mrs)[0], msg_size, type_string_,IBV_SEND_SIGNALED, 0);
+//  remote_mr->length = msg_size;
+//  if(remote_mrs_->empty()){
+//    remote_mrs_->insert({0, remote_mr});
+//  }else{
+//    remote_mrs_->insert({remote_mrs_->rbegin()->first+1, remote_mr});
+//  }
+//  Reset();
+//}
 //void FullFilterBlockBuilder::GenerateFilter() {
 //  const size_t num_keys = start_.size();
 //  if (num_keys == 0) {

@@ -67,93 +67,8 @@ struct DBImpl::Writer {
   bool done;
   port::CondVar cv;
 };
-struct CompactionOutput {
-  uint64_t number;
-  uint64_t file_size;
-  InternalKey smallest, largest;
-  std::map<uint32_t , ibv_mr*> remote_data_mrs;
-  std::map<uint32_t , ibv_mr*> remote_dataindex_mrs;
-  std::map<uint32_t , ibv_mr*> remote_filter_mrs;
-};
-struct DBImpl::SubcompactionState {
-  Compaction* const compaction;
-
-  // The boundaries(UserKey) of the key-range this compaction is interested in. No two
-  // subcompactions may have overlapping key-ranges.
-  // 'start' is inclusive, 'end' is exclusive, and nullptr means unbounded
-  Slice *start, *end;
-
-  // The return status of this subcompaction
-  Status status;
 
 
-
-  // State kept for output being generated
-  std::vector<CompactionOutput> outputs;
-  TableBuilder* builder = nullptr;
-
-  CompactionOutput* current_output() {
-    if (outputs.empty()) {
-      // This subcompaction's output could be empty if compaction was aborted
-      // before this subcompaction had a chance to generate any output files.
-      // When subcompactions are executed sequentially this is more likely and
-      // will be particulalry likely for the later subcompactions to be empty.
-      // Once they are run in parallel however it should be much rarer.
-      return nullptr;
-    } else {
-      return &outputs.back();
-    }
-  }
-  SequenceNumber smallest_snapshot;
-  uint64_t current_output_file_size = 0;
-
-  // State during the subcompaction
-  uint64_t total_bytes = 0;
-  uint64_t num_output_records = 0;
-
-  uint64_t approx_size = 0;
-  // An index that used to speed up ShouldStopBefore().
-  size_t grandparent_index = 0;
-  // The number of bytes overlapping between the current output and
-  // grandparent files used in ShouldStopBefore().
-  uint64_t overlapped_bytes = 0;
-  // A flag determine whether the key has been seen in ShouldStopBefore()
-  bool seen_key = false;
-
-  SubcompactionState(Compaction* c, Slice* _start, Slice* _end, uint64_t size)
-      : compaction(c), start(_start), end(_end), approx_size(size) {
-    assert(compaction != nullptr);
-  }
-};
-struct DBImpl::CompactionState {
-  // Files produced by compaction
-
-  CompactionOutput* current_output() { return &outputs[outputs.size() - 1]; }
-
-  explicit CompactionState(Compaction* c)
-      : compaction(c),
-        smallest_snapshot(0),
-//        outfile(nullptr),
-        builder(nullptr),
-        total_bytes(0) {}
-
-  std::vector<DBImpl::SubcompactionState> sub_compact_states;
-  Compaction* const compaction;
-
-  // Sequence numbers < smallest_snapshot are not significant since we
-  // will never have to service a snapshot below smallest_snapshot.
-  // Therefore if we have seen a sequence number S <= smallest_snapshot,
-  // we can drop all entries for the same key with sequence numbers < S.
-  SequenceNumber smallest_snapshot;
-
-  std::vector<CompactionOutput> outputs;
-
-  // State kept for output being generated
-//  WritableFile* outfile;
-  TableBuilder* builder;
-
-  uint64_t total_bytes;
-};
 
 // Fix user-supplied options to be reasonable
 template <class T, class V>
@@ -970,12 +885,12 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
 
 void DBImpl::BGWork_Flush(void* thread_arg) {
   BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
-  p->db->BackgroundFlush(p->func_args);
+  ((DBImpl*)p->db)->BackgroundFlush(p->func_args);
   delete static_cast<BGThreadMetadata*>(thread_arg);
 }
 void DBImpl::BGWork_Compaction(void* thread_arg) {
   BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
-  p->db->BackgroundCompaction(p->func_args);
+  ((DBImpl*)p->db)->BackgroundCompaction(p->func_args);
   delete static_cast<BGThreadMetadata*>(thread_arg);
 }
 void DBImpl::BackgroundCall() {
@@ -1148,7 +1063,7 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
   }
   delete compact;
 }
-Status DBImpl::OpenCompactionOutputFile(DBImpl::SubcompactionState* compact) {
+Status DBImpl::OpenCompactionOutputFile(SubcompactionState* compact) {
   assert(compact != nullptr);
   assert(compact->builder == nullptr);
   uint64_t file_number;
@@ -1584,6 +1499,7 @@ void DBImpl::Communication_To_Home_Node() {
 }
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
 //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   // register the memory block from the remote memory
   RDMA_Request* send_pointer;
@@ -1594,7 +1510,13 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
 
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  std::string serilized_ve;
+  edit->EncodeTo(&serilized_ve);
+  assert(serilized_ve.size() < 4096);
+  memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
+  memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
   send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->content.ive.buffer_size = serilized_ve.size();
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
@@ -1608,6 +1530,15 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
     return;
   }
   rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
+
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side.
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+                      &send_mr_ve, serilized_ve.size() + 1, "main", IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
 }
 void DBImpl::ResetThreadLocalSuperVersions() {
   autovector<void*> sv_ptrs;
@@ -1980,7 +1911,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         // this will result in the key not drop, next if will always be false because of
         // the last_sequence_for_key.
       }
-
+      //TODO: Can we replace this with if (last_sequence_for_key != kMaxSequenceNumber)
       if (last_sequence_for_key <= compact->smallest_snapshot) {
         // Hidden by an newer entry for same user key
 

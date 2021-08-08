@@ -124,7 +124,7 @@ class VersionEdit {
     return new_files_.size();
   }
   void EncodeTo(std::string* dst) const;
-  Status DecodeFrom(const Slice& src);
+  Status DecodeFrom(const Slice& src, int sstable_type);
 
   std::string DebugString() const;
 

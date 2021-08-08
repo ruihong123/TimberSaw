@@ -2,9 +2,11 @@
 // Created by ruihong on 7/29/21.
 //
 #include "memory_node/memory_node_keeper.h"
+#include "table/table_builder_memoryside.h"
 #define R_SIZE 32
 namespace leveldb{
-leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
+leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction):
+       usesubcompaction(use_sub_compaction), internal_comparator_(BytewiseComparator()) {
     struct leveldb::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
@@ -16,6 +18,9 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
     //  size_t read_block_size = 4*1024;
     size_t table_size = 10*1024*1024;
     rdma_mg_ = std::make_shared<RDMA_Manager>(config, table_size);
+    rdma_mg_->Mempool_initialize(std::string("FlushBuffer"), RDMA_WRITE_BLOCK);
+    //TODO: add a handle function for the option value to get the non-default bloombits.
+    opts.filter_policy = NewBloomFilterPolicy(opts.bloom_bits);
 
   }
   void leveldb::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
@@ -26,7 +31,529 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
     message_handler_pool_.SetBackgroundThreads(num);
   }
+  void Memory_Node_Keeper::MaybeScheduleFlushOrCompaction() {
+    if (versions_->NeedsCompaction()) {
+      //    background_compaction_scheduled_ = true;
+      void* function_args = nullptr;
+      BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+      message_handler_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
+      DEBUG("Schedule a Compaction !\n");
+    }
+  }
+  void Memory_Node_Keeper::BGWork_Compaction(void* thread_arg) {
+    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+    ((Memory_Node_Keeper*)p->db)->BackgroundCompaction(p->func_args);
+    delete static_cast<BGThreadMetadata*>(thread_arg);
+  }
+  void Memory_Node_Keeper::BackgroundCompaction(void* p) {
+  //  write_stall_mutex_.AssertNotHeld();
 
+  if (versions_->NeedsCompaction()) {
+    Compaction* c;
+//    bool is_manual = (manual_compaction_ != nullptr);
+//    InternalKey manual_end;
+//    if (is_manual) {
+//      ManualCompaction* m = manual_compaction_;
+//      c = versions_->CompactRange(m->level, m->begin, m->end);
+//      m->done = (c == nullptr);
+//      if (c != nullptr) {
+//        manual_end = c->input(0, c->num_input_files(0) - 1)->largest;
+//      }
+//      Log(options_.info_log,
+//          "Manual compaction at level-%d from %s .. %s; will stop at %s\n",
+//          m->level, (m->begin ? m->begin->DebugString().c_str() : "(begin)"),
+//          (m->end ? m->end->DebugString().c_str() : "(end)"),
+//          (m->done ? "(end)" : manual_end.DebugString().c_str()));
+//    } else {
+      c = versions_->PickCompaction();
+      //if there is no task to pick up, just return.
+      if (c== nullptr){
+        DEBUG("compaction task executed but not found doable task.\n");
+        delete c;
+        return;
+      }
+
+//    }
+    //    write_stall_mutex_.AssertNotHeld();
+    Status status;
+    if (c == nullptr) {
+      // Nothing to do
+    } else if (c->IsTrivialMove()) {
+      // Move file to next level
+      assert(c->num_input_files(0) == 1);
+      std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+      c->edit()->RemoveFile(c->level(), f->number);
+      c->edit()->AddFile(c->level() + 1, f);
+      {
+        std::unique_lock<std::mutex> l(versions_mtx);
+        c->ReleaseInputs();
+        status = versions_->LogAndApply(c->edit());
+//        InstallSuperVersion();
+      }
+
+      DEBUG("Trival compaction\n");
+    } else {
+      CompactionState* compact = new CompactionState(c);
+
+      auto start = std::chrono::high_resolution_clock::now();
+      //      write_stall_mutex_.AssertNotHeld();
+      // Only when there is enough input level files and output level files will the subcompaction triggered
+      if (usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+//        status = DoCompactionWorkWithSubcompaction(compact);
+      }else{
+        status = DoCompactionWork(compact);
+      }
+
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
+             duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+      DEBUG("Non-trivalcompaction!\n");
+      std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
+      if (!status.ok()) {
+        std::cerr << "compaction failed" << std::endl;
+//        RecordBackgroundError(status);
+      }
+      CleanupCompaction(compact);
+      //    RemoveObsoleteFiles();
+    }
+    delete c;
+
+//    if (status.ok()) {
+//      // Done
+//    } else if (shutting_down_.load(std::memory_order_acquire)) {
+//      // Ignore compaction errors found during shutting down
+//    } else {
+//      Log(options_.info_log, "Compaction error: %s", status.ToString().c_str());
+//    }
+
+//    if (is_manual) {
+//      ManualCompaction* m = manual_compaction_;
+//      if (!status.ok()) {
+//        m->done = true;
+//      }
+//      if (!m->done) {
+//        // We only compacted part of the requested range.  Update *m
+//        // to the range that is left to be compacted.
+//        m->tmp_storage = manual_end;
+//        m->begin = &m->tmp_storage;
+//      }
+//      manual_compaction_ = nullptr;
+//    }
+  }
+  MaybeScheduleFlushOrCompaction();
+
+}
+void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
+  //  undefine_mutex.AssertHeld();
+  if (compact->builder != nullptr) {
+    // May happen if we get a shutdown call in the middle of compaction
+    compact->builder->Abandon();
+    delete compact->builder;
+  } else {
+    //    assert(compact->outfile == nullptr);
+  }
+  //  delete compact->outfile;
+  for (size_t i = 0; i < compact->outputs.size(); i++) {
+    const CompactionOutput& out = compact->outputs[i];
+    //    pending_outputs_.erase(out.number);
+  }
+  delete compact;
+}
+Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact) {
+//  const uint64_t start_micros = env_->NowMicros();
+  int64_t imm_micros = 0;  // Micros spent doing imm_ compactions
+
+
+  assert(versions_->NumLevelFiles(compact->compaction->level()) > 0);
+  assert(compact->builder == nullptr);
+  //  assert(compact->outfile == nullptr);
+//  if (snapshots_.empty()) {
+//    compact->smallest_snapshot = versions_->LastSequence();
+//  } else {
+//    compact->smallest_snapshot = snapshots_.oldest()->sequence_number();
+//  }
+
+  Iterator* input = versions_->MakeInputIteratorMemoryServer(compact->compaction);
+
+  // Release mutex while we're actually doing the compaction work
+  //  undefine_mutex.Unlock();
+
+  input->SeekToFirst();
+#ifndef NDEBUG
+  int Not_drop_counter = 0;
+  int number_of_key = 0;
+#endif
+  Status status;
+  // TODO: try to create two ikey for parsed key, they can in turn represent the current user key
+  //  and former one, which can save the data copy overhead.
+  ParsedInternalKey ikey;
+  std::string current_user_key;
+  bool has_current_user_key = false;
+  SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
+  Slice key;
+  assert(input->Valid());
+#ifndef NDEBUG
+  printf("first key is %s", input->key().ToString().c_str());
+#endif
+  while (input->Valid()) {
+    key = input->key();
+    //    assert(key.data()[0] == '0');
+    //Check whether the output file have too much overlap with level n + 2
+    if (compact->compaction->ShouldStopBefore(key) &&
+    compact->builder != nullptr) {
+      status = FinishCompactionOutputFile(compact, input);
+      if (!status.ok()) {
+        break;
+      }
+    }
+    // key merged below!!!
+    // Handle key/value, add to state, etc.
+    bool drop = false;
+    if (!ParseInternalKey(key, &ikey)) {
+      // Do not hide error keys
+      current_user_key.clear();
+      has_current_user_key = false;
+      last_sequence_for_key = kMaxSequenceNumber;
+    } else {
+      if (!has_current_user_key ||
+      user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
+        // First occurrence of this user key
+        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+        has_current_user_key = true;
+//        last_sequence_for_key = kMaxSequenceNumber;
+        // this will result in the key not drop, next if will always be false because of
+        // the last_sequence_for_key.
+        drop = true;
+      }
+
+//      if (last_sequence_for_key != kMaxSequenceNumber) {
+//        // Hidden by an newer entry for same user key
+//
+//        drop = true;  // (A)
+//      }
+      //      else if (ikey.type == kTypeDeletion &&
+      //                 ikey.sequence <= compact->smallest_snapshot &&
+      //                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+      //        // TOTHINK(0ruihong) :what is this for?
+      //        //  Generally delete can only be deleted when there is definitely no file contain the
+      //        //  same key in the upper level.
+      //        // For this user key:
+      //        // (1) there is no data in higher levels
+      //        // (2) data in lower levels will have larger sequence numbers
+      //        // (3) data in layers that are being compacted here and have
+      //        //     smaller sequence numbers will be dropped in the next
+      //        //     few iterations of this loop (by rule (A) above).
+      //        // Therefore this deletion marker is obsolete and can be dropped.
+      //        drop = true;
+      //      }
+
+//      last_sequence_for_key = ikey.sequence;
+    }
+#ifndef NDEBUG
+    number_of_key++;
+#endif
+    if (!drop) {
+      // Open output file if necessary
+      if (compact->builder == nullptr) {
+        status = OpenCompactionOutputFile(compact);
+        if (!status.ok()) {
+          break;
+        }
+      }
+      if (compact->builder->NumEntries() == 0) {
+        compact->current_output()->smallest.DecodeFrom(key);
+      }
+#ifndef NDEBUG
+      Not_drop_counter++;
+#endif
+      compact->builder->Add(key, input->value());
+      //      assert(key.data()[0] == '0');
+      // Close output file if it is big enough
+      if (compact->builder->FileSize() >=
+      compact->compaction->MaxOutputFileSize()) {
+        //        assert(key.data()[0] == '0');
+        compact->current_output()->largest.DecodeFrom(key);
+        status = FinishCompactionOutputFile(compact, input);
+        if (!status.ok()) {
+          break;
+        }
+      }
+    }
+    //    assert(key.data()[0] == '0');
+    input->Next();
+    //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
+    // be invalid also.
+    //    assert(key.data()[0] == '0');
+  }
+  //  reinterpret_cast<leveldb::MergingIterator>
+  // You can not call prev here because the iterator is not valid any more
+  //  input->Prev();
+  //  assert(input->Valid());
+#ifndef NDEBUG
+printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
+       Not_drop_counter);
+#endif
+  //  assert(key.data()[0] == '0');
+//  if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
+//    status = Status::IOError("Deleting DB during compaction");
+//  }
+  if (status.ok() && compact->builder != nullptr) {
+    //    assert(key.data()[0] == '0');
+    compact->current_output()->largest.DecodeFrom(key);
+    status = FinishCompactionOutputFile(compact, input);
+  }
+  if (status.ok()) {
+    status = input->status();
+  }
+  delete input;
+  input = nullptr;
+
+  CompactionStats stats;
+//  stats.micros = env_->NowMicros() - start_micros - imm_micros;
+//  for (int which = 0; which < 2; which++) {
+//    for (int i = 0; i < compact->compaction->num_input_files(which); i++) {
+//      stats.bytes_read += compact->compaction->input(which, i)->file_size;
+//    }
+//  }
+//  for (size_t i = 0; i < compact->outputs.size(); i++) {
+//    stats.bytes_written += compact->outputs[i].file_size;
+//  }
+  // TODO: we can remove this lock.
+//  undefine_mutex.Lock();
+//  stats_[compact->compaction->level() + 1].Add(stats);
+
+  if (status.ok()) {
+    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
+    status = InstallCompactionResults(compact, &l);
+//    InstallSuperVersion();
+  }
+//  undefine_mutex.Unlock();
+//  if (!status.ok()) {
+//    RecordBackgroundError(status);
+//  }
+//  VersionSet::LevelSummaryStorage tmp;
+//  Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
+  // NOtifying all the waiting threads.
+//  write_stall_cv.notify_all();
+//  Versionset_Sync_To_Compute(VersionEdit* ve);
+  return status;
+}
+
+
+Status Memory_Node_Keeper::OpenCompactionOutputFile(SubcompactionState* compact) {
+  assert(compact != nullptr);
+  assert(compact->builder == nullptr);
+  uint64_t file_number;
+  {
+    //    undefine_mutex.Lock();
+    file_number = versions_->NewFileNumber();
+    //    pending_outputs_.insert(file_number);
+    CompactionOutput out;
+    out.number = file_number;
+    out.smallest.Clear();
+    out.largest.Clear();
+    compact->outputs.push_back(out);
+    //    undefine_mutex.Unlock();
+  }
+
+  // Make the output file
+  //  std::string fname = TableFileName(dbname_, file_number);
+  //  Status s = env_->NewWritableFile(fname, &compact->outfile);
+  Status s = Status::OK();
+  if (s.ok()) {
+    compact->builder = new TableBuilder_Memoryside(opts, Compact);
+  }
+  return s;
+}
+Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
+  assert(compact != nullptr);
+  assert(compact->builder == nullptr);
+  uint64_t file_number;
+  {
+    //    undefine_mutex.Lock();
+    file_number = versions_->NewFileNumber();
+    //    pending_outputs_.insert(file_number);
+    CompactionOutput out;
+    out.number = file_number;
+    out.smallest.Clear();
+    out.largest.Clear();
+    compact->outputs.push_back(out);
+    //    undefine_mutex.Unlock();
+  }
+
+  // Make the output file
+  //  std::string fname = TableFileName(dbname_, file_number);
+  //  Status s = env_->NewWritableFile(fname, &compact->outfile);
+  Status s = Status::OK();
+  if (s.ok()) {
+    compact->builder = new TableBuilder_Memoryside(opts, Compact);
+  }
+  return s;
+}
+Status Memory_Node_Keeper::FinishCompactionOutputFile(SubcompactionState* compact,
+                                          Iterator* input) {
+  assert(compact != nullptr);
+  //  assert(compact->outfile != nullptr);
+  assert(compact->builder != nullptr);
+
+  const uint64_t output_number = compact->current_output()->number;
+  assert(output_number != 0);
+
+  // Check for iterator errors
+  Status s = input->status();
+  const uint64_t current_entries = compact->builder->NumEntries();
+  if (s.ok()) {
+    s = compact->builder->Finish();
+  } else {
+    printf("iterator Error!!!!!!!!!!!, Error: %s\n", s.ToString().c_str());
+    compact->builder->Abandon();
+  }
+
+  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
+  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
+  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
+#ifndef NDEBUG
+  uint64_t file_size = 0;
+  for(auto iter : compact->current_output()->remote_data_mrs){
+    file_size += iter.second->length;
+  }
+#endif
+  const uint64_t current_bytes = compact->builder->FileSize();
+  compact->current_output()->file_size = current_bytes;
+  assert(file_size == current_bytes);
+  compact->total_bytes += current_bytes;
+  delete compact->builder;
+  compact->builder = nullptr;
+
+  // Finish and check for file errors
+  //  if (s.ok()) {
+  //    s = compact->outfile->Sync();
+  //  }
+  //  if (s.ok()) {
+  //    s = compact->outfile->Close();
+  //  }
+  //  delete compact->outfile;
+  //  compact->outfile = nullptr;
+
+  if (s.ok() && current_entries > 0) {
+    // Verify that the table is usable
+    //    Iterator* iter =
+    //        table_cache_->NewIterator(ReadOptions(), output_number, current_bytes);
+    //    s = iter->status();
+    //    delete iter;
+  }
+  return s;
+}
+Status Memory_Node_Keeper::FinishCompactionOutputFile(CompactionState* compact,
+                                          Iterator* input) {
+  assert(compact != nullptr);
+  //  assert(compact->outfile != nullptr);
+  assert(compact->builder != nullptr);
+
+  const uint64_t output_number = compact->current_output()->number;
+  assert(output_number != 0);
+
+  // Check for iterator errors
+  Status s = input->status();
+  const uint64_t current_entries = compact->builder->NumEntries();
+  if (s.ok()) {
+    s = compact->builder->Finish();
+  } else {
+    printf("iterator Error!!!!!!!!!!!, Error: %s\n", s.ToString().c_str());
+    compact->builder->Abandon();
+  }
+
+  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
+  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
+  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
+#ifndef NDEBUG
+  uint64_t file_size = 0;
+  for(auto iter : compact->current_output()->remote_data_mrs){
+    file_size += iter.second->length;
+  }
+#endif
+  const uint64_t current_bytes = compact->builder->FileSize();
+  compact->current_output()->file_size = current_bytes;
+  assert(file_size == current_bytes);
+  compact->total_bytes += current_bytes;
+  delete compact->builder;
+  compact->builder = nullptr;
+
+  // Finish and check for file errors
+  //  if (s.ok()) {
+  //    s = compact->outfile->Sync();
+  //  }
+  //  if (s.ok()) {
+  //    s = compact->outfile->Close();
+  //  }
+  //  delete compact->outfile;
+  //  compact->outfile = nullptr;
+
+  if (s.ok() && current_entries > 0) {
+    // Verify that the table is usable
+    //    Iterator* iter =
+    //        table_cache_->NewIterator(ReadOptions(), output_number, current_bytes);
+    //    s = iter->status();
+    //    delete iter;
+//    if (s.ok()) {
+//      Log(options_.info_log, "Generated table #%llu@%d: %lld keys, %lld bytes",
+//          (unsigned long long)output_number, compact->compaction->level(),
+//          (unsigned long long)current_entries,
+//          (unsigned long long)current_bytes);
+//    }
+  }
+  return s;
+}
+Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
+                                        std::unique_lock<std::mutex>* lck_p) {
+//  Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
+//      compact->compaction->num_input_files(0), compact->compaction->level(),
+//      compact->compaction->num_input_files(1), compact->compaction->level() + 1,
+//      static_cast<long long>(compact->total_bytes));
+
+  // Add compaction outputs
+  compact->compaction->AddInputDeletions(compact->compaction->edit());
+  const int level = compact->compaction->level();
+  if (compact->sub_compact_states.size() == 0){
+    for (size_t i = 0; i < compact->outputs.size(); i++) {
+      const CompactionOutput& out = compact->outputs[i];
+      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+      //TODO make all the metadata written into out
+      meta->number = out.number;
+      meta->file_size = out.file_size;
+      meta->smallest = out.smallest;
+      meta->largest = out.largest;
+      meta->remote_data_mrs = out.remote_data_mrs;
+      meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
+      meta->remote_filter_mrs = out.remote_filter_mrs;
+      compact->compaction->edit()->AddFile(level + 1, meta);
+      assert(!meta->UnderCompaction);
+    }
+  }else{
+    for(auto subcompact : compact->sub_compact_states){
+      for (size_t i = 0; i < subcompact.outputs.size(); i++) {
+        const CompactionOutput& out = subcompact.outputs[i];
+        std::shared_ptr<RemoteMemTableMetaData> meta =
+            std::make_shared<RemoteMemTableMetaData>();
+        // TODO make all the metadata written into out
+        meta->number = out.number;
+        meta->file_size = out.file_size;
+        meta->smallest = out.smallest;
+        meta->largest = out.largest;
+        meta->remote_data_mrs = out.remote_data_mrs;
+        meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
+        meta->remote_filter_mrs = out.remote_filter_mrs;
+        compact->compaction->edit()->AddFile(level + 1, meta);
+        assert(!meta->UnderCompaction);
+      }
+    }
+  }
+  assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
+  lck_p->lock();
+  compact->compaction->ReleaseInputs();
+  return versions_->LogAndApply(compact->compaction->edit());
+}
   void Memory_Node_Keeper::server_communication_thread(std::string client_ip,
                                                  int socket_fd) {
     printf("A new shared memory thread start\n");
@@ -106,7 +633,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper() {
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf.command == install_version_edit) {
         rdma_mg_->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-
+//TODO: add a handle function for the option value
       } else {
         printf("corrupt message from client.");
         break;
@@ -285,13 +812,28 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
   send_pointer->content.ive = {};
   ibv_mr edit_recv_mr;
-  rdma_mg_->Allocate_Local_RDMA_Slot(edit_recv_mr, "message");
+  rdma_mg_->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
   send_pointer->reply_buffer = edit_recv_mr.addr;
   send_pointer->rkey = edit_recv_mr.rkey;
+  //TODO: how to check whether the version edit message is ready, we need to know the size of the
+  // version edit in the first REQUEST from compute node.
+  char* polling_bit = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+  memset(polling_bit, 0, 1);
   rdma_mg_->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  while (*polling_bit == 0){}
+  VersionEdit version_edit;
+  version_edit.DecodeFrom(
+      Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1);
+  std::unique_lock<std::mutex> lck(versions_mtx);
+  versions_->LogAndApply(&version_edit);
+  lck.unlock();
+  MaybeScheduleFlushOrCompaction();
+
+  rdma_mg_->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  rdma_mg_->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+  }
 
   }
-}
 
 

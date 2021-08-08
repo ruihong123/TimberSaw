@@ -364,7 +364,8 @@ class VersionSet {
   // Create an iterator that reads over the compaction mem_vec for "*c".
   // The caller should delete the iterator when no longer needed.
   Iterator* MakeInputIterator(Compaction* c);
-
+  Iterator* MakeInputIteratorMemoryServer(Compaction* c);
+//  Iterator* NewIterator(std::shared_ptr<RemoteMemTableMetaData> f);
   // Returns true iff some level needs a compaction.
   bool NeedsCompaction() const {
     Version* v = current_;
@@ -522,7 +523,108 @@ class Compaction {
   // Stores the approx size of keys covered in the range of each subcompaction
   std::vector<uint64_t> sizes_;
 };
+struct CompactionOutput {
+  uint64_t number;
+  uint64_t file_size;
+  InternalKey smallest, largest;
+  std::map<uint32_t , ibv_mr*> remote_data_mrs;
+  std::map<uint32_t , ibv_mr*> remote_dataindex_mrs;
+  std::map<uint32_t , ibv_mr*> remote_filter_mrs;
+};
+struct SubcompactionState {
+  Compaction* const compaction;
 
+  // The boundaries(UserKey) of the key-range this compaction is interested in. No two
+  // subcompactions may have overlapping key-ranges.
+  // 'start' is inclusive, 'end' is exclusive, and nullptr means unbounded
+  Slice *start, *end;
+
+  // The return status of this subcompaction
+  Status status;
+
+
+
+  // State kept for output being generated
+  std::vector<CompactionOutput> outputs;
+  TableBuilder* builder = nullptr;
+
+  CompactionOutput* current_output() {
+    if (outputs.empty()) {
+      // This subcompaction's output could be empty if compaction was aborted
+      // before this subcompaction had a chance to generate any output files.
+      // When subcompactions are executed sequentially this is more likely and
+      // will be particulalry likely for the later subcompactions to be empty.
+      // Once they are run in parallel however it should be much rarer.
+      return nullptr;
+    } else {
+      return &outputs.back();
+    }
+  }
+  SequenceNumber smallest_snapshot;
+  uint64_t current_output_file_size = 0;
+
+  // State during the subcompaction
+  uint64_t total_bytes = 0;
+  uint64_t num_output_records = 0;
+
+  uint64_t approx_size = 0;
+  // An index that used to speed up ShouldStopBefore().
+  size_t grandparent_index = 0;
+  // The number of bytes overlapping between the current output and
+  // grandparent files used in ShouldStopBefore().
+  uint64_t overlapped_bytes = 0;
+  // A flag determine whether the key has been seen in ShouldStopBefore()
+  bool seen_key = false;
+
+  SubcompactionState(Compaction* c, Slice* _start, Slice* _end, uint64_t size)
+  : compaction(c), start(_start), end(_end), approx_size(size) {
+    assert(compaction != nullptr);
+  }
+};
+struct CompactionState {
+  // Files produced by compaction
+
+  CompactionOutput* current_output() { return &outputs[outputs.size() - 1]; }
+
+  explicit CompactionState(Compaction* c)
+  : compaction(c),
+  smallest_snapshot(0),
+  //        outfile(nullptr),
+  builder(nullptr),
+  total_bytes(0) {}
+
+  std::vector<SubcompactionState> sub_compact_states;
+  Compaction* const compaction;
+
+  // Sequence numbers < smallest_snapshot are not significant since we
+  // will never have to service a snapshot below smallest_snapshot.
+  // Therefore if we have seen a sequence number S <= smallest_snapshot,
+  // we can drop all entries for the same key with sequence numbers < S.
+  SequenceNumber smallest_snapshot;
+
+  std::vector<CompactionOutput> outputs;
+
+  // State kept for output being generated
+  //  WritableFile* outfile;
+  TableBuilder* builder;
+
+  uint64_t total_bytes;
+};
+// Per level compaction stats.  stats_[level] stores the stats for
+// compactions that produced data for the specified "level".
+struct CompactionStats {
+  CompactionStats() : micros(0), bytes_read(0), bytes_written(0) {}
+
+  void Add(const CompactionStats& c) {
+    this->micros += c.micros;
+    this->bytes_read += c.bytes_read;
+    this->bytes_written += c.bytes_written;
+  }
+
+  int64_t micros;
+  int64_t bytes_read;
+  int64_t bytes_written;
+};
 }  // namespace leveldb
 
 #endif  // STORAGE_LEVELDB_DB_VERSION_SET_H_
