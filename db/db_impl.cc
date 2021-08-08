@@ -1457,15 +1457,15 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         last_sequence_for_key = kMaxSequenceNumber;
         // this will result in the key not drop, next if will always be false because of
         // the last_sequence_for_key.
-      }
-
-      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
-        // Hidden by an newer entry for same user key
-
-        drop = true;  // (A)
-      } else if (ikey.type == kTypeDeletion &&
-                 ikey.sequence <= sub_compact->smallest_snapshot &&
-                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+//      }
+//
+//      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
+//        // Hidden by an newer entry for same user key
+//
+//        drop = true;  // (A)
+//      } else if (ikey.type == kTypeDeletion &&
+//                 ikey.sequence <= sub_compact->smallest_snapshot &&
+//                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
         // TOTHINK(0ruihong) :what is this for?
         //  Generally delete can only be deleted when there is definitely no file contain the
         //  same key in the upper level.
@@ -1479,7 +1479,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         drop = true;
       }
 
-      last_sequence_for_key = ikey.sequence;
+//      last_sequence_for_key = ikey.sequence;
     }
 #ifndef NDEBUG
     number_of_key++;
