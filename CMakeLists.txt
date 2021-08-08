@@ -123,7 +123,7 @@ endif(BUILD_SHARED_LIBS)
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(leveldb util/ThreadPool.h)
+add_library(leveldb)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
@@ -167,6 +167,8 @@ target_sources(leveldb
     "port/port_posix.cc"
     "port/port.h"
     "port/thread_annotations.h"
+    "table/table_memoryside.h"
+    "table/table_memoryside.cpp"
     "table/block_builder.cc"
     "table/block_builder.h"
     "table/block.cc"
@@ -321,8 +323,8 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
-add_executable(Server server.cc table/table_memoryside.h table/table_memoryside.cpp
-        table/table_builder_memoryside.h table/table_builder_memoryside.cpp  memory_node/memory_node_keeper.h
+add_executable(Server server.cc table/table_builder_memoryside.h
+        table/table_builder_memoryside.cpp  memory_node/memory_node_keeper.h
         memory_node/memory_node_keeper.cpp)
 target_link_libraries(Server leveldb)
 if(LEVELDB_BUILD_TESTS)
