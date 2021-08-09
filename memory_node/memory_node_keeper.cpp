@@ -634,6 +634,7 @@ Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf.command == install_version_edit) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        install_version_edit_handler(receive_msg_buf, client_ip);
 //TODO: add a handle function for the option value
       } else {
         printf("corrupt message from client.");
