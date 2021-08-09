@@ -518,7 +518,7 @@ Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
-      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(1, rdma_mg_);
       //TODO make all the metadata written into out
       meta->number = out.number;
       meta->file_size = out.file_size;
@@ -535,7 +535,7 @@ Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
         const CompactionOutput& out = subcompact.outputs[i];
         std::shared_ptr<RemoteMemTableMetaData> meta =
-            std::make_shared<RemoteMemTableMetaData>();
+            std::make_shared<RemoteMemTableMetaData>(1, rdma_mg_);
         // TODO make all the metadata written into out
         meta->number = out.number;
         meta->file_size = out.file_size;

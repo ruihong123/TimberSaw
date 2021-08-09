@@ -8,7 +8,7 @@
 #include "util/coding.h"
 
 namespace leveldb {
-std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
+//std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
   PutFixed64(dst, number);
