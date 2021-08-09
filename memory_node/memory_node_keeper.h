@@ -38,7 +38,7 @@ class Memory_Node_Keeper {
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
 
  private:
-  Options opts;
+  std::shared_ptr<Options> opts;
   const InternalKeyComparator internal_comparator_;
   bool usesubcompaction;
   std::shared_ptr<RDMA_Manager> rdma_mg_;

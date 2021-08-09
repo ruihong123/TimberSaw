@@ -5,7 +5,7 @@
 #include "table/table_builder_memoryside.h"
 #define R_SIZE 32
 namespace leveldb{
-leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(true),
+leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(std::make_shared<Options>(true)),
        usesubcompaction(use_sub_compaction), internal_comparator_(BytewiseComparator()) {
     struct leveldb::config_t config = {
         NULL,  /* dev_name */
@@ -20,7 +20,7 @@ leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(t
     rdma_mg_ = std::make_shared<RDMA_Manager>(config, table_size);
     rdma_mg_->Mempool_initialize(std::string("FlushBuffer"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
-    opts.filter_policy = NewBloomFilterPolicy(opts.bloom_bits);
+    opts->filter_policy = NewBloomFilterPolicy(opts->bloom_bits);
 
   }
   void leveldb::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
@@ -362,7 +362,7 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(SubcompactionState* compact)
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_Memoryside(opts, Compact);
+    compact->builder = new TableBuilder_Memoryside(*opts, Compact);
   }
   return s;
 }
@@ -387,7 +387,7 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_Memoryside(opts, Compact);
+    compact->builder = new TableBuilder_Memoryside(*opts, Compact);
   }
   return s;
 }
