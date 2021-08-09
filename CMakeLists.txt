@@ -167,6 +167,10 @@ target_sources(leveldb
     "port/port_posix.cc"
     "port/port.h"
     "port/thread_annotations.h"
+    "memory_node/memory_node_keeper.h"
+    "memory_node/memory_node_keeper.cpp"
+    "table/table_builder_memoryside.h"
+    "table/table_builder_memoryside.cpp"
     "table/table_memoryside.h"
     "table/table_memoryside.cpp"
     "table/block_builder.cc"
@@ -323,9 +327,7 @@ add_executable(leveldbutil
   "db/leveldbutil.cc"
 )
 target_link_libraries(leveldbutil leveldb)
-add_executable(Server server.cc table/table_builder_memoryside.h
-        table/table_builder_memoryside.cpp  memory_node/memory_node_keeper.h
-        memory_node/memory_node_keeper.cpp)
+add_executable(Server server.cc)
 target_link_libraries(Server leveldb)
 if(LEVELDB_BUILD_TESTS)
   enable_testing()
