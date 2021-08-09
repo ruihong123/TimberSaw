@@ -6,9 +6,16 @@
 
 #include "db/version_set.h"
 #include "util/coding.h"
-
+#include "memory_node/memory_node_keeper.h"
 namespace leveldb {
 //std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
+RemoteMemTableMetaData::RemoteMemTableMetaData()  : table_type(0), allowed_seeks(1 << 30) {
+  rdma_mg = Env::Default()->rdma_mg;
+}
+RemoteMemTableMetaData::RemoteMemTableMetaData(int type)
+    : table_type(type), allowed_seeks(1 << 30) {
+  rdma_mg = Memory_Node_Keeper::rdma_mg;
+}
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
   PutFixed64(dst, number);
@@ -117,6 +124,7 @@ void RemoteMemTableMetaData::mr_serialization(std::string* dst, ibv_mr* mr) cons
 //  PutFixed32(dst, mr->rkey);
 
 }
+
 // Tag numbers for serialized VersionEdit.  These numbers are written to
 // disk and should not be changed.
 enum Tag {
@@ -208,7 +216,8 @@ static bool GetLevel(Slice* input, int* level) {
   }
 }
 
-Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
+Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type,
+                               std::shared_ptr<RDMA_Manager> rdma) {
   Clear();
   Slice input = src;
   const char* msg = nullptr;

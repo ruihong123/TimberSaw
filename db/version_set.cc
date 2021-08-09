@@ -910,7 +910,7 @@ Status VersionSet::Recover(bool* save_manifest) {
     while (reader.ReadRecord(&record, &scratch) && s.ok()) {
       ++read_records;
       VersionEdit edit;
-      s = edit.DecodeFrom(record, 0);
+      s = edit.DecodeFrom(record, 0, std::shared_ptr<RDMA_Manager>());
       if (s.ok()) {
         if (edit.has_comparator_ &&
             edit.comparator_ != icmp_.user_comparator()->Name()) {

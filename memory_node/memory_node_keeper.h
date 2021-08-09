@@ -36,12 +36,12 @@ class Memory_Node_Keeper {
   Status FinishCompactionOutputFile(SubcompactionState* compact,
                                     Iterator* input);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
-
+  static std::shared_ptr<RDMA_Manager> rdma_mg;
  private:
   std::shared_ptr<Options> opts;
   const InternalKeyComparator internal_comparator_;
   bool usesubcompaction;
-  std::shared_ptr<RDMA_Manager> rdma_mg_;
+
   std::vector<std::thread> main_comm_threads;
   ThreadPool message_handler_pool_;
   std::mutex versions_mtx;
