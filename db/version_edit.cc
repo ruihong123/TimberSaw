@@ -51,7 +51,7 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
 }
 Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   Status s = Status::OK();
-  rdma_mg = Env::Default()->rdma_mg;
+  rdma_mg = Memory_Node_Keeper::rdma_mg;
   GetFixed64(&src, &level);
   GetFixed64(&src, &number);
   GetFixed64(&src, &file_size);
