@@ -1515,7 +1515,9 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   assert(serilized_ve.size() < 4096);
   memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
   memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
+
   send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = install_version_edit;
   send_pointer->content.ive.buffer_size = serilized_ve.size();
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
