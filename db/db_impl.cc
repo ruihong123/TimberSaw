@@ -1371,7 +1371,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
 
   s = vset->LogAndApply(edit);
-//  Edit_sync_to_remote(edit);
+  Edit_sync_to_remote(edit);
 #ifndef NDEBUG
 //  std::string temp_buf;
 //  edit->EncodeTo(&temp_buf);
