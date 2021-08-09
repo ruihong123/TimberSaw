@@ -222,6 +222,7 @@ class LEVELDB_EXPORT Env {
   virtual void SleepForMicroseconds(int micros) = 0;
   virtual void SetBackgroundThreads(int num,  ThreadPoolType type) = 0;
   std::shared_ptr<RDMA_Manager> rdma_mg;
+  bool initialized = false;
 };
 
 // A file abstraction for reading sequentially through a file

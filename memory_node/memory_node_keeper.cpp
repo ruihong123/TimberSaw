@@ -5,7 +5,7 @@
 #include "table/table_builder_memoryside.h"
 #define R_SIZE 32
 namespace leveldb{
-leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction):
+leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(true),
        usesubcompaction(use_sub_compaction), internal_comparator_(BytewiseComparator()) {
     struct leveldb::config_t config = {
         NULL,  /* dev_name */

@@ -33,6 +33,7 @@ enum CompressionType {
 struct LEVELDB_EXPORT Options {
   // Create an Options object with default values for all fields.
   Options();
+  Options(bool is_memory_side);
 
   // -------------------
   // Parameters that affect behavior
