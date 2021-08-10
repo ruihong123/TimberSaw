@@ -41,7 +41,7 @@ class Memory_Node_Keeper {
   std::shared_ptr<Options> opts;
   const InternalKeyComparator internal_comparator_;
   bool usesubcompaction;
-
+  TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;
   ThreadPool message_handler_pool_;
   std::mutex versions_mtx;
