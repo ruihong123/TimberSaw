@@ -108,6 +108,7 @@ static int FLAGS_cache_size = -1;
 // Maximum number of files to keep open at the same time (use default if == 0)
 static int FLAGS_open_files = 0;
 
+static int FLAGS_block_restart_interval = 0;
 // Bloom filter bits per key.
 // Negative means use default settings.
 static int FLAGS_bloom_bits = -1;
@@ -853,6 +854,7 @@ class Benchmark {
     options.max_file_size = FLAGS_max_file_size;
     options.block_size = FLAGS_block_size;
     options.bloom_bits = FLAGS_bloom_bits;
+    options.block_restart_interval = FLAGS_block_restart_interval;
     if (FLAGS_comparisons) {
       options.comparator = &count_comparator_;
     }
@@ -1220,6 +1222,8 @@ int main(int argc, char** argv) {
       FLAGS_open_files = n;
     } else if (sscanf(argv[i], "--numa_awared=%d%c", &n, &junk) == 1) {
       FLAGS_enable_numa = n;
+    } else if (sscanf(argv[i], "--block_restart_interval=%d%c", &n, &junk) == 1) {
+      FLAGS_block_restart_interval = n;
     } else if (strncmp(argv[i], "--db=", 5) == 0) {
       FLAGS_db = argv[i] + 5;
     } else {
