@@ -388,7 +388,7 @@ class Benchmark {
   int heap_counter_;
   CountComparator count_comparator_;
   int total_thread_count_;
-  std::vector<std::string> validation_keys;
+  std::vector<std::pair<std::string, std::string>> validation_keys;
 
   void PrintHeader() {
     const int kKeySize = 16 + FLAGS_key_prefix;
@@ -886,6 +886,7 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     WriteBatch batch;
     Slice key = AllocateKey(&key_guard, FLAGS_key_size+1);
+    Slice value;
     for (int i = 0; i < 1000; i++) {
       batch.Clear();
 //      //The key range should be adjustable.
@@ -896,11 +897,12 @@ class Benchmark {
       char to_be_append = 'v';// add an extra char to make key different from write bench.
       assert(key.size() == FLAGS_key_size);
       key.append(&to_be_append, 1);
+      value = gen.Generate(value_size_);
 ////      batch.Put(key, gen.Generate(value_size_));
-      batch.Put(key, key);
+      batch.Put(key, value);
 
       s = db_->Write(write_options_, &batch);
-      validation_keys.push_back(key.ToString());
+      validation_keys.push_back({key.ToString(), value.ToString()});
     }
     printf("validation write finished\n");
   }
@@ -913,9 +915,12 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < 1000; i++) {
-      key = validation_keys[i];
+      key = validation_keys[i].first;
       if (db_->Get(options, key, &value).ok()) {
-
+        if (value != validation_keys[i].second){
+          printf("corrupted value");
+          exit(1);
+        }
       }else{
 //        printf("Validation failed\n");
         not_found++;
