@@ -59,7 +59,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
 
   //Initialize a message memory pool
   Mempool_initialize(std::string("message"), std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
-  Mempool_initialize(std::string("version_edit"), 4096);
+  Mempool_initialize(std::string("version_edit"), 1024*1024);
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
