@@ -98,8 +98,9 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
-    remote_data_mrs.insert({offset, mr});
+    remote_dataindex_mrs.insert({offset, mr});
   }
+  assert(!remote_dataindex_mrs.empty());
   for(auto i = 0; i< remote_filter_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.
     ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
@@ -110,8 +111,9 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
-    remote_data_mrs.insert({offset, mr});
+    remote_filter_mrs.insert({offset, mr});
   }
+  assert(!remote_filter_mrs.empty());
   return s;
 }
 void RemoteMemTableMetaData::mr_serialization(std::string* dst, ibv_mr* mr) const {
