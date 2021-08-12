@@ -2392,7 +2392,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // the wait will never get signalled.
 
       // We check the imm again in the while loop, because the state may have already been changed before you acquire the Lock.
-      std::unique_lock<SpinMutex> lck(superversion_mtx);
+//      std::unique_lock<SpinMutex> lck(superversion_mtx);
 //      imm_mtx.lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
