@@ -219,25 +219,33 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact) {
       has_current_user_key = false;
       last_sequence_for_key = kMaxSequenceNumber;
     } else {
-      if (!has_current_user_key ||
-      user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
-        // First occurrence of this user key
+      if (!has_current_user_key){
+        //TODO: can we avoid the data copy here, can we set two buffers in block and make
+        // the old user key not be garbage collected so that the old Slice can be
+        // directly used here.
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
         has_current_user_key = true;
-//        last_sequence_for_key = kMaxSequenceNumber;
+      }
+      else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
+      0) {
+        // First occurrence of this user key
+        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+        //        has_current_user_key = true;
+        //        last_sequence_for_key = kMaxSequenceNumber;
         // this will result in the key not drop, next if will always be false because of
         // the last_sequence_for_key.
+      }else{
         drop = true;
       }
+      //
+      //      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
+      // Hidden by an newer entry for same user key
 
-//      if (last_sequence_for_key != kMaxSequenceNumber) {
-//        // Hidden by an newer entry for same user key
-//
-//        drop = true;  // (A)
-//      }
+      //        drop = true;  // (A)
+      //      }
       //      else if (ikey.type == kTypeDeletion &&
-      //                 ikey.sequence <= compact->smallest_snapshot &&
-      //                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+      //                 ikey.sequence <= sub_compact->smallest_snapshot &&
+      //                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
       //        // TOTHINK(0ruihong) :what is this for?
       //        //  Generally delete can only be deleted when there is definitely no file contain the
       //        //  same key in the upper level.
@@ -251,7 +259,8 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact) {
       //        drop = true;
       //      }
 
-//      last_sequence_for_key = ikey.sequence;
+      //      last_sequence_for_key = ikey.sequence;
+
     }
 #ifndef NDEBUG
     number_of_key++;
