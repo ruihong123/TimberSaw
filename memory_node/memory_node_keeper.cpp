@@ -237,30 +237,6 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact) {
       }else{
         drop = true;
       }
-      //
-      //      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
-      // Hidden by an newer entry for same user key
-
-      //        drop = true;  // (A)
-      //      }
-      //      else if (ikey.type == kTypeDeletion &&
-      //                 ikey.sequence <= sub_compact->smallest_snapshot &&
-      //                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-      //        // TOTHINK(0ruihong) :what is this for?
-      //        //  Generally delete can only be deleted when there is definitely no file contain the
-      //        //  same key in the upper level.
-      //        // For this user key:
-      //        // (1) there is no data in higher levels
-      //        // (2) data in lower levels will have larger sequence numbers
-      //        // (3) data in layers that are being compacted here and have
-      //        //     smaller sequence numbers will be dropped in the next
-      //        //     few iterations of this loop (by rule (A) above).
-      //        // Therefore this deletion marker is obsolete and can be dropped.
-      //        drop = true;
-      //      }
-
-      //      last_sequence_for_key = ikey.sequence;
-
     }
 #ifndef NDEBUG
     number_of_key++;
@@ -479,6 +455,8 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(CompactionState* compact,
   compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
   compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
   compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
+  assert(compact->current_output()->remote_data_mrs.size()>0);
+  assert(compact->current_output()->remote_dataindex_mrs.size()>0);
 #ifndef NDEBUG
   uint64_t file_size = 0;
   for(auto iter : compact->current_output()->remote_data_mrs){
