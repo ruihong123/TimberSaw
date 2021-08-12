@@ -34,7 +34,7 @@ class ThreadPool{
   std::condition_variable bgsignal_;
   int total_threads_limit_;
   std::atomic_uint queue_len_;
-  bool exit_all_threads_;
+  bool exit_all_threads_ = false;
   bool wait_for_jobs_to_complete_;
   void WakeUpAllThreads() { bgsignal_.notify_all();
   }
