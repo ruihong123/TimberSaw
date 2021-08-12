@@ -2378,12 +2378,10 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   // most of the time the memtable will not be switched. we will Lock inside and
   // get the table
   bool delayed = false;
+  //TODO(ruihong): we can replace the first while here with an "if"
   while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
     // for a new table.
-    //Tothink(Ruihong important): whether we need to make versionset and immutable list using the same mutex,
-    // or seperate the wait function below into two part, because Level 0 file number need to be
-    // Guarded by versionset mutex
     size_t level0_filenum = versions_->NumLevelFiles(0);
     if (imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger
         || level0_filenum >= config::kL0_StopWritesTrigger) {
@@ -2405,26 +2403,8 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 //        printf("thread was waked up\n");
         mem_r = mem_.load();
       }
-//      imm_mtx.unlock();
-    } else if(level0_filenum > config::kL0_SlowdownWritesTrigger && !delayed){
-      env_->SleepForMicroseconds(5);
-      delayed = true;
-    }else{
-      std::unique_lock<std::mutex> l(superversion_mtx);
-//      assert(locked == false);
-#ifndef NDEBUG
-      while(true){
-        if (!locked)
-          break;
-      }
-
-      locked = true;
-#endif
-      mem_r = mem_.load();
-      //After aquire the lock check the status again
-      if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
-          versions_->NumLevelFiles(0) <= config::kL0_StopWritesTrigger &&
-          seq_num > mem_r->Getlargest_seq_supposed()){
+      //check whether this thread need to install a new memtable.
+      if (seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
         MemTable* temp_mem = new MemTable(internal_comparator_);
         uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
@@ -2443,18 +2423,44 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         // if we have create a new table then the new table will definite be
         // the table we will write.
         mem_r = temp_mem;
-//        imm_mtx.unlock();
+        //        imm_mtx.unlock();
         MaybeScheduleFlushOrCompaction();
-#ifndef NDEBUG
-        locked = false;
-#endif
+        return s;
+      }else{
+        break;
+      }
+//      imm_mtx.unlock();
+    } else if(level0_filenum > config::kL0_SlowdownWritesTrigger && !delayed){
+      env_->SleepForMicroseconds(5);
+      delayed = true;
+    }else{
+      std::unique_lock<std::mutex> l(superversion_mtx);
+      mem_r = mem_.load();
+      if (imm_.current_memtable_num() < config::Immutable_StopWritesTrigger && versions_->NumLevelFiles(0) <
+      config::kL0_StopWritesTrigger && seq_num > mem_r->Getlargest_seq_supposed()){
+        assert(versions_->PrevLogNumber() == 0);
+        MemTable* temp_mem = new MemTable(internal_comparator_);
+        uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
+        temp_mem->SetFirstSeq(last_mem_seq+1);
+        // starting from this sequenctial number, the data should write the the new memtable
+        // set the immutable as seq_num - 1
+        temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
+        temp_mem->Ref();
+        mem_r->SetFlushState(MemTable::FLUSH_REQUESTED);
+        mem_.store(temp_mem);
+        //set the flush flag for imm
+        assert(imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger);
+        imm_.Add(mem_r);
+        has_imm_.store(true, std::memory_order_release);
+        InstallSuperVersion();
+        // if we have create a new table then the new table will definite be
+        // the table we will write.
+        mem_r = temp_mem;
+        //        imm_mtx.unlock();
+        MaybeScheduleFlushOrCompaction();
         return s;
       }
-#ifndef NDEBUG
-      locked = false;
-#endif
-//      imm_mtx.unlock();
-      l.unlock();
+
     }
     mem_r = mem_.load();
     // For the safety concern (such as the thread get context switch)
