@@ -20,6 +20,7 @@
 #include <atomic>
 #include <map>
 #include <set>
+#include <util/mutexlock.h>
 #include <vector>
 
 #include "port/port.h"
@@ -265,7 +266,7 @@ class VersionSet {
  public:
   VersionSet(const std::string& dbname, const Options* options,
              TableCache* table_cache, const InternalKeyComparator* cmp,
-             std::mutex* mtx);
+             SpinMutex* mtx);
   VersionSet(const VersionSet&) = delete;
   VersionSet& operator=(const VersionSet&) = delete;
 
@@ -302,7 +303,7 @@ class VersionSet {
   // already been allocated.
   // REQUIRES: "file_number" was returned by a call to NewFileNumber().
   void ReuseFileNumber(uint64_t file_number) {
-    std::unique_lock<std::mutex> lck(*sv_mtx);
+    std::unique_lock<SpinMutex> lck(*sv_mtx);
     if (next_file_number_.load() == file_number + 1) {
       next_file_number_ = file_number;
     }
@@ -433,7 +434,7 @@ class VersionSet {
 
 
   //TODO: make it spinmutex?
-  std::mutex* sv_mtx;
+  SpinMutex* sv_mtx;
   static std::mutex version_set_mtx;
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.

@@ -1063,7 +1063,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       c->edit()->RemoveFile(c->level(), f->number);
       c->edit()->AddFile(c->level() + 1, f);
       {
-        std::unique_lock<std::mutex> l(superversion_mtx);
+        std::unique_lock<SpinMutex> l(superversion_mtx);
         c->ReleaseInputs();
         status = versions_->LogAndApply(c->edit());
         InstallSuperVersion();
@@ -1319,7 +1319,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
 }
 
 Status DBImpl::InstallCompactionResults(CompactionState* compact,
-                                        std::unique_lock<std::mutex>* lck_p) {
+                                        std::unique_lock<SpinMutex>* lck_p) {
   Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
       compact->compaction->num_input_files(0), compact->compaction->level(),
       compact->compaction->num_input_files(1), compact->compaction->level() + 1,
@@ -1398,7 +1398,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   // Retry until all completed flushes are committed. New flushes can finish
   // while the current thread is writing manifest where mutex is released.
 //  while (s.ok()) {
-  std::unique_lock<std::mutex> lck2(superversion_mtx);
+  std::unique_lock<SpinMutex> lck2(superversion_mtx);
   auto& memlist = imm_.current_.load()->memlist_;
   // The back is the oldest; if flush_completed_ is not set to it, it means
   // that we were assigned a more recent memtable. The memtables' flushes must
@@ -1478,7 +1478,7 @@ void DBImpl::CleanupSuperVersion(SuperVersion* sv) {
   // Release SuperVersion
   if (sv->Unref()) {
     {
-      std::unique_lock<std::mutex> lck(superversion_mtx);
+      std::unique_lock<SpinMutex> lck(superversion_mtx);
       sv->Cleanup();
     }
   }
@@ -1530,7 +1530,7 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
       sv->version_number != super_version_number_.load()) {
     SuperVersion* sv_to_delete = nullptr;
     // if there is an old superversion unrefer old one and replace it as a new one
-    std::unique_lock<std::mutex> lck(superversion_mtx,std::defer_lock);
+    std::unique_lock<SpinMutex> lck(superversion_mtx,std::defer_lock);
     if (sv && sv->Unref()) {
       lck.lock();
       // NOTE: underlying resources held by superversion (sst files) might
@@ -1690,7 +1690,7 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
 
   Status status;
   {
-    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
+    std::unique_lock<SpinMutex> l(superversion_mtx, std::defer_lock);
     status = InstallCompactionResults(compact, &l);
     InstallSuperVersion();
   }
@@ -2046,7 +2046,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {
-    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
+    std::unique_lock<SpinMutex> l(superversion_mtx, std::defer_lock);
     status = InstallCompactionResults(compact, &l);
     InstallSuperVersion();
   }
@@ -2392,7 +2392,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // the wait will never get signalled.
 
       // We check the imm again in the while loop, because the state may have already been changed before you acquire the Lock.
-      std::unique_lock<std::mutex> lck(superversion_mtx);
+      std::unique_lock<SpinMutex> lck(superversion_mtx);
 //      imm_mtx.lock();
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
@@ -2401,7 +2401,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         assert(seq_num > mem_r->GetFirstseq());
 //        std::cout << "Writer is going to wait current immutable number " << (imm_.current_memtable_num()) << " Level 0 file number "
 //                  << (versions_->NumLevelFiles(0)) <<std::endl;
-        write_stall_cv.wait(lck);
+//        write_stall_cv.wait(lck);
 //        printf("thread was waked up\n");
         mem_r = mem_.load();
       }
@@ -2410,7 +2410,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       env_->SleepForMicroseconds(5);
       delayed = true;
     }else{
-      std::unique_lock<std::mutex> l(superversion_mtx);
+      std::unique_lock<SpinMutex> l(superversion_mtx);
 //      assert(locked == false);
 #ifndef NDEBUG
       while(true){
@@ -2469,7 +2469,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       // get the snapshot for imm then check it so that this memtable pointer is guarantee
       // to be the one this thread want.
       // TODO: use imm_mtx to control the access.
-      std::unique_lock<std::mutex> l(superversion_mtx);
+      std::unique_lock<SpinMutex> l(superversion_mtx);
       mem_r = imm_.PickMemtablesSeqBelong(seq_num);
       if (mem_r != nullptr)
         return s;

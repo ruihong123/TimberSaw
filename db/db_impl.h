@@ -208,7 +208,7 @@ class DBImpl : public DB {
                                     Iterator* input);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   Status InstallCompactionResults(CompactionState* compact,
-                                  std::unique_lock<std::mutex>* lck_p)
+                                  std::unique_lock<SpinMutex>* lck_p)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status TryInstallMemtableFlushResults(
       FlushJob* job, VersionSet* vset,
@@ -248,7 +248,7 @@ class DBImpl : public DB {
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   std::condition_variable write_stall_cv GUARDED_BY(superversion_mtx);
-  std::mutex superversion_mtx;
+  SpinMutex superversion_mtx;
   bool locked = false;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;

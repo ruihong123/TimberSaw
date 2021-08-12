@@ -707,8 +707,7 @@ class VersionSet::Builder {
 };
 
 VersionSet::VersionSet(const std::string& dbname, const Options* options,
-                       TableCache* table_cache, const InternalKeyComparator* cmp,
-                       std::mutex* mtx)
+                       TableCache* table_cache, const InternalKeyComparator* cmp, SpinMutex* mtx)
     : env_(options->env),
       dbname_(dbname),
       options_(options),
@@ -1017,7 +1016,7 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
 }
 //Use mutex to synchronize between threads.
 void VersionSet::MarkFileNumberUsed(uint64_t number) {
-  std::unique_lock<std::mutex> lck(*sv_mtx);
+  std::unique_lock<SpinMutex> lck(*sv_mtx);
   if (next_file_number_ <= number) {
     next_file_number_ = number + 1;
   }

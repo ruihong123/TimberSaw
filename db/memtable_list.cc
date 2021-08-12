@@ -801,7 +801,7 @@ void FlushJob::SetAllMemStateProcessing() {
 
   }
 }
-FlushJob::FlushJob(std::mutex* imm_mtx,
+FlushJob::FlushJob(SpinMutex* imm_mtx,
                    std::condition_variable* write_stall_cv,
                    const InternalKeyComparator* cmp)
     : imm_mtx_(imm_mtx), write_stall_cv_(write_stall_cv),
