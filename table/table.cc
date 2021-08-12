@@ -19,6 +19,9 @@
 namespace leveldb {
 
 struct Table::Rep {
+  Rep(const Options& options) : options(options) {
+
+  }
   ~Rep() {
     delete filter;
 //    delete[] filter_data;
@@ -57,8 +60,8 @@ Status Table::Open(const Options& options, Table** table,
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
     Block* index_block = new Block(index_block_contents, IndexBlock);
-    Rep* rep = new Table::Rep;
-    rep->options = options;
+    Rep* rep = new Table::Rep(options);
+//    rep->options = options;
 //    rep->file = file;
     rep->remote_table = Remote_table_meta;
 //    rep->metaindex_handle = footer.metaindex_handle();

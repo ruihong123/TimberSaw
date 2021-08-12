@@ -16,13 +16,16 @@
 #include "util/coding.h"
 namespace leveldb{
 struct Table_Memory_Side::Rep {
+  Rep(const Options& options) : options(options) {
+
+  }
   ~Rep() {
     delete filter;
     //    delete[] filter_data;
     delete index_block;
   }
 
-  Options options;
+  const Options& options;
   Status status;
   // weak_ptr because if there is cached value in the table cache then the obsoleted SST
   // will never be garbage collected.
@@ -57,8 +60,8 @@ Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
     Block* index_block = new Block(index_block_contents, Block_On_Memory_Side);
-    Rep* rep = new Table_Memory_Side::Rep;
-    rep->options = options;
+    Rep* rep = new Table_Memory_Side::Rep(options);
+//    rep->options = options;
     //    rep->file = file;
     rep->remote_table = Remote_table_meta;
     //    rep->metaindex_handle = footer.metaindex_handle();
