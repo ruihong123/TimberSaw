@@ -24,7 +24,7 @@ class Memory_Node_Keeper {
   // this function is for the server.
   void Server_to_Client_Communication();
   void SetBackgroundThreads(int num,  ThreadPoolType type);
-  void MaybeScheduleFlushOrCompaction();
+  void MaybeScheduleCompaction();
   static void BGWork_Compaction(void* thread_args);
   void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);

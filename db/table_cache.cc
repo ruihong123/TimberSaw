@@ -113,7 +113,37 @@ Status TableCache::FindTable(
   }
   return s;
 }
+Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
+{
+  Status s;
+  char buf[sizeof(Remote_memtable_meta->number)];
+  EncodeFixed64(buf, Remote_memtable_meta->number);
+  Slice key(buf, sizeof(buf));
+  *handle = cache_->Lookup(key);
+  if (*handle == nullptr) {
+    Table_Memory_Side* table = nullptr;
 
+    if (s.ok()) {
+      s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
+    }
+    //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
+    if (!s.ok()) {
+      assert(table == nullptr);
+      //      delete file;
+      // We do not cache error results so that if the error is transient,
+      // or somebody repairs the file, we recover automatically.
+    } else {
+      SSTable* tf = new SSTable;
+      //      tf->file = file;
+      //      tf->remote_table = Remote_memtable_meta;
+      tf->table_memory = table;
+      assert(table->rep_ != nullptr);
+      *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
+    }
+  }
+  return s;
+}
+}
 Iterator* TableCache::NewIterator(
     const ReadOptions& options,
     std::shared_ptr<RemoteMemTableMetaData> remote_table, Table** tableptr) {
@@ -144,7 +174,7 @@ Iterator* TableCache::NewIterator_MemorySide(
   }
 
   Cache::Handle* handle = nullptr;
-  Status s = FindTable(std::move(remote_table), &handle);
+  Status s = FindTable_MemorySide(std::move(remote_table), &handle);
   if (!s.ok()) {
     return NewErrorIterator(s);
   }

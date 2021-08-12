@@ -83,7 +83,8 @@ class TableCache {
  private:
   Status FindTable(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
                    Cache::Handle** handle);
-
+  Status FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
+                   Cache::Handle** handle);
   Env* const env_;
   const std::string dbname_;
   const Options& options_;

@@ -34,7 +34,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
     message_handler_pool_.SetBackgroundThreads(num);
   }
-  void Memory_Node_Keeper::MaybeScheduleFlushOrCompaction() {
+  void Memory_Node_Keeper::MaybeScheduleCompaction() {
     if (versions_->NeedsCompaction()) {
       //    background_compaction_scheduled_ = true;
       void* function_args = nullptr;
@@ -144,7 +144,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
 //      manual_compaction_ = nullptr;
 //    }
   }
-  MaybeScheduleFlushOrCompaction();
+  MaybeScheduleCompaction();
 
 }
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
@@ -846,7 +846,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   std::unique_lock<std::mutex> lck(versions_mtx);
   versions_->LogAndApply(&version_edit);
   lck.unlock();
-  MaybeScheduleFlushOrCompaction();
+  MaybeScheduleCompaction();
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
