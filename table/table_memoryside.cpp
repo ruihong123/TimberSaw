@@ -123,7 +123,7 @@ Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
   if (s.ok()) {
     BlockContents contents;
     Find_Remote_mr(&table->rep_->remote_table.lock()->remote_data_mrs, handle, contents.data);
-    block = new Block(contents, DataBlock);
+    block = new Block(contents, Block_On_Memory_Side);
     //    if (block_cache != nullptr) {
     //      char cache_key_buffer[16];
     //      EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
