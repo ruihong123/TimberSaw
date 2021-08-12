@@ -56,7 +56,7 @@ Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
-    Block* index_block = new Block(index_block_contents, IndexBlock);
+    Block* index_block = new Block(index_block_contents, Block_On_Memory_Side);
     Rep* rep = new Table_Memory_Side::Rep;
     rep->options = options;
     //    rep->file = file;
