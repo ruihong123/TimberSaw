@@ -48,8 +48,22 @@ Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table
   BlockContents index_block_contents;
   char* data = (char*)Remote_table_meta->remote_dataindex_mrs.begin()->second->addr;
   size_t size = Remote_table_meta->remote_dataindex_mrs.begin()->second->length;
-  index_block_contents.data = Slice(data, size);
-  ReadOptions opt;
+  size_t n = size - kBlockTrailerSize;
+
+//  ReadOptions opt;
+  {
+    const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
+    const uint32_t actual = crc32c::Value(data, n + 1);
+    if (actual != crc) {
+      //      delete[] buf;
+      DEBUG("Index block Checksum mismatch\n");
+      assert(false);
+      s = Status::Corruption("block checksum mismatch");
+      return s;
+    }
+  }
+  index_block_contents.data = Slice(data, n);
+
   //  if (options.paranoid_checks) {
   //    opt.verify_checksums = true;
   //  }
@@ -81,6 +95,7 @@ Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table
 }
 
 void Table_Memory_Side::ReadFilter() {
+  Status s = Status::OK();
   if (rep_->options.filter_policy == nullptr) {
     return;  // Do not need any metadata
   }
@@ -93,7 +108,21 @@ void Table_Memory_Side::ReadFilter() {
   BlockContents block;
   char* data = (char*) rep_->remote_table.lock()->remote_dataindex_mrs.begin()->second->addr;
   size_t size = rep_->remote_table.lock()->remote_dataindex_mrs.begin()->second->length;
-  block.data = Slice(data, size);
+  size_t n = size - kBlockTrailerSize;
+
+  //  ReadOptions opt;
+  {
+    const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
+    const uint32_t actual = crc32c::Value(data, n + 1);
+    if (actual != crc) {
+      //      delete[] buf;
+      DEBUG("Index block Checksum mismatch\n");
+      assert(false);
+      s = Status::Corruption("block checksum mismatch");
+      return;
+    }
+  }
+  block.data = Slice(data, n);
 
   //  if (!ReadFilterBlock(rep_->remote_table.lock()->remote_filter_mrs.begin()->second, opt, &block).ok()) {
   //    return;
@@ -125,69 +154,9 @@ Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
 
   if (s.ok()) {
     BlockContents contents;
+    //The function below is correct, because the handle content the block without crc.
     Find_Remote_mr(&table->rep_->remote_table.lock()->remote_data_mrs, handle, contents.data);
     block = new Block(contents, Block_On_Memory_Side);
-    //    if (block_cache != nullptr) {
-    //      char cache_key_buffer[16];
-    //      EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
-    //      EncodeFixed64(cache_key_buffer + 8, handle.offset());
-    //      Slice key(cache_key_buffer, sizeof(cache_key_buffer));
-    //#ifdef GETANALYSIS
-    //      auto start = std::chrono::high_resolution_clock::now();
-    //#endif
-    //      cache_handle = block_cache->Lookup(key);
-    //#ifdef GETANALYSIS
-    //      auto stop = std::chrono::high_resolution_clock::now();
-    //      auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    //#endif
-    //      if (cache_handle != nullptr) {
-    //        block = reinterpret_cast<Block*>(block_cacheif (block_cache != nullptr) {
-    //      char cache_key_buffer[16];
-    //      EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
-    //      EncodeFixed64(cache_key_buffer + 8, handle.offset());
-    //      Slice key(cache_key_buffer, sizeof(cache_key_buffer));
-    //#ifdef GETANALYSIS
-    //      auto start = std::chrono::high_resolution_clock::now();
-    //#endif
-    //      cache_handle = block_cache->Lookup(key);
-    //#ifdef GETANALYSIS
-    //      auto stop = std::chrono::high_resolution_clock::now();
-    //      auto lookup_duration = std::chrono::duration_ca->Value(cache_handle));
-    //        //        DEBUG("Cache hit\n");
-    //#ifdef GETANALYSIS
-    //TableCache::cache_hit.fetch_add(1);
-    //TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
-    //#endif
-    //      } else {
-    //#ifdef GETANALYSIS
-    //        TableCache::cache_miss.fetch_add(1);
-    //        //        if(TableCache::cache_miss < TableCache::not_filtered){
-    //        //          printf("warning\n");
-    //        //        };
-    //        start = std::chrono::high_resolution_clock::now();
-    //
-    //#endif
-    //        s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-    //#ifdef GETANALYSIS
-    //        stop = std::chrono::high_resolution_clock::now();
-    //        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    //        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-    //#endif
-    //
-    //        if (s.ok()) {
-    //          block = new Block(contents, DataBlock);
-    //          if (options.fill_cache) {
-    //            cache_handle = block_cache->Insert(key, block, block->size(),
-    //                                               &DeleteCachedBlock);
-    //          }
-    //        }
-    //      }
-    //    } else {
-    //      s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-    //      if (s.ok()) {
-    //        block = new Block(contents, DataBlock);
-    //      }
-    //    }
   }
 
   Iterator* iter;
