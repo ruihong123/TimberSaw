@@ -106,7 +106,7 @@ class LEVELDB_EXPORT TableBuilder {
   void get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map);
   void get_filter_map(std::map<uint32_t, ibv_mr*>& map);
   size_t get_numentries();
- private:
+ protected:
 
 
   struct Rep;

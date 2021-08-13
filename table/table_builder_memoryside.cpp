@@ -108,7 +108,7 @@ struct TableBuilder_Memoryside::Rep {
 };
 TableBuilder_Memoryside::TableBuilder_Memoryside(
     const Options& options, IO_type type, std::shared_ptr<RDMA_Manager> rdma_mg)
-    : TableBuilder(), rep_(new Rep(options, type, rdma_mg)) {
+    : TableBuilder(), rep_(new TableBuilder_Memoryside::Rep(options, type, std::move(rdma_mg))) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }

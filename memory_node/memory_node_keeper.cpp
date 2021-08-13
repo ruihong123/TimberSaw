@@ -376,9 +376,9 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_Memoryside(
-        *opts, Compact, rdma_mg);
+    compact->builder = new TableBuilder_Memoryside(*opts, Compact, rdma_mg);
   }
+//  printf("rep_ is %p", compact->builder->get_filter_map())
   return s;
 }
 Status Memory_Node_Keeper::FinishCompactionOutputFile(SubcompactionState* compact,

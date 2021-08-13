@@ -86,7 +86,7 @@ class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder{
 //  void get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map);
 //  void get_filter_map(std::map<uint32_t, ibv_mr*>& map);
 //  size_t get_numentries();
- private:
+ protected:
 //  bool ok() const { return status().ok(); }
 //  void FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
 //                       CompressionType compressiontype);
