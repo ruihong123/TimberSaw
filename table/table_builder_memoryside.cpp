@@ -5,10 +5,11 @@
 
 #include <cassert>
 #include "db/dbformat.h"
+
 namespace leveldb{
 struct TableBuilder_Memoryside::Rep {
-  Rep(const Options& opt, IO_type type)
-  : options(opt),
+  Rep(const Options& opt, IO_type type, std::shared_ptr<RDMA_Manager> rdma)
+      : options(opt),
   type_(type),
   index_block_options(opt),
   offset(0),
@@ -20,7 +21,7 @@ struct TableBuilder_Memoryside::Rep {
     //TOTHINK: why the block restart interval is 1 by default?
     // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
-    std::shared_ptr<RDMA_Manager> rdma_mg = options.env->rdma_mg;
+    std::shared_ptr<RDMA_Manager> rdma_mg = rdma;
     local_data_mr = new ibv_mr();
     local_index_mr = new ibv_mr();
     local_filter_mr = new ibv_mr();
@@ -59,7 +60,7 @@ struct TableBuilder_Memoryside::Rep {
     status = Status::OK();
   }
 
-  Options options;
+  const Options& options;
   Options index_block_options;
   IO_type type_;
   std::string type_string_;
@@ -105,8 +106,9 @@ struct TableBuilder_Memoryside::Rep {
 
   std::string compressed_output;
 };
-TableBuilder_Memoryside::TableBuilder_Memoryside(const Options& options, IO_type type)
-: TableBuilder(options, type), rep_(new Rep(options, type)) {
+TableBuilder_Memoryside::TableBuilder_Memoryside(
+    const Options& options, IO_type type, std::shared_ptr<RDMA_Manager> rdma_mg)
+    : TableBuilder(), rep_(new Rep(options, type, rdma_mg)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }

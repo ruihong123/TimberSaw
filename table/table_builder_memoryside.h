@@ -29,7 +29,8 @@ class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder{
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder_Memoryside(const Options& options, IO_type type);
+  TableBuilder_Memoryside(const Options& options, IO_type type,
+                          std::shared_ptr<RDMA_Manager> rdma_mg);
 
   TableBuilder_Memoryside(const TableBuilder_Memoryside&) = delete;
   TableBuilder_Memoryside& operator=(const TableBuilder_Memoryside&) = delete;

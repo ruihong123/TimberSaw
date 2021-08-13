@@ -350,7 +350,8 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(SubcompactionState* compact)
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_Memoryside(*opts, Compact);
+    compact->builder = new TableBuilder_Memoryside(
+        *opts, Compact, std::shared_ptr<RDMA_Manager>());
   }
   return s;
 }
@@ -375,7 +376,8 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_Memoryside(*opts, Compact);
+    compact->builder = new TableBuilder_Memoryside(
+        *opts, Compact, rdma_mg);
   }
   return s;
 }

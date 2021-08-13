@@ -67,7 +67,7 @@ struct TableBuilder::Rep {
     status = Status::OK();
   }
 
-  Options options;
+  const Options& options;
   Options index_block_options;
   IO_type type_;
   std::string type_string_;
@@ -118,7 +118,9 @@ TableBuilder::TableBuilder(const Options& options, IO_type type)
     rep_->filter_block->RestartBlock(0);
   }
 }
+TableBuilder::TableBuilder(){
 
+}
 TableBuilder::~TableBuilder() {
   assert(rep_->closed);  // Catch errors where caller forgot to call Finish()
   if (rep_->filter_block != nullptr){
@@ -142,21 +144,21 @@ TableBuilder::~TableBuilder() {
   delete rep_;
 }
 
-Status TableBuilder::ChangeOptions(const Options& options) {
-  // Note: if more fields are added to Options, update
-  // this function to catch changes that should not be allowed to
-  // change in the middle of building a Table.
-  if (options.comparator != rep_->options.comparator) {
-    return Status::InvalidArgument("changing comparator while building table");
-  }
-
-  // Note that any live BlockBuilders point to rep_->options and therefore
-  // will automatically pick up the updated options.
-  rep_->options = options;
-  rep_->index_block_options = options;
-  rep_->index_block_options.block_restart_interval = 1;
-  return Status::OK();
-}
+//Status TableBuilder::ChangeOptions(const Options& options) {
+//  // Note: if more fields are added to Options, update
+//  // this function to catch changes that should not be allowed to
+//  // change in the middle of building a Table.
+//  if (options.comparator != rep_->options.comparator) {
+//    return Status::InvalidArgument("changing comparator while building table");
+//  }
+//
+//  // Note that any live BlockBuilders point to rep_->options and therefore
+//  // will automatically pick up the updated options.
+//  rep_->options = options;
+//  rep_->index_block_options = options;
+//  rep_->index_block_options.block_restart_interval = 1;
+//  return Status::OK();
+//}
 //TODO: make it create a block every blocksize, flush every 1M. When flushing do not poll completion
 // pool the completion at the same time in the end
 void TableBuilder::Add(const Slice& key, const Slice& value) {
@@ -647,5 +649,6 @@ void TableBuilder::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
 size_t TableBuilder::get_numentries() {
   return rep_->num_entries;
 }
+
 
 }  // namespace leveldb

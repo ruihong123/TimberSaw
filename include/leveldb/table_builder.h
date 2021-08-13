@@ -42,7 +42,7 @@ class LEVELDB_EXPORT TableBuilder {
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
   TableBuilder(const Options& options, IO_type type);
-
+  TableBuilder();
   TableBuilder(const TableBuilder&) = delete;
   TableBuilder& operator=(const TableBuilder&) = delete;
 
@@ -55,7 +55,7 @@ class LEVELDB_EXPORT TableBuilder {
   // passed to the constructor is different from its value in the
   // structure passed to this method, this method will return an error
   // without changing any fields.
-  Status ChangeOptions(const Options& options);
+//  Status ChangeOptions(const Options& options);
 
   // Add key,value to the table being constructed.
   // REQUIRES: key is after any previously added key according to comparator.
