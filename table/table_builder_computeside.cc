@@ -305,7 +305,7 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
     }
   }
   r->compressed_output.clear();
-  block->Reset();
+//  block->Reset();
 }
 void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
                                         BlockHandle* handle,
@@ -353,7 +353,7 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
   r->compressed_output.clear();
   block_size = block_contents->size();
   DEBUG_arg("index block size: %zu \n", block_size);
-  block->Reset();
+//  block->Reset();
 
 }
 void TableBuilder_ComputeSide::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
