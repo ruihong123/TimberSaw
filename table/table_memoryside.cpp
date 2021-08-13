@@ -106,8 +106,8 @@ void Table_Memory_Side::ReadFilter() {
     opt.verify_checksums = true;
   }
   BlockContents block;
-  char* data = (char*) rep_->remote_table.lock()->remote_dataindex_mrs.begin()->second->addr;
-  size_t size = rep_->remote_table.lock()->remote_dataindex_mrs.begin()->second->length;
+  char* data = (char*) rep_->remote_table.lock()->remote_filter_mrs.begin()->second->addr;
+  size_t size = rep_->remote_table.lock()->remote_filter_mrs.begin()->second->length;
   size_t n = size - kBlockTrailerSize;
 
   //  ReadOptions opt;
