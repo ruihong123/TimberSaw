@@ -22,7 +22,7 @@ class BlockBuilder {
   BlockBuilder& operator=(const BlockBuilder&) = delete;
 
   // Reset the contents as if the BlockBuilder was just constructed.
-  void Reset();
+  void Reset_Forward();
   // move the buffer locate at a different place
   void Move_buffer(const char* p);
   // REQUIRES: Finish() has not been called since the last call to Reset().

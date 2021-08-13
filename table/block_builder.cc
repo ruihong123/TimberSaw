@@ -45,7 +45,7 @@ BlockBuilder::BlockBuilder(const Options* options, ibv_mr* mr)
   restarts_.push_back(0);  // First restart point is at offset 0
 }
 
-void BlockBuilder::Reset() {
+void BlockBuilder::Reset_Forward() {
   buffer.ResetNext();
   restarts_.clear();
   restarts_.push_back(0);  // First restart point is at offset 0

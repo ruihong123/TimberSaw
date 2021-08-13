@@ -303,7 +303,7 @@ void TableBuilder_Memoryside::FinishDataBlock(BlockBuilder* block, BlockHandle* 
     }
   }
   r->compressed_output.clear();
-//  block->Reset();
+  block->Reset_Forward();
 }
 void TableBuilder_Memoryside::FinishDataIndexBlock(BlockBuilder* block,
                                         BlockHandle* handle,
@@ -351,7 +351,7 @@ void TableBuilder_Memoryside::FinishDataIndexBlock(BlockBuilder* block,
   r->compressed_output.clear();
   block_size = block_contents->size();
   DEBUG_arg("index block size: %zu \n", block_size);
-//  block->Reset();
+  block->Reset_Forward();
 
 }
 void TableBuilder_Memoryside::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
@@ -395,7 +395,7 @@ void TableBuilder_Memoryside::FinishFilterBlock(FullFilterBlockBuilder* block, B
   }
   r->compressed_output.clear();
   block_size = block_contents->size();
-  //  block->Reset();
+    block->Reset();
 }
 //TODO make flushing flush the data to the remote memory flushing to remote memory
 void TableBuilder_Memoryside::FlushData(){
