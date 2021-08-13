@@ -44,10 +44,9 @@ class Memory_Node_Keeper {
   TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;
   ThreadPool message_handler_pool_;
-  std::mutex versions_mtx;
+//  std::mutex versions_mtx;
   VersionSet* versions_;
-  Status InstallCompactionResults(CompactionState* compact,
-                                  std::unique_lock<std::mutex>* lck_p);
+  Status InstallCompactionResults(CompactionState* compact);
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
   void create_mr_handler(RDMA_Request request, std::string& client_ip);

@@ -88,7 +88,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       c->edit()->RemoveFile(c->level(), f->number);
       c->edit()->AddFile(c->level() + 1, f);
       {
-        std::unique_lock<std::mutex> l(versions_mtx);// TODO(ruihong): remove all the superversion mutex usage.
+//        std::unique_lock<std::mutex> l(versions_mtx);// TODO(ruihong): remove all the superversion mutex usage.
         c->ReleaseInputs();
         status = versions_->LogAndApply(c->edit());
 //        InstallSuperVersion();
@@ -312,8 +312,8 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 //  stats_[compact->compaction->level() + 1].Add(stats);
 
   if (status.ok()) {
-    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
-    status = InstallCompactionResults(compact, &l);
+//    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
+    status = InstallCompactionResults(compact);
 //    InstallSuperVersion();
   }
 //  undefine_mutex.Unlock();
@@ -497,8 +497,7 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(CompactionState* compact,
   }
   return s;
 }
-Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
-                                        std::unique_lock<std::mutex>* lck_p) {
+Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact) {
 //  Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
 //      compact->compaction->num_input_files(0), compact->compaction->level(),
 //      compact->compaction->num_input_files(1), compact->compaction->level() + 1,
@@ -542,7 +541,7 @@ Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
     }
   }
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
-  lck_p->lock();
+//  lck_p->lock();
   compact->compaction->ReleaseInputs();
   return versions_->LogAndApply(compact->compaction->edit());
 }
@@ -823,9 +822,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1,
       std::shared_ptr<RDMA_Manager>());
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
-  std::unique_lock<std::mutex> lck(versions_mtx);
+//  std::unique_lock<std::mutex> lck(versions_mtx);
   versions_->LogAndApply(&version_edit);
-  lck.unlock();
+//  lck.unlock();
   MaybeScheduleCompaction();
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
