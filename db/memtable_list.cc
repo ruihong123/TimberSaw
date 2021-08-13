@@ -18,7 +18,7 @@
 #include "util/coding.h"
 #include "table/merger.h"
 #include "db/table_cache.h"
-
+#include "table/table_builder_computeside.h"
 namespace leveldb {
 
 std::mutex MemTableList::imm_mtx;
@@ -823,7 +823,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
   bool has_current_user_key = false;
   if (iter->Valid()) {
 
-    auto* builder = new TableBuilder(options, type);
+    auto* builder = new TableBuilder_ComputeSide(options, type);
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {

@@ -123,7 +123,7 @@ endif(BUILD_SHARED_LIBS)
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(leveldb)
+add_library(leveldb table/table_builder.cpp)
 target_sources(leveldb
   PRIVATE
     "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
@@ -187,8 +187,10 @@ target_sources(leveldb
     "table/iterator.cc"
     "table/merger.cc"
     "table/merger.h"
-    "table/table_builder.cc"
+    "table/table_builder_computeside.h"
+    "table/table_builder_computeside.cc"
     "table/table.cc"
+    "include/leveldb/table_builder.h"
     "table/two_level_iterator.cc"
     "table/two_level_iterator.h"
     "util/arena.cc"

@@ -5,16 +5,17 @@
 #ifndef STORAGE_LEVELDB_DB_BUILDER_H_
 #define STORAGE_LEVELDB_DB_BUILDER_H_
 
-#include <memory>
-
-#include "leveldb/status.h"
 #include "db/dbformat.h"
 #include "db/filename.h"
 #include "db/table_cache.h"
 #include "db/version_edit.h"
+#include <include/leveldb/table_builder.h>
+#include <memory>
+
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
+#include "leveldb/status.h"
 namespace leveldb {
 
 struct Options;

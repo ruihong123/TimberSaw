@@ -6,7 +6,7 @@
 
 #include "table/block.h"
 #include "memory_node/memory_node_keeper.h"
-
+#include "leveldb/env.h"
 
 namespace leveldb {
 

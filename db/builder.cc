@@ -4,7 +4,7 @@
 
 #include "db/builder.h"
 
-
+#include <table/table_builder_computeside.h>
 
 namespace leveldb {
 
@@ -17,8 +17,7 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
 
   std::string fname = TableFileName(dbname, meta->number);
   if (iter->Valid()) {
-
-    TableBuilder* builder = new TableBuilder(options, type);
+    TableBuilder_ComputeSide* builder = new TableBuilder_ComputeSide(options, type);
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {

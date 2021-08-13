@@ -25,7 +25,7 @@
 #include "leveldb/options.h"
 //#include "leveldb/types.h"
 #include "util/autovector.h"
-
+#include "leveldb/table_builder.h"
 #include "version_set.h"
 
 namespace leveldb {

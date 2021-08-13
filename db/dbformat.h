@@ -13,7 +13,8 @@
 #include "leveldb/db.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/slice.h"
-#include "leveldb/table_builder.h"
+//#include "leveldb/table_builder_computeside.h"
+
 #include "util/coding.h"
 #include "util/logging.h"
 

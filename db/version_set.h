@@ -35,12 +35,12 @@ class Compaction;
  class FlushJob;
 class Iterator;
 class MemTable;
-class TableBuilder;
+class TableBuilder_ComputeSide;
 class TableCache;
 class Version;
 class VersionSet;
 class WritableFile;
-
+class TableBuilder;
 namespace {
 enum SaverState {
   kNotFound,

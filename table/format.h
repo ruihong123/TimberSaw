@@ -10,14 +10,16 @@
 
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
-#include "leveldb/table_builder.h"
+#include <map>
+#include "util/rdma.h"
+//#include "leveldb/table_builder.h"
 
 namespace leveldb {
 
 class Block;
 class RandomAccessFile;
 struct ReadOptions;
-
+//struct ibv_mr;
 // BlockHandle is a pointer to the extent of a file that stores a data
 // block or a meta block.
 class BlockHandle {

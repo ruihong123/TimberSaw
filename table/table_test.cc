@@ -4,22 +4,24 @@
 
 #include "leveldb/table.h"
 
-#include <map>
-#include <string>
-
-#include "gtest/gtest.h"
 #include "db/dbformat.h"
 #include "db/memtable.h"
 #include "db/write_batch_internal.h"
+#include <map>
+#include <string>
+
 #include "leveldb/db.h"
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
-#include "leveldb/table_builder.h"
+
 #include "table/block.h"
 #include "table/block_builder.h"
 #include "table/format.h"
 #include "util/random.h"
 #include "util/testutil.h"
+
+#include "gtest/gtest.h"
+#include "table_builder_computeside.h"
 
 namespace leveldb {
 
@@ -215,7 +217,7 @@ class TableConstructor : public Constructor {
   Status FinishImpl(const Options& options, const KVMap& data) override {
     Reset();
     StringSink sink;
-    TableBuilder builder(options, Compaction);
+    TableBuilder_ComputeSide builder(options, Compaction);
 
     for (const auto& kvp : data) {
       builder.Add(kvp.first, kvp.second);

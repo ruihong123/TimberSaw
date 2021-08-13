@@ -2,7 +2,8 @@
 // Created by ruihong on 8/7/21.
 //
 #include "table/table_builder_memoryside.h"
-
+#include "util/rdma.h"
+#include "util/crc32c.h"
 #include <cassert>
 #include "db/dbformat.h"
 
@@ -21,7 +22,7 @@ struct TableBuilder_Memoryside::Rep {
     //TOTHINK: why the block restart interval is 1 by default?
     // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
-    std::shared_ptr<RDMA_Manager> rdma_mg = rdma;
+    rdma_mg = rdma;
     local_data_mr = new ibv_mr();
     local_index_mr = new ibv_mr();
     local_filter_mr = new ibv_mr();
@@ -64,6 +65,7 @@ struct TableBuilder_Memoryside::Rep {
   Options index_block_options;
   IO_type type_;
   std::string type_string_;
+  std::shared_ptr<RDMA_Manager> rdma_mg;
   //  WritableFile* file;
 
   // the start index of the in use buffer
@@ -108,7 +110,7 @@ struct TableBuilder_Memoryside::Rep {
 };
 TableBuilder_Memoryside::TableBuilder_Memoryside(
     const Options& options, IO_type type, std::shared_ptr<RDMA_Manager> rdma_mg)
-    : TableBuilder(), rep_(new TableBuilder_Memoryside::Rep(options, type, std::move(rdma_mg))) {
+    :rep_(new TableBuilder_Memoryside::Rep(options, type, std::move(rdma_mg))) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }
@@ -119,7 +121,7 @@ TableBuilder_Memoryside::~TableBuilder_Memoryside() {
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
   }
-  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->options.env->rdma_mg;
+  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->rdma_mg;
 //  for(auto iter : rep_->local_data_mr){
 //    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
 //    delete iter;
@@ -154,257 +156,257 @@ TableBuilder_Memoryside::~TableBuilder_Memoryside() {
 //}
 //TODO: make it create a block every blocksize, flush every 1M. When flushing do not poll completion
 // pool the completion at the same time in the end
-//void TableBuilder_Memoryside::Add(const Slice& key, const Slice& value) {
-//  Rep* r = rep_;
-//  assert(!r->closed);
-//  if (!ok()) return;
-//  if (r->num_entries > 0) {
-//    assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
-//  }
-//  //  DEBUG_arg("ADD new key data, key is %s\n", key.ToString().c_str());
-//  //  DEBUG_arg("number of entry is %ld\n", r->num_entries);
-//  //todo: MAKE IT a remote block size which could be 1M
-//  // How to predict the datasize before actually serilizae the data, so that there will
-//  // not be buffer overflow.
-//  // First, predict whether the block will be full
-//  // *   if so then finish the old data to a block make it insert to a new block
-//  // *   Second, if new block finished, check whether the write buffer can hold a new block size.
-//  // *           if not, the flush temporal buffer content to the remote memory.
-//  const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
-//  if (estimated_block_size + key.size() + value.size() +sizeof(size_t) + kBlockTrailerSize >= r->options.block_size) {
-//    UpdateFunctionBLock();
-//    if (r->local_data_mr->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
-//      FlushData();
-//    }
-//  }
-//
-//  //Create a new index entry but never flush it
-//  // when write a index entry, the data block offset and data block size will be attached
-//  if (r->pending_index_filter_entry) {
-//    assert(r->data_block->empty());
-//    r->options.comparator->FindShortestSeparator(&r->last_key, key);
-//    std::string handle_encoding;
-//    //Note that the handle block size does not contain CRC!
-//    r->pending_data_handle.EncodeTo(&handle_encoding);
-//    if (r->index_block->CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
-//    sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr->length){
-//      BlockHandle dummy_handle;
-//      size_t msg_size;
-//      FinishDataIndexBlock(r->index_block, &dummy_handle, r->options.compression, msg_size);
-//      FlushDataIndex(msg_size);
-//    }
-//    r->index_block->Add(r->last_key, Slice(handle_encoding));
-//    if (r->filter_block != nullptr) {
-//      //      if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr[0]->length){
-//      //        // Tofix: Finish itself contain Reset and Flush, Modify the filter block make
-//      //        // it update the r->offset and add crc and make filter block compatible with Finish block.
-//      //        BlockHandle dummy_handle;
-//      //        size_t msg_size;
-//      //        FinishFilterBlock(r->filter_block, &dummy_handle, kNoCompression, msg_size);
-//      //        FlushFilter(msg_size);
-//      //        r->filter_block->RestartBlock(r->offset);// put here for full filter
-//      //      }
-//
-//      //      r->filter_block->StartBlock(r->offset); // put here for block based filter
-//
-//
-//    }
-//    r->pending_index_filter_entry = false;
-//  }
-//
-//  if (r->filter_block != nullptr) {
-//    r->filter_block->AddKey(ExtractUserKey(key));
-//  }
-//
-//  r->last_key.assign(key.data(), key.size());
-//  r->num_entries++;
-//  r->data_block->Add(key, value);
-//
-//
-//
-//
-//}
-//
-//void TableBuilder_Memoryside::UpdateFunctionBLock() {
-//
-//  Rep* r = rep_;
-//  assert(!r->closed);
-//  if (!ok()) return;
-//  if (r->data_block->empty()) return;
-//  assert(!r->pending_index_filter_entry);
-//  FinishDataBlock(r->data_block, &r->pending_data_handle, r->options.compression);
-//  //set data block pointer to next one, clear the block state
-//  //  r->data_block->Reset();
-//  if (ok()) {
-//    r->pending_index_filter_entry = true;
-//    //    r->status = r->file->FlushData();
-//  }
-//
-//}
+void TableBuilder_Memoryside::Add(const Slice& key, const Slice& value) {
+  Rep* r = rep_;
+  assert(!r->closed);
+  if (!ok()) return;
+  if (r->num_entries > 0) {
+    assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
+  }
+  //  DEBUG_arg("ADD new key data, key is %s\n", key.ToString().c_str());
+  //  DEBUG_arg("number of entry is %ld\n", r->num_entries);
+  //todo: MAKE IT a remote block size which could be 1M
+  // How to predict the datasize before actually serilizae the data, so that there will
+  // not be buffer overflow.
+  // First, predict whether the block will be full
+  // *   if so then finish the old data to a block make it insert to a new block
+  // *   Second, if new block finished, check whether the write buffer can hold a new block size.
+  // *           if not, the flush temporal buffer content to the remote memory.
+  const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
+  if (estimated_block_size + key.size() + value.size() +sizeof(size_t) + kBlockTrailerSize >= r->options.block_size) {
+    UpdateFunctionBLock();
+    if (r->local_data_mr->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
+      FlushData();
+    }
+  }
+
+  //Create a new index entry but never flush it
+  // when write a index entry, the data block offset and data block size will be attached
+  if (r->pending_index_filter_entry) {
+    assert(r->data_block->empty());
+    r->options.comparator->FindShortestSeparator(&r->last_key, key);
+    std::string handle_encoding;
+    //Note that the handle block size does not contain CRC!
+    r->pending_data_handle.EncodeTo(&handle_encoding);
+    if (r->index_block->CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
+    sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr->length){
+      BlockHandle dummy_handle;
+      size_t msg_size;
+      FinishDataIndexBlock(r->index_block, &dummy_handle, r->options.compression, msg_size);
+      FlushDataIndex(msg_size);
+    }
+    r->index_block->Add(r->last_key, Slice(handle_encoding));
+    if (r->filter_block != nullptr) {
+      //      if (r->filter_block->CurrentSizeEstimate() + kBlockTrailerSize > r->local_filter_mr[0]->length){
+      //        // Tofix: Finish itself contain Reset and Flush, Modify the filter block make
+      //        // it update the r->offset and add crc and make filter block compatible with Finish block.
+      //        BlockHandle dummy_handle;
+      //        size_t msg_size;
+      //        FinishFilterBlock(r->filter_block, &dummy_handle, kNoCompression, msg_size);
+      //        FlushFilter(msg_size);
+      //        r->filter_block->RestartBlock(r->offset);// put here for full filter
+      //      }
+
+      //      r->filter_block->StartBlock(r->offset); // put here for block based filter
+
+
+    }
+    r->pending_index_filter_entry = false;
+  }
+
+  if (r->filter_block != nullptr) {
+    r->filter_block->AddKey(ExtractUserKey(key));
+  }
+
+  r->last_key.assign(key.data(), key.size());
+  r->num_entries++;
+  r->data_block->Add(key, value);
+
+
+
+
+}
+
+void TableBuilder_Memoryside::UpdateFunctionBLock() {
+
+  Rep* r = rep_;
+  assert(!r->closed);
+  if (!ok()) return;
+  if (r->data_block->empty()) return;
+  assert(!r->pending_index_filter_entry);
+  FinishDataBlock(r->data_block, &r->pending_data_handle, r->options.compression);
+  //set data block pointer to next one, clear the block state
+  //  r->data_block->Reset();
+  if (ok()) {
+    r->pending_index_filter_entry = true;
+    //    r->status = r->file->FlushData();
+  }
+
+}
 //Note: there are three types of finish function for different blocks, the main
 //difference is whether update the offset which will record the size of the data block.
 //And the filter blocks has a different way to reset the block.
-//void TableBuilder_Memoryside::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
-//                                   CompressionType compressiontype) {
-//  // File format contains a sequence of blocks where each block has:
-//  //    block_data: uint8[n]
-//  //    compressiontype: uint8
-//  //    crc: uint32
-//  assert(ok());
-//  Rep* r = rep_;
-//  block->Finish();
-//
-//  Slice* raw = &(r->data_block->buffer);
-//  Slice* block_contents;
-//  //  CompressionType compressiontype = r->options.compression;
-//  //TOTHINK: temporally disable the compression, because it can increase the latency but it could
-//  // increase the available bandwidth. THis part depends on whether the in-memory write can catch
-//  // up with the high RDMA bandwidth.
-//  switch (compressiontype) {
-//    case kNoCompression:
-//      block_contents = raw;
-//      break;
-//
-//      //    case kSnappyCompression: {
-//      //      std::string* compressed = &r->compressed_output;
-//      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-//      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
-//      //        block_contents = *compressed;
-//      //      } else {
-//      //        // Snappy not supported, or compressed less than 12.5%, so just
-//      //        // store uncompressed form
-//      //        block_contents = raw;
-//      //        compressiontype = kNoCompression;
-//      //      }
-//      //      break;
-//      //    }
-//  }
-//  //#ifndef NDEBUG
-//  //  if (r->offset == 72100)
-//  //    printf("mark!!\n");
-//  //#endif
-//  handle->set_offset(r->offset);// This is the offset of the begginning of this block.
-//  handle->set_size(block_contents->size());
-//  assert(block_contents->size() <= r->options.block_size - kBlockTrailerSize);
-//  if (r->status.ok()) {
-//    char trailer[kBlockTrailerSize];
-//    trailer[0] = compressiontype;
-//    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
-//    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
-//    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
-//    block_contents->append(trailer, kBlockTrailerSize);
-//    // block_type == 0 means data block
-//    if (r->status.ok()) {
-//      r->offset += block_contents->size();
-//      //      DEBUG_arg("Offset is %lu", r->offset);
-//      assert(r->offset - r->offset_last_flushed <= r->local_data_mr->length);
-//    }
-//  }
-//  r->compressed_output.clear();
-//  block->Reset();
-//}
-//void TableBuilder_Memoryside::FinishDataIndexBlock(BlockBuilder* block,
-//                                        BlockHandle* handle,
-//                                        CompressionType compressiontype,
-//                                        size_t& block_size) {
-//  // File format contains a sequence of blocks where each block has:
-//  //    block_data: uint8[n]
-//  //    compressiontype: uint8
-//  //    crc: uint32
-//  assert(ok());
-//  Rep* r = rep_;
-//  block->Finish();
-//
-//  Slice* raw = &(r->index_block->buffer);
-//  Slice* block_contents;
-//  switch (compressiontype) {
-//    case kNoCompression:
-//      block_contents = raw;
-//      break;
-//
-//      //    case kSnappyCompression: {
-//      //      std::string* compressed = &r->compressed_output;
-//      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-//      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
-//      //        block_contents = *compressed;
-//      //      } else {
-//      //        // Snappy not supported, or compressed less than 12.5%, so just
-//      //        // store uncompressed form
-//      //        block_contents = raw;
-//      //        compressiontype = kNoCompression;
-//      //      }
-//      //      break;
-//      //    }
-//  }
-//  handle->set_offset(r->offset);
-//  handle->set_size(block_contents->size());
-//  if (r->status.ok()) {
-//    char trailer[kBlockTrailerSize];
-//    trailer[0] = compressiontype;
-//    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
-//    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
-//    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
-//    block_contents->append(trailer, kBlockTrailerSize);
-//  }
-//  r->compressed_output.clear();
-//  block_size = block_contents->size();
-//  DEBUG_arg("index block size: %zu \n", block_size);
-//  block->Reset();
-//
-//}
-//void TableBuilder_Memoryside::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
-//                                     CompressionType compressiontype,
-//                                     size_t& block_size) {
-//  Rep* r = rep_;
-//  block->Finish();
-//
-//  Slice* raw = &(r->filter_block->result);
-//  assert(raw->size()!=0);
-//  Slice* block_contents;
-//  switch (compressiontype) {
-//    case kNoCompression:
-//      block_contents = raw;
-//      break;
-//
-//      //    case kSnappyCompression: {
-//      //      std::string* compressed = &r->compressed_output;
-//      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-//      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
-//      //        block_contents = *compressed;
-//      //      } else {
-//      //        // Snappy not supported, or compressed less than 12.5%, so just
-//      //        // store uncompressed form
-//      //        block_contents = raw;
-//      //        compressiontype = kNoCompression;
-//      //      }
-//      //      break;
-//      //    }
-//  }
-//  handle->set_offset(r->offset);
-//  handle->set_size(block_contents->size());
-//  if (r->status.ok()) {
-//    char trailer[kBlockTrailerSize];
-//    trailer[0] = compressiontype;
-//    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
-//    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
-//    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
-//    block_contents->append(trailer, kBlockTrailerSize);
-//    assert(block_contents->size() <= r->local_filter_mr->length);
-//  }
-//  r->compressed_output.clear();
-//  block_size = block_contents->size();
-//  //  block->Reset();
-//}
+void TableBuilder_Memoryside::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
+                                   CompressionType compressiontype) {
+  // File format contains a sequence of blocks where each block has:
+  //    block_data: uint8[n]
+  //    compressiontype: uint8
+  //    crc: uint32
+  assert(ok());
+  Rep* r = rep_;
+  block->Finish();
+
+  Slice* raw = &(r->data_block->buffer);
+  Slice* block_contents;
+  //  CompressionType compressiontype = r->options.compression;
+  //TOTHINK: temporally disable the compression, because it can increase the latency but it could
+  // increase the available bandwidth. THis part depends on whether the in-memory write can catch
+  // up with the high RDMA bandwidth.
+  switch (compressiontype) {
+    case kNoCompression:
+      block_contents = raw;
+      break;
+
+      //    case kSnappyCompression: {
+      //      std::string* compressed = &r->compressed_output;
+      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
+      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
+      //        block_contents = *compressed;
+      //      } else {
+      //        // Snappy not supported, or compressed less than 12.5%, so just
+      //        // store uncompressed form
+      //        block_contents = raw;
+      //        compressiontype = kNoCompression;
+      //      }
+      //      break;
+      //    }
+  }
+  //#ifndef NDEBUG
+  //  if (r->offset == 72100)
+  //    printf("mark!!\n");
+  //#endif
+  handle->set_offset(r->offset);// This is the offset of the begginning of this block.
+  handle->set_size(block_contents->size());
+  assert(block_contents->size() <= r->options.block_size - kBlockTrailerSize);
+  if (r->status.ok()) {
+    char trailer[kBlockTrailerSize];
+    trailer[0] = compressiontype;
+    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
+    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
+    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
+    block_contents->append(trailer, kBlockTrailerSize);
+    // block_type == 0 means data block
+    if (r->status.ok()) {
+      r->offset += block_contents->size();
+      //      DEBUG_arg("Offset is %lu", r->offset);
+      assert(r->offset - r->offset_last_flushed <= r->local_data_mr->length);
+    }
+  }
+  r->compressed_output.clear();
+  block->Reset();
+}
+void TableBuilder_Memoryside::FinishDataIndexBlock(BlockBuilder* block,
+                                        BlockHandle* handle,
+                                        CompressionType compressiontype,
+                                        size_t& block_size) {
+  // File format contains a sequence of blocks where each block has:
+  //    block_data: uint8[n]
+  //    compressiontype: uint8
+  //    crc: uint32
+  assert(ok());
+  Rep* r = rep_;
+  block->Finish();
+
+  Slice* raw = &(r->index_block->buffer);
+  Slice* block_contents;
+  switch (compressiontype) {
+    case kNoCompression:
+      block_contents = raw;
+      break;
+
+      //    case kSnappyCompression: {
+      //      std::string* compressed = &r->compressed_output;
+      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
+      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
+      //        block_contents = *compressed;
+      //      } else {
+      //        // Snappy not supported, or compressed less than 12.5%, so just
+      //        // store uncompressed form
+      //        block_contents = raw;
+      //        compressiontype = kNoCompression;
+      //      }
+      //      break;
+      //    }
+  }
+  handle->set_offset(r->offset);
+  handle->set_size(block_contents->size());
+  if (r->status.ok()) {
+    char trailer[kBlockTrailerSize];
+    trailer[0] = compressiontype;
+    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
+    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
+    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
+    block_contents->append(trailer, kBlockTrailerSize);
+  }
+  r->compressed_output.clear();
+  block_size = block_contents->size();
+  DEBUG_arg("index block size: %zu \n", block_size);
+  block->Reset();
+
+}
+void TableBuilder_Memoryside::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
+                                     CompressionType compressiontype,
+                                     size_t& block_size) {
+  Rep* r = rep_;
+  block->Finish();
+
+  Slice* raw = &(r->filter_block->result);
+  assert(raw->size()!=0);
+  Slice* block_contents;
+  switch (compressiontype) {
+    case kNoCompression:
+      block_contents = raw;
+      break;
+
+      //    case kSnappyCompression: {
+      //      std::string* compressed = &r->compressed_output;
+      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
+      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
+      //        block_contents = *compressed;
+      //      } else {
+      //        // Snappy not supported, or compressed less than 12.5%, so just
+      //        // store uncompressed form
+      //        block_contents = raw;
+      //        compressiontype = kNoCompression;
+      //      }
+      //      break;
+      //    }
+  }
+  handle->set_offset(r->offset);
+  handle->set_size(block_contents->size());
+  if (r->status.ok()) {
+    char trailer[kBlockTrailerSize];
+    trailer[0] = compressiontype;
+    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
+    crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
+    EncodeFixed32(trailer + 1, crc32c::Mask(crc));
+    block_contents->append(trailer, kBlockTrailerSize);
+    assert(block_contents->size() <= r->local_filter_mr->length);
+  }
+  r->compressed_output.clear();
+  block_size = block_contents->size();
+  //  block->Reset();
+}
 //TODO make flushing flush the data to the remote memory flushing to remote memory
 void TableBuilder_Memoryside::FlushData(){
 
   Rep* r = rep_;
-  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
+//  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   size_t msg_size = r->offset - r->offset_last_flushed;
   r->local_data_mrs.insert({r->offset, r->local_data_mr});
   r->offset_last_flushed = r->offset;
   r->local_data_mr = new ibv_mr();
-  rdma_mg->Allocate_Local_RDMA_Slot(*r->local_data_mr, "FlushBuffer");
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_data_mr, "FlushBuffer");
   r->data_block->Move_buffer((char*)r->local_data_mr->addr);
   //  DEBUG_arg("In use start is %d\n", r->data_inuse_start);
   //  DEBUG_arg("In use end is %d\n", r->data_inuse_end);
@@ -416,7 +418,7 @@ void TableBuilder_Memoryside::FlushData(){
 }
 void TableBuilder_Memoryside::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
-  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
+//  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
 
   r->local_dataindex_mrs.insert({r->offset, r->local_index_mr});
 
@@ -424,24 +426,24 @@ void TableBuilder_Memoryside::FlushDataIndex(size_t msg_size) {
   // it would be overwrited.
   //  DEBUG_arg("Index block size is %zu", msg_size);
   r->local_index_mr = new ibv_mr();
-  rdma_mg->Allocate_Local_RDMA_Slot(*r->local_index_mr, "FlushBuffer");
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_index_mr, "FlushBuffer");
 
   r->index_block->Move_buffer((char*)r->local_index_mr->addr);
 
 }
 void TableBuilder_Memoryside::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
-  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
+//  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   r->local_filter_mrs.insert({r->offset, r->local_filter_mr});
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
   r->local_filter_mr = new ibv_mr();
-  rdma_mg->Allocate_Local_RDMA_Slot(*r->local_filter_mr, "FlushBuffer");
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_filter_mr, "FlushBuffer");
   r->filter_block->Move_buffer((char*)r->local_filter_mr->addr);
 
 }
 
-//Status TableBuilder_Memoryside::status() const { return rep_->status; }
+Status TableBuilder_Memoryside::status() const { return rep_->status; }
 
 Status TableBuilder_Memoryside::Finish() {
   Rep* r = rep_;
@@ -502,25 +504,25 @@ Status TableBuilder_Memoryside::Finish() {
   return r->status;
 }
 
-//void TableBuilder_Memoryside::Abandon() {
-//  Rep* r = rep_;
-//  assert(!r->closed);
-//  r->closed = true;
-//}
+void TableBuilder_Memoryside::Abandon() {
+  Rep* r = rep_;
+  assert(!r->closed);
+  r->closed = true;
+}
 
-//uint64_t TableBuilder_Memoryside::NumEntries() const { return rep_->num_entries; }
-//
-//uint64_t TableBuilder_Memoryside::FileSize() const { return rep_->offset; }
-//void TableBuilder_Memoryside::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
-//  map = rep_->local_data_mrs;
-//}
-//void TableBuilder_Memoryside::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
-//  map = rep_->local_dataindex_mrs;
-//}
-//void TableBuilder_Memoryside::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
-//  map = rep_->local_filter_mrs;
-//}
-//size_t TableBuilder_Memoryside::get_numentries() {
-//  return rep_->num_entries;
-//}
+uint64_t TableBuilder_Memoryside::NumEntries() const { return rep_->num_entries; }
+
+uint64_t TableBuilder_Memoryside::FileSize() const { return rep_->offset; }
+void TableBuilder_Memoryside::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
+  map = rep_->local_data_mrs;
+}
+void TableBuilder_Memoryside::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
+  map = rep_->local_dataindex_mrs;
+}
+void TableBuilder_Memoryside::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
+  map = rep_->local_filter_mrs;
+}
+size_t TableBuilder_Memoryside::get_numentries() {
+  return rep_->num_entries;
+}
 }

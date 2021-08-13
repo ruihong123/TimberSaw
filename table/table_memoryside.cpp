@@ -3,17 +3,22 @@
 //
 #include "table/table_memoryside.h"
 
+#include "db/table_cache.h"
+#include <util/crc32c.h>
+
 #include "leveldb/cache.h"
 #include "leveldb/comparator.h"
 #include "leveldb/env.h"
 #include "leveldb/filter_policy.h"
 #include "leveldb/options.h"
+
 #include "table/block.h"
-#include "db/table_cache.h"
 #include "table/filter_block.h"
 #include "table/format.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
+
+#include "full_filter_block.h"
 namespace leveldb{
 struct Table_Memory_Side::Rep {
   Rep(const Options& options) : options(options) {

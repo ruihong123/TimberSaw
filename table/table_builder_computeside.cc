@@ -2,27 +2,26 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/table_builder.h"
+#include "table_builder_computeside.h"
 
-#include <cassert>
 #include "db/dbformat.h"
-
+#include <cassert>
 
 namespace leveldb {
 //TOthink: how to save the remote mr?
 //TOFIX : now we suppose the index and filter block will not over the write buffer.
 // TODO: make the Option of tablebuilder a pointer avoiding large data copying
-struct TableBuilder::Rep {
+struct TableBuilder_ComputeSide::Rep {
   Rep(const Options& opt, IO_type type)
-      : options(opt),
-        type_(type),
-        index_block_options(opt),
-        offset(0),
-        offset_last_flushed(0),
+  : options(opt),
+  type_(type),
+  index_block_options(opt),
+  offset(0),
+  offset_last_flushed(0),
 
-        num_entries(0),
-        closed(false),
-        pending_index_filter_entry(false) {
+  num_entries(0),
+  closed(false),
+  pending_index_filter_entry(false) {
     //TOTHINK: why the block restart interval is 1 by default?
     // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
@@ -48,9 +47,9 @@ struct TableBuilder::Rep {
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
     local_filter_mr.push_back(temp_filter_mr);
-//    delete temp_data_mr;
-//    delete temp_index_mr;
-//    delete temp_filter_mr;
+    //    delete temp_data_mr;
+    //    delete temp_index_mr;
+    //    delete temp_filter_mr;
     data_block = new BlockBuilder(&options, local_data_mr[0]);
     index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
     if (type_ == IO_type::Compact){
@@ -61,8 +60,8 @@ struct TableBuilder::Rep {
       assert(false);
     }
     filter_block = (opt.filter_policy == nullptr
-                    ? nullptr
-                    : new FullFilterBlockBuilder(local_filter_mr[0], opt.bloom_bits));
+        ? nullptr
+        : new FullFilterBlockBuilder(local_filter_mr[0], opt.bloom_bits));
 
     status = Status::OK();
   }
@@ -71,7 +70,7 @@ struct TableBuilder::Rep {
   Options index_block_options;
   IO_type type_;
   std::string type_string_;
-//  WritableFile* file;
+  //  WritableFile* file;
   std::vector<ibv_mr*> local_data_mr;
   // the start index of the in use buffer
   int data_inuse_start = -1;
@@ -87,7 +86,7 @@ struct TableBuilder::Rep {
   std::map<uint32_t, ibv_mr*> remote_data_mrs;
   std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;
-//  std::vector<size_t> remote_mr_real_length;
+  //  std::vector<size_t> remote_mr_real_length;
   uint64_t offset_last_flushed;
   uint64_t offset;
   Status status;
@@ -112,16 +111,14 @@ struct TableBuilder::Rep {
 
   std::string compressed_output;
 };
-TableBuilder::TableBuilder(const Options& options, IO_type type)
+TableBuilder_ComputeSide::TableBuilder_ComputeSide(const Options& options, IO_type type)
     : rep_(new Rep(options, type)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }
 }
-TableBuilder::TableBuilder(){
 
-}
-TableBuilder::~TableBuilder() {
+TableBuilder_ComputeSide::~TableBuilder_ComputeSide() {
   assert(rep_->closed);  // Catch errors where caller forgot to call Finish()
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
@@ -161,7 +158,7 @@ TableBuilder::~TableBuilder() {
 //}
 //TODO: make it create a block every blocksize, flush every 1M. When flushing do not poll completion
 // pool the completion at the same time in the end
-void TableBuilder::Add(const Slice& key, const Slice& value) {
+void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
@@ -232,7 +229,7 @@ void TableBuilder::Add(const Slice& key, const Slice& value) {
 
 }
 
-void TableBuilder::UpdateFunctionBLock() {
+void TableBuilder_ComputeSide::UpdateFunctionBLock() {
 
   Rep* r = rep_;
   assert(!r->closed);
@@ -251,7 +248,7 @@ void TableBuilder::UpdateFunctionBLock() {
 //Note: there are three types of finish function for different blocks, the main
 //difference is whether update the offset which will record the size of the data block.
 //And the filter blocks has a different way to reset the block.
-void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
+void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
                                    CompressionType compressiontype) {
   // File format contains a sequence of blocks where each block has:
   //    block_data: uint8[n]
@@ -310,7 +307,7 @@ void TableBuilder::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
   r->compressed_output.clear();
   block->Reset();
 }
-void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
+void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
                                         BlockHandle* handle,
                                         CompressionType compressiontype,
                                         size_t& block_size) {
@@ -359,7 +356,7 @@ void TableBuilder::FinishDataIndexBlock(BlockBuilder* block,
   block->Reset();
 
 }
-void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
+void TableBuilder_ComputeSide::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
                                      CompressionType compressiontype,
                                      size_t& block_size) {
   Rep* r = rep_;
@@ -403,7 +400,7 @@ void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle*
 //  block->Reset();
 }
 //TODO make flushing flush the data to the remote memory flushing to remote memory
-void TableBuilder::FlushData(){
+void TableBuilder_ComputeSide::FlushData(){
   Rep* r = rep_;
   size_t msg_size = r->offset - r->offset_last_flushed;
   ibv_mr* remote_mr = new ibv_mr();
@@ -498,7 +495,7 @@ void TableBuilder::FlushData(){
 //  assert(r->data_inuse_start!= r->data_inuse_end);
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
-void TableBuilder::FlushDataIndex(size_t msg_size) {
+void TableBuilder_ComputeSide::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
@@ -516,7 +513,7 @@ void TableBuilder::FlushDataIndex(size_t msg_size) {
   r->index_block->Move_buffer(static_cast<char*>(r->local_index_mr[0]->addr));
 
 }
-void TableBuilder::FlushFilter(size_t& msg_size) {
+void TableBuilder_ComputeSide::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
@@ -534,9 +531,9 @@ void TableBuilder::FlushFilter(size_t& msg_size) {
 
 }
 
-Status TableBuilder::status() const { return rep_->status; }
+Status TableBuilder_ComputeSide::status() const { return rep_->status; }
 
-Status TableBuilder::Finish() {
+Status TableBuilder_ComputeSide::Finish() {
   Rep* r = rep_;
   UpdateFunctionBLock();
   FlushData();
@@ -628,25 +625,25 @@ Status TableBuilder::Finish() {
   return r->status;
 }
 
-void TableBuilder::Abandon() {
+void TableBuilder_ComputeSide::Abandon() {
   Rep* r = rep_;
   assert(!r->closed);
   r->closed = true;
 }
 
-uint64_t TableBuilder::NumEntries() const { return rep_->num_entries; }
+uint64_t TableBuilder_ComputeSide::NumEntries() const { return rep_->num_entries; }
 
-uint64_t TableBuilder::FileSize() const { return rep_->offset; }
-void TableBuilder::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
+uint64_t TableBuilder_ComputeSide::FileSize() const { return rep_->offset; }
+void TableBuilder_ComputeSide::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_data_mrs;
 }
-void TableBuilder::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
+void TableBuilder_ComputeSide::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_dataindex_mrs;
 }
-void TableBuilder::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
+void TableBuilder_ComputeSide::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_filter_mrs;
 }
-size_t TableBuilder::get_numentries() {
+size_t TableBuilder_ComputeSide::get_numentries() {
   return rep_->num_entries;
 }
 

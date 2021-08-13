@@ -1,30 +1,52 @@
+// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style license that can be
+// found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
-// Created by ruihong on 8/7/21.
+// TableBuilder provides the interface used to build a Table
+// (an immutable and sorted map from keys to values).
 //
+// Multiple threads can invoke const methods on a TableBuilder without
+// external synchronization, but if any of the threads may call a
+// non-const method, all threads accessing the same TableBuilder must use
+// external synchronization.
 
-#ifndef LEVELDB_TABLE_BUILDER_MEMORYSIDE_H
-#define LEVELDB_TABLE_BUILDER_MEMORYSIDE_H
+#ifndef STORAGE_LEVELDB_TABLE_BUILDER_COMPUTESIDE_H
+#define STORAGE_LEVELDB_TABLE_BUILDER_COMPUTESIDE_H
 
+//#include <cstdint>
+#include "leveldb/export.h"
+#include "leveldb/options.h"
+#include "leveldb/status.h"
+#include "leveldb/comparator.h"
+#include "leveldb/env.h"
+#include "leveldb/filter_policy.h"
+#include "leveldb/options.h"
+#include "table/block_builder.h"
+#include "table/filter_block.h"
+#include "table/full_filter_block.h"
+#include "table/format.h"
+#include "util/coding.h"
+#include "util/crc32c.h"
 #include "include/leveldb/table_builder.h"
-//#include "dumpfile.h"
-namespace leveldb{
+namespace leveldb {
+
 //class BlockBuilder;
 class BlockHandle;
 //class WritableFile;
+
 //enum IO_type {Compact, Flush};
-class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder {
+class LEVELDB_EXPORT TableBuilder_ComputeSide : public TableBuilder{
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder_Memoryside(const Options& options, IO_type type,
-                          std::shared_ptr<RDMA_Manager> rdma_mg);
-
-  TableBuilder_Memoryside(const TableBuilder_Memoryside&) = delete;
-  TableBuilder_Memoryside& operator=(const TableBuilder_Memoryside&) = delete;
+  TableBuilder_ComputeSide(const Options& options, IO_type type);
+//  TableBuilder_ComputeSide() = default;
+  TableBuilder_ComputeSide(const TableBuilder_ComputeSide&) = delete;
+  TableBuilder_ComputeSide& operator=(const TableBuilder_ComputeSide&) = delete;
 
   // REQUIRES: Either Finish() or Abandon() has been called.
-  ~TableBuilder_Memoryside() override;
+  ~TableBuilder_ComputeSide() override;
 
   // Change the options used by this builder.  Note: only some of the
   // option fields can be changed after construction.  If a field is
@@ -70,11 +92,6 @@ class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder {
   // Size of the file generated so far.  If invoked after a successful
   // Finish() call, returns the size of the final generated file.
   uint64_t FileSize() const override;
-  void get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) override;
-  void get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) override;
-  void get_filter_map(std::map<uint32_t, ibv_mr*>& map) override;
-  size_t get_numentries() override;
-
   bool ok() const override { return status().ok(); }
   void FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
                        CompressionType compressiontype) override;
@@ -84,9 +101,19 @@ class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder {
   void FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
                          CompressionType compressiontype,
                          size_t& block_size) override;
+  void get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) override;
+  void get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) override;
+  void get_filter_map(std::map<uint32_t, ibv_mr*>& map) override;
+  size_t get_numentries() override;
  protected:
-  struct Rep;//make it inherit the one in Table builder?
+
+
+  struct Rep;
+
   Rep* rep_;
 };
-}
-#endif  // LEVELDB_TABLE_BUILDER_MEMORYSIDE_H
+
+
+}  // namespace leveldb
+
+#endif  // STORAGE_LEVELDB_INCLUDE_TABLE_BUILDER_H_

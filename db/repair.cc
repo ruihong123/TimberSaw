@@ -37,6 +37,7 @@
 #include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
+#include "table/table_builder_computeside.h"
 
 namespace leveldb {
 
@@ -303,7 +304,7 @@ class Repairer {
     if (!s.ok()) {
       return;
     }
-    TableBuilder* builder = new TableBuilder(options_, Flush);
+    TableBuilder_ComputeSide* builder = new TableBuilder_ComputeSide(options_, Flush);
 
     // Copy data.
     Iterator* iter = NewTableIterator(t.meta);
