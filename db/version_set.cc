@@ -604,7 +604,7 @@ class VersionSet::Builder {
       levels_[level].deleted_files.insert(number);
       printf("level %d, number %lu\n", level, number);
     }
-    printf("level 1 deleted file size %lu", levels_[1].deleted_files.size());
+    printf("level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     // Add new files
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
