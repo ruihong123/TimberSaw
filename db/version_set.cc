@@ -602,6 +602,7 @@ class VersionSet::Builder {
       const int level = deleted_file_set_kvp.first;
       const uint64_t number = deleted_file_set_kvp.second;
       levels_[level].deleted_files.insert(number);
+      printf("level %d, number %lu\n", level, number);
     }
 
     // Add new files
