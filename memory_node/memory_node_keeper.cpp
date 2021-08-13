@@ -9,7 +9,7 @@ namespace leveldb{
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(std::make_shared<Options>(true)),
 usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files)), internal_comparator_(BytewiseComparator()),
-versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versions_mtx)){
+versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &dummy_superversions_mtx)){
     struct leveldb::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
