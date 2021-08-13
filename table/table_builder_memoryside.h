@@ -97,7 +97,7 @@ class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder{
 //                         CompressionType compressiontype,
 //                         size_t& block_size);
 
-  struct Rep;
+  struct Rep;//make it inherit the one in Table builder?
   Rep* rep_;
 };
 }
