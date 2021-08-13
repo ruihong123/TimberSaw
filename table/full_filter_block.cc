@@ -15,7 +15,7 @@ namespace leveldb {
 
 FullFilterBlockBuilder::FullFilterBlockBuilder(ibv_mr* mr,
                                                int bloombits_per_key)
-    :local_mrs(mr), bits_per_key_(bloombits_per_key),
+    : local_mr(mr), bits_per_key_(bloombits_per_key),
       num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),
       result((char*)mr->addr,0) {
 //  filter_bits_builder_ = std::make_unique<LegacyBloomImpl>();
@@ -99,7 +99,7 @@ void FullFilterBlockBuilder::Finish() {
   assert(total_bits%8 == 0);
 //  result.Reset(result.data(), total_bits/8);
   assert(data);
-  assert(total_bits/8 + 5 <= local_mrs->length);
+  assert(total_bits/8 + 5 <= local_mr->length);
   if (total_bits != 0 && num_lines != 0) {
     for (auto h : hash_entries_) {
 //      int log2_cache_line_bytes = std::log2(CACHE_LINE_SIZE);
@@ -139,7 +139,7 @@ void FullFilterBlockBuilder::Finish() {
 //  return Slice(data, total_bits / 8 + 5);
 }
 void FullFilterBlockBuilder::Reset() {
-  result.Reset(static_cast<char*>(local_mrs->addr),0);
+  result.Reset(static_cast<char*>(local_mr->addr),0);
 }
 void FullFilterBlockBuilder::Move_buffer(const char* p){
   result.Reset(p,0);

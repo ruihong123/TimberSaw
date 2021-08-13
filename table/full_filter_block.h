@@ -52,7 +52,7 @@ class FullFilterBlockBuilder {
 
 //  const FilterPolicy* policy_;
 //  std::shared_ptr<RDMA_Manager> rdma_mg_;
-  ibv_mr* local_mrs;
+  ibv_mr* local_mr;
 //  std::map<uint32_t, ibv_mr*>* remote_mrs_;
 //  std::unique_ptr<LegacyBloomImpl> filter_bits_builder_;
   int bits_per_key_;

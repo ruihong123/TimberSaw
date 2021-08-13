@@ -402,7 +402,8 @@ void TableBuilder_Memoryside::FlushData(){
 
   Rep* r = rep_;
 //  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  size_t msg_size = r->offset - r->offset_last_flushed;
+//  size_t msg_size = r->offset - r->offset_last_flushed;
+  r->local_data_mr->length = r->data_block->buffer.size();
   r->local_data_mrs.insert({r->offset, r->local_data_mr});
   r->offset_last_flushed = r->offset;
   r->local_data_mr = new ibv_mr();
@@ -419,7 +420,7 @@ void TableBuilder_Memoryside::FlushData(){
 void TableBuilder_Memoryside::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
 //  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-
+  r->local_index_mr->length = r->index_block->buffer.size();
   r->local_dataindex_mrs.insert({r->offset, r->local_index_mr});
 
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
@@ -434,6 +435,7 @@ void TableBuilder_Memoryside::FlushDataIndex(size_t msg_size) {
 void TableBuilder_Memoryside::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
 //  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
+  r->local_filter_mr->length = r->filter_block->result.size();
   r->local_filter_mrs.insert({r->offset, r->local_filter_mr});
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
