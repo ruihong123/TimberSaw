@@ -604,8 +604,8 @@ class VersionSet::Builder {
       levels_[level].deleted_files.insert(number);
       printf("level %d, number %lu\n", level, number);
     }
-    printf("level 0 deleted file size %lu\n", levels_[0].deleted_files.size());
-    printf("level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
+    printf("Apply: level 0 deleted file size %lu\n", levels_[0].deleted_files.size());
+    printf("Apply: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     // Add new files
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
@@ -635,6 +635,7 @@ class VersionSet::Builder {
 
   // Save the current state in *v.
   void SaveTo(Version* v) {
+    printf("SaveTo: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     BySmallestKey cmp;
     cmp.internal_comparator = &vset_->icmp_;
     for (int level = 0; level < config::kNumLevels; level++) {
