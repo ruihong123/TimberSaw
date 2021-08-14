@@ -630,6 +630,7 @@ class VersionSet::Builder {
       //Tothink: Why we have delete file here
       levels_[level].deleted_files.erase(f->number);
       levels_[level].added_files->insert(f);
+      printf("Apply2: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     }
   }
 
