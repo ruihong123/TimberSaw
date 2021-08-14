@@ -628,8 +628,13 @@ class VersionSet::Builder {
       f->allowed_seeks = static_cast<int>((f->file_size / 16384U));
       if (f->allowed_seeks < 100) f->allowed_seeks = 100;
       //Tothink: Why we have delete file here
+      if (levels_[level].deleted_files.find(f->number)!= levels_[level].deleted_files.end()){
+        printf("Look at here\n");
+      }
       levels_[level].deleted_files.erase(f->number);
       levels_[level].added_files->insert(f);
+      //TODO: Why deleted file will be be remove from deletedfiles if it exist in added file
+
       printf("Apply2: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     }
   }
