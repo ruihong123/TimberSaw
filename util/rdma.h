@@ -380,6 +380,7 @@ class RDMA_Manager {
       name_to_mem_pool;
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
+  uint8_t node_id;
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;

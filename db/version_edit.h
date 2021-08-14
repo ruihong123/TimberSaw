@@ -58,6 +58,7 @@ struct RemoteMemTableMetaData {
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
+  uint8_t node_id;// The node id who create this SSTable.
   std::map<uint32_t , ibv_mr*> remote_data_mrs;
   std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;

@@ -12,14 +12,18 @@ namespace leveldb {
 //std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
 RemoteMemTableMetaData::RemoteMemTableMetaData()  : table_type(0), allowed_seeks(1 << 30) {
   rdma_mg = Env::Default()->rdma_mg;
+  node_id = rdma_mg->node_id;
 }
 RemoteMemTableMetaData::RemoteMemTableMetaData(int type)
     : table_type(type), allowed_seeks(1 << 30) {
   rdma_mg = Memory_Node_Keeper::rdma_mg;
+  node_id = rdma_mg->node_id;
 }
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
   PutFixed64(dst, number);
+  printf("Node id is %u", node_id);
+  dst->append(reinterpret_cast<const char*>(&node_id), sizeof(node_id));
   PutFixed64(dst, file_size);
   PutLengthPrefixedSlice(dst, smallest.Encode());
   PutLengthPrefixedSlice(dst, largest.Encode());
@@ -55,6 +59,10 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   rdma_mg = Memory_Node_Keeper::rdma_mg;
   GetFixed64(&src, &level);
   GetFixed64(&src, &number);
+//  node_id = reinterpret_cast<uint8_t*>(src.data());
+  memcpy(&node_id, src.data(), 1);
+  printf("Node id is %u", node_id);
+//  input->remove_prefix(sizeof(uint64_t));
   GetFixed64(&src, &file_size);
   Slice temp;
   GetLengthPrefixedSlice(&src, &temp);
