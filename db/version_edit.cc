@@ -60,9 +60,10 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   GetFixed64(&src, &level);
   GetFixed64(&src, &number);
 //  node_id = reinterpret_cast<uint8_t*>(src.data());
-  memcpy(&node_id, src.data(), 1);
+  memcpy(&node_id, src.data(), sizeof(node_id));
+  src.remove_prefix(sizeof(node_id));
   printf("Node id is %u", node_id);
-//  input->remove_prefix(sizeof(uint64_t));
+
   GetFixed64(&src, &file_size);
   Slice temp;
   GetLengthPrefixedSlice(&src, &temp);
