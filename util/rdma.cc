@@ -32,7 +32,8 @@ void UnrefHandle_cq(void* ptr) {
 * Description
 * Initialize the resource for RDMA.
 ******************************************************************************/
-RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
+RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
+                           uint8_t nodeid)
     : Table_Size(remote_block_size),
       //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
@@ -41,7 +42,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
       cq_local_write_compact(new ThreadLocalPtr(&UnrefHandle_cq)),
       qp_local_read(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_read(new ThreadLocalPtr(&UnrefHandle_cq)),
-
+      node_id(nodeid),
       rdma_config(config)
 //      db_name_(db_name),
 //      file_to_sst_meta_(file_to_sst_meta),
@@ -50,17 +51,11 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
 {
   //  assert(read_block_size <table_size);
   res = new resources();
-  std::string ipString();
-  struct in_addr inaddr;
+//  std::string ipString();
+//  struct in_addr inaddr{};
 //  char buf[INET_ADDRSTRLEN];
-  inet_pton(AF_INET, config.server_name, &inaddr);
-  node_id = static_cast<uint8_t>(inaddr.s_addr);
-  //  void* buff = malloc(1024*1024);
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  //  log_image_mr.reset(ibv_reg_mr(res->pd, buff, 1024*1024, mr_flags));
-
-  //  res->sock = -1;
+//  inet_pton(AF_INET, config.server_name, &inaddr);
+//  node_id = static_cast<uint8_t>(inaddr.s_addr);
   Remote_Mem_Bitmap = new std::map<void*, In_Use_Array>;
 
   //Initialize a message memory pool

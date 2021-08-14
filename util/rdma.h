@@ -269,7 +269,7 @@ class RDMA_Manager {
 
  public:
   friend class Memory_Node_Keeper;
-  RDMA_Manager(config_t config, size_t remote_block_size);
+  RDMA_Manager(config_t config, size_t remote_block_size, uint8_t nodeid);
   //  RDMA_Manager(config_t config) : rdma_config(config){
   //    res = new resources();
   //    res->sock = -1;
