@@ -978,7 +978,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       // Move file to next level
       assert(c->num_input_files(0) == 1);
       std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
-      c->edit()->RemoveFile(c->level(), f->number, 0);
+      c->edit()->RemoveFile(c->level(), f->number, options_.env->rdma_mg->node_id);
       c->edit()->AddFile(c->level() + 1, f);
       {
         std::unique_lock<std::mutex> l(superversion_mtx);
@@ -1244,7 +1244,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
       static_cast<long long>(compact->total_bytes));
 
   // Add compaction outputs
-  compact->compaction->AddInputDeletions(compact->compaction->edit());
+  compact->compaction->AddInputDeletions(compact->compaction->edit(), env_->rdma_mg->node_id);
   const int level = compact->compaction->level();
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {

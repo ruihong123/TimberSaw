@@ -504,7 +504,7 @@ Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact) {
 //      static_cast<long long>(compact->total_bytes));
 
   // Add compaction outputs
-  compact->compaction->AddInputDeletions(compact->compaction->edit());
+compact->compaction->AddInputDeletions(compact->compaction->edit(), rdma_mg->node_id);
   const int level = compact->compaction->level();
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
