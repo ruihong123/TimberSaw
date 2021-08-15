@@ -119,8 +119,8 @@ class VersionEdit {
     return;
   }
   // Delete the specified "file" from the specified "level".
-  void RemoveFile(int level, uint64_t file) {
-    deleted_files_.insert(std::make_pair(level, file));
+  void RemoveFile(int level, uint64_t file, uint8_t node_id) {
+    deleted_files_.insert(std::make_tuple(level, file, node_id));
   }
   size_t GetNewFilesNum(){
     return new_files_.size();
@@ -134,7 +134,7 @@ class VersionEdit {
  private:
   friend class VersionSet;
 
-  typedef std::set<std::pair<int, uint64_t>> DeletedFileSet;
+  typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
 
   std::string comparator_;
   uint64_t log_number_;

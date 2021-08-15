@@ -978,7 +978,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       // Move file to next level
       assert(c->num_input_files(0) == 1);
       std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
-      c->edit()->RemoveFile(c->level(), f->number);
+      c->edit()->RemoveFile(c->level(), f->number, 0);
       c->edit()->AddFile(c->level() + 1, f);
       {
         std::unique_lock<std::mutex> l(superversion_mtx);

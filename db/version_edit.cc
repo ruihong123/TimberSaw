@@ -196,8 +196,12 @@ void VersionEdit::EncodeTo(std::string* dst) const {
 
   for (const auto& deleted_file_kvp : deleted_files_) {
     PutVarint32(dst, kDeletedFile);
-    PutVarint32(dst, deleted_file_kvp.first);   // level
-    PutVarint64(dst, deleted_file_kvp.second);  // file number
+    PutVarint32(dst, std::get<0>(deleted_file_kvp));   // level
+    PutVarint64(dst, std::get<1>(deleted_file_kvp));  // file number
+    dst->append(reinterpret_cast<const char*>(&std::get<2>(deleted_file_kvp)), sizeof(uint8_t));
+    printf("level is %d, number is %lu, node_id is %u", std::get<0>(deleted_file_kvp),
+        std::get<1>(deleted_file_kvp), std::get<2>(deleted_file_kvp));
+
   }
 
   for (size_t i = 0; i < new_files_.size(); i++) {
@@ -238,6 +242,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type,
   // Temporary storage for parsing
   int level;
   uint64_t number;
+  uint8_t node_id;
   Slice str;
   InternalKey key;
 
@@ -294,7 +299,11 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type,
 
       case kDeletedFile:
         if (GetLevel(&input, &level) && GetVarint64(&input, &number)) {
-          deleted_files_.insert(std::make_pair(level, number));
+
+          memcpy(&node_id, src.data(), sizeof(node_id));
+          input.remove_prefix(sizeof(node_id));
+          deleted_files_.insert(std::make_tuple(level, number, node_id));
+          printf("level is %d, number is %lu, node_id is %u", level, number, node_id);
         } else {
           msg = "deleted file";
         }
@@ -359,9 +368,9 @@ std::string VersionEdit::DebugString() const {
   }
   for (const auto& deleted_files_kvp : deleted_files_) {
     r.append("\n  RemoveFile: ");
-    AppendNumberTo(&r, deleted_files_kvp.first);
+    AppendNumberTo(&r, std::get<0>(deleted_files_kvp));
     r.append(" ");
-    AppendNumberTo(&r, deleted_files_kvp.second);
+    AppendNumberTo(&r, std::get<1>(deleted_files_kvp));
   }
   for (size_t i = 0; i < new_files_.size(); i++) {
     const std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;

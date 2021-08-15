@@ -548,7 +548,7 @@ class VersionSet::Builder {
 
   typedef std::set<std::shared_ptr<RemoteMemTableMetaData>, BySmallestKey> FileSet;
   struct LevelState {
-    std::set<uint64_t> deleted_files;
+    std::multimap<uint64_t, uint8_t> deleted_files;
     FileSet* added_files;
   };
 
@@ -599,9 +599,10 @@ class VersionSet::Builder {
 
     // Delete files
     for (const auto& deleted_file_set_kvp : edit->deleted_files_) {
-      const int level = deleted_file_set_kvp.first;
-      const uint64_t number = deleted_file_set_kvp.second;
-      levels_[level].deleted_files.insert(number);
+      const int level = std::get<0>(deleted_file_set_kvp);
+      const uint64_t number = std::get<1>(deleted_file_set_kvp);
+      const uint8_t node_id = std::get<2>(deleted_file_set_kvp);
+      levels_[level].deleted_files.insert({number, node_id});
       printf("level %d, number %lu\n", level, number);
     }
     printf("Apply: level 0 deleted file size %lu\n", levels_[0].deleted_files.size());
@@ -632,6 +633,12 @@ class VersionSet::Builder {
         printf("Look at here\n");
       }
       levels_[level].deleted_files.erase(f->number);
+      std::pair <std::multimap<uint64_t, uint8_t>::iterator, std::multimap<uint64_t ,uint8_t>::iterator>
+      ret = levels_[level].deleted_files.equal_range(f->number);
+      for (std::multimap<uint64_t, uint8_t>::iterator it=ret.first; it!=ret.second; ++it){
+        if (it->second == f->node_id)
+          levels_[level].deleted_files.erase(it);
+      }
       levels_[level].added_files->insert(f);
       //TODO: Why deleted file will be be remove from deletedfiles if it exist in added file
 
@@ -701,7 +708,15 @@ class VersionSet::Builder {
   }
 
   void MaybeAddFile(Version* v, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
-    if (levels_[level].deleted_files.count(f->number) > 0) {
+    std::pair <std::multimap<uint64_t, uint8_t>::iterator, std::multimap<uint64_t ,uint8_t>::iterator>
+        ret = levels_[level].deleted_files.equal_range(f->number);
+    bool file_number_deleted = false;
+    for (std::multimap<uint64_t, uint8_t>::iterator it=ret.first; it!=ret.second; ++it){
+      if (it->second == f->node_id)
+        file_number_deleted = true;
+    }
+
+    if (file_number_deleted) {
       // File is deleted: do nothing
 #ifndef NDEBUG
       printf("file NUM %lu get deleted.\n", f->number);
@@ -1787,7 +1802,7 @@ bool Compaction::IsTrivialMove() const {
 void Compaction::AddInputDeletions(VersionEdit* edit) {
   for (int which = 0; which < 2; which++) {
     for (size_t i = 0; i < inputs_[which].size(); i++) {
-      edit->RemoveFile(level_ + which, inputs_[which][i]->number);
+      edit->RemoveFile(level_ + which, inputs_[which][i]->number, 0);
     }
   }
 }

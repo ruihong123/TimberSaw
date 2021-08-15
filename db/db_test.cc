@@ -2340,7 +2340,7 @@ static void BM_LogAndApply(benchmark::State& state) {
 
   for (auto st : state) {
     VersionEdit vedit;
-    vedit.RemoveFile(2, fnum);
+    vedit.RemoveFile(2, fnum, 0);
     InternalKey start(MakeKey(2 * fnum), 1, kTypeValue);
     InternalKey limit(MakeKey(2 * fnum + 1), 1, kTypeDeletion);
     vedit.AddFile(2, fnum++, 1 /* file size */, start, limit);
