@@ -34,10 +34,10 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
     message_handler_pool_.SetBackgroundThreads(num);
   }
-  void Memory_Node_Keeper::MaybeScheduleCompaction() {
+  void Memory_Node_Keeper::MaybeScheduleCompaction(std::string& client_ip) {
     if (versions_->NeedsCompaction()) {
       //    background_compaction_scheduled_ = true;
-      void* function_args = nullptr;
+      void* function_args = new std::string(client_ip);
       BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
       message_handler_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
       DEBUG("Schedule a Compaction !\n");
@@ -50,7 +50,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
   }
   void Memory_Node_Keeper::BackgroundCompaction(void* p) {
   //  write_stall_mutex_.AssertNotHeld();
-
+  std::string* client_ip = static_cast<std::string*>(p);
   if (versions_->NeedsCompaction()) {
     Compaction* c;
 //    bool is_manual = (manual_compaction_ != nullptr);
@@ -104,7 +104,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       if (usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
 //        status = DoCompactionWorkWithSubcompaction(compact);
       }else{
-        status = DoCompactionWork(compact);
+        status = DoCompactionWork(compact, *client_ip);
       }
 
       auto stop = std::chrono::high_resolution_clock::now();
@@ -144,7 +144,8 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
 //      manual_compaction_ = nullptr;
 //    }
   }
-  MaybeScheduleCompaction();
+  MaybeScheduleCompaction(*client_ip);
+  delete client_ip;
 
 }
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
@@ -163,7 +164,8 @@ void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
   }
   delete compact;
 }
-Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact) {
+Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
+                                            std::string& client_ip) {
 //  const uint64_t start_micros = env_->NowMicros();
   int64_t imm_micros = 0;  // Micros spent doing imm_ compactions
 
@@ -313,7 +315,7 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 
   if (status.ok()) {
 //    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
-    status = InstallCompactionResults(compact);
+    status = InstallCompactionResults(compact, client_ip);
 //    InstallSuperVersion();
   }
 //  undefine_mutex.Unlock();
@@ -497,7 +499,8 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(CompactionState* compact,
   }
   return s;
 }
-Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact) {
+Status Memory_Node_Keeper::InstallCompactionResults(CompactionState* compact,
+                                                    std::string& client_ip) {
 //  Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
 //      compact->compaction->num_input_files(0), compact->compaction->level(),
 //      compact->compaction->num_input_files(1), compact->compaction->level() + 1,
@@ -544,7 +547,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
 //  lck_p->lock();
   compact->compaction->ReleaseInputs();
   Status s = versions_->LogAndApply(compact->compaction->edit());
-  Edit_sync_to_remote(compact->compaction->edit());
+  Edit_sync_to_remote(compact->compaction->edit(), client_ip);
   return s;
 }
   void Memory_Node_Keeper::server_communication_thread(std::string client_ip,
@@ -837,12 +840,13 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //  std::unique_lock<std::mutex> lck(versions_mtx);
   versions_->LogAndApply(&version_edit);
 //  lck.unlock();
-  MaybeScheduleCompaction();
+  MaybeScheduleCompaction(client_ip);
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
   }
-void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit) {
+  void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit,
+                                               std::string& client_ip) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
 
 //  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -870,9 +874,9 @@ void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit) {
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
   *receive_pointer = {};
-  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+  if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }

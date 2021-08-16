@@ -24,11 +24,11 @@ class Memory_Node_Keeper {
   // this function is for the server.
   void Server_to_Client_Communication();
   void SetBackgroundThreads(int num,  ThreadPoolType type);
-  void MaybeScheduleCompaction();
+  void MaybeScheduleCompaction(std::string& client_ip);
   static void BGWork_Compaction(void* thread_args);
   void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
-  Status DoCompactionWork(CompactionState* compact);
+  Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
   Status DoCompactionWorkWithSubcompaction(CompactionState* compact);
   Status OpenCompactionOutputFile(SubcompactionState* compact);
@@ -46,7 +46,8 @@ class Memory_Node_Keeper {
   ThreadPool message_handler_pool_;
   std::mutex dummy_superversions_mtx;
   VersionSet* versions_;
-  Status InstallCompactionResults(CompactionState* compact);
+  Status InstallCompactionResults(CompactionState* compact,
+                                  std::string& client_ip);
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
   void create_mr_handler(RDMA_Request request, std::string& client_ip);
@@ -55,7 +56,7 @@ class Memory_Node_Keeper {
     return internal_comparator_.user_comparator();
   }
   void install_version_edit_handler(RDMA_Request request, std::string& client_ip);
-  void Edit_sync_to_remote(VersionEdit* edit);
+  void Edit_sync_to_remote(VersionEdit* edit, std::string& client_ip);
 };
 }
 #endif  // LEVELDB_HOME_NODE_KEEPER_H
