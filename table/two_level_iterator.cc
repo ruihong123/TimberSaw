@@ -44,6 +44,7 @@ void TwoLevelIterator::SeekToFirst() {
     assert(false);
   }
   SkipEmptyDataBlocksForward();
+  assert(key().size() >0);
 }
 
 void TwoLevelIterator::SeekToLast() {
@@ -182,6 +183,7 @@ void TwoLevelFileIterator::SeekToFirst() {
     assert(false);
   }
   SkipEmptyDataBlocksForward();
+  assert(key().size() >0);
 }
 
 void TwoLevelFileIterator::SeekToLast() {
