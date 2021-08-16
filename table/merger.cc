@@ -84,6 +84,7 @@ class MergingIterator : public Iterator {
     if (Valid()){
       if (num_entries > 0) {
         printf("key is %s\n", key().ToString().c_str());
+        printf("key length is %zu" , key().size());
         printf("key char pointer is %p", key().data());
         assert(comparator_->Compare(key(), Slice(last_key)) > 0);
       }
@@ -180,7 +181,7 @@ void MergingIterator::FindSmallest() {
     printf("current invalid\n");
   }else{
     assert(current_->key().size()>0);
-    printf("key length is %zu" , key().size());
+
   }
 #endif
 }
