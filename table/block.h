@@ -169,8 +169,11 @@ class Block::Iter : public Iterator {
     }
     num_entries++;
     last_key = key_.GetKey().ToString();
+    if (Valid())
+      assert(key().size()!=0);
 #endif
-    assert(key().size()!=0);
+
+
   }
 
   void Prev() override {
