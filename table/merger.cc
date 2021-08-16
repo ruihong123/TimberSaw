@@ -173,6 +173,13 @@ void MergingIterator::FindSmallest() {
     }
   }
   current_ = smallest;
+#ifndef NDEBUG
+  if (current_ == nullptr){
+    printf("current invalid\n");
+  }else{
+    assert(current_->key().size()>0);
+  }
+#endif
 }
 
 void MergingIterator::FindLargest() {
