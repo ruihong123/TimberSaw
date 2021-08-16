@@ -80,6 +80,7 @@ class MergingIterator : public Iterator {
 
     current_->Next();
     FindSmallest();
+#ifndef NDEBUG
     if (Valid()){
       if (num_entries > 0) {
         printf("key is %s\n", key().ToString().c_str());
@@ -89,7 +90,7 @@ class MergingIterator : public Iterator {
       num_entries++;
       last_key = current_->key().ToString();
     }
-
+#endif
   }
 
   void Prev() override {
