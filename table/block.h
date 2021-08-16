@@ -170,6 +170,7 @@ class Block::Iter : public Iterator {
     num_entries++;
     last_key = key_.GetKey().ToString();
 #endif
+    assert(key().size()!=0);
   }
 
   void Prev() override {
@@ -265,6 +266,7 @@ class Block::Iter : public Iterator {
   void SeekToFirst() override {
     SeekToRestartPoint(0);
     ParseNextKey();
+    assert(key().size()!=0);
   }
 
   void SeekToLast() override {
