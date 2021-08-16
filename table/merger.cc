@@ -178,7 +178,7 @@ void MergingIterator::FindSmallest() {
     printf("current invalid\n");
   }else{
     assert(current_->key().size()>0);
-    printf("key is %s" , key().ToString().c_str());
+    printf("key length is %d" , key().size());
   }
 #endif
 }
