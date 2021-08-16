@@ -82,6 +82,7 @@ class MergingIterator : public Iterator {
     FindSmallest();
     if (Valid()){
       if (num_entries > 0) {
+        printf("key is %s", key());
         assert(comparator_->Compare(key(), Slice(last_key)) > 0);
       }
       num_entries++;
