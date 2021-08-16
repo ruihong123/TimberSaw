@@ -4,6 +4,7 @@ namespace leveldb {
 std::atomic<uint64_t> RDMA_Manager::RDMAReadTimeElapseSum = 0;
 std::atomic<uint64_t> RDMA_Manager::ReadCount = 0;
 #endif
+//#define R_SIZE 32
 void UnrefHandle_rdma(void* ptr) { delete static_cast<std::string*>(ptr); }
 void UnrefHandle_qp(void* ptr) {
   if (ptr == nullptr) return;
@@ -20,6 +21,10 @@ void UnrefHandle_cq(void* ptr) {
   } else {
     printf("thread local cq destroy successfully!");
   }
+}
+template<typename T>
+void General_Destroy(void* ptr){
+  delete (T) ptr;
 }
 /******************************************************************************
 * Function: RDMA_Manager
@@ -38,10 +43,13 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
       //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_write_flush(new ThreadLocalPtr(&UnrefHandle_cq)),
+      local_write_flush_qp_info(new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)),
       qp_local_write_compact(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_write_compact(new ThreadLocalPtr(&UnrefHandle_cq)),
+      local_write_compact_qp_info(new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)),
       qp_local_read(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_read(new ThreadLocalPtr(&UnrefHandle_cq)),
+      local_read_qp_info(new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)),
       node_id(nodeid),
       rdma_config(config)
 //      db_name_(db_name),
@@ -486,7 +494,7 @@ sock_connect_exit:
 void RDMA_Manager::ConnectQPThroughSocket(std::string client_ip, int socket_fd) {
 
   struct registered_qp_config local_con_data;
-  struct registered_qp_config remote_con_data;
+  struct registered_qp_config* remote_con_data = new registered_qp_config();
   struct registered_qp_config tmp_con_data;
   //  std::string qp_id = "main";
 
@@ -504,12 +512,22 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string client_ip, int socket_fd) 
       (char*)&local_con_data, (char*)&tmp_con_data) < 0) {
     fprintf(stderr, "failed to exchange connection data between sides\n");
   }
-  remote_con_data.qp_num = ntohl(tmp_con_data.qp_num);
-  remote_con_data.lid = ntohs(tmp_con_data.lid);
-  memcpy(remote_con_data.gid, tmp_con_data.gid, 16);
-  fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data.qp_num);
-  fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data.lid);
-  if (connect_qp(remote_con_data, qp)) {
+  remote_con_data->qp_num = ntohl(tmp_con_data.qp_num);
+  remote_con_data->lid = ntohs(tmp_con_data.lid);
+  memcpy(remote_con_data->gid, tmp_con_data.gid, 16);
+  fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data->qp_num);
+  fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data->lid);
+  std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+  if (client_ip == "read_local" )
+    local_read_qp_info->Reset(remote_con_data);
+  else if(client_ip == "write_local_compact")
+    local_write_compact_qp_info->Reset(remote_con_data);
+  else if(client_ip == "write_local_flush")
+    local_write_flush_qp_info->Reset(remote_con_data);
+  else
+    res->qp_connection_info.insert({client_ip,remote_con_data});
+  l.unlock();
+  if (connect_qp(qp, client_ip)) {
     fprintf(stderr, "failed to connect QPs\n");
   }
 
@@ -599,7 +617,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     fprintf(stderr, "failed to create resources\n");
     return;
   }
-  Client_Connect_to_Server_RDMA();
+  Get_Remote_qp_Info();
 }
 /******************************************************************************
 * Function: resources_create
@@ -716,15 +734,15 @@ int RDMA_Manager::resources_create() {
   return rc;
 }
 
-bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
-  //  int iter = 1;
-  char temp_receive[2];
-  char temp_send[] = "Q";
+bool RDMA_Manager::Get_Remote_qp_Info() {
+  //  Connect Queue Pair through TCPIP
+  int rc = 0;
   struct registered_qp_config local_con_data;
-  struct registered_qp_config remote_con_data;
+  struct registered_qp_config* remote_con_data = new registered_qp_config();
   struct registered_qp_config tmp_con_data;
   std::string qp_id = "main";
-  int rc = 0;
+  char temp_receive[2];
+  char temp_send[] = "Q";
 
   union ibv_gid my_gid;
   if (rdma_config.gid_idx >= 0) {
@@ -748,20 +766,30 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
     fprintf(stderr, "failed to exchange connection data between sides\n");
     rc = 1;
   }
-  remote_con_data.qp_num = ntohl(tmp_con_data.qp_num);
-  remote_con_data.lid = ntohs(tmp_con_data.lid);
-  memcpy(remote_con_data.gid, tmp_con_data.gid, 16);
+  remote_con_data->qp_num = ntohl(tmp_con_data.qp_num);
+  remote_con_data->lid = ntohs(tmp_con_data.lid);
+  memcpy(remote_con_data->gid, tmp_con_data.gid, 16);
 
-  fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data.qp_num);
-  fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data.lid);
-  connect_qp(remote_con_data, qp);
+  fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data->qp_num);
+  fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data->lid);
+  std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+  if (qp_id == "read_local" )
+    local_read_qp_info->Reset(remote_con_data);
+  else if(qp_id == "write_local_compact")
+    local_write_compact_qp_info->Reset(remote_con_data);
+  else if(qp_id == "write_local_flush")
+    local_write_flush_qp_info->Reset(remote_con_data);
+  else
+    res->qp_connection_info.insert({qp_id,remote_con_data});
+  l.unlock();
+  connect_qp(qp, qp_id);
   //  post_receive<int>(res->mr_receive, std::string("main"));
   if (sock_sync_data(res->sock_map["main"], 1, temp_send,
                      temp_receive)) /* just send a dummy char back and forth */
-  {
+    {
     fprintf(stderr, "sync error after QPs are were moved to RTS\n");
     rc = 1;
-  }
+    }
 
   // sync the communication by rdma.
 
@@ -776,6 +804,7 @@ bool RDMA_Manager::Client_Connect_to_Server_RDMA() {
 
   return false;
 }
+
 ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
   struct ibv_qp_init_attr qp_init_attr;
 
@@ -847,7 +876,7 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
 * Description
 * Connect the QP. Transition the server side to RTR, sender side to RTS
 ******************************************************************************/
-int RDMA_Manager::connect_qp(registered_qp_config remote_con_data, ibv_qp* qp) {
+int RDMA_Manager::connect_qp(ibv_qp* qp, std::string& q_id) {
   int rc;
 //  ibv_qp* qp;
 //  if (qp_id == "read_local" ){
@@ -862,10 +891,22 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data, ibv_qp* qp) {
 //    qp = res->qp_map[qp_id];
 //    assert(qp!= nullptr);
 //  }
+// protect the res->qp_connection_info outside this function
 
+  registered_qp_config* remote_con_data;
+  std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
 
+  if (q_id == "read_local" )
+    remote_con_data = static_cast<registered_qp_config*>(local_read_qp_info->Get());
+  else if(q_id == "write_local_compact")
+    remote_con_data = static_cast<registered_qp_config*>(local_write_compact_qp_info->Get());
+  else if(q_id == "write_local_flush")
+    remote_con_data = static_cast<registered_qp_config*>(local_write_flush_qp_info->Get());
+  else
+    remote_con_data = res->qp_connection_info.at(q_id);
+  l.unlock();
   if (rdma_config.gid_idx >= 0) {
-    uint8_t* p = remote_con_data.gid;
+    uint8_t* p = remote_con_data->gid;
     fprintf(stdout,
             "Remote GID =%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n ",
             p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
@@ -879,8 +920,8 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data, ibv_qp* qp) {
   }
 
   /* modify the QP to RTR */
-  rc = modify_qp_to_rtr(qp, remote_con_data.qp_num, remote_con_data.lid,
-                        remote_con_data.gid);
+  rc = modify_qp_to_rtr(qp, remote_con_data->qp_num, remote_con_data->lid,
+                        remote_con_data->gid);
   if (rc) {
     fprintf(stderr, "failed to modify QP state to RTR\n");
     goto connect_qp_exit;
@@ -893,6 +934,55 @@ int RDMA_Manager::connect_qp(registered_qp_config remote_con_data, ibv_qp* qp) {
   fprintf(stdout, "QP %p state was change to RTS\n", qp);
 /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
 connect_qp_exit:
+  return rc;
+}
+int RDMA_Manager::connect_qp(ibv_qp* qp, registered_qp_config* remote_con_data) {
+  int rc;
+  //  ibv_qp* qp;
+  //  if (qp_id == "read_local" ){
+  //    qp = static_cast<ibv_qp*>(qp_local_read->Get());
+  //    assert(qp!= nullptr);
+  //  }
+  //  else if(qp_id == "write_local"){
+  //    qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+  //
+  //  }
+  //  else{
+  //    qp = res->qp_map[qp_id];
+  //    assert(qp!= nullptr);
+  //  }
+  // protect the res->qp_connection_info outside this function
+
+
+  if (rdma_config.gid_idx >= 0) {
+    uint8_t* p = remote_con_data->gid;
+    fprintf(stdout,
+            "Remote GID =%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n ",
+            p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+            p[11], p[12], p[13], p[14], p[15]);
+  }
+  /* modify the QP to init */
+  rc = modify_qp_to_init(qp);
+  if (rc) {
+    fprintf(stderr, "change QP state to INIT failed\n");
+    goto connect_qp_exit;
+  }
+
+  /* modify the QP to RTR */
+  rc = modify_qp_to_rtr(qp, remote_con_data->qp_num, remote_con_data->lid,
+                        remote_con_data->gid);
+  if (rc) {
+    fprintf(stderr, "failed to modify QP state to RTR\n");
+    goto connect_qp_exit;
+  }
+  rc = modify_qp_to_rts(qp);
+  if (rc) {
+    fprintf(stderr, "failed to modify QP state to RTS\n");
+    goto connect_qp_exit;
+  }
+  fprintf(stdout, "QP %p state was change to RTS\n", qp);
+  /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
+  connect_qp_exit:
   return rc;
 }
 /******************************************************************************
@@ -1833,12 +1923,22 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
     return false;
   }
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
-  registered_qp_config temp_buff = receive_pointer->content.qp_config;
-  fprintf(stdout, "Remote QP number=0x%x\n", temp_buff.qp_num);
-  fprintf(stdout, "Remote LID = 0x%x\n", temp_buff.lid);
+  registered_qp_config* temp_buff = new registered_qp_config(receive_pointer->content.qp_config);
+  std::shared_lock<std::shared_mutex> l1(qp_cq_map_mutex);
+  if (qp_id == "read_local" )
+    local_read_qp_info->Reset(temp_buff);
+  else if(qp_id == "write_local_compact")
+    local_write_compact_qp_info->Reset(temp_buff);
+  else if(qp_id == "write_local_flush")
+    local_write_flush_qp_info->Reset(temp_buff);
+  else
+    res->qp_connection_info.insert({qp_id,temp_buff});
+  l1.unlock();
+  fprintf(stdout, "Remote QP number=0x%x\n", temp_buff->qp_num);
+  fprintf(stdout, "Remote LID = 0x%x\n", temp_buff->lid);
   // te,p_buff will have the informatin for the remote query pair,
   // use this information for qp connection.
-  connect_qp(temp_buff, qp);
+  connect_qp(qp, qp_id);
   Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   Deallocate_Local_RDMA_Slot(receive_mr.addr, "message");
   return true;
@@ -2422,6 +2522,7 @@ void RDMA_Manager::fs_deserilization(
   ibv_dereg_mr(local_mr);
   free(buff);
 }
+
 
 // bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
 //                                               char* buff, size_t buff_size,

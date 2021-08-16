@@ -213,6 +213,7 @@ struct resources {
   struct ibv_pd* pd = nullptr;           /* PD handle */
   std::map<std::string, std::pair<ibv_cq*, ibv_cq*>> cq_map; /* CQ Map */
   std::map<std::string, ibv_qp*> qp_map; /* QP Map */
+  std::map<std::string, registered_qp_config*> qp_connection_info;
   struct ibv_mr* mr_receive = nullptr;   /* MR handle for receive_buf */
   struct ibv_mr* mr_send = nullptr;      /* MR handle for send_buf */
   //  struct ibv_mr* mr_SST = nullptr;                        /* MR handle for SST_buf */ struct ibv_mr* mr_remote;                     /* remote MR handle for computing node */
@@ -269,6 +270,7 @@ class RDMA_Manager {
 
  public:
   friend class Memory_Node_Keeper;
+  friend class DBImpl;
   RDMA_Manager(config_t config, size_t remote_block_size, uint8_t nodeid);
   //  RDMA_Manager(config_t config) : rdma_config(config){
   //    res = new resources();
@@ -279,7 +281,7 @@ class RDMA_Manager {
   // RDMA set up create all the resources, and create one query pair for RDMA send & Receive.
   void Client_Set_Up_Resources();
   // Set up the socket connection to remote shared memory.
-  bool Client_Connect_to_Server_RDMA();
+  bool Get_Remote_qp_Info();
   // client function to retrieve serialized data.
   //  bool client_retrieve_serialized_data(const std::string& db_name, char*& buff,
   //                                       size_t& buff_size, ibv_mr*& local_data_mr,
@@ -288,7 +290,7 @@ class RDMA_Manager {
   //  bool client_save_serialized_data(const std::string& db_name, char* buff,
   //                                   size_t buff_size, file_type type,
   //                                   ibv_mr* local_data_mr);
-
+  void client_message_polling_thread();
   void ConnectQPThroughSocket(std::string client_ip, int socket_fd);
   // Local memory register will register RDMA memory in local machine,
   // Both Computing node and share memory will call this function.
@@ -370,10 +372,13 @@ class RDMA_Manager {
   //  ThreadLocalPtr* t_local_1;
   ThreadLocalPtr* qp_local_write_flush;
   ThreadLocalPtr* cq_local_write_flush;
+  ThreadLocalPtr* local_write_flush_qp_info;
   ThreadLocalPtr* qp_local_write_compact;
   ThreadLocalPtr* cq_local_write_compact;
+  ThreadLocalPtr* local_write_compact_qp_info;
   ThreadLocalPtr* qp_local_read;
   ThreadLocalPtr* cq_local_read;
+  ThreadLocalPtr* local_read_qp_info;
   //  thread_local static std::unique_ptr<ibv_qp, QP_Deleter> qp_local_write_flush;
   //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local_write_flush;
   std::unordered_map<std::string, std::map<void*, In_Use_Array>>
@@ -381,6 +386,7 @@ class RDMA_Manager {
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
   uint8_t node_id;
+
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
@@ -462,7 +468,8 @@ class RDMA_Manager {
                        uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
   ibv_qp* create_qp(std::string& id, bool seperated_cq);
-  int connect_qp(registered_qp_config remote_con_data, ibv_qp* qp);
+  int connect_qp(ibv_qp* qp, std::string& q_id);
+  int connect_qp(ibv_qp* qp, registered_qp_config* remote_con_data);
   int resources_destroy();
   void print_config(void);
   void usage(const char* argv0);

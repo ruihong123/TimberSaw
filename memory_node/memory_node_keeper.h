@@ -55,6 +55,7 @@ class Memory_Node_Keeper {
     return internal_comparator_.user_comparator();
   }
   void install_version_edit_handler(RDMA_Request request, std::string& client_ip);
+  void Edit_sync_to_remote(VersionEdit* edit);
 };
 }
 #endif  // LEVELDB_HOME_NODE_KEEPER_H

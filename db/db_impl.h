@@ -206,11 +206,13 @@ class DBImpl : public DB {
   bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
   void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
-  void Communication_To_Home_Node();
+//  void Communication_To_Home_Node();
   void Edit_sync_to_remote(VersionEdit* edit);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
+  void client_message_polling_and_handling_thread(std::string q_id);
+  void install_version_edit_handler(RDMA_Request request, std::string client_ip);
 
   // Constant after construction
   Env* const env_;

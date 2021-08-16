@@ -4,7 +4,7 @@
 #include "memory_node/memory_node_keeper.h"
 #include "table/table_builder_memoryside.h"
 #include "db/table_cache.h"
-#define R_SIZE 32
+
 namespace leveldb{
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(std::make_shared<Options>(true)),
@@ -543,7 +543,9 @@ compact->compaction->AddInputDeletions(compact->compaction->edit(), rdma_mg->nod
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
 //  lck_p->lock();
   compact->compaction->ReleaseInputs();
-  return versions_->LogAndApply(compact->compaction->edit());
+  Status s = versions_->LogAndApply(compact->compaction->edit());
+  Edit_sync_to_remote(compact->compaction->edit());
+  return s;
 }
   void Memory_Node_Keeper::server_communication_thread(std::string client_ip,
                                                  int socket_fd) {
@@ -554,10 +556,10 @@ compact->compaction->AddInputDeletions(compact->compaction->edit(), rdma_mg->nod
     int rc = 0;
     rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd);
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
-    ibv_mr send_mr[32] = {};
-    for(int i = 0; i<32; i++){
-      rdma_mg->Allocate_Local_RDMA_Slot(send_mr[i], "message");
-    }
+//    ibv_mr send_mr[32] = {};
+//    for(int i = 0; i<32; i++){
+//      rdma_mg->Allocate_Local_RDMA_Slot(send_mr[i], "message");
+//    }
 
 //    char* send_buff;
 //    if (!rdma_mg_->Local_Memory_Register(&send_buff, &send_mr, 1000, std::string())) {
@@ -705,12 +707,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
           fprintf(stderr, "Connection accept error, erron: %d\n", errno);
           break;
         }
-        main_comm_threads.push_back(std::thread(
+        main_comm_threads.emplace_back(
             [this](std::string client_ip, int socketfd) {
               this->server_communication_thread(client_ip, socketfd);
               },
-              std::string(address.sa_data), sockfd));
-        //        thread_pool.back().detach();
+              std::string(address.sa_data), sockfd);
+        main_comm_threads.back().detach();
       }
     }
   }
@@ -794,7 +796,17 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.qp_config.lid = rdma_mg->res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &(rdma_mg->res->my_gid), 16);
   send_pointer->received = true;
-  rdma_mg->connect_qp(request.content.qp_config, qp);
+  registered_qp_config* remote_con_data = new registered_qp_config(request.content.qp_config);
+  std::shared_lock<std::shared_mutex> l1(rdma_mg->qp_cq_map_mutex);
+  if (new_qp_id == "read_local" )
+    rdma_mg->local_read_qp_info->Reset(remote_con_data);
+  else if(new_qp_id == "write_local_compact")
+    rdma_mg->local_write_compact_qp_info->Reset(remote_con_data);
+  else if(new_qp_id == "write_local_flush")
+    rdma_mg->local_write_flush_qp_info->Reset(remote_con_data);
+  else
+    rdma_mg->res->qp_connection_info.insert({new_qp_id,remote_con_data});
+  rdma_mg->connect_qp(qp, new_qp_id);
 
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
@@ -830,7 +842,51 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
   }
+void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit) {
+  //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
 
+//  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // register the memory block from the remote memory
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_ve = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  std::string serilized_ve;
+  edit->EncodeTo(&serilized_ve);
+  assert(serilized_ve.size() <= send_mr_ve.length);
+  memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
+  memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
+
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = install_version_edit;
+  send_pointer->content.ive.buffer_size = serilized_ve.size();
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+  rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
+
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side.
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+                      &send_mr_ve, serilized_ve.size() + 1, "main", IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+}
   }
 
 

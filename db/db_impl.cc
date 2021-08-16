@@ -178,14 +178,17 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       super_version_number_(0),
       super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)){
 //        main_comm_threads.emplace_back(Clientmessagehandler());
+
+      main_comm_threads.emplace_back(
+    &DBImpl::client_message_polling_and_handling_thread, this, "main");
+      main_comm_threads.back().detach();
 }
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
   printf("DBImpl deallocated\n");
-  //TODO: shuttinh down and join all threads may have duplicated funciton. remove one
-  // of it.
+  //TODO: recycle all the
   env_->JoinAllThreads(false);
   shutting_down_.store(true);
   while (background_compaction_scheduled_) {
@@ -1494,10 +1497,10 @@ void DBImpl::InstallSuperVersion() {
     }
   }
 }
-void DBImpl::Communication_To_Home_Node() {
-  ibv_wc wc[3] = {};
-  env_->rdma_mg->poll_completion(wc, 1, "main", false);
-}
+//void DBImpl::Communication_To_Home_Node() {
+//  ibv_wc wc[3] = {};
+//  env_->rdma_mg->poll_completion(wc, 1, "main", false);
+//}
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
 //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
 
@@ -1542,6 +1545,123 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+}
+void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
+    ibv_qp* qp;
+    int rc = 0;
+    //NOte: Re-initialize below is very important because DBImple may be
+    // initialize serveral times, every time we need to clear the qp.
+    std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+    if (q_id == "read_local"){
+      assert(false);// Never comes to here
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
+      if (qp == NULL) {
+        rdma_mg->Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
+      }else{
+        // if has already exist re initialize the qp to clear the old WRQs.
+        assert(rdma_mg->local_read_qp_info->Get() != nullptr);
+        rdma_mg->connect_qp(qp, q_id);
+      }
+    }else if (q_id == "write_local_flush"){
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
+      if (qp == NULL) {
+        rdma_mg->Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
+      }else{
+        assert(rdma_mg->local_write_flush_qp_info->Get() != nullptr);
+        rdma_mg->connect_qp(qp, q_id);
+      }
+    }else if (q_id == "write_local_compact"){
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
+      if (qp == NULL) {
+        rdma_mg->Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
+      }else{
+        assert(rdma_mg->local_write_compact_qp_info->Get() != nullptr);
+        rdma_mg->connect_qp(qp, q_id);
+      }
+    } else {
+      std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
+
+      if (rdma_mg->res->qp_map.find(q_id) != rdma_mg->res->qp_map.end()){
+        qp = rdma_mg->res->qp_map.at(q_id);
+        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
+        l.unlock();
+        rdma_mg->connect_qp(qp, q_id);
+      }else{
+        l.unlock();
+        rdma_mg->Remote_Query_Pair_Connection(q_id);
+        l.lock();
+        qp = rdma_mg->res->qp_map.at(q_id);
+        l.unlock();
+      }
+
+    }
+    ibv_mr recv_mr[R_SIZE] = {};
+    for(int i = 0; i<R_SIZE; i++){
+      rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
+    }
+
+    for(int i = 0; i<R_SIZE; i++) {
+      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], q_id);
+    }
+
+    ibv_wc wc[3] = {};
+    RDMA_Request receive_msg_buf;
+    int buffer_counter = 0;
+    while (!shutting_down_.load()) {
+      rdma_mg->poll_completion(wc, 1, q_id, false);
+      memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+
+      // copy the pointer of receive buf to a new place because
+      // it is the same with send buff pointer.
+      if (receive_msg_buf.command == install_version_edit) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+        install_version_edit_handler(receive_msg_buf, q_id);
+      } else {
+        printf("corrupt message from client.");
+        break;
+      }
+      // increase the buffer index
+      if (buffer_counter== R_SIZE-1 ){
+        buffer_counter = 0;
+      } else{
+        buffer_counter++;
+      }
+    }
+    for (int i = 0; i < R_SIZE; ++i) {
+      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
+    }
+}
+void DBImpl::install_version_edit_handler(RDMA_Request request,
+                                          std::string client_ip) {
+  auto rdma_mg = env_->rdma_mg;
+  ibv_mr send_mr;
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+  send_pointer->content.ive = {};
+  ibv_mr edit_recv_mr;
+  rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+  send_pointer->reply_buffer = edit_recv_mr.addr;
+  send_pointer->rkey = edit_recv_mr.rkey;
+  //TODO: how to check whether the version edit message is ready, we need to know the size of the
+  // version edit in the first REQUEST from compute node.
+  char* polling_bit = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+  memset(polling_bit, 0, 1);
+  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+                      &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  while (*polling_bit == 0){}
+  VersionEdit version_edit;
+  version_edit.DecodeFrom(
+      Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1,
+      std::shared_ptr<RDMA_Manager>());
+  DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
+  std::unique_lock<std::mutex> lck(superversion_mtx);
+  versions_->LogAndApply(&version_edit);
+  InstallSuperVersion();
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
 }
 void DBImpl::ResetThreadLocalSuperVersions() {
   autovector<void*> sv_ptrs;
