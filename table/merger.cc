@@ -83,6 +83,7 @@ class MergingIterator : public Iterator {
     if (Valid()){
       if (num_entries > 0) {
         printf("key is %s\n", key().ToString().c_str());
+        printf("key char pointer is %p", key().data());
         assert(comparator_->Compare(key(), Slice(last_key)) > 0);
       }
       num_entries++;
