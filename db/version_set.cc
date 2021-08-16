@@ -1799,10 +1799,10 @@ bool Compaction::IsTrivialMove() const {
               MaxGrandParentOverlapBytes(vset->options_));
 }
 
-void Compaction::AddInputDeletions(VersionEdit* edit, uint8_t node_id) {
+void Compaction::AddInputDeletions(VersionEdit* edit) {
   for (int which = 0; which < 2; which++) {
     for (size_t i = 0; i < inputs_[which].size(); i++) {
-      edit->RemoveFile(level_ + which, inputs_[which][i]->number, node_id);
+      edit->RemoveFile(level_ + which, inputs_[which][i]->number, inputs_[which][i]->node_id);
     }
   }
 }

@@ -470,7 +470,7 @@ class Compaction {
   bool IsTrivialMove() const;
 
   // Add all mem_vec to this compaction as delete operations to *edit.
-  void AddInputDeletions(VersionEdit* edit, uint8_t node_id);
+  void AddInputDeletions(VersionEdit* edit);
 
   // Returns true if the information we have available guarantees that
   // the compaction is producing data in "level+1" for which no data exists
