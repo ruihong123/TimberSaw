@@ -632,7 +632,6 @@ class VersionSet::Builder {
       if (levels_[level].deleted_files.find(f->number)!= levels_[level].deleted_files.end()){
         printf("Look at here\n");
       }
-      levels_[level].deleted_files.erase(f->number);
       std::pair <std::multimap<uint64_t, uint8_t>::iterator, std::multimap<uint64_t ,uint8_t>::iterator>
       ret = levels_[level].deleted_files.equal_range(f->number);
       for (std::multimap<uint64_t, uint8_t>::iterator it=ret.first; it!=ret.second; ++it){
