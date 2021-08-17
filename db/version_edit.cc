@@ -318,7 +318,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
         if (GetLevel(&input, &level)) {
           std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(sstable_type);
           f->DecodeFrom(input);
-          assert(level == 0);
+//          assert(level == 0);
           new_files_.push_back(std::make_pair(level, f));
         } else {
           msg = "new-file entry";
