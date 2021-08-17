@@ -1396,6 +1396,8 @@ int RDMA_Manager::RDMA_Write(void* addr, uint32_t rkey, ibv_mr* local_mr, size_t
         std::cout << "RDMA Write Failed" << std::endl;
         std::cout << "q id is" << q_id << std::endl;
         fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+      }else{
+        printf("RDMA write successfully\n");
       }
       delete[] wc;
     }
