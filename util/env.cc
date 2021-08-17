@@ -27,6 +27,7 @@ Status Env::DeleteDir(const std::string& dirname) { return RemoveDir(dirname); }
 
 Status Env::RemoveFile(const std::string& fname) { return DeleteFile(fname); }
 Status Env::DeleteFile(const std::string& fname) { return RemoveFile(fname); }
+unsigned int Env::Queue_Length_Quiry(ThreadPoolType type) { return 0; }
 
 SequentialFile::~SequentialFile() = default;
 

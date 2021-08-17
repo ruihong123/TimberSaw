@@ -26,11 +26,11 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     opts->filter_policy = NewBloomFilterPolicy(opts->bloom_bits);
 
   }
-  void leveldb::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
-                                             void* background_work_arg,
-                                             ThreadPoolType type) {
-    message_handler_pool_.Schedule(background_work_function, background_work_arg);
-  }
+//  void leveldb::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
+//                                             void* background_work_arg,
+//                                             ThreadPoolType type) {
+//    message_handler_pool_.Schedule(background_work_function, background_work_arg);
+//  }
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
     message_handler_pool_.SetBackgroundThreads(num);
   }
@@ -39,6 +39,10 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       //    background_compaction_scheduled_ = true;
       void* function_args = new std::string(client_ip);
       BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+      if (message_handler_pool_.queue_len_.load()>256){
+        //If there has already be enough compaction scheduled, then drop this one
+        return;
+      }
       message_handler_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
       DEBUG("Schedule a Compaction !\n");
     }

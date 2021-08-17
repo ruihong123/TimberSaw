@@ -79,6 +79,7 @@ class ThreadPool{
     }
   }
   void Schedule(std::function<void(void* args)>&& func, void* args){
+
     std::lock_guard<std::mutex> lock(mu_);
     if (exit_all_threads_) {
       return;

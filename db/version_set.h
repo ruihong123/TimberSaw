@@ -368,6 +368,8 @@ class VersionSet {
 //  Iterator* NewIterator(std::shared_ptr<RemoteMemTableMetaData> f);
   // Returns true iff some level needs a compaction.
   bool NeedsCompaction() const {
+    //TODO(ruihong): make current_ an atomic variable if we do not want to have a lock for this
+    // funciton.
     Version* v = current_;
     return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
   }

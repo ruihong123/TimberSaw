@@ -16,9 +16,9 @@ class Memory_Node_Keeper {
  public:
 //  friend class RDMA_Manager;
   Memory_Node_Keeper(bool use_sub_compaction);
-  void Schedule(
-      void (*background_work_function)(void* background_work_arg),
-      void* background_work_arg, ThreadPoolType type);
+//  void Schedule(
+//      void (*background_work_function)(void* background_work_arg),
+//      void* background_work_arg, ThreadPoolType type);
   void JoinAllThreads(bool wait_for_jobs_to_complete);
 
   // this function is for the server.

@@ -671,6 +671,7 @@ class PosixEnv : public Env {
   void Schedule(
       void (*background_work_function)(void* background_work_arg),
       void* background_work_arg, ThreadPoolType type) override;
+  unsigned int Queue_Length_Quiry(ThreadPoolType type) override;
   void JoinAllThreads(bool wait_for_jobs_to_complete) override;
   void StartThread(void (*thread_main)(void* thread_main_arg),
                    void* thread_main_arg) override {
@@ -867,6 +868,23 @@ void PosixEnv::Schedule(
     case SubcompactionThreadPool:
       subcompaction.Schedule(background_work_function, background_work_arg);
       break;
+  }
+}
+unsigned int PosixEnv::Queue_Length_Quiry(ThreadPoolType type){
+  switch (type) {
+    case FlushThreadPool:
+      DEBUG_arg("flushing thread pool task queue length %zu\n", flushing.queue_.size());
+      return flushing.queue_len_.load();
+      break;
+    case CompactionThreadPool:
+      DEBUG_arg("compaction thread pool task queue length %zu\n", compaction.queue_.size());
+      return compaction.queue_len_.load();
+      break;
+    case SubcompactionThreadPool:
+      return subcompaction.queue_len_.load();
+      break;
+    default:
+      return 0-1;
   }
 }
 void PosixEnv::JoinAllThreads(bool wait_for_jobs_to_complete) {

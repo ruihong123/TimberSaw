@@ -189,11 +189,15 @@ DBImpl::~DBImpl() {
 //  undefine_mutex.Lock();
   printf("DBImpl deallocated\n");
   //TODO: recycle all the
-  env_->JoinAllThreads(false);
   shutting_down_.store(true);
-  while (background_compaction_scheduled_) {
-    env_->SleepForMicroseconds(10);
+  env_->JoinAllThreads(false);
+  // wait for communicaiton thread to finish
+  for(int i = 0; i < main_comm_threads.size(); i++){
+    main_comm_threads[i].join();
   }
+//  while (background_compaction_scheduled_) {
+//    env_->SleepForMicroseconds(10);
+//  }
 #ifdef GETANALYSIS
   if (RDMA_Manager::ReadCount.load() != 0)
     printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
@@ -875,7 +879,12 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
     BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-    env_->Schedule(BGWork_Flush, static_cast<void*>(thread_pool_args), ThreadPoolType::FlushThreadPool);
+    ThreadPoolType type = ThreadPoolType::FlushThreadPool;
+    if (env_->Queue_Length_Quiry(type)>256){
+      //If there has already be enough compaction scheduled, then drop this one
+      return;
+    }
+    env_->Schedule(BGWork_Flush, static_cast<void*>(thread_pool_args), type);
     DEBUG("Schedule a flushing !\n");
   }
 //  if (versions_->NeedsCompaction()) {
