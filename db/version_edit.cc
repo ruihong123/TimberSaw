@@ -10,14 +10,20 @@
 #include "leveldb/env.h"
 namespace leveldb {
 //std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
-RemoteMemTableMetaData::RemoteMemTableMetaData()  : table_type(0), allowed_seeks(1 << 30) {
-  rdma_mg = Env::Default()->rdma_mg;
-  node_id = rdma_mg->node_id;
-}
+//RemoteMemTableMetaData::RemoteMemTableMetaData()  : table_type(0), allowed_seeks(1 << 30) {
+//  rdma_mg = Env::Default()->rdma_mg;
+//  node_id = rdma_mg->node_id;
+//}
 RemoteMemTableMetaData::RemoteMemTableMetaData(int type)
     : table_type(type), allowed_seeks(1 << 30) {
-  rdma_mg = Memory_Node_Keeper::rdma_mg;
-  node_id = rdma_mg->node_id;
+  if (type==0){
+    rdma_mg = Env::Default()->rdma_mg;
+    node_id = rdma_mg->node_id;
+  }else{
+    rdma_mg = Memory_Node_Keeper::rdma_mg;
+    node_id = rdma_mg->node_id;
+  }
+
 }
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);

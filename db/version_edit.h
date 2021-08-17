@@ -19,7 +19,8 @@ class RDMA_Manager;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
 // Solved
 struct RemoteMemTableMetaData {
-  RemoteMemTableMetaData();
+//  RemoteMemTableMetaData();
+// 0 means compute node, 1 means memory node
   RemoteMemTableMetaData(int type);
   //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {

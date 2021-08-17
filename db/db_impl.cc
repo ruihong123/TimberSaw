@@ -557,7 +557,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   const uint64_t start_micros = env_->NowMicros();
   //Mark all memtable as FLUSHPROCESSING.
   job->SetAllMemStateProcessing();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
@@ -603,7 +603,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   //The program should never goes here.
   assert(false);
   const uint64_t start_micros = env_->NowMicros();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
   meta->number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = job->NewIterator();
@@ -1252,7 +1252,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
-      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
       //TODO make all the metadata written into out
       meta->number = out.number;
       meta->file_size = out.file_size;
@@ -1269,7 +1269,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
         const CompactionOutput& out = subcompact.outputs[i];
         std::shared_ptr<RemoteMemTableMetaData> meta =
-            std::make_shared<RemoteMemTableMetaData>();
+            std::make_shared<RemoteMemTableMetaData>(0);
         // TODO make all the metadata written into out
         meta->number = out.number;
         meta->file_size = out.file_size;
