@@ -825,6 +825,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
   send_pointer->reply_buffer = edit_recv_mr.addr;
   send_pointer->rkey = edit_recv_mr.rkey;
+  send_pointer->received = true;
   //TODO: how to check whether the version edit message is ready, we need to know the size of the
   // version edit in the first REQUEST from compute node.
   char* polling_bit = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
