@@ -719,7 +719,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
               this->server_communication_thread(client_ip, socketfd);
               },
               std::string(address.sa_data), sockfd);
-        main_comm_threads.back().detach();
+        // No detach!! we don't want the thread keep running after we exit the
+        // main thread.
+//        main_comm_threads.back().detach();
       }
     }
   }

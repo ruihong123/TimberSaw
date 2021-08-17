@@ -181,7 +181,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
       main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
-      main_comm_threads.back().detach();
+//      main_comm_threads.back().detach();
 }
 
 DBImpl::~DBImpl() {
