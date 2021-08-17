@@ -861,6 +861,7 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
   return qp;
 }
+
 /******************************************************************************
 * Function: connect_qp
 *
@@ -983,6 +984,17 @@ int RDMA_Manager::connect_qp(ibv_qp* qp, registered_qp_config* remote_con_data) 
   fprintf(stdout, "QP %p state was change to RTS\n", qp);
   /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
   connect_qp_exit:
+  return rc;
+}
+int RDMA_Manager::modify_qp_to_reset(ibv_qp* qp) {
+  struct ibv_qp_attr attr;
+  int flags;
+  int rc;
+  memset(&attr, 0, sizeof(attr));
+  attr.qp_state = IBV_QPS_RESET;
+  flags = IBV_QP_STATE;
+  rc = ibv_modify_qp(qp, &attr, flags);
+  if (rc) fprintf(stderr, "failed to modify QP state to RESET\n");
   return rc;
 }
 /******************************************************************************

@@ -463,11 +463,14 @@ class RDMA_Manager {
   int post_receive(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
 
   int resources_create();
+  int modify_qp_to_reset(ibv_qp* qp);
   int modify_qp_to_init(struct ibv_qp* qp);
   int modify_qp_to_rtr(struct ibv_qp* qp, uint32_t remote_qpn, uint16_t dlid,
                        uint8_t* dgid);
   int modify_qp_to_rts(struct ibv_qp* qp);
   ibv_qp* create_qp(std::string& id, bool seperated_cq);
+
+  //q_id is for the remote qp informantion fetching
   int connect_qp(ibv_qp* qp, std::string& q_id);
   int connect_qp(ibv_qp* qp, registered_qp_config* remote_con_data);
   int resources_destroy();

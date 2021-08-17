@@ -1562,6 +1562,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }else{
         // if has already exist re initialize the qp to clear the old WRQs.
         assert(rdma_mg->local_read_qp_info->Get() != nullptr);
+        rdma_mg->modify_qp_to_reset(qp);
         rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_flush"){
@@ -1571,6 +1572,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
       }else{
         assert(rdma_mg->local_write_flush_qp_info->Get() != nullptr);
+        rdma_mg->modify_qp_to_reset(qp);
         rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_compact"){
@@ -1580,6 +1582,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
       }else{
         assert(rdma_mg->local_write_compact_qp_info->Get() != nullptr);
+        rdma_mg->modify_qp_to_reset(qp);
         rdma_mg->connect_qp(qp, q_id);
       }
     } else {
@@ -1589,6 +1592,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         qp = rdma_mg->res->qp_map.at(q_id);
         assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
         l.unlock();
+        rdma_mg->modify_qp_to_reset(qp);
         rdma_mg->connect_qp(qp, q_id);
       }else{
         l.unlock();
