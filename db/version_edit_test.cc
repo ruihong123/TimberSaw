@@ -12,7 +12,7 @@ static void TestEncodeDecode(const VersionEdit& edit) {
   std::string encoded, encoded2;
   edit.EncodeTo(&encoded);
   VersionEdit parsed;
-  Status s = parsed.DecodeFrom(encoded, 0, std::shared_ptr<RDMA_Manager>());
+  Status s = parsed.DecodeFrom(encoded, 0);
   ASSERT_TRUE(s.ok()) << s.ToString();
   parsed.EncodeTo(&encoded2);
   ASSERT_EQ(encoded, encoded2);

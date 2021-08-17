@@ -232,8 +232,7 @@ static bool GetLevel(Slice* input, int* level) {
   }
 }
 
-Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type,
-                               std::shared_ptr<RDMA_Manager> rdma) {
+Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
   Clear();
   Slice input = src;
   const char* msg = nullptr;
