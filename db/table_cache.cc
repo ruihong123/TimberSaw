@@ -122,7 +122,7 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
     Table_Memory_Side* table = nullptr;
-
+    DEBUG("FindTable_MemorySide\n");
     if (s.ok()) {
       s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
       DEBUG_arg("Remote_memtable_meta is %p", Remote_memtable_meta.get());
@@ -177,6 +177,7 @@ Iterator* TableCache::NewIterator_MemorySide(
   Cache::Handle* handle = nullptr;
 #ifndef NDEBUG
   void* p = remote_table.get();
+
   if (reinterpret_cast<long>(p) == 0x7fff94151070)
     printf("check for NewIterator_MemorySide\n");
 #endif
