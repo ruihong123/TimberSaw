@@ -86,8 +86,10 @@ Status TableCache::FindTable(
     std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
     Cache::Handle** handle) {
   Status s;
-  char buf[sizeof(Remote_memtable_meta->number)];
+  char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->node_id)];
   EncodeFixed64(buf, Remote_memtable_meta->number);
+  memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->node_id,
+         sizeof(Remote_memtable_meta->node_id));
   Slice key(buf, sizeof(buf));
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
@@ -116,8 +118,10 @@ Status TableCache::FindTable(
 Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
 {
   Status s;
-  char buf[sizeof(Remote_memtable_meta->number)];
+  char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->node_id)];
   EncodeFixed64(buf, Remote_memtable_meta->number);
+  memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->node_id,
+         sizeof(Remote_memtable_meta->node_id));
   Slice key(buf, sizeof(buf));
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
