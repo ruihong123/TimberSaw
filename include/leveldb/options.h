@@ -17,6 +17,7 @@ class Env;
 class FilterPolicy;
 class Logger;
 class Snapshot;
+// The size for one SStable chunk
 static size_t RDMA_WRITE_BLOCK = 1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
 // sequence of key,value pairs.  Each block may be compressed before

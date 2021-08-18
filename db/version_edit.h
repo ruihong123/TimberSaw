@@ -34,10 +34,17 @@ struct RemoteMemTableMetaData {
       Remote_blocks_deallocate(remote_filter_mrs)){
         DEBUG("Remote blocks deleted successfully\n");
       }else{
-        DEBUG("Remote memory collection failed\n");
+        DEBUG("Remote memory collection not found\n");
       }
     }else{
       //TODO: memory collection for the remote memory.
+      if(Local_blocks_deallocate(remote_data_mrs) &&
+      Local_blocks_deallocate(remote_dataindex_mrs) &&
+      Local_blocks_deallocate(remote_filter_mrs)){
+        DEBUG("Local blocks deleted successfully\n");
+      }else{
+        DEBUG("Local memory collection not found\n");
+      }
     }
 
   }
@@ -46,6 +53,16 @@ struct RemoteMemTableMetaData {
 
     for (it = map.begin(); it != map.end(); it++){
       if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr)){
+        return false;
+      }
+    }
+    return true;
+  }
+  bool Local_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
+    std::map<uint32_t , ibv_mr*>::iterator it;
+
+    for (it = map.begin(); it != map.end(); it++){
+      if(!rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer")){
         return false;
       }
     }
