@@ -1674,6 +1674,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
   std::unique_lock<std::mutex> lck(superversion_mtx);
   versions_->LogAndApply(&version_edit);
   InstallSuperVersion();
+  lck.unlock();
+  write_stall_cv.notify_all();
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
 }
