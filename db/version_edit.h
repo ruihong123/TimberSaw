@@ -150,7 +150,9 @@ class VersionEdit {
   Status DecodeFrom(const Slice& src, int sstable_type);
 
   std::string DebugString() const;
-
+  int compactlevel(){
+    return std::get<0>(*deleted_files_.begin());
+  }
  private:
   friend class VersionSet;
 
