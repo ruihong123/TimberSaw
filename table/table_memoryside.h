@@ -70,7 +70,7 @@ class LEVELDB_EXPORT Table_Memory_Side {
   //
   //  void ReadMeta(const Footer& footer);
   void ReadFilter();
-
+  void* Get_rdma();
   Rep* const rep_;
   //  static std::atomic<int> table
 };

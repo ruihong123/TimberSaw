@@ -174,12 +174,16 @@ Iterator* TableCache::NewIterator_MemorySide(
   }
 
   Cache::Handle* handle = nullptr;
+#ifndef NDEBUG
+  void* p = remote_table.get();
+#endif
   Status s = FindTable_MemorySide(std::move(remote_table), &handle);
   if (!s.ok()) {
     return NewErrorIterator(s);
   }
 
   Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
+  assert(p == table->Get_rdma());
   Iterator* result = table->NewIterator(options);
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
