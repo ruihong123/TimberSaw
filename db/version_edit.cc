@@ -14,22 +14,22 @@ namespace leveldb {
 //  rdma_mg = Env::Default()->rdma_mg;
 //  node_id = rdma_mg->node_id;
 //}
-RemoteMemTableMetaData::RemoteMemTableMetaData(int type)
-    : table_type(type), allowed_seeks(1 << 30) {
-  if (type==0){
+RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
+    : this_machine_type(side), allowed_seeks(1 << 30) {
+  if (side ==0){
     rdma_mg = Env::Default()->rdma_mg;
-    node_id = rdma_mg->node_id;
+    creator_node_id = rdma_mg->node_id;
   }else{
     rdma_mg = Memory_Node_Keeper::rdma_mg;
-    node_id = rdma_mg->node_id;
+    creator_node_id = rdma_mg->node_id;
   }
 
 }
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
   PutFixed64(dst, number);
-  printf("Node id is %u", node_id);
-  dst->append(reinterpret_cast<const char*>(&node_id), sizeof(node_id));
+  printf("Node id is %u", creator_node_id);
+  dst->append(reinterpret_cast<const char*>(&creator_node_id), sizeof(creator_node_id));
   PutFixed64(dst, file_size);
   PutLengthPrefixedSlice(dst, smallest.Encode());
   PutLengthPrefixedSlice(dst, largest.Encode());
@@ -62,7 +62,7 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
 }
 Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   Status s = Status::OK();
-  if (table_type == 0)
+  if (this_machine_type == 0)
     rdma_mg = Env::Default()->rdma_mg;
   else
     rdma_mg = Memory_Node_Keeper::rdma_mg;
@@ -70,9 +70,9 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   GetFixed64(&src, &level);
   GetFixed64(&src, &number);
 //  node_id = reinterpret_cast<uint8_t*>(src.data());
-  memcpy(&node_id, src.data(), sizeof(node_id));
-  src.remove_prefix(sizeof(node_id));
-  printf("Node id is %u", node_id);
+  memcpy(&creator_node_id, src.data(), sizeof(creator_node_id));
+  src.remove_prefix(sizeof(creator_node_id));
+  printf("Node id is %u", creator_node_id);
 
   GetFixed64(&src, &file_size);
   Slice temp;

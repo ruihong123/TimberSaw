@@ -635,7 +635,7 @@ class VersionSet::Builder {
       std::pair <std::multimap<uint64_t, uint8_t>::iterator, std::multimap<uint64_t ,uint8_t>::iterator>
       ret = levels_[level].deleted_files.equal_range(f->number);
       for (std::multimap<uint64_t, uint8_t>::iterator it=ret.first; it!=ret.second; ++it){
-        if (it->second == f->node_id)
+        if (it->second == f->creator_node_id)
           levels_[level].deleted_files.erase(it);
       }
       levels_[level].added_files->insert(f);
@@ -711,7 +711,7 @@ class VersionSet::Builder {
         ret = levels_[level].deleted_files.equal_range(f->number);
     bool file_number_deleted = false;
     for (std::multimap<uint64_t, uint8_t>::iterator it=ret.first; it!=ret.second; ++it){
-      if (it->second == f->node_id)
+      if (it->second == f->creator_node_id)
         file_number_deleted = true;
     }
 
@@ -1801,7 +1801,7 @@ bool Compaction::IsTrivialMove() const {
 void Compaction::AddInputDeletions(VersionEdit* edit) {
   for (int which = 0; which < 2; which++) {
     for (size_t i = 0; i < inputs_[which].size(); i++) {
-      edit->RemoveFile(level_ + which, inputs_[which][i]->number, inputs_[which][i]->node_id);
+      edit->RemoveFile(level_ + which, inputs_[which][i]->number, inputs_[which][i]->creator_node_id);
     }
   }
 }

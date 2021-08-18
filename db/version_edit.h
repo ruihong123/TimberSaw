@@ -20,14 +20,15 @@ class RDMA_Manager;
 // Solved
 struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
-// 0 means compute node, 1 means memory node
-  RemoteMemTableMetaData(int type);
+// this_machine_type 0 means compute node, 1 means memory node
+// creater_node_id  0 means compute node, 1 means memory node
+  RemoteMemTableMetaData(int side);
   //TOTHINK: the garbage collection of the Remmote table is not triggered!
   ~RemoteMemTableMetaData() {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
     // home node to deference. Or the remote dereference is conducted in the granularity of version.
     DEBUG("Destroying RemoteMemtableMetaData\n");
-    if (table_type == 0){
+    if (this_machine_type == 0){
       if(Remote_blocks_deallocate(remote_data_mrs) &&
       Remote_blocks_deallocate(remote_dataindex_mrs) &&
       Remote_blocks_deallocate(remote_filter_mrs)){
@@ -54,12 +55,12 @@ struct RemoteMemTableMetaData {
   Status DecodeFrom(Slice& src);
   void mr_serialization(std::string* dst, ibv_mr* mr) const;
   std::shared_ptr<RDMA_Manager> rdma_mg;
-  int table_type;
+  int this_machine_type;
 //  uint64_t refs;
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
-  uint8_t node_id;// The node id who create this SSTable.
+  uint8_t creator_node_id;// The node id who create this SSTable.
   std::map<uint32_t , ibv_mr*> remote_data_mrs;
   std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;
@@ -121,6 +122,8 @@ class VersionEdit {
   }
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file, uint8_t node_id) {
+    //TODO(ruihong): remove this.
+    assert(node_id < 2);
     deleted_files_.insert(std::make_tuple(level, file, node_id));
   }
   size_t GetNewFilesNum(){
