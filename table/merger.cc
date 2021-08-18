@@ -83,9 +83,9 @@ class MergingIterator : public Iterator {
 #ifndef NDEBUG
     if (Valid()){
       if (num_entries > 0) {
-        printf("key is %.*s\n", 29, key().data());
-        printf("key length is %zu" , key().size());
-        printf("key char pointer is %p", key().data());
+//        printf("key is %.*s\n", 29, key().data());
+//        printf("key length is %zu" , key().size());
+//        printf("key char pointer is %p", key().data());
         assert(comparator_->Compare(key(), Slice(last_key)) > 0);
       }
       num_entries++;
