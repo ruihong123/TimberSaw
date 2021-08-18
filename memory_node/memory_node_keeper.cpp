@@ -107,6 +107,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       // Only when there is enough input level files and output level files will the subcompaction triggered
       if (usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
 //        status = DoCompactionWorkWithSubcompaction(compact);
+        status = DoCompactionWork(compact, *client_ip);
       }else{
         status = DoCompactionWork(compact, *client_ip);
       }
