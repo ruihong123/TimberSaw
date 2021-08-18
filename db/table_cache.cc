@@ -176,6 +176,8 @@ Iterator* TableCache::NewIterator_MemorySide(
   Cache::Handle* handle = nullptr;
 #ifndef NDEBUG
   void* p = remote_table.get();
+  if (reinterpret_cast<long>(p) == 0x7fff94151030)
+    printf("check for NewIterator_MemorySide\n");
 #endif
   Status s = FindTable_MemorySide(std::move(remote_table), &handle);
   if (!s.ok()) {
