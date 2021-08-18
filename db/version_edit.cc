@@ -310,7 +310,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
       case kDeletedFile:
         if (GetLevel(&input, &level) && GetVarint64(&input, &number)) {
 
-          memcpy(&node_id, src.data(), sizeof(node_id));
+          memcpy(&node_id, input.data(), sizeof(node_id));
           assert(node_id < 2);
           input.remove_prefix(sizeof(node_id));
           deleted_files_.insert(std::make_tuple(level, number, node_id));
