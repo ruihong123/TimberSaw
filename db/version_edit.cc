@@ -217,7 +217,7 @@ void VersionEdit::EncodeTo(std::string* dst) const {
     f->EncodeTo(dst);
 
   }
-  assert(dst->size() < new_files_[0].second->rdma_mg->name_to_size["version_edit"]);
+//  assert(dst->size() < new_files_[0].second->rdma_mg->name_to_size["version_edit"]);
 }
 
 static bool GetInternalKey(Slice* input, InternalKey* dst) {
