@@ -311,6 +311,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
         if (GetLevel(&input, &level) && GetVarint64(&input, &number)) {
 
           memcpy(&node_id, src.data(), sizeof(node_id));
+          assert(node_id < 2);
           input.remove_prefix(sizeof(node_id));
           deleted_files_.insert(std::make_tuple(level, number, node_id));
           printf("level is %d, number is %lu, node_id is %u", level, number, node_id);
