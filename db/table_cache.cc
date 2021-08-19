@@ -36,13 +36,18 @@ union SSTable {
   Table_Memory_Side* table_memory;
 };
 
-static void DeleteEntry(const Slice& key, void* value) {
+static void DeleteEntry_Compute(const Slice& key, void* value) {
   SSTable* tf = reinterpret_cast<SSTable*>(value);
   delete tf->table_compute;
 //  delete tf->file;
   delete tf;
 }
-
+static void DeleteEntry_Memory(const Slice& key, void* value) {
+  SSTable* tf = reinterpret_cast<SSTable*>(value);
+  delete tf->table_memory;
+  //  delete tf->file;
+  delete tf;
+}
 static void UnrefEntry(void* arg1, void* arg2) {
   Cache* cache = reinterpret_cast<Cache*>(arg1);
   Cache::Handle* h = reinterpret_cast<Cache::Handle*>(arg2);
@@ -110,7 +115,7 @@ Status TableCache::FindTable(
 //      tf->remote_table = Remote_memtable_meta;
       tf->table_compute = table;
       assert(table->rep_ != nullptr);
-      *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
+      *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Compute);
     }
   }
   return s;
@@ -143,7 +148,7 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
       //      tf->remote_table = Remote_memtable_meta;
       tf->table_memory = table;
       assert(table->rep_ != nullptr);
-      *handle = cache_->Insert(key, tf, 1, &DeleteEntry);
+      *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
     }
   }
   return s;
