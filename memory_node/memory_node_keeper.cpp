@@ -657,6 +657,11 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(SubcompactionState* compac
   assert(compact->builder != nullptr);
 
   const uint64_t output_number = compact->current_output()->number;
+#ifndef NDEBUG
+  if (output_number == 11 ||output_number == 12 ){
+    printf("Finish Compaction output number is 11\n");
+  }
+#endif
   assert(output_number != 0);
 
   // Check for iterator errors
