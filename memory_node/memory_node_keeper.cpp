@@ -587,7 +587,7 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && sub_compact->builder != nullptr) {
-    //    assert(key.data()[0] == '0');
+    assert(key.size()>0);
 
     sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
     status = FinishCompactionOutputFile(sub_compact, input);
