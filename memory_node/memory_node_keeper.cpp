@@ -460,7 +460,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
 //    sub_compact->smallest_snapshot = snapshots_.oldest()->sequence_number();
 //  }
 
-Iterator* input = versions_->MakeInputIteratorMemoryServer(sub_compact->compaction);
+  Iterator* input = versions_->MakeInputIteratorMemoryServer(sub_compact->compaction);
 
   // Release mutex while we're actually doing the compaction work
   //  undefine_mutex.Unlock();
@@ -468,7 +468,7 @@ Iterator* input = versions_->MakeInputIteratorMemoryServer(sub_compact->compacti
     InternalKey start_internal(*start, kMaxSequenceNumber, kValueTypeForSeek);
     //tofix(ruihong): too much data copy for the seek here!
     input->Seek(start_internal.Encode());
-    // The sstable range is (start, end]
+    // The first key larger or equal to start_internal was covered in the subtask before it.
     input->Next();
   } else {
     input->SeekToFirst();
@@ -557,6 +557,7 @@ Iterator* input = versions_->MakeInputIteratorMemoryServer(sub_compact->compacti
       sub_compact->compaction->MaxOutputFileSize()) {
         //        assert(key.data()[0] == '0');
         sub_compact->current_output()->largest.DecodeFrom(key);
+        assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
         status = FinishCompactionOutputFile(sub_compact, input);
         if (!status.ok()) {
           break;
@@ -587,9 +588,10 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
     status = Status::IOError("Deleting DB during compaction");
   }
   if (status.ok() && sub_compact->builder != nullptr) {
-    assert(key.size()>0);
+//    assert(key.size()>0);
 
     sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
+    assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
     status = FinishCompactionOutputFile(sub_compact, input);
   }
   if (status.ok()) {
@@ -661,7 +663,7 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(SubcompactionState* compac
 
 #ifndef NDEBUG
   if (output_number == 11 ||output_number == 12 ){
-    printf("Finish Compaction output number is 11\n");
+    printf("Finish Compaction output number is 11 or 12\n");
     printf("File number 12 largest key is %s",
            compact->current_output()->largest.Encode().ToString().c_str());
   }
@@ -794,6 +796,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       meta->file_size = out.file_size;
       meta->level = level+1;
       meta->smallest = out.smallest;
+      assert(!out.largest.Encode().ToString().empty());
       meta->largest = out.largest;
       meta->remote_data_mrs = out.remote_data_mrs;
       meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
