@@ -9,7 +9,7 @@ namespace leveldb{
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(std::make_shared<Options>(true)),
 usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files)), internal_comparator_(BytewiseComparator()),
-versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &dummy_superversions_mtx)){
+versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx)){
     struct leveldb::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
@@ -94,7 +94,11 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       {
 //        std::unique_lock<std::mutex> l(versions_mtx);// TODO(ruihong): remove all the superversion mutex usage.
         c->ReleaseInputs();
-        status = versions_->LogAndApply(c->edit());
+        {
+          std::unique_lock<std::mutex> lck(versionset_mtx);
+          status = versions_->LogAndApply(c->edit());
+          Edit_sync_to_remote(c->edit(), *client_ip);
+        }
 //        InstallSuperVersion();
       }
 
@@ -555,6 +559,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
 //  lck_p->lock();
   compact->compaction->ReleaseInputs();
+  std::unique_lock<std::mutex> lck(versionset_mtx);
   Status s = versions_->LogAndApply(compact->compaction->edit());
   Edit_sync_to_remote(compact->compaction->edit(), client_ip);
   return s;

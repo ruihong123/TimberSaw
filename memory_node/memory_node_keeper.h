@@ -44,7 +44,7 @@ class Memory_Node_Keeper {
   TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;
   ThreadPool message_handler_pool_;
-  std::mutex dummy_superversions_mtx;
+  std::mutex versionset_mtx;
   VersionSet* versions_;
   Status InstallCompactionResults(CompactionState* compact,
                                   std::string& client_ip);

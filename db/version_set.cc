@@ -25,7 +25,7 @@ namespace leveldb {
 std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
 std::atomic<uint64_t> VersionSet::GetNum = 0;
 #endif
-std::mutex VersionSet::version_set_mtx;
+//std::mutex VersionSet::version_set_mtx;
 
 static size_t TargetFileSize(const Options* options) {
   return options->max_file_size;
@@ -754,7 +754,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       descriptor_log_(nullptr),
       dummy_versions_(this),
       current_(nullptr),
-      sv_mtx(mtx){
+      version_set_mtx(mtx){
   AppendVersion(new Version(this));
 
 }
@@ -810,7 +810,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
   Version* v = new Version(this);
 
 //  std::unique_lock<std::mutex> lck(sv_mtx);
-  std::unique_lock<std::mutex> lck(version_set_mtx);
+//  std::unique_lock<std::mutex> lck(version_set_mtx);
   {
     // Decide what table to keep what to discard.
     Builder builder(this, current_);
@@ -879,7 +879,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //      env_->RemoveFile(new_manifest_file);
 //    }
   }
-  lck.unlock();
+//  lck.unlock();
   return s;
 }
 
@@ -1048,7 +1048,7 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
 }
 //Use mutex to synchronize between threads.
 void VersionSet::MarkFileNumberUsed(uint64_t number) {
-  std::unique_lock<std::mutex> lck(*sv_mtx);
+  std::unique_lock<std::mutex> lck(*version_set_mtx);
   if (next_file_number_ <= number) {
     next_file_number_ = number + 1;
   }
@@ -1521,7 +1521,7 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
-  std::unique_lock<std::mutex> lck(version_set_mtx);
+  std::unique_lock<std::mutex> lck(*version_set_mtx);
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);

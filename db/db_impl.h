@@ -42,10 +42,11 @@ struct SuperVersion {
   Version* current;
   // Version number of the current SuperVersion
   uint64_t version_number;
+  std::mutex* versionset_mutex;
 
   // should be called outside the mutex
-  SuperVersion(MemTable* new_mem,
-               MemTableListVersion* new_imm, Version* new_current);
+  SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
+               Version* new_current, std::mutex* versionset_mtx);
   ~SuperVersion();
   SuperVersion* Ref();
   // If Unref() returns true, Cleanup() should be called with mutex held
@@ -233,12 +234,14 @@ class DBImpl : public DB {
   // State below is protected by undefine_mutex
   // we could rename it as superversion mutex
   port::Mutex undefine_mutex;
-  std::mutex FlushPickMTX;
+
 //  port::Mutex write_stall_mutex_;
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   std::condition_variable write_stall_cv GUARDED_BY(superversion_mtx);
+  std::mutex FlushPickMTX;
   std::mutex superversion_mtx;
+  std::mutex versionset_mtx;
   bool locked = false;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;

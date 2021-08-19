@@ -133,13 +133,14 @@ void SuperVersion::Cleanup() {
   assert(refs.load(std::memory_order_relaxed) == 0);
   imm->Unref();
   mem->Unref();
-  std::unique_lock<std::mutex> lck(VersionSet::version_set_mtx);// in case that the version list is messed up
+  std::unique_lock<std::mutex> lck(*versionset_mutex);// in case that the version list is messed up
   current->Unref(4);
   delete this;
 
 }
 SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
-                           Version* new_current) :refs(0),version_number(0) {
+                           Version* new_current, std::mutex* versionset_mtx)
+    :refs(0),version_number(0), versionset_mutex(versionset_mtx) {
   //Guarded by superversion_mtx, so those pointer will always be valide
   mem = new_mem;
   imm = new_imm;
@@ -174,7 +175,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
-                               &internal_comparator_, &superversion_mtx)),
+                               &internal_comparator_, &versionset_mtx)),
       super_version_number_(0),
       super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)){
 //        main_comm_threads.emplace_back(Clientmessagehandler());
@@ -951,7 +952,7 @@ void DBImpl::BackgroundFlush(void* p) {
 }
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
-
+  assert(false);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {
@@ -1250,6 +1251,7 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
 
 Status DBImpl::InstallCompactionResults(CompactionState* compact,
                                         std::unique_lock<std::mutex>* lck_p) {
+  assert(false);
   Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
       compact->compaction->num_input_files(0), compact->compaction->level(),
       compact->compaction->num_input_files(1), compact->compaction->level() + 1,
@@ -1382,9 +1384,13 @@ Status DBImpl::TryInstallMemtableFlushResults(
   DEBUG_arg("Install flushing result, current immutable number is %lu\n", imm_.current_memtable_num_.load());
 
 
+  // First apply locally then apply remotely.
+  {
+    std::unique_lock<std::mutex> lck(versionset_mtx);
+    s = vset->LogAndApply(edit);
+    Edit_sync_to_remote(edit);
+  }
 
-  s = vset->LogAndApply(edit);
-  Edit_sync_to_remote(edit);
 #ifndef NDEBUG
 //  std::string temp_buf;
 //  edit->EncodeTo(&temp_buf);
@@ -1490,7 +1496,8 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
 
 void DBImpl::InstallSuperVersion() {
   SuperVersion* old_superversion = super_version;
-  super_version = new SuperVersion(mem_,imm_.current(), versions_->current());
+  super_version =
+      new SuperVersion(mem_, imm_.current(), versions_->current(), &versionset_mtx);
   super_version->Ref();
   ++super_version_number_;
   super_version->version_number = super_version_number_;
@@ -2959,6 +2966,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   if (s.ok() && save_manifest) {
     edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
     edit.SetLogNumber(impl->logfile_number_);
+    std::unique_lock<std::mutex> lck(impl->versionset_mtx);
     s = impl->versions_->LogAndApply(&edit);
   }
   if (s.ok()) {
