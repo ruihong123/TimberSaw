@@ -560,6 +560,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
         assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
         status = FinishCompactionOutputFile(sub_compact, input);
         if (!status.ok()) {
+          DEBUG("Iterator status is not OK\n");
           break;
         }
       }
@@ -583,10 +584,6 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
 printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
        Not_drop_counter);
 #endif
-  //  assert(key.data()[0] == '0');
-  if (status.ok()) {
-    status = Status::IOError("Deleting DB during compaction");
-  }
   if (status.ok() && sub_compact->builder != nullptr) {
 //    assert(key.size()>0);
 
@@ -660,7 +657,6 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(SubcompactionState* compac
 
   const uint64_t output_number = compact->current_output()->number;
   assert(!compact->current_output()->largest.Encode().empty());
-
 #ifndef NDEBUG
 //  if (output_number == 11 ||output_number == 12 ){
 //    printf("Finish Compaction output number is 11 or 12\n");
