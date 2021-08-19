@@ -880,6 +880,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 
 
     meta->file_size = 0;
+
     for(auto iter : meta->remote_data_mrs){
       meta->file_size += iter.second->length;
     }

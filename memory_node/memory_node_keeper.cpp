@@ -94,6 +94,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
       c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
       c->edit()->AddFile(c->level() + 1, f);
+      f->level = f->level +1;
       {
 //        std::unique_lock<std::mutex> l(versions_mtx);// TODO(ruihong): remove all the superversion mutex usage.
         c->ReleaseInputs();
@@ -782,6 +783,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       //TODO make all the metadata written into out
       meta->number = out.number;
       meta->file_size = out.file_size;
+      meta->level = level+1;
       meta->smallest = out.smallest;
       meta->largest = out.largest;
       meta->remote_data_mrs = out.remote_data_mrs;
@@ -799,6 +801,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         // TODO make all the metadata written into out
         meta->number = out.number;
         meta->file_size = out.file_size;
+        meta->level = level+1;
         meta->smallest = out.smallest;
         meta->largest = out.largest;
         meta->remote_data_mrs = out.remote_data_mrs;
