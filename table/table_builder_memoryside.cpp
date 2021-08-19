@@ -76,6 +76,7 @@ struct TableBuilder_Memoryside::Rep {
   // First, all the buffer are outstanding
   // second, no buffer is outstanding, those two status will both have start - end = 1
   bool data_inuse_empty = true;
+  //TODO: garbage collect all the local unused MR when destroyingnthis table builder.
   ibv_mr* local_data_mr;
   ibv_mr* local_index_mr;
   ibv_mr* local_filter_mr;
