@@ -183,8 +183,10 @@ void FullFilterBlockBuilder::Move_buffer(const char* p){
 //}
 
 FullFilterBlockReader::FullFilterBlockReader(
-    const Slice& contents, std::shared_ptr<RDMA_Manager> rdma_mg)
-    :filter_content(contents), data_(contents.data()), rdma_mg_(rdma_mg) {
+    const Slice& contents, std::shared_ptr<RDMA_Manager> rdma_mg,
+    FilterSide side)
+    :filter_content(contents), data_(contents.data()), rdma_mg_(rdma_mg),
+    filter_side(side){
   uint32_t len_with_meta = static_cast<uint32_t>(contents.size());
   if (len_with_meta <= 5) {
     // filter is empty or broken. Treat like zero keys added.
@@ -272,11 +274,14 @@ bool FullFilterBlockReader::KeyMayMatch(const Slice& key) {
 
 }
 FullFilterBlockReader::~FullFilterBlockReader() {
-  if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)filter_content.data(), "FilterBlock")){
-    printf("Filter Block deregisteration failed\n");
-  }else{
-//    printf("Filter block deregisteration successfully\n");
+  if (filter_side == Compute){
+    if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)filter_content.data(), "FilterBlock")){
+      DEBUG("Filter Block deregisteration failed\n");
+    }else{
+      //    printf("Filter block deregisteration successfully\n");
+    }
   }
+
 }
 
 }  // namespace leveldb

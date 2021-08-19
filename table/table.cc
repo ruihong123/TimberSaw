@@ -101,8 +101,8 @@ void Table::ReadFilter() {
 //  if (block.heap_allocated) {
 //    rep_->filter_data = block.data.data();  // Will need to delete later
 //  }
-  rep_->filter =
-      new FullFilterBlockReader(block.data, rep_->remote_table.lock()->rdma_mg);
+  rep_->filter = new FullFilterBlockReader(
+      block.data, rep_->remote_table.lock()->rdma_mg, Compute);
 }
 
 Table::~Table() { delete rep_; }

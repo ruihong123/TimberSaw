@@ -136,8 +136,8 @@ void Table_Memory_Side::ReadFilter() {
   //  if (block.heap_allocated) {
   //    rep_->filter_data = block.data.data();  // Will need to delete later
   //  }
-  rep_->filter =
-      new FullFilterBlockReader(block.data, rep_->remote_table.lock()->rdma_mg);
+  rep_->filter = new FullFilterBlockReader(
+      block.data, rep_->remote_table.lock()->rdma_mg, Memory);
 }
 
 Table_Memory_Side::~Table_Memory_Side() { delete rep_; }

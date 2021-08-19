@@ -22,6 +22,8 @@ using LegacyBloomImpl = LegacyLocalityBloomImpl</*ExtraRotates*/ false>;
 class FilterPolicy;
 class Env;
 class Options;
+enum FilterSide { Compute, Memory};
+
 // A FullFilterBlockBuilder is used to construct all of the filters for a
 // particular Table.  It generates a single string which is stored as
 // a special block in the Table.
@@ -70,12 +72,13 @@ class FullFilterBlockReader {
  public:
   // REQUIRES: "contents" and *policy must stay live while *this is live.
   FullFilterBlockReader(const Slice& contents,
-                        std::shared_ptr<RDMA_Manager> rdma_mg);
+                        std::shared_ptr<RDMA_Manager> rdma_mg, FilterSide side);
   ~FullFilterBlockReader();
   bool KeyMayMatch(const Slice& key); // full filter.
  private:
 //  const FilterPolicy* policy_;
 //  std::unique_ptr<FilterBitsReader> filter_bits_reader_;
+
   Slice filter_content;
   const char* data_;
   int num_probes_ = 0;
@@ -84,7 +87,9 @@ class FullFilterBlockReader {
 
 //  const char* data_;    // Pointer to filter data (at block-start)
   size_t filter_size;
+
   std::shared_ptr<RDMA_Manager> rdma_mg_;
+  FilterSide filter_side;
 };
 
 }  // namespace leveldb
