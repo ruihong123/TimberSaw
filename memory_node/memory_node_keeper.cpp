@@ -101,7 +101,11 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       DEBUG("Trival compaction\n");
     } else {
       CompactionState* compact = new CompactionState(c);
-
+#ifndef NDEBUG
+      if (c->level() >= 1){
+        printf("Compaction level > 1");
+      }
+#endif
       auto start = std::chrono::high_resolution_clock::now();
       //      write_stall_mutex_.AssertNotHeld();
       // Only when there is enough input level files and output level files will the subcompaction triggered
