@@ -30,7 +30,8 @@ class Memory_Node_Keeper {
   void CleanupCompaction(CompactionState* compact);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
-  Status DoCompactionWorkWithSubcompaction(CompactionState* compact);
+  Status DoCompactionWorkWithSubcompaction(CompactionState* compact,
+                                           std::string& client_ip);
   Status OpenCompactionOutputFile(SubcompactionState* compact);
   Status OpenCompactionOutputFile(CompactionState* compact);
   Status FinishCompactionOutputFile(SubcompactionState* compact,

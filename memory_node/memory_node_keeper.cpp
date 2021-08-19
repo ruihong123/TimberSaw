@@ -2,8 +2,11 @@
 // Created by ruihong on 7/29/21.
 //
 #include "memory_node/memory_node_keeper.h"
-#include "table/table_builder_memoryside.h"
+
 #include "db/table_cache.h"
+#include <list>
+
+#include "table/table_builder_memoryside.h"
 
 namespace leveldb{
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
@@ -114,8 +117,8 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       //      write_stall_mutex_.AssertNotHeld();
       // Only when there is enough input level files and output level files will the subcompaction triggered
       if (usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
-//        status = DoCompactionWorkWithSubcompaction(compact);
-        status = DoCompactionWork(compact, *client_ip);
+        status = DoCompactionWorkWithSubcompaction(compact, *client_ip);
+//        status = DoCompactionWork(compact, *client_ip);
       }else{
         status = DoCompactionWork(compact, *client_ip);
       }
@@ -342,8 +345,258 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 //  Versionset_Sync_To_Compute(VersionEdit* ve);
   return status;
 }
+Status Memory_Node_Keeper::DoCompactionWorkWithSubcompaction(
+    CompactionState* compact, std::string& client_ip) {
+  Compaction* c = compact->compaction;
+  c->GenSubcompactionBoundaries();
+  auto boundaries = c->GetBoundaries();
+  auto sizes = c->GetSizes();
+  assert(boundaries->size() == sizes->size() - 1);
+  //  int subcompaction_num = std::min((int)c->GetBoundariesNum(), config::MaxSubcompaction);
+  if (boundaries->size()<=config::MaxSubcompaction){
+    for (size_t i = 0; i <= boundaries->size(); i++) {
+      Slice* start = i == 0 ? nullptr : &(*boundaries)[i - 1];
+      Slice* end = i == boundaries->size() ? nullptr : &(*boundaries)[i];
+      compact->sub_compact_states.emplace_back(c, start, end, (*sizes)[i]);
+    }
+  }else{
+    //Get output level total file size.
+    uint64_t sum = c->GetFileSizesForLevel(1);
+    std::list<int> small_files{};
+    for (int i=0; i< sizes->size(); i++) {
+      if ((*sizes)[i] <= opts->max_file_size/4)
+        small_files.push_back(i);
+    }
+    int big_files_num = boundaries->size() - small_files.size();
+    int files_per_subcompaction = big_files_num/config::MaxSubcompaction + 1;//Due to interger round down, we need add 1.
+    double mean = sum * 1.0 / config::MaxSubcompaction;
+    for (size_t i = 0; i <= boundaries->size(); i++) {
+      size_t range_size = (*sizes)[i];
+      Slice* start = i == 0 ? nullptr : &(*boundaries)[i - 1];
+      int files_counter = range_size <= opts->max_file_size/4 ? 0 : 1;// count this file.
+      // TODO(Ruihong) make a better strategy to group the boundaries.
+      //Version 1
+      //      while (i!=boundaries->size() && range_size < mean &&
+      //             range_size + (*sizes)[i+1] <= mean + 3*options_.max_file_size/4){
+      //        i++;
+      //        range_size += (*sizes)[i];
+      //      }
+      //Version 2
+      while (i!=boundaries->size() &&
+      (files_counter<files_per_subcompaction ||(*sizes)[i+1] <= opts->max_file_size/4)){
+        i++;
+        size_t this_file_size = (*sizes)[i];
+        range_size += this_file_size;
+        // Only increase the file counter when add big file.
+        if (this_file_size >= opts->max_file_size/4)
+          files_counter++;
+      }
+      Slice* end = i == boundaries->size() ? nullptr : &(*boundaries)[i];
+      compact->sub_compact_states.emplace_back(c, start, end, range_size);
+    }
+
+  }
+  printf("Subcompaction number is %zu", compact->sub_compact_states.size());
+  const size_t num_threads = compact->sub_compact_states.size();
+  assert(num_threads > 0);
+//  const uint64_t start_micros = env_->NowMicros();
+
+  // Launch a thread for each of subcompactions 1...num_threads-1
+  std::vector<port::Thread> thread_pool;
+  thread_pool.reserve(num_threads - 1);
+  for (size_t i = 1; i < compact->sub_compact_states.size(); i++) {
+    thread_pool.emplace_back(&Memory_Node_Keeper::ProcessKeyValueCompaction, this,
+                             &compact->sub_compact_states[i]);
+  }
+
+  // Always schedule the first subcompaction (whether or not there are also
+  // others) in the current thread to be efficient with resources
+  ProcessKeyValueCompaction(&compact->sub_compact_states[0]);
+  for (auto& thread : thread_pool) {
+    thread.join();
+  }
+//  CompactionStats stats;
+////  stats.micros = env_->NowMicros() - start_micros;
+//  for (int which = 0; which < 2; which++) {
+//    for (int i = 0; i < compact->compaction->num_input_files(which); i++) {
+//      stats.bytes_read += compact->compaction->input(which, i)->file_size;
+//    }
+//  }
+//  for (auto iter : compact->sub_compact_states) {
+//    for (size_t i = 0; i < iter.outputs.size(); i++) {
+//      stats.bytes_written += iter.outputs[i].file_size;
+//    }
+//  }
+
+  // TODO: we can remove this lock.
 
 
+  Status status;
+  {
+//    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
+    status = InstallCompactionResults(compact, client_ip);
+//    InstallSuperVersion();
+  }
+
+
+//  if (!status.ok()) {
+//    RecordBackgroundError(status);
+//  }
+//  VersionSet::LevelSummaryStorage tmp;
+//  Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
+//  // NOtifying all the waiting threads.
+//  write_stall_cv.notify_all();
+  return status;
+}
+void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
+  assert(sub_compact->builder == nullptr);
+  //Start and End are userkeys.
+  Slice* start = sub_compact->start;
+  Slice* end = sub_compact->end;
+//  if (snapshots_.empty()) {
+//    sub_compact->smallest_snapshot = versions_->LastSequence();
+//  } else {
+//    sub_compact->smallest_snapshot = snapshots_.oldest()->sequence_number();
+//  }
+
+Iterator* input = versions_->MakeInputIteratorMemoryServer(sub_compact->compaction);
+
+  // Release mutex while we're actually doing the compaction work
+  //  undefine_mutex.Unlock();
+  if (start != nullptr) {
+    InternalKey start_internal(*start, kMaxSequenceNumber, kValueTypeForSeek);
+    //tofix(ruihong): too much data copy for the seek here!
+    input->Seek(start_internal.Encode());
+    // The sstable range is (start, end]
+    input->Next();
+  } else {
+    input->SeekToFirst();
+  }
+#ifndef NDEBUG
+  int Not_drop_counter = 0;
+  int number_of_key = 0;
+#endif
+  Status status;
+  // TODO: try to create two ikey for parsed key, they can in turn represent the current user key
+  //  and former one, which can save the data copy overhead.
+  ParsedInternalKey ikey;
+  std::string current_user_key;
+  bool has_current_user_key = false;
+  SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
+  Slice key;
+  assert(input->Valid());
+#ifndef NDEBUG
+  printf("first key is %s", input->key().ToString().c_str());
+#endif
+  while (input->Valid()) {
+    key = input->key();
+
+    //    assert(key.data()[0] == '0');
+    //Check whether the output file have too much overlap with level n + 2
+    if (sub_compact->compaction->ShouldStopBefore(key) &&
+    sub_compact->builder != nullptr) {
+      //TODO: record the largest key as the last ikey, find a more efficient way to record
+      // the last key of SSTable.
+      sub_compact->current_output()->largest.SetFrom(ikey);
+      status = FinishCompactionOutputFile(sub_compact, input);
+      if (!status.ok()) {
+        break;
+      }
+    }
+    // key merged below!!!
+    // Handle key/value, add to state, etc.
+    bool drop = false;
+    if (!ParseInternalKey(key, &ikey)) {
+      // Do not hide error keys
+      current_user_key.clear();
+      has_current_user_key = false;
+      last_sequence_for_key = kMaxSequenceNumber;
+    } else {
+      if (!has_current_user_key){
+        //TODO: can we avoid the data copy here, can we set two buffers in block and make
+        // the old user key not be garbage collected so that the old Slice can be
+        // directly used here.
+        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+        has_current_user_key = true;
+      }
+      else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
+      0) {
+        // First occurrence of this user key
+        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+        //        has_current_user_key = true;
+        //        last_sequence_for_key = kMaxSequenceNumber;
+        // this will result in the key not drop, next if will always be false because of
+        // the last_sequence_for_key.
+      }else{
+        drop = true;
+      }
+
+    }
+#ifndef NDEBUG
+    number_of_key++;
+#endif
+    if (!drop) {
+      // Open output file if necessary
+      if (sub_compact->builder == nullptr) {
+        status = OpenCompactionOutputFile(sub_compact);
+        if (!status.ok()) {
+          break;
+        }
+      }
+      if (sub_compact->builder->NumEntries() == 0) {
+        sub_compact->current_output()->smallest.DecodeFrom(key);
+      }
+#ifndef NDEBUG
+      Not_drop_counter++;
+#endif
+      sub_compact->builder->Add(key, input->value());
+      //      assert(key.data()[0] == '0');
+      // Close output file if it is big enough
+      if (sub_compact->builder->FileSize() >=
+      sub_compact->compaction->MaxOutputFileSize()) {
+        //        assert(key.data()[0] == '0');
+        sub_compact->current_output()->largest.DecodeFrom(key);
+        status = FinishCompactionOutputFile(sub_compact, input);
+        if (!status.ok()) {
+          break;
+        }
+      }
+    }
+    if (end != nullptr &&
+    user_comparator()->Compare(ExtractUserKey(key), *end) >= 0) {
+      break;
+    }
+    //    assert(key.data()[0] == '0');
+    input->Next();
+    //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
+    // be invalid also.
+    //    assert(key.data()[0] == '0');
+
+  }
+  //  reinterpret_cast<leveldb::MergingIterator>
+  // You can not call prev here because the iterator is not valid any more
+  //  input->Prev();
+  //  assert(input->Valid());
+#ifndef NDEBUG
+printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
+       Not_drop_counter);
+#endif
+  //  assert(key.data()[0] == '0');
+  if (status.ok()) {
+    status = Status::IOError("Deleting DB during compaction");
+  }
+  if (status.ok() && sub_compact->builder != nullptr) {
+    //    assert(key.data()[0] == '0');
+
+    sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
+    status = FinishCompactionOutputFile(sub_compact, input);
+  }
+  if (status.ok()) {
+    status = input->status();
+  }
+  delete input;
+  //  input = nullptr;
+}
 Status Memory_Node_Keeper::OpenCompactionOutputFile(SubcompactionState* compact) {
   assert(compact != nullptr);
   assert(compact->builder == nullptr);

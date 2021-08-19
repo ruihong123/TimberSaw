@@ -1681,7 +1681,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
   std::unique_lock<std::mutex> lck(superversion_mtx);
   versions_->LogAndApply(&version_edit);
 #ifndef NDEBUG
-  printf("version edit decoded level is %d file number is %d", version_edit.compactlevel(),version_edit.GetNewFilesNum() );
+  printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
 #endif
 
   InstallSuperVersion();

@@ -68,6 +68,8 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     rdma_mg = Memory_Node_Keeper::rdma_mg;
 
   GetFixed64(&src, &level);
+  assert(level < config::kNumLevels);
+
   GetFixed64(&src, &number);
 //  node_id = reinterpret_cast<uint8_t*>(src.data());
   memcpy(&creator_node_id, src.data(), sizeof(creator_node_id));
