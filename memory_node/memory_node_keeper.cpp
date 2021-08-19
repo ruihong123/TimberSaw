@@ -664,8 +664,8 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(SubcompactionState* compac
 #ifndef NDEBUG
 //  if (output_number == 11 ||output_number == 12 ){
 //    printf("Finish Compaction output number is 11 or 12\n");
-    printf("File number %lu largest key is %s", compact->current_output()->number,
-           compact->current_output()->largest.Encode().ToString().c_str());
+    printf("File number %lu largest key size is %lu", compact->current_output()->number,
+           compact->current_output()->largest.Encode().ToString().size());
 //  }
 #endif
   assert(output_number != 0);
