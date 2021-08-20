@@ -482,16 +482,19 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
   //  and former one, which can save the data copy overhead.
   ParsedInternalKey ikey;
   std::string current_user_key;
+
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
   Slice key;
   assert(input->Valid());
 #ifndef NDEBUG
+  std::string last_internal_key;
   printf("first key is %s", input->key().ToString().c_str());
 #endif
   while (input->Valid()) {
-    key = input->key();
 
+    key = input->key();
+    assert(key.ToString() != last_internal_key);
     //    assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (sub_compact->compaction->ShouldStopBefore(key) &&
@@ -519,12 +522,18 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
         // the old user key not be garbage collected so that the old Slice can be
         // directly used here.
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+#ifndef NDEBUG
+        last_internal_key = key.ToString();
+#endif
         has_current_user_key = true;
       }
       else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
       0) {
         // First occurrence of this user key
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+#ifndef NDEBUG
+        last_internal_key = key.ToString();
+#endif
         //        has_current_user_key = true;
         //        last_sequence_for_key = kMaxSequenceNumber;
         // this will result in the key not drop, next if will always be false because of
