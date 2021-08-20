@@ -353,6 +353,9 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
   r->compressed_output.clear();
   block_size = block_contents->size();
   DEBUG_arg("index block size: %zu \n", block_size);
+#ifndef NDEBUG
+  printf(" start of the this block is %.*s\n", 50, block_contents->data());
+#endif
   block->Reset_Forward();
 
 }

@@ -122,6 +122,10 @@ TableBuilder_Memoryside::~TableBuilder_Memoryside() {
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
   }
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, "FlushBuffer");
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, "FlushBuffer");
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, "FlushBuffer");
+
 //  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->rdma_mg;
 //  for(auto iter : rep_->local_data_mr){
 //    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
