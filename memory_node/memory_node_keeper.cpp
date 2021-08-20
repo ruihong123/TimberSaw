@@ -559,6 +559,9 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
         assert(key.data()[0] == '\000');
         sub_compact->current_output()->largest.DecodeFrom(key);
         assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
+
+        assert(internal_comparator_.Compare(sub_compact->current_output()->largest,
+                                            sub_compact->current_output()->smallest)>0);
         status = FinishCompactionOutputFile(sub_compact, input);
         if (!status.ok()) {
           DEBUG("Iterator status is not OK\n");
