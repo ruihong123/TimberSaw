@@ -545,6 +545,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
         }
       }
       if (sub_compact->builder->NumEntries() == 0) {
+        assert(key.data()[0] == '\000');
         sub_compact->current_output()->smallest.DecodeFrom(key);
       }
 #ifndef NDEBUG
@@ -555,7 +556,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
       // Close output file if it is big enough
       if (sub_compact->builder->FileSize() >=
       sub_compact->compaction->MaxOutputFileSize()) {
-        //        assert(key.data()[0] == '0');
+        assert(key.data()[0] == '\000');
         sub_compact->current_output()->largest.DecodeFrom(key);
         assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
         status = FinishCompactionOutputFile(sub_compact, input);
@@ -586,7 +587,7 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 #endif
   if (status.ok() && sub_compact->builder != nullptr) {
 //    assert(key.size()>0);
-
+    assert(key.data()[0] == '\000');
     sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
     assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
     status = FinishCompactionOutputFile(sub_compact, input);
