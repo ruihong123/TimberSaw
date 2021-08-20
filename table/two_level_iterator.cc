@@ -21,7 +21,7 @@ TwoLevelIterator::TwoLevelIterator(Iterator* index_iter,
       data_iter_(nullptr), valid_(false) {}
 
 TwoLevelIterator::~TwoLevelIterator() {
-  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p\n", this);
+//  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p\n", this);
 };
 
 void TwoLevelIterator::Seek(const Slice& target) {

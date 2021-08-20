@@ -20,7 +20,7 @@ class IteratorWrapper {
   explicit IteratorWrapper(Iterator* iter) : iter_(nullptr) { Set(iter); }
   ~IteratorWrapper() {
 #ifndef NDEBUG
-    printf("Delete iter_ when iterator wrapper deallocation, deleted iter_ is %p \n", iter_);
+//    printf("Delete iter_ when iterator wrapper deallocation, deleted iter_ is %p \n", iter_);
 #endif
     delete iter_;
   }

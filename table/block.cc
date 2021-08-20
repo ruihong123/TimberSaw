@@ -56,7 +56,7 @@ Block::~Block() {
       return;
     }
     if (type_ == Block_On_Memory_Side){
-
+      return;
     }
     DEBUG("Not found in the RDMA mem pool");
   }
