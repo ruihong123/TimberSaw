@@ -95,6 +95,12 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   // Add "<shared><non_shared><value_size>" to buffer
   PutVarint32(&buffer, shared);
   PutVarint32(&buffer, non_shared);
+#ifndef NDEBUG
+  if (counter_ == 0){
+    assert(non_shared == 29);
+  }
+#endif
+
   PutVarint32(&buffer, value.size());
 
   // Add string delta to buffer followed by value
