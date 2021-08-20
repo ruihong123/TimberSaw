@@ -586,6 +586,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
     }
     if (end != nullptr &&
     user_comparator()->Compare(ExtractUserKey(key), *end) >= 0) {
+      assert(user_comparator()->Compare(ExtractUserKey(key), *end) == 0);
       break;
     }
     //    assert(key.data()[0] == '0');
@@ -605,7 +606,7 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 #endif
   if (status.ok() && sub_compact->builder != nullptr) {
 //    assert(key.size()>0);
-    assert(key.data()[0] == '\000');
+//    assert(key.data()[0] == '\000');
     sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
     assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
     status = FinishCompactionOutputFile(sub_compact, input);

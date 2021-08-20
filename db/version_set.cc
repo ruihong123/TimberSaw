@@ -641,7 +641,7 @@ class VersionSet::Builder {
       levels_[level].added_files->insert(f);
       //TODO: Why deleted file will be be remove from deletedfiles if it exist in added file
 
-      printf("Apply2: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
+//      printf("Apply2: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     }
   }
 
