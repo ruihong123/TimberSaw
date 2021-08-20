@@ -501,6 +501,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
       sub_compact->current_output()->largest.SetFrom(ikey);
       status = FinishCompactionOutputFile(sub_compact, input);
       if (!status.ok()) {
+        DEBUG("Should stop status not OK\n");
         break;
       }
     }
