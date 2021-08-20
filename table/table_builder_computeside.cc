@@ -221,6 +221,7 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
   }
 
   r->last_key.assign(key.data(), key.size());
+  assert(r->last_key.c_str()[8] == 060);
   r->num_entries++;
   r->data_block->Add(key, value);
 
