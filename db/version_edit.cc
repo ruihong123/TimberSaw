@@ -23,9 +23,9 @@ RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
     rdma_mg = Memory_Node_Keeper::rdma_mg;
     creator_node_id = rdma_mg->node_id;
   }
-#ifndef NDEBUG
-  printf("RDMA manager pointer is %p, node id is %d", rdma_mg.get(), rdma_mg->node_id);
-#endif
+//#ifndef NDEBUG
+//  printf("RDMA manager pointer is %p, node id is %d", rdma_mg.get(), rdma_mg->node_id);
+//#endif
 }
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);

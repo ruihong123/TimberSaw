@@ -603,10 +603,10 @@ class VersionSet::Builder {
       const uint64_t number = std::get<1>(deleted_file_set_kvp);
       const uint8_t node_id = std::get<2>(deleted_file_set_kvp);
       levels_[level].deleted_files.insert({number, node_id});
-      printf("level %d, number %lu\n", level, number);
+//      printf("level %d, number %lu\n", level, number);
     }
-    printf("Apply: level 0 deleted file size %lu\n", levels_[0].deleted_files.size());
-    printf("Apply: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
+//    printf("Apply: level 0 deleted file size %lu\n", levels_[0].deleted_files.size());
+//    printf("Apply: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     // Add new files
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
