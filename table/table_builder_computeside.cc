@@ -357,7 +357,11 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
   char print_data[11];
   memcpy(print_data, block_contents->data(), 10);
   memset(print_data+10, 0, 1);
-  printf(" start of the this block is %.*s, look at this\n", 10, print_data);
+  printf(" start of the this block is", 10, print_data);
+  for (int i = 0; i < 10; ++i) {
+    printf("%o", print_data[i]);
+  }
+  printf("\n");
 #endif
   block->Reset_Forward();
 
