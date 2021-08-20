@@ -354,7 +354,9 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
   block_size = block_contents->size();
   DEBUG_arg("index block size: %zu \n", block_size);
 #ifndef NDEBUG
-  printf(" start of the this block is %.*s, look at this\n", 10, block_contents->data());
+  char print_data[10];
+  memcpy(print_data, block_contents->data(), 10);
+  printf(" start of the this block is %.*s, look at this\n", 10, print_data);
 #endif
   block->Reset_Forward();
 
