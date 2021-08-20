@@ -495,8 +495,11 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
 
     key = input->key();
     assert(key.ToString() != last_internal_key);
-
-    assert(internal_comparator_.Compare(key, *start) > 0);
+#ifndef NDEBUG
+    if (!start){
+      assert(internal_comparator_.Compare(key, *start) > 0);
+    }
+#endif
     //    assert(key.data()[0] == '0');
     //Check whether the output file have too much overlap with level n + 2
     if (sub_compact->compaction->ShouldStopBefore(key) &&
