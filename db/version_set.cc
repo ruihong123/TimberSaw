@@ -610,7 +610,9 @@ class VersionSet::Builder {
     // Add new files
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
+
       std::shared_ptr<RemoteMemTableMetaData> f = edit->new_files_[i].second;
+      assert(f.get()!= nullptr);
 //      f->refs = 1;
 
       // We arrange to automatically compact this file after
