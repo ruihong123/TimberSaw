@@ -465,7 +465,8 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
   // Release mutex while we're actually doing the compaction work
   //  undefine_mutex.Unlock();
   if (start != nullptr) {
-    InternalKey start_internal(*start, kMaxSequenceNumber, kValueTypeForSeek);
+    //The compaction range is (start, end]. so we set 0 as look up key sequence.
+    InternalKey start_internal(*start, 0, kValueTypeForSeek);
     //tofix(ruihong): too much data copy for the seek here!
     input->Seek(start_internal.Encode());
     // The first key larger or equal to start_internal was covered in the subtask before it.
