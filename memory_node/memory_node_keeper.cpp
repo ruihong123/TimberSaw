@@ -1138,9 +1138,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   version_edit.DecodeFrom(
       Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
-//  std::unique_lock<std::mutex> lck(versions_mtx);
+  std::unique_lock<std::mutex> lck(versionset_mtx);
   versions_->LogAndApply(&version_edit);
-//  lck.unlock();
+  lck.unlock();
   MaybeScheduleCompaction(client_ip);
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");

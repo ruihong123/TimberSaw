@@ -589,6 +589,7 @@ class VersionSet::Builder {
   }
 
   // Apply all of the edits in *edit to the current state.
+  //TODO(ruihong): change it back to no current validation.
   void Apply(VersionEdit* edit, Version* current) {
     assert(current = base_);
     // Update compaction pointers
@@ -948,7 +949,7 @@ Status VersionSet::Recover(bool* save_manifest) {
       }
 
       if (s.ok()) {
-        builder.Apply(&edit, nullptr);
+        builder.Apply(&edit, current_);
       }
 
       if (edit.has_log_number_) {
