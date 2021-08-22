@@ -129,6 +129,7 @@ class Block::Iter : public Iterator {
 
     // ParseNextKey() starts at the end of value_, so set value_ accordingly
     uint32_t offset = GetRestartPoint(index);
+    assert(offset <= restarts_);
     value_ = Slice(data_ + offset, 0);
   }
 
