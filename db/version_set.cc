@@ -589,7 +589,8 @@ class VersionSet::Builder {
   }
 
   // Apply all of the edits in *edit to the current state.
-  void Apply(VersionEdit* edit) {
+  void Apply(VersionEdit* edit, Version* current) {
+    assert(current = base_);
     // Update compaction pointers
     for (size_t i = 0; i < edit->compact_pointers_.size(); i++) {
       const int level = edit->compact_pointers_[i].first;
@@ -818,7 +819,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
     Builder builder(this, current_);
     // apply to the new version, no need to apply delete files, only add
     // alive files and new files to the new version just created
-    builder.Apply(edit);
+    builder.Apply(edit, current_);
     builder.SaveTo(v);
   }
 
@@ -947,7 +948,7 @@ Status VersionSet::Recover(bool* save_manifest) {
       }
 
       if (s.ok()) {
-        builder.Apply(&edit);
+        builder.Apply(&edit, nullptr);
       }
 
       if (edit.has_log_number_) {
