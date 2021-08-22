@@ -99,7 +99,7 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   PutVarint32(&buffer, non_shared);
 
   PutVarint32(&buffer, value.size());
-  assert(value.size() == 400);
+//  assert(value.size() == 400);
 
   // Add string delta to buffer followed by value
   buffer.append(key.data() + shared, non_shared);
