@@ -2126,6 +2126,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_t
   return false;
 }
 bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p) {
+  DEBUG_arg("Delete Remote pointer %p", p);
   std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
   std::map<void*, In_Use_Array>* Bitmap;
   Bitmap = Remote_Mem_Bitmap;
