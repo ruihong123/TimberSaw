@@ -63,6 +63,8 @@ Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table
     if (actual != crc) {
       //      delete[] buf;
       DEBUG("Index block Checksum mismatch\n");
+      usleep(100);
+      uint32_t new_crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
       assert(false);
       s = Status::Corruption("block checksum mismatch");
       return s;
