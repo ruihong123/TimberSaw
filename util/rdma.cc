@@ -1992,14 +1992,13 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
       remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
                                            sst_index * Table_Size);
       remote_mr.length = Table_Size;
+
 //        remote_data_mrs->fname = file_name;
 //        remote_data_mrs->map_pointer =
 //          (ptr->second).get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
 // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
 //      remote_data_mrs->file_size = 0;
-#ifndef NDEBUG
-//      std::cout <<"Chunk allocate at" << sst_meta->mr->addr <<"index :" << sst_index << "name: " << sst_meta->fname << std::endl;
-#endif
+      DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
       return;
     } else
       ptr++;
@@ -2022,6 +2021,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
   remote_mr.length = Table_Size;
   //    remote_data_mrs->fname = file_name;
   //    remote_data_mrs->map_pointer = mr_last;
+  DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
   return;
 }
 // A function try to allocate RDMA registered local memory
