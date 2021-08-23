@@ -572,8 +572,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 
     name_to_mem_pool.at(pool_name).insert({(*p2mrpointer)->addr, in_use_array});
   }
-  //  else
-  //    printf("RDMA bitmap insert error");
+    else
+      printf("Register memory for computing node\n");
   fprintf(stdout,
           "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
