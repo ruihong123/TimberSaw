@@ -1726,6 +1726,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
         fprintf(stderr,
                 "number %d got bad completion with status: 0x%x, vendor syndrome: 0x%x\n",
                 i, wc_p[i].status, wc_p[i].vendor_err);
+        assert(false);
         rc = 1;
       }
     }
@@ -1766,11 +1767,12 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
   if (poll_result > 0){
     if (wc_p[poll_result-1].status !=
     IBV_WC_SUCCESS)  // TODO:: could be modified into check all the entries in the array
-      {
+    {
       fprintf(stderr,
               "number %d got bad completion with status: 0x%x, vendor syndrome: 0x%x\n",
               poll_result-1, wc_p[poll_result-1].status, wc_p[poll_result-1].vendor_err);
-      }
+      assert(false);
+    }
   }
 #endif
   return poll_result;
