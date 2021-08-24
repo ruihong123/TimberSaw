@@ -1048,13 +1048,17 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   ibv_mr* mr;
   char* buff;
-  if (!rdma_mg->Local_Memory_Register(&buff, &mr, request.content.mem_size,
-                                       std::string())) {
-    fprintf(stderr, "memory registering failed by size of 0x%x\n",
-            static_cast<unsigned>(request.content.mem_size));
+  {
+    std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
+      if (!rdma_mg->Local_Memory_Register(&buff, &mr, request.content.mem_size,
+                                          std::string())) {
+        fprintf(stderr, "memory registering failed by size of 0x%x\n",
+                static_cast<unsigned>(request.content.mem_size));
+      }
+      printf("Now the total Registered memory is %zu GB",
+             rdma_mg->local_mem_pool.size());
   }
-  printf("Now the total Registered memory is %zu GB",
-         rdma_mg->local_mem_pool.size());
+
   send_pointer->content.mr = *mr;
   send_pointer->received = true;
 
