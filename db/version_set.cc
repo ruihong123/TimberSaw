@@ -1819,7 +1819,7 @@ void Compaction::GenSubcompactionBoundaries() {
     // and the starting key of the next are very close (or identical).
     sizes.push_back(level_inputs[0]->file_size);
     for (size_t i = 1; i < num_files; i++) {
-      bounds.emplace_back(level_inputs[i]->smallest.Encode());
+      bounds.emplace_back(ExtractUserKey(level_inputs[i]->smallest.Encode()));
       sizes.push_back(level_inputs[i]->file_size);
     }
   }
