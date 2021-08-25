@@ -28,7 +28,9 @@ struct RemoteMemTableMetaData {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
     // home node to deference. Or the remote dereference is conducted in the granularity of version.
     DEBUG("Destroying RemoteMemtableMetaData\n");
-    if (this_machine_type == 0){
+    assert(this_machine_type ==0 || this_machine_type == 1);
+    assert(creator_node_id == 0 || creator_node_id == 1);
+    if (this_machine_type == 0 && creator_node_id == 0){
       if(Remote_blocks_deallocate(remote_data_mrs) &&
       Remote_blocks_deallocate(remote_dataindex_mrs) &&
       Remote_blocks_deallocate(remote_filter_mrs)){
@@ -36,7 +38,7 @@ struct RemoteMemTableMetaData {
       }else{
         DEBUG("Remote memory collection not found\n");
       }
-    }else{
+    }else if(this_machine_type == 0 && creator_node_id == 0){
       //TODO: memory collection for the remote memory.
       if(Local_blocks_deallocate(remote_data_mrs) &&
       Local_blocks_deallocate(remote_dataindex_mrs) &&
