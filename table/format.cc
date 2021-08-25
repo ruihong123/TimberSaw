@@ -250,6 +250,8 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
       assert(false);
       s = Status::Corruption("block checksum mismatch");
       return s;
+    }else{
+      DEBUG_arg("SSTable %p open successfully\n", remote_mr->addr);
     }
   }
 
