@@ -54,9 +54,9 @@ Status Table::Open(const Options& options, Table** table,
   Status s = Status::OK();
   BlockContents index_block_contents;
   ReadOptions opt;
-  if (options.paranoid_checks) {
+//  if (options.paranoid_checks) {
     opt.verify_checksums = true;
-  }
+//  }
   s = ReadDataIndexBlock(Remote_table_meta->remote_dataindex_mrs.begin()->second,
                          opt, &index_block_contents);
 
