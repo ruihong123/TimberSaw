@@ -359,9 +359,11 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
 
   printf(" start of the this block is");
   for (int i = 0; i < 30; ++i) {
-    printf("%o, ", *(block_contents->data()+i));
+    printf("%uo, ", *(block_contents->data()+i));
   }
   printf("\n");
+//  char c = 255;
+//  printf("a full character %o", )
 #endif
   block->Reset_Forward();
 
