@@ -38,7 +38,7 @@ struct RemoteMemTableMetaData {
       }else{
         DEBUG("Remote memory collection not found\n");
       }
-    }else if(this_machine_type == 0 && creator_node_id == 0){
+    }else if(this_machine_type == 1 && creator_node_id == 1){
       //TODO: memory collection for the remote memory.
       if(Local_blocks_deallocate(remote_data_mrs) &&
       Local_blocks_deallocate(remote_dataindex_mrs) &&
