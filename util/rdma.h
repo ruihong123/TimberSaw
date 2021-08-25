@@ -181,9 +181,10 @@ class In_Use_Array {
   bool deallocate_memory_slot(int index) {
     bool temp = true;
     assert(in_use_[index] == true);
+    assert(index < element_size_);
     //    std::cout << "chunk" <<index << "was changed to false" << std::endl;
-
-    return in_use_[index].compare_exchange_strong(temp, false);
+    while (!in_use_[index].compare_exchange_strong(temp, false));
+    return true;
   }
   size_t get_chunk_size() { return chunk_size_; }
   ibv_mr* get_mr_ori() { return mr_ori_; }
