@@ -38,7 +38,7 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   uint64_t remote_data_chunk_num = remote_data_mrs.size();
   uint64_t remote_dataindex_chunk_num = remote_dataindex_mrs.size();
   uint64_t remote_filter_chunk_num = remote_filter_mrs.size();
-  assert(remote_filter_chunk_num = 1);
+//  assert(remote_filter_chunk_num = 1);
   PutFixed64(dst, remote_data_chunk_num);
   PutFixed64(dst, remote_dataindex_chunk_num);
   PutFixed64(dst, remote_filter_chunk_num);
