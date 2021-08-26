@@ -27,7 +27,9 @@ struct RemoteMemTableMetaData {
   ~RemoteMemTableMetaData() {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
     // home node to deference. Or the remote dereference is conducted in the granularity of version.
-    DEBUG_arg("Destroying RemoteMemtableMetaData, Table number is %d\n", number);
+#ifndef NDEBUG
+    printf("Destroying RemoteMemtableMetaData, Table number is %d, creator node id is \n", number, creator_node_id);
+#endif
     assert(this_machine_type ==0 || this_machine_type == 1);
     assert(creator_node_id == 0 || creator_node_id == 1);
     if (this_machine_type == 0 && creator_node_id == 0){
