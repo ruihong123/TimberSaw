@@ -1165,7 +1165,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   if (edit->IsTrival()){
     send_pointer = (RDMA_Request*)send_mr.addr;
     send_pointer->command = install_version_edit;
-    send_pointer->content.ive.trival = false;
+    send_pointer->content.ive.trival = true;
 //    send_pointer->content.ive.buffer_size = serilized_ve.size();
     int level;
     uint64_t file_number;
