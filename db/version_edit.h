@@ -37,6 +37,7 @@ struct RemoteMemTableMetaData {
         DEBUG("Remote blocks deleted successfully\n");
       }else{
         DEBUG("Remote memory collection not found\n");
+        assert(false);
       }
     }else if(this_machine_type == 1 && creator_node_id == 1){
       //TODO: memory collection for the remote memory.
@@ -46,6 +47,7 @@ struct RemoteMemTableMetaData {
         DEBUG("Local blocks deleted successfully\n");
       }else{
         DEBUG("Local memory collection not found\n");
+        assert(false);
       }
     }
 

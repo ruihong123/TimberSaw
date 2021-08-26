@@ -335,6 +335,7 @@ class RDMA_Manager {
       void* p,
       std::_Rb_tree_iterator<std::pair<void* const, In_Use_Array>>& mr_iter,
       std::map<void*, In_Use_Array>* Bitmap);
+  bool CheckInsideRemoteBuff(void* p);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
   int try_poll_this_thread_completions(ibv_wc* wc_p, int num_entries,

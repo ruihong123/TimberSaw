@@ -2113,8 +2113,10 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_t
     //      assert(buff_offset>=0);
     if (buff_offset < mr_iter->second.get_mr_ori()->length){
       assert(buff_offset % mr_iter->second.get_chunk_size() == 0);
-      return mr_iter->second.deallocate_memory_slot(
+      bool status = mr_iter->second.deallocate_memory_slot(
           buff_offset / mr_iter->second.get_chunk_size());
+      assert(status);
+      return status;
     }
     else
       return false;
@@ -2126,8 +2128,10 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_t
     if (buff_offset < mr_iter->second.get_mr_ori()->length){
       assert(buff_offset % mr_iter->second.get_chunk_size() == 0);
 
-      return mr_iter->second.deallocate_memory_slot(
+      bool status = mr_iter->second.deallocate_memory_slot(
           buff_offset / mr_iter->second.get_chunk_size());
+      assert(status);
+      return status;
     }
     else
       return false;
@@ -2150,8 +2154,10 @@ bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p) {
     //      assert(buff_offset>=0);
     if (buff_offset < mr_iter->second.get_mr_ori()->length){
       assert(buff_offset % mr_iter->second.get_chunk_size() == 0);
-      return mr_iter->second.deallocate_memory_slot(
+      bool status = mr_iter->second.deallocate_memory_slot(
           buff_offset / mr_iter->second.get_chunk_size());
+      assert(status);
+      return status;
     }
     else
       return false;
@@ -2162,8 +2168,10 @@ bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p) {
     //      assert(buff_offset>=0);
     if (buff_offset < mr_iter->second.get_mr_ori()->length){
       assert(buff_offset % mr_iter->second.get_chunk_size() == 0);
-      return mr_iter->second.deallocate_memory_slot(
+      bool status = mr_iter->second.deallocate_memory_slot(
           buff_offset / mr_iter->second.get_chunk_size());
+      assert(status);
+      return status;
     }else{
       return false;
     }
@@ -2214,7 +2222,39 @@ bool RDMA_Manager::CheckInsideLocalBuff(
   }
   return false;
 }
+bool RDMA_Manager::CheckInsideRemoteBuff(void* p) {
+  std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
+  std::map<void*, In_Use_Array>* Bitmap;
+  Bitmap = Remote_Mem_Bitmap;
+  auto mr_iter = Bitmap->upper_bound(p);
+  if (mr_iter == Bitmap->begin()) {
+    return false;
+  } else if (mr_iter == Bitmap->end()) {
+    mr_iter--;
+    size_t buff_offset =
+        static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
+    //      assert(buff_offset>=0);
+    if (buff_offset < mr_iter->second.get_mr_ori()->length){
+      assert(buff_offset % mr_iter->second.get_chunk_size() == 0);
+      return true;
+    }
+    else
+      return false;
+  } else {
+    mr_iter--;
+    size_t buff_offset =
+        static_cast<char*>(p) - static_cast<char*>(mr_iter->first);
+    //      assert(buff_offset>=0);
+    if (buff_offset < mr_iter->second.get_mr_ori()->length){
+      assert(buff_offset % mr_iter->second.get_chunk_size() == 0);
+      return true;
+    }else{
+      return false;
+    }
 
+  }
+  return false;
+}
 bool RDMA_Manager::Mempool_initialize(std::string pool_name, size_t size) {
   std::map<void*, In_Use_Array> mem_sub_pool;
   // check whether pool name has already exist.
