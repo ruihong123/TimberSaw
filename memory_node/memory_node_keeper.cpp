@@ -1166,7 +1166,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
   std::string serilized_ve;
   edit->EncodeTo(&serilized_ve);
-  assert(serilized_ve.size() <= send_mr_ve.length);
+  assert(serilized_ve.size() <= send_mr_ve.length-1);
   memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
   memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
 
