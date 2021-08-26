@@ -890,7 +890,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     delete builder;
 //TOFIX: temporarily disable the verification of index block.
 #ifndef NDEBUG
-    sleep(1);
+    sleep(10);
 #endif
     if (s.ok()) {
       // Verify that the table is usable
