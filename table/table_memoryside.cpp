@@ -60,16 +60,16 @@ Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table
   {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
-//    if (actual != crc) {
-//      //      delete[] buf;
-//      DEBUG("Index block Checksum mismatch\n");
-//      usleep(100);
-//      uint32_t new_crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
-//      uint32_t new_actual = crc32c::Value(data, n + 1);
-//      assert(false);
-//      s = Status::Corruption("block checksum mismatch");
-//      return s;
-//    }
+    if (actual != crc) {
+      //      delete[] buf;
+      DEBUG("Index block Checksum mismatch\n");
+      usleep(100);
+      uint32_t new_crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
+      uint32_t new_actual = crc32c::Value(data, n + 1);
+      assert(false);
+      s = Status::Corruption("block checksum mismatch");
+      return s;
+    }
   }
   index_block_contents.data = Slice(data, n);
 
