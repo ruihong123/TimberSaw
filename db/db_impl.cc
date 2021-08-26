@@ -1660,37 +1660,60 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 void DBImpl::install_version_edit_handler(RDMA_Request request,
                                           std::string client_ip) {
   auto rdma_mg = env_->rdma_mg;
-  ibv_mr send_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
-  send_pointer->content.ive = {};
-  ibv_mr edit_recv_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
-  send_pointer->reply_buffer = edit_recv_mr.addr;
-  send_pointer->rkey = edit_recv_mr.rkey;
-  send_pointer->received = true;
-  //TODO: how to check whether the version edit message is ready, we need to know the size of the
-  // version edit in the first REQUEST from compute node.
-  char* polling_bit = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
-  memset(polling_bit, 0, 1);
-  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
-                      &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-  while (*polling_bit == 0){}
-  VersionEdit version_edit;
-  version_edit.DecodeFrom(
-      Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
-  DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
-  std::unique_lock<std::mutex> lck(superversion_mtx);
-  versions_->LogAndApply(&version_edit);
+  if (request.content.ive.trival){
+    std::unique_lock<std::mutex> lck(versionset_mtx);
+    auto f = versions_->current()->FindFileByNumber(request.content.ive.level, request.content.ive.file_number,
+                                   request.content.ive.node_id);
+    lck.unlock();
+    VersionEdit edit;
+    edit.RemoveFile(request.content.ive.level, f->number, f->creator_node_id);
+    edit.AddFile(request.content.ive.level + 1, f);
+    f->level = f->level +1;
+    {
+      std::unique_lock<std::mutex> l(superversion_mtx);
+      versions_->LogAndApply(&edit);
 #ifndef NDEBUG
-  printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
+      printf("version edit decoded level is %d file number is %zu", edit.compactlevel(), edit.GetNewFilesNum() );
 #endif
 
-  InstallSuperVersion();
-  lck.unlock();
-  write_stall_cv.notify_all();
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+      InstallSuperVersion();
+    }
+
+
+  }else{
+    ibv_mr send_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+    send_pointer->content.ive = {};
+    ibv_mr edit_recv_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+    send_pointer->reply_buffer = edit_recv_mr.addr;
+    send_pointer->rkey = edit_recv_mr.rkey;
+    send_pointer->received = true;
+    //TODO: how to check whether the version edit message is ready, we need to know the size of the
+    // version edit in the first REQUEST from compute node.
+    char* polling_bit = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+    memset(polling_bit, 0, 1);
+    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+    while (*polling_bit == 0){}
+    VersionEdit version_edit;
+    version_edit.DecodeFrom(
+        Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
+    DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
+    std::unique_lock<std::mutex> lck(superversion_mtx);
+    versions_->LogAndApply(&version_edit);
+#ifndef NDEBUG
+    printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
+#endif
+
+    InstallSuperVersion();
+    lck.unlock();
+    write_stall_cv.notify_all();
+    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+    rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+  }
+
 }
 void DBImpl::ResetThreadLocalSuperVersions() {
   autovector<void*> sv_ptrs;

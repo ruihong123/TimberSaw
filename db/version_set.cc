@@ -525,6 +525,14 @@ std::string Version::DebugString() const {
 }
 double Version::CompactionScore(int i) { return compaction_score_[i]; }
 int Version::CompactionLevel(int i) { return compaction_level_[i]; }
+std::shared_ptr<RemoteMemTableMetaData> Version::FindFileByNumber(int level, uint64_t file_number, uint8_t node_id) {
+  for(auto iter :levels_[level]){
+    if (iter->number == file_number && iter->creator_node_id == node_id)
+      return iter;
+  }
+  assert(false);
+  return std::shared_ptr<RemoteMemTableMetaData>();
+}
 // A helper class so we can efficiently apply a whole sequence
 // of edits to a particular state without creating intermediate
 // Versions that contain full copies of the intermediate state.

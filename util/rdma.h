@@ -75,7 +75,11 @@ struct registered_qp_config {
   uint8_t gid[16]; /* gid */
 } __attribute__((packed));
 struct install_versionedit {
+  bool trival;
   size_t buffer_size;
+  int level;
+  uint64_t file_number;
+  uint8_t node_id;
 } __attribute__((packed));
 enum RDMA_Command_Type {
   create_qp_,

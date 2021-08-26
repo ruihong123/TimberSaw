@@ -209,6 +209,7 @@ class Version {
   };
   double CompactionScore(int i);
   int CompactionLevel(int i);
+  std::shared_ptr<RemoteMemTableMetaData> FindFileByNumber(int level, uint64_t file_number, uint8_t node_id);
  private:
   friend class Compaction;
   friend class VersionSet;

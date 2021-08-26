@@ -122,6 +122,14 @@ class VersionEdit {
     has_last_sequence_ = true;
     last_sequence_ = seq;
   }
+  bool IsTrival(){
+    return deleted_files_.size() == 1;
+  }
+  void GetTrivalFile(int& level, uint64_t& file_number, uint8_t& node_id){
+    level = std::get<0>(*deleted_files_.begin());
+    file_number = std::get<1>(*deleted_files_.begin());
+    node_id = std::get<2>(*deleted_files_.begin());
+  }
   void SetCompactPointer(int level, const InternalKey& key) {
     compact_pointers_.push_back(std::make_pair(level, key));
   }
