@@ -44,13 +44,13 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, remote_filter_chunk_num);
   //Here we suppose all the remote memory chuck for the same table have similar infomation  below,
   // the only difference is the addr and lenght
-#ifndef NDEBUG
-  uint32_t rkey = remote_data_mrs.begin()->second->rkey;
-  for(auto iter : remote_data_mrs){
-    assert(rkey == iter.second->rkey);
-//    rkey =
-  }
-#endif
+//#ifndef NDEBUG
+//  uint32_t rkey = remote_data_mrs.begin()->second->rkey;
+//  for(auto iter : remote_data_mrs){
+//    assert(rkey == iter.second->rkey);
+////    rkey =
+//  }
+//#endif
   PutFixed64(dst, (uint64_t)remote_data_mrs.begin()->second->context);
   PutFixed64(dst, (uint64_t)remote_data_mrs.begin()->second->pd);
   PutFixed32(dst, (uint32_t)remote_data_mrs.begin()->second->handle);
