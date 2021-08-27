@@ -118,6 +118,8 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
+    GetFixed32(&src, &mr->lkey);
+    GetFixed32(&src, &mr->rkey);
     remote_data_mrs.insert({offset, mr});
   }
   for(auto i = 0; i< remote_dataindex_chunk_num; i++){
@@ -130,6 +132,8 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
+    GetFixed32(&src, &mr->lkey);
+    GetFixed32(&src, &mr->rkey);
     remote_dataindex_mrs.insert({offset, mr});
   }
   assert(!remote_dataindex_mrs.empty());
