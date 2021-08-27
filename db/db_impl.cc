@@ -1572,6 +1572,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     // initialize serveral times, every time we need to clear the qp.
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     printf("client handling thread\n");
+    assert(!shutting_down_.load());
     if (q_id == "read_local"){
       assert(false);// Never comes to here
       qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
@@ -1622,7 +1623,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
     }
-    assert(!shutting_down_.load());
+
     ibv_mr recv_mr[R_SIZE] = {};
     for(int i = 0; i<R_SIZE; i++){
       rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
