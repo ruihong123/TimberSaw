@@ -32,7 +32,8 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <vector>
-
+#define _mm_clflush(addr)\
+	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
 #if __BYTE_ORDER == __LITTLE_ENDIAN
 //template <typename T>
 //  static inline T hton(T u) {

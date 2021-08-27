@@ -1137,7 +1137,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   memset(polling_bit, 0, 1);
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-  while (*polling_bit == 0){}
+  while (*polling_bit == 0){
+    _mm_clflush(polling_bit);
+  }
   VersionEdit version_edit;
   version_edit.DecodeFrom(
       Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1);
