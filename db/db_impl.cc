@@ -1622,6 +1622,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
     }
+    assert(!shutting_down_.load());
     ibv_mr recv_mr[R_SIZE] = {};
     for(int i = 0; i<R_SIZE; i++){
       rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
@@ -1634,7 +1635,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
     int buffer_counter = 0;
-    assert(!shutting_down_.load());
+
     while (!shutting_down_.load()) {
       rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false);
       memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
