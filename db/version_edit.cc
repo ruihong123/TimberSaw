@@ -227,7 +227,7 @@ void VersionEdit::EncodeTo(std::string* dst) const {
     PutVarint32(dst, std::get<0>(deleted_file_kvp));   // level
     PutVarint64(dst, std::get<1>(deleted_file_kvp));  // file number
     dst->append(reinterpret_cast<const char*>(&std::get<2>(deleted_file_kvp)), sizeof(uint8_t));
-    printf("level is %d, number is %lu, node_id is %u", std::get<0>(deleted_file_kvp),
+//    printf("level is %d, number is %lu, node_id is %u", std::get<0>(deleted_file_kvp),
         std::get<1>(deleted_file_kvp), std::get<2>(deleted_file_kvp));
 
   }
@@ -332,7 +332,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
           assert(node_id < 2);
           input.remove_prefix(sizeof(node_id));
           deleted_files_.insert(std::make_tuple(level, number, node_id));
-          printf("level is %d, number is %lu, node_id is %u", level, number, node_id);
+//          printf("level is %d, number is %lu, node_id is %u", level, number, node_id);
         } else {
           msg = "deleted file";
         }
