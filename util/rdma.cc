@@ -1,4 +1,6 @@
 #include <util/rdma.h>
+#define _mm_clflush(addr)\
+	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
 namespace leveldb {
 #ifdef GETANALYSIS
 std::atomic<uint64_t> RDMA_Manager::RDMAReadTimeElapseSum = 0;
@@ -153,7 +155,9 @@ RDMA_Manager::~RDMA_Manager() {
   delete res;
 }
 bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
-  while(!rdma_reply->received);
+  while(!rdma_reply->received){
+    _mm_clflush(rdma_reply->received);
+  }
   return true;
 }
 /******************************************************************************
