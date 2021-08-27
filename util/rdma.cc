@@ -156,8 +156,9 @@ RDMA_Manager::~RDMA_Manager() {
 bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
   volatile bool* check_bit = &(rdma_reply->received);
   while(!*check_bit){
-
 //    _mm_clflush();
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
   }
   return true;
 }
