@@ -1840,7 +1840,7 @@ void RDMA_Manager::usage(const char* argv0) {
 bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
-  printf("Register enterance\n");
+
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr receive_mr = {};
@@ -1858,13 +1858,13 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   post_send<RDMA_Request>(&send_mr, std::string("main"));
   ibv_wc wc[2] = {};
 
-  printf("Remote memory registeration, size: %zu", size);
+  printf("Remote memory registeration, size: %zu\n", size);
   if (poll_completion(wc, 1, std::string("main"),true)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
-
+  printf("poll reply buffer\n");
   auto* temp_pointer = new ibv_mr();
   // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
   // Please remember to delete it when diregistering mem region from the remote memory
