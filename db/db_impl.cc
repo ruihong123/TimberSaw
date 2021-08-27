@@ -1638,24 +1638,26 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     int buffer_counter = 0;
 
     while (!shutting_down_.load()) {
-      rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false);
-      memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
+        memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
 
-      // copy the pointer of receive buf to a new place because
-      // it is the same with send buff pointer.
-      if (receive_msg_buf.command == install_version_edit) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
-        install_version_edit_handler(receive_msg_buf, q_id);
-      } else {
-        printf("corrupt message from client.");
-        break;
+        // copy the pointer of receive buf to a new place because
+        // it is the same with send buff pointer.
+        if (receive_msg_buf.command == install_version_edit) {
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          install_version_edit_handler(receive_msg_buf, q_id);
+        } else {
+          printf("corrupt message from client.");
+          break;
+        }
+        // increase the buffer index
+        if (buffer_counter== R_SIZE-1 ){
+          buffer_counter = 0;
+        } else{
+          buffer_counter++;
+        }
       }
-      // increase the buffer index
-      if (buffer_counter== R_SIZE-1 ){
-        buffer_counter = 0;
-      } else{
-        buffer_counter++;
-      }
+
     }
     for (int i = 0; i < R_SIZE; ++i) {
       rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
