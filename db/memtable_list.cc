@@ -889,9 +889,9 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     assert(builder->FileSize() == meta->file_size);
     delete builder;
 //TOFIX: temporarily disable the verification of index block.
-#ifndef NDEBUG
-    sleep(10);
-#endif
+//#ifndef NDEBUG
+//    sleep(10);
+//#endif
     if (s.ok()) {
       // Verify that the table is usable
       Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
