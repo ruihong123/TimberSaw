@@ -1565,7 +1565,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
 }
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
-    assert(!shutting_down_.load());
+
     ibv_qp* qp;
     int rc = 0;
     //NOte: Re-initialize below is very important because DBImple may be
@@ -1634,6 +1634,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
     int buffer_counter = 0;
+    assert(!shutting_down_.load());
     while (!shutting_down_.load()) {
       rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false);
       memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
