@@ -53,9 +53,9 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
 #endif
   PutFixed64(dst, (uint64_t)remote_data_mrs.begin()->second->context);
   PutFixed64(dst, (uint64_t)remote_data_mrs.begin()->second->pd);
-  PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->handle);
-  PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->lkey);
-  PutFixed32(dst, (uint64_t)remote_data_mrs.begin()->second->rkey);
+  PutFixed32(dst, (uint32_t)remote_data_mrs.begin()->second->handle);
+//  PutFixed32(dst, (uint32_t)remote_data_mrs.begin()->second->lkey);
+//  PutFixed32(dst, (uint32_t)remote_data_mrs.begin()->second->rkey);
   for(auto iter : remote_data_mrs){
     PutFixed32(dst, iter.first);
     mr_serialization(dst,iter.second);
@@ -106,8 +106,8 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   GetFixed64(&src, &context_temp);
   GetFixed64(&src, &pd_temp);
   GetFixed32(&src, &handle_temp);
-  GetFixed32(&src, &lkey_temp);
-  GetFixed32(&src, &rkey_temp);
+//  GetFixed32(&src, &lkey_temp);
+//  GetFixed32(&src, &rkey_temp);
   for(auto i = 0; i< remote_data_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.
     ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
@@ -138,11 +138,13 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
                             pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
                             length: 0,
-                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
+                            handle:handle_temp, lkey:0, rkey:0};
     uint32_t offset = 0;
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
     GetFixed64(&src, &mr->length);
+    GetFixed32(&src, &mr->lkey);
+    GetFixed32(&src, &mr->rkey);
     remote_filter_mrs.insert({offset, mr});
   }
   assert(!remote_filter_mrs.empty());
@@ -154,8 +156,8 @@ void RemoteMemTableMetaData::mr_serialization(std::string* dst, ibv_mr* mr) cons
   PutFixed64(dst, (uint64_t)mr->addr);
   PutFixed64(dst, mr->length);
 //  PutFixed32(dst, mr->handle);
-//  PutFixed32(dst, mr->lkey);
-//  PutFixed32(dst, mr->rkey);
+  PutFixed32(dst, mr->lkey);
+  PutFixed32(dst, mr->rkey);
 
 }
 
