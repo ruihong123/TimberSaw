@@ -1122,6 +1122,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   }
   void Memory_Node_Keeper::install_version_edit_handler(RDMA_Request request,
                                                         std::string& client_ip) {
+  printf("install version\n");
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
