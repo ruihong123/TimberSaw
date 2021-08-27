@@ -1840,6 +1840,7 @@ void RDMA_Manager::usage(const char* argv0) {
 bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
+  printf("Register enterance\n");
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr receive_mr = {};
