@@ -228,7 +228,7 @@ void VersionEdit::EncodeTo(std::string* dst) const {
     PutVarint64(dst, std::get<1>(deleted_file_kvp));  // file number
     dst->append(reinterpret_cast<const char*>(&std::get<2>(deleted_file_kvp)), sizeof(uint8_t));
 //    printf("level is %d, number is %lu, node_id is %u", std::get<0>(deleted_file_kvp),
-        std::get<1>(deleted_file_kvp), std::get<2>(deleted_file_kvp));
+//        std::get<1>(deleted_file_kvp), std::get<2>(deleted_file_kvp));
 
   }
 
