@@ -1634,7 +1634,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     RDMA_Request receive_msg_buf;
     int buffer_counter = 0;
     while (!shutting_down_.load()) {
-      rdma_mg->poll_completion(wc, 1, q_id, false);
+      rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false);
       memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
 
       // copy the pointer of receive buf to a new place because
