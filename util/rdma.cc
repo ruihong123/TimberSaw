@@ -154,8 +154,10 @@ RDMA_Manager::~RDMA_Manager() {
   delete res;
 }
 bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
-  while(!rdma_reply->received){
-    _mm_clflush(&(rdma_reply->received));
+  volatile bool* check_bit = &(rdma_reply->received);
+  while(!*check_bit){
+
+//    _mm_clflush();
   }
   return true;
 }
