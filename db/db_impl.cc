@@ -1565,6 +1565,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
 }
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
+    assert(!shutting_down_.load());
     ibv_qp* qp;
     int rc = 0;
     //NOte: Re-initialize below is very important because DBImple may be
