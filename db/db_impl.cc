@@ -1521,7 +1521,7 @@ void DBImpl::InstallSuperVersion() {
 //}
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
 //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
-
+  auto start = std::chrono::high_resolution_clock::now();
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   // register the memory block from the remote memory
   RDMA_Request* send_pointer;
@@ -1563,6 +1563,10 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  printf("Sync version edit time elapse: %ld us \n", duration.count());
+
 }
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
