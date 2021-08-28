@@ -362,7 +362,7 @@ class RDMA_Manager {
   std::vector<ibv_mr*>
       local_mem_pool; /* a vector for all the local memory regions.*/
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap;
-
+  size_t total_registered_size;
   //  std::shared_mutex remote_pool_mutex;
   //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
   ////  std::shared_mutex write_pool_mutex;

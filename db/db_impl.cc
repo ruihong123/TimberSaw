@@ -1665,10 +1665,11 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 }
 void DBImpl::install_version_edit_handler(RDMA_Request request,
                                           std::string client_ip) {
-  printf("install version\n");
+
   auto rdma_mg = env_->rdma_mg;
   if (request.content.ive.trival){
     std::unique_lock<std::mutex> lck(versionset_mtx);
+    printf("install trival version\n");
     auto f = versions_->current()->FindFileByNumber(request.content.ive.level, request.content.ive.file_number,
                                    request.content.ive.node_id);
     lck.unlock();
@@ -1688,6 +1689,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 
 
   }else{
+    printf("install non-trival version\n");
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;

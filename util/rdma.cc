@@ -41,6 +41,7 @@ void General_Destroy(void* ptr){
 RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
                            uint8_t nodeid)
     : Table_Size(remote_block_size),
+      total_registered_size(0),
       //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_write_flush(new ThreadLocalPtr(&UnrefHandle_cq)),
@@ -543,6 +544,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
                                          std::string pool_name) {
   int mr_flags = 0;
+  total_registered_size = total_registered_size + size;
   *p2buffpointer = new char[size];
   if (!*p2buffpointer) {
     fprintf(stderr, "failed to malloc bytes to memory buffer\n");
@@ -581,9 +583,9 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     else
       printf("Register memory for computing node\n");
   fprintf(stdout,
-          "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu\n",
+          "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-          mr_flags, size);
+          mr_flags, size, total_registered_size);
 
   return true;
 };

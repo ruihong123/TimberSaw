@@ -1055,8 +1055,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(request.content.mem_size));
       }
-      printf("Now the total Registered memory is %zu GB",
-             rdma_mg->local_mem_pool.size());
+//      printf("Now the Remote memory regularated by compute node is %zu GB",
+//             rdma_mg->local_mem_pool.size());
   }
 
   send_pointer->content.mr = *mr;
