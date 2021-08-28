@@ -884,6 +884,8 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
+    //TODO: preallocate a large amount of RDMA registered memory here.
+
     if (rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
                        temp_receive)) /* just send a dummy char back and forth */
       {
@@ -1139,7 +1141,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
   while (*polling_byte == 0){
-//    _mm_clflush(polling_bit);
+    _mm_clflush(polling_byte);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
   }
   VersionEdit version_edit;
   version_edit.DecodeFrom(

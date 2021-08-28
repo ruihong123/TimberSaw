@@ -1707,6 +1707,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
     while (*polling_bit == 0){
       _mm_clflush(polling_bit);
+      asm volatile ("sfence\n" : : );
+      asm volatile ("lfence\n" : : );
     }
     VersionEdit version_edit;
     version_edit.DecodeFrom(
