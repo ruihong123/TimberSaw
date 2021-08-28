@@ -2044,7 +2044,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
     if (name_to_mem_pool.at(pool_name).empty()) {
       ibv_mr* mr;
       char* buff;
-      Local_Memory_Register(&buff, &mr, 128 * chunk_size, pool_name);
+      Local_Memory_Register(&buff, &mr, 1024*1024*1024, pool_name);
     }
     mem_write_lock.unlock();
   }
@@ -2079,7 +2079,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   char* buff = new char[chunk_size];
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
-  Local_Memory_Register(&buff, &mr_to_allocate, 128 * chunk_size, pool_name);
+  Local_Memory_Register(&buff, &mr_to_allocate, 1024*1024*1024, pool_name);
 
   int block_index = name_to_mem_pool.at(pool_name)
                         .at(mr_to_allocate->addr)
