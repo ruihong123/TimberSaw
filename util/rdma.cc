@@ -581,9 +581,9 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     else
       printf("Register memory for computing node\n");
   fprintf(stdout,
-          "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x\n",
+          "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-          mr_flags);
+          mr_flags, size);
 
   return true;
 };

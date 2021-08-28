@@ -659,7 +659,7 @@ class VersionSet::Builder {
 
   // Save the current state in *v.
   void SaveTo(Version* v) {
-    printf("SaveTo: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
+//    printf("SaveTo: level 1 deleted file size %lu\n", levels_[1].deleted_files.size());
     BySmallestKey cmp;
     cmp.internal_comparator = &vset_->icmp_;
     for (int level = 0; level < config::kNumLevels; level++) {

@@ -30,7 +30,7 @@ RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
   PutFixed64(dst, number);
-  printf("Node id is %u", creator_node_id);
+//  printf("Node id is %u", creator_node_id);
   dst->append(reinterpret_cast<const char*>(&creator_node_id), sizeof(creator_node_id));
   PutFixed64(dst, file_size);
   PutLengthPrefixedSlice(dst, smallest.Encode());
@@ -84,7 +84,7 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
 //  node_id = reinterpret_cast<uint8_t*>(src.data());
   memcpy(&creator_node_id, src.data(), sizeof(creator_node_id));
   src.remove_prefix(sizeof(creator_node_id));
-  printf("Node id is %u", creator_node_id);
+//  printf("Node id is %u", creator_node_id);
 
   GetFixed64(&src, &file_size);
   Slice temp;
