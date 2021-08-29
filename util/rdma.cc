@@ -545,7 +545,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          std::string pool_name) {
   int mr_flags = 0;
   if (node_id == 0 || pre_allocated_pool.empty()){
-    total_registered_size = total_registered_size + size;
+
     *p2buffpointer = new char[size];
     if (!*p2buffpointer) {
       fprintf(stderr, "failed to malloc bytes to memory buffer\n");
@@ -589,6 +589,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
   }
     else
       printf("Register memory for computing node\n");
+  total_registered_size = total_registered_size + (*p2mrpointer)->length;
   fprintf(stdout,
           "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
@@ -601,7 +602,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
   size_t size = 1024*1024*1024;
 
   for (int i = 0; i < gb_number; ++i) {
-    total_registered_size = total_registered_size + size;
+//    total_registered_size = total_registered_size + size;
     char* buff_pointer = new char[size];
     if (!buff_pointer) {
       fprintf(stderr, "failed to malloc bytes to memory buffer\n");
