@@ -1720,9 +1720,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
     std::unique_lock<std::mutex> lck(superversion_mtx);
     versions_->LogAndApply(&version_edit);
-#ifndef NDEBUG
+//#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
-#endif
+//#endif
 
     InstallSuperVersion();
     lck.unlock();
