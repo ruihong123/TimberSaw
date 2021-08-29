@@ -885,7 +885,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
     //TODO: preallocate a large amount of RDMA registered memory here.
-
+    rdma_mg->Preregister_Memory(60);
     if (rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
                        temp_receive)) /* just send a dummy char back and forth */
       {

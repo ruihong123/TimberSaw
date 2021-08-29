@@ -32,6 +32,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <vector>
+#include <list>
 #define _mm_clflush(addr)\
 	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -308,6 +309,8 @@ class RDMA_Manager {
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
       std::string pool_name);  // register the memory on the local side
+
+  bool Preregister_Memory(int gb_number); //Pre register the memroy do not allocate bit map
   // Remote Memory registering will call RDMA send and receive to the remote memory it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
@@ -361,6 +364,7 @@ class RDMA_Manager {
       remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*>
       local_mem_pool; /* a vector for all the local memory regions.*/
+  std::list<ibv_mr*> pre_allocated_pool;
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap;
   size_t total_registered_size;
   //  std::shared_mutex remote_pool_mutex;

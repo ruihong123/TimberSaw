@@ -544,22 +544,29 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
                                          std::string pool_name) {
   int mr_flags = 0;
-  total_registered_size = total_registered_size + size;
-  *p2buffpointer = new char[size];
-  if (!*p2buffpointer) {
-    fprintf(stderr, "failed to malloc bytes to memory buffer\n");
-    return false;
-  }
-  memset(*p2buffpointer, 0, size);
+  if (node_id == 0 || pre_allocated_pool.empty()){
+    total_registered_size = total_registered_size + size;
+    *p2buffpointer = new char[size];
+    if (!*p2buffpointer) {
+      fprintf(stderr, "failed to malloc bytes to memory buffer\n");
+      return false;
+    }
+    memset(*p2buffpointer, 0, size);
 
-  /* register the memory buffer */
-  mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  //  auto start = std::chrono::high_resolution_clock::now();
-  *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
-  //  auto stop = std::chrono::high_resolution_clock::now();
-  //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
-  local_mem_pool.push_back(*p2mrpointer);
+    /* register the memory buffer */
+    mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    //  auto start = std::chrono::high_resolution_clock::now();
+    *p2mrpointer = ibv_reg_mr(res->pd, *p2buffpointer, size, mr_flags);
+    //  auto stop = std::chrono::high_resolution_clock::now();
+    //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
+    local_mem_pool.push_back(*p2mrpointer);
+  }else{
+    *p2mrpointer = pre_allocated_pool.back();
+    pre_allocated_pool.pop_back();
+    *p2buffpointer = (char*)(*p2mrpointer)->addr;
+  }
+
   if (!*p2mrpointer) {
     fprintf(
         stderr,
@@ -589,6 +596,36 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 
   return true;
 };
+bool RDMA_Manager::Preregister_Memory(int gb_number) {
+  int mr_flags = 0;
+  size_t size = 1024*1024*1024;
+  total_registered_size = total_registered_size + size;
+  for (int i = 0; i < gb_number; ++i) {
+    char* buff_pointer = new char[size];
+    if (!buff_pointer) {
+      fprintf(stderr, "failed to malloc bytes to memory buffer\n");
+      return false;
+    }
+    memset(buff_pointer, 0, size);
+
+    /* register the memory buffer */
+    mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    //  auto start = std::chrono::high_resolution_clock::now();
+    ibv_mr* mrpointer = ibv_reg_mr(res->pd, buff_pointer, size, mr_flags);
+    if (!mrpointer) {
+      fprintf(
+          stderr,
+          "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
+          mr_flags, size, local_mem_pool.size());
+      return false;
+    }
+    local_mem_pool.push_back(mrpointer);
+    pre_allocated_pool.push_back(mrpointer);
+  }
+
+}
+
 /******************************************************************************
 * Function: set_up_RDMA
 *
@@ -2603,7 +2640,6 @@ void RDMA_Manager::fs_deserilization(
   ibv_dereg_mr(local_mr);
   free(buff);
 }
-
 
 // bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
 //                                               char* buff, size_t buff_size,
