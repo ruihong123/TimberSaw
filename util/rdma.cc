@@ -599,8 +599,9 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 bool RDMA_Manager::Preregister_Memory(int gb_number) {
   int mr_flags = 0;
   size_t size = 1024*1024*1024;
-  total_registered_size = total_registered_size + size;
+
   for (int i = 0; i < gb_number; ++i) {
+    total_registered_size = total_registered_size + size;
     char* buff_pointer = new char[size];
     if (!buff_pointer) {
       fprintf(stderr, "failed to malloc bytes to memory buffer\n");
