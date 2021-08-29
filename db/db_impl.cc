@@ -1773,7 +1773,7 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
   auto sizes = c->GetSizes();
   assert(boundaries->size() == sizes->size() - 1);
 //  int subcompaction_num = std::min((int)c->GetBoundariesNum(), config::MaxSubcompaction);
-  if (boundaries->size()<=config::MaxSubcompaction){
+  if (boundaries->size()<=options_.MaxSubcompaction){
     for (size_t i = 0; i <= boundaries->size(); i++) {
       Slice* start = i == 0 ? nullptr : &(*boundaries)[i - 1];
       Slice* end = i == boundaries->size() ? nullptr : &(*boundaries)[i];
@@ -1788,8 +1788,8 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
         small_files.push_back(i);
     }
     int big_files_num = boundaries->size() - small_files.size();
-    int files_per_subcompaction = big_files_num/config::MaxSubcompaction + 1;//Due to interger round down, we need add 1.
-    double mean = sum * 1.0 / config::MaxSubcompaction;
+    int files_per_subcompaction = big_files_num/options_.MaxSubcompaction + 1;//Due to interger round down, we need add 1.
+    double mean = sum * 1.0 / options_.MaxSubcompaction;
     for (size_t i = 0; i <= boundaries->size(); i++) {
       size_t range_size = (*sizes)[i];
       Slice* start = i == 0 ? nullptr : &(*boundaries)[i - 1];
