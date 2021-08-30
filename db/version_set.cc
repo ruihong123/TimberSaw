@@ -186,9 +186,9 @@ Subversion::Subversion(size_t version_id,
 Subversion::~Subversion(){
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
-  ibv_mr receive_mr = {};
+
   rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg_->Allocate_Local_RDMA_Slot(receive_mr, "message");
+
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = version_unpin_;
   send_pointer->content.version_id = version_id_;
@@ -198,7 +198,7 @@ Subversion::~Subversion(){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     exit(0);
   }
-
+  rdma_mg_->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
 }
 //Version::Version(const std::shared_ptr<Subversion>& sub_version)
 //    : subversion(sub_version) {}
@@ -1209,7 +1209,9 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
 }
 //must have lock outside.
 void VersionSet::Pin_Version_For_Compute(){
+  //Version id 0 is ommitted.
   version_id++;
+  DEBUG_arg("Version id is %lu", version_id);
   memory_version_pinner.insert({version_id, current_});
   current_->Ref(5);
 }
