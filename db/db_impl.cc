@@ -1683,7 +1683,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     f->level = f->level +1;
     {
       std::unique_lock<std::mutex> l(superversion_mtx);
-      versions_->LogAndApply(&edit, request.content.version_id);
+      versions_->LogAndApply(&edit, request.content.ive.version_id);
 #ifndef NDEBUG
       printf("version edit decoded level is %d file number is %zu", edit.compactlevel(), edit.GetNewFilesNum() );
 #endif
@@ -1722,7 +1722,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
         Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
     DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
     std::unique_lock<std::mutex> lck(superversion_mtx);
-    versions_->LogAndApply(&version_edit, request.content.version_id);
+    versions_->LogAndApply(&version_edit, request.content.ive.version_id);
 //#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
 //#endif
