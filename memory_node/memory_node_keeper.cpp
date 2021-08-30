@@ -100,7 +100,8 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
         c->ReleaseInputs();
         {
           std::unique_lock<std::mutex> lck(versionset_mtx);
-          status = versions_->LogAndApply(c->edit());
+          status = versions_->LogAndApply(c->edit(), 0);
+          versions_->Pin_Version_For_Compute();
           Edit_sync_to_remote(c->edit(), *client_ip);
         }
 //        InstallSuperVersion();
@@ -845,7 +846,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
 //  lck_p->lock();
   compact->compaction->ReleaseInputs();
   std::unique_lock<std::mutex> lck(versionset_mtx);
-  Status s = versions_->LogAndApply(compact->compaction->edit());
+  Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
   versions_->Pin_Version_For_Compute();
 
   Edit_sync_to_remote(compact->compaction->edit(), client_ip);
@@ -939,6 +940,9 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         install_version_edit_handler(receive_msg_buf, client_ip);
 //TODO: add a handle function for the option value
+      } else if (receive_msg_buf.command == version_unpin_) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        version_unpin_handler(receive_msg_buf, client_ip);
       } else {
         printf("corrupt message from client.");
         break;
@@ -1162,12 +1166,17 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
   std::unique_lock<std::mutex> lck(versionset_mtx);
-  versions_->LogAndApply(&version_edit);
+  versions_->LogAndApply(&version_edit, 0);
   lck.unlock();
   MaybeScheduleCompaction(client_ip);
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+  }
+  void Memory_Node_Keeper::version_unpin_handler(RDMA_Request request,
+                                                 std::string& client_ip) {
+    std::unique_lock<std::mutex> lck(versionset_mtx);
+    versions_->Unpin_Version_For_Compute(request.content.version_id);
   }
   void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit,
                                                std::string& client_ip) {
@@ -1194,6 +1203,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->content.ive.level = level;
     send_pointer->content.ive.file_number = file_number;
     send_pointer->content.ive.node_id = node_id;
+    send_pointer->content.ive.version_id = versions_->version_id;
     rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
     ibv_wc wc[2] = {};
     if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
@@ -1214,7 +1224,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->command = install_version_edit;
     send_pointer->content.ive.trival = false;
     send_pointer->content.ive.buffer_size = serilized_ve.size();
-
+    send_pointer->content.ive.version_id = versions_->version_id;
     send_pointer->reply_buffer = receive_mr.addr;
     send_pointer->rkey = receive_mr.rkey;
     RDMA_Reply* receive_pointer;
@@ -1240,6 +1250,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 
   }
+
 
   }
 

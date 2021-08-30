@@ -95,8 +95,20 @@ class Level_Info{
   double compaction_score_;
 
 };
+class Subversion{
+ public:
+  explicit Subversion(size_t version_id, std::shared_ptr<RDMA_Manager> rdma_mg);
+
+
+  ~Subversion();
+
+ private:
+  size_t version_id_;
+  std::shared_ptr<RDMA_Manager> rdma_mg_;
+};
 class Version {
  public:
+//  Version(const std::shared_ptr<Subversion>& sub_version);
   // Lookup the value for key.  If found, store it in *val and
   // return OK.  Else return a non-OK status.  Fills *stats.
   // REQUIRES: lock is not held
@@ -104,6 +116,7 @@ class Version {
     std::shared_ptr<RemoteMemTableMetaData> seek_file;
     int seek_file_level;
   };
+  std::shared_ptr<Subversion> subversion;
 
   // Append to *iters a sequence of iterators that will
   // yield the contents of this Version when merged together.
@@ -216,8 +229,9 @@ class Version {
 
 
 
-  explicit Version(VersionSet* vset)
-      : vset_(vset),
+  explicit Version(VersionSet* vset, std::shared_ptr<Subversion> sub_version)
+      : subversion(std::move(sub_version)),
+        vset_(vset),
         next_(this),
         prev_(this),
         refs_(0),
@@ -286,7 +300,7 @@ class VersionSet {
   // current version.  Will release *mu while actually writing to the file.
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
-  Status LogAndApply(VersionEdit* edit);
+  Status LogAndApply(VersionEdit* edit, size_t remote_version_id);
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool* save_manifest);

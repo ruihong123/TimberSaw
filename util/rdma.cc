@@ -630,7 +630,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
     local_mem_pool.push_back(mrpointer);
     pre_allocated_pool.push_back(mrpointer);
   }
-
+  return true;
 }
 
 /******************************************************************************
@@ -1890,7 +1890,7 @@ void RDMA_Manager::usage(const char* argv0) {
 }
 
 bool RDMA_Manager::Remote_Memory_Register(size_t size) {
-  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+//  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
 
   RDMA_Request* send_pointer;
@@ -1953,7 +1953,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
     }
   } else
     memset(&my_gid, 0, sizeof my_gid);
-  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+//  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // lock should be here because from here on we will modify the send buffer.
   // TODO: Try to understand whether this kind of memcopy without serialization is correct.
   // Could be wrong on different machine, because of the alignment

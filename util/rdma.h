@@ -79,6 +79,7 @@ struct registered_qp_config {
 struct install_versionedit {
   bool trival;
   size_t buffer_size;
+  size_t version_id;
   int level;
   uint64_t file_number;
   uint8_t node_id;
@@ -87,6 +88,7 @@ enum RDMA_Command_Type {
   create_qp_,
   create_mr_,
   install_version_edit,
+  version_unpin_,
   save_fs_serialized_data,
   retrieve_fs_serialized_data,
   save_log_serialized_data,
@@ -105,6 +107,7 @@ union RDMA_Request_Content {
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
   install_versionedit ive;
+  size_t version_id;
 };
 union RDMA_Reply_Content {
   ibv_mr mr;
@@ -378,7 +381,7 @@ class RDMA_Manager {
   std::shared_mutex remote_mem_mutex;
 
   std::shared_mutex rw_mutex;
-  std::shared_mutex main_qp_mutex;
+//  std::shared_mutex main_qp_mutex;
   std::shared_mutex qp_cq_map_mutex;
   //  ThreadLocalPtr* t_local_1;
   ThreadLocalPtr* qp_local_write_flush;

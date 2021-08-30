@@ -998,7 +998,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       {
         std::unique_lock<std::mutex> l(superversion_mtx);
         c->ReleaseInputs();
-        status = versions_->LogAndApply(c->edit());
+        status = versions_->LogAndApply(c->edit(), 0);
         InstallSuperVersion();
       }
 
@@ -1299,7 +1299,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
   lck_p->lock();
   compact->compaction->ReleaseInputs();
-  return versions_->LogAndApply(compact->compaction->edit());
+  return versions_->LogAndApply(compact->compaction->edit(), 0);
 }
 Status DBImpl::TryInstallMemtableFlushResults(
     FlushJob* job, VersionSet* vset,
@@ -1389,7 +1389,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   // First apply locally then apply remotely.
   {
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    s = vset->LogAndApply(edit);
+    s = vset->LogAndApply(edit, 0);
     Edit_sync_to_remote(edit);
   }
 
@@ -1683,7 +1683,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     f->level = f->level +1;
     {
       std::unique_lock<std::mutex> l(superversion_mtx);
-      versions_->LogAndApply(&edit);
+      versions_->LogAndApply(&edit, request.content.version_id);
 #ifndef NDEBUG
       printf("version edit decoded level is %d file number is %zu", edit.compactlevel(), edit.GetNewFilesNum() );
 #endif
@@ -1722,7 +1722,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
         Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
     DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
     std::unique_lock<std::mutex> lck(superversion_mtx);
-    versions_->LogAndApply(&version_edit);
+    versions_->LogAndApply(&version_edit, request.content.version_id);
 //#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
 //#endif
@@ -3012,7 +3012,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
     edit.SetLogNumber(impl->logfile_number_);
     std::unique_lock<std::mutex> lck(impl->versionset_mtx);
-    s = impl->versions_->LogAndApply(&edit);
+    s = impl->versions_->LogAndApply(&edit, 0);
   }
   if (s.ok()) {
 //    impl->RemoveObsoleteFiles();

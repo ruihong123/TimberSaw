@@ -181,7 +181,27 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
       new LevelFileNumIterator(vset_->icmp_, &levels_[level]), &GetFileIterator,
       vset_->table_cache_, options);
 }
+Subversion::Subversion(size_t version_id,
+                       std::shared_ptr<RDMA_Manager> rdma_mg) : version_id_(version_id){}
+Subversion::~Subversion(){
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr receive_mr = {};
+  rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg_->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = version_unpin_;
+  send_pointer->content.version_id = version_id_;
+  rdma_mg_->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (rdma_mg_->poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    exit(0);
+  }
 
+}
+//Version::Version(const std::shared_ptr<Subversion>& sub_version)
+//    : subversion(sub_version) {}
 void Version::AddIterators(const ReadOptions& options,
                            std::vector<Iterator*>* iters) {
   // Merge all level zero files together since they may overlap
@@ -410,7 +430,9 @@ void Version::Unref(int mark) {
 #ifndef NDEBUG
     vset_->version_remain--;
 #endif
-
+//    if (Env::Default()->rdma_mg->node_id == 0){
+//
+//    }
     delete this;
   }
 }
@@ -533,6 +555,7 @@ std::shared_ptr<RemoteMemTableMetaData> Version::FindFileByNumber(int level, uin
   assert(false);
   return std::shared_ptr<RemoteMemTableMetaData>();
 }
+
 // A helper class so we can efficiently apply a whole sequence
 // of edits to a particular state without creating intermediate
 // Versions that contain full copies of the intermediate state.
@@ -764,10 +787,10 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       prev_log_number_(0),
       descriptor_file_(nullptr),
       descriptor_log_(nullptr),
-      dummy_versions_(this),
+      dummy_versions_(this, std::shared_ptr<Subversion>()),
       current_(nullptr),
       version_set_mtx(mtx){
-  AppendVersion(new Version(this));
+  AppendVersion(new Version(this, std::shared_ptr<Subversion>()));
 
 }
 
@@ -804,7 +827,7 @@ void VersionSet::AppendVersion(Version* v) {
   v->next_->prev_ = v;
 }
 
-Status VersionSet::LogAndApply(VersionEdit* edit) {
+Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_version_id) {
 //  if (edit->has_log_number_) {
 //    assert(edit->log_number_ >= log_number_);
 //    assert(edit->log_number_ < next_file_number_.load());
@@ -818,8 +841,17 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //
 //  edit->SetNextFile(next_file_number_.load());
   edit->SetLastSequence(last_sequence_);
+  Version* v;
   //Build an empty version.
-  Version* v = new Version(this);
+  if (remote_version_id == 0){
+    v = new Version(this, current_->subversion);
+  }else{
+    //TODO: how to let the function know whether it is memory node or compute node.
+    assert(Env::Default() != nullptr);
+    std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(remote_version_id, Env::Default()->rdma_mg);
+    v = new Version(this, subverison);
+  }
+
 
 //  std::unique_lock<std::mutex> lck(sv_mtx);
 //  std::unique_lock<std::mutex> lck(version_set_mtx);
@@ -1002,7 +1034,7 @@ Status VersionSet::Recover(bool* save_manifest) {
   }
 
   if (s.ok()) {
-    Version* v = new Version(this);
+    Version* v = new Version(this, current_->subversion);
     builder.SaveTo(v);
     // Install recovered version
     Finalize(v);
@@ -1175,14 +1207,17 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
       int(current_->levels_[6].size()));
   return scratch->buffer;
 }
+//must have lock outside.
 void VersionSet::Pin_Version_For_Compute(){
   version_id++;
   memory_version_pinner.insert({version_id, current_});
   current_->Ref(5);
 }
+// must have lock outside
 bool VersionSet::Unpin_Version_For_Compute(size_t version_id) {
   memory_version_pinner.at(version_id)->Unref(5);
   memory_version_pinner.erase(version_id);
+  return true;
 }
 uint64_t VersionSet::ApproximateOffsetOf(Version* v, const InternalKey& ikey) {
   uint64_t result = 0;
@@ -1951,5 +1986,6 @@ std::vector<uint64_t>* Compaction::GetSizes() {
 uint64_t Compaction::GetFileSizesForLevel(int level){
   return inputs_[level].size();
 }
+
 
 }  // namespace leveldb
