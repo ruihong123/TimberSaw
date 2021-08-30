@@ -191,7 +191,7 @@ Subversion::~Subversion(){
 
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = version_unpin_;
-  send_pointer->content.version_id = version_id_;
+  send_pointer->content.unpinned_version_id = version_id_;
   rdma_mg_->post_send<RDMA_Request>(&send_mr, std::string("main"));
   ibv_wc wc[2] = {};
   if (rdma_mg_->poll_completion(wc, 1, std::string("main"),true)){

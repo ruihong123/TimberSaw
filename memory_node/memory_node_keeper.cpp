@@ -1176,7 +1176,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::version_unpin_handler(RDMA_Request request,
                                                  std::string& client_ip) {
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    versions_->Unpin_Version_For_Compute(request.content.version_id);
+    versions_->Unpin_Version_For_Compute(request.content.unpinned_version_id);
   }
   void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit,
                                                std::string& client_ip) {

@@ -107,7 +107,7 @@ union RDMA_Request_Content {
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
   install_versionedit ive;
-//  size_t version_id;
+  size_t unpinned_version_id;
 };
 union RDMA_Reply_Content {
   ibv_mr mr;
