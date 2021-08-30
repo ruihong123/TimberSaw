@@ -1088,8 +1088,8 @@ void VersionSet::Finalize(Version* v) {
       score = (v->levels_[level].size() - v->in_progress[level].size())/
               static_cast<double>(config::kL0_CompactionTrigger);
       assert(score>=0);
-//      if (score > 2)
-//        score = 2;
+      if (score > 2)
+        score = 2;
       v->compaction_level_[level] = level;
       v->compaction_score_[level] = score;
 
