@@ -857,8 +857,8 @@ Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_version_id) {
     std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(remote_version_id, Env::Default()->rdma_mg);
     v = new Version(this, subverison);
 #ifndef NDEBUG
-    printf("sub version for the new version is %p", current_->subversion.get());
-    if (current_->subversion.get() != nullptr){
+    printf("sub version for the new version is %p", v->subversion.get());
+    if (v->subversion.get() != nullptr){
       printf("version id for this subversion is %lu", remote_version_id);
     }
 #endif
