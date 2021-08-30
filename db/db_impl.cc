@@ -1714,6 +1714,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
+      std::fprintf(stderr, "Polling\r");
+      std::fflush(stderr);
     }
     VersionEdit version_edit;
     version_edit.DecodeFrom(
