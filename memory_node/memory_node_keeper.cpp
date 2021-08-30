@@ -1056,6 +1056,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   char* buff;
   {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
+    assert(request.content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
       if (!rdma_mg->Local_Memory_Register(&buff, &mr, request.content.mem_size,
                                           std::string())) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
