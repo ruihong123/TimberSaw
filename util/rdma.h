@@ -33,6 +33,7 @@
 #include <unordered_map>
 #include <shared_mutex>
 #include <vector>
+#include <list>
 //#include <util/thread_local.h>
 //#ifdef __cplusplus
 //extern "C" { //only need to export C interface if
@@ -276,7 +277,7 @@ class RDMA_Manager {
   //        }
   //    };
  public:
-  RDMA_Manager(config_t config, size_t remote_block_size);
+  RDMA_Manager(config_t config, size_t remote_block_size, uint8_t nodeid);
   //  RDMA_Manager(config_t config) : rdma_config(config){
   //    res = new resources();
   //    res->sock = -1;
@@ -309,6 +310,7 @@ class RDMA_Manager {
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
       std::string pool_name);  // register the memory on the local side
   // Remote Memory registering will call RDMA send and receive to the remote memory it also push the new SST bit map to the Remote_Mem_Bitmap
+  bool Preregister_Memory(int gb_number);
   bool Remote_Memory_Register(size_t size);
   int Remote_Memory_Deregister();
   // new query pair creation and connection to remote Memory by RDMA send and receive
@@ -359,8 +361,9 @@ class RDMA_Manager {
       remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*>
       local_mem_pool; /* a vector for all the local memory regions.*/
+  std::list<ibv_mr*> pre_allocated_pool;
   std::map<void*, In_Use_Array>* Remote_Mem_Bitmap;
-
+  size_t total_registered_size;
   //  std::shared_mutex remote_pool_mutex;
   //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
   ////  std::shared_mutex write_pool_mutex;
@@ -388,6 +391,7 @@ class RDMA_Manager {
       name_to_mem_pool;
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
+  uint8_t node_id;
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
