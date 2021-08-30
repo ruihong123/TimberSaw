@@ -1148,6 +1148,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     _mm_clflush(polling_byte);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
   }
   VersionEdit version_edit;
   version_edit.DecodeFrom(

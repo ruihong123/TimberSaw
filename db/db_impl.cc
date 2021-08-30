@@ -1713,6 +1713,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       _mm_clflush(polling_bit);
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
+      asm volatile ("mfence\n" : : );
     }
     VersionEdit version_edit;
     version_edit.DecodeFrom(
