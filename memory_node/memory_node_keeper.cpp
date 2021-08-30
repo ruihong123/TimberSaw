@@ -846,7 +846,10 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   compact->compaction->ReleaseInputs();
   std::unique_lock<std::mutex> lck(versionset_mtx);
   Status s = versions_->LogAndApply(compact->compaction->edit());
+  versions_->Pin_Version_For_Compute();
+
   Edit_sync_to_remote(compact->compaction->edit(), client_ip);
+
   return s;
 }
   void Memory_Node_Keeper::server_communication_thread(std::string client_ip,

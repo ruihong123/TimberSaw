@@ -1175,7 +1175,15 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
       int(current_->levels_[6].size()));
   return scratch->buffer;
 }
-
+void VersionSet::Pin_Version_For_Compute(){
+  version_id++;
+  memory_version_pinner.insert({version_id, current_});
+  current_->Ref(5);
+}
+bool VersionSet::Unpin_Version_For_Compute(size_t version_id) {
+  memory_version_pinner.at(version_id)->Unref(5);
+  memory_version_pinner.erase(version_id);
+}
 uint64_t VersionSet::ApproximateOffsetOf(Version* v, const InternalKey& ikey) {
   uint64_t result = 0;
   for (int level = 0; level < config::kNumLevels; level++) {

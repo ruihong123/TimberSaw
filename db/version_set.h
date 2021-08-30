@@ -260,6 +260,7 @@ class Version {
   std::vector<int> ref_mark_collection;
   std::vector<int> unref_mark_collection;
 
+
 };
 
 class VersionSet {
@@ -389,7 +390,9 @@ class VersionSet {
     char buffer[100];
   };
   const char* LevelSummary(LevelSummaryStorage* scratch) const;
-
+  void Pin_Version_For_Compute();
+  bool Unpin_Version_For_Compute(size_t version_id);
+  size_t version_id = 0;
  private:
   class Builder;
 
@@ -442,6 +445,8 @@ class VersionSet {
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_index_[config::kNumLevels];
+  std::map<size_t, Version*> memory_version_pinner;
+
 };
 
 
