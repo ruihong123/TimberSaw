@@ -182,7 +182,7 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
       vset_->table_cache_, options);
 }
 Subversion::Subversion(size_t version_id,
-                       std::shared_ptr<RDMA_Manager> rdma_mg) : version_id_(version_id){}
+                       std::shared_ptr<RDMA_Manager> rdma_mg) : version_id_(version_id), rdma_mg_(rdma_mg){}
 Subversion::~Subversion(){
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
