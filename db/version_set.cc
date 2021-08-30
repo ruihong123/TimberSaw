@@ -845,11 +845,23 @@ Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_version_id) {
   //Build an empty version.
   if (remote_version_id == 0){
     v = new Version(this, current_->subversion);
+#ifndef NDEBUG
+    printf("sub version for the new version is %p", current_->subversion.get());
+//    if (current_->subversion.get() != nullptr){
+////      printf("version id for this subversion is %lu", current_->subversion);
+//    }
+#endif
   }else{
     //TODO: how to let the function know whether it is memory node or compute node.
     assert(Env::Default() != nullptr);
     std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(remote_version_id, Env::Default()->rdma_mg);
     v = new Version(this, subverison);
+#ifndef NDEBUG
+    printf("sub version for the new version is %p", current_->subversion.get());
+    if (current_->subversion.get() != nullptr){
+      printf("version id for this subversion is %lu", remote_version_id);
+    }
+#endif
   }
 
 
