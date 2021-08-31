@@ -498,7 +498,9 @@ Status TableBuilder_Memoryside::Finish() {
   // Write index block
   if (ok()) {
     if(r->pending_index_filter_entry){
+      assert(r->last_key.size()>= 8);
       r->options.comparator->FindShortSuccessor(&r->last_key);
+      assert(r->last_key.size()>= 8);
       std::string handle_encoding;
       r->pending_data_handle.EncodeTo(&handle_encoding);
       r->index_block->Add(r->last_key, Slice(handle_encoding));
