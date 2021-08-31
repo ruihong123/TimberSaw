@@ -74,7 +74,7 @@ Slice BlockBuilder::Finish() {
 
 void BlockBuilder::Add(const Slice& key, const Slice& value) {
   Slice last_key_piece(last_key_);
-//  assert(key.size() >= 28);
+  assert(key.size() >= 8);
   assert(!finished_);
   assert(counter_ <= options_->block_restart_interval);
   assert(buffer.empty()  // No values yet?
