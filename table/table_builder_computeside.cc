@@ -186,7 +186,12 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
   // when write a index entry, the data block offset and data block size will be attached
   if (r->pending_index_filter_entry) {
     assert(r->data_block->empty());
+//#ifndef NDEBUG
+//    size_t key_length = r->last_key.size();
+//#endif
+    assert(r->last_key.size()>= 28);
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
+    assert(r->last_key.size() >= 28  );
     std::string handle_encoding;
     //Note that the handle block size does not contain CRC!
     r->pending_data_handle.EncodeTo(&handle_encoding);
