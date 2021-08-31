@@ -824,7 +824,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
 #ifndef NDEBUG
 
         // Verify that the table is usable
-        Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), meta);
+        Iterator* it = versions_->table_cache_->NewIterator_MemorySide(ReadOptions(), meta);
 //        s = it->status();
 
         it->SeekToFirst();
