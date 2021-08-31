@@ -23,6 +23,13 @@ static size_t RDMA_WRITE_BLOCK = 1024*1024;
 // sequence of key,value pairs.  Each block may be compressed before
 // being stored in a file.  The following enum describes which
 // compression method (if any) is used to compress a block.
+const int kNumNonTableCacheFiles = 10;
+// Fix user-supplied options to be reasonable
+template <class T, class V>
+static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
+  if (static_cast<V>(*ptr) > maxvalue) *ptr = maxvalue;
+  if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
+}
 enum CompressionType {
   // NOTE: do not change the values of existing entries, as these are
   // part of the persistent format on disk.

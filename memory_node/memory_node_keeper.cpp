@@ -10,8 +10,8 @@
 
 namespace leveldb{
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
-leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): opts(std::make_shared<Options>(true)),
-usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files)), internal_comparator_(BytewiseComparator()),
+leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): internal_comparator_(BytewiseComparator()), opts(std::make_shared<Options>(true)),
+usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
 versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx)){
     struct leveldb::config_t config = {
         NULL,  /* dev_name */
@@ -26,8 +26,12 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     rdma_mg = std::make_shared<RDMA_Manager>(config, table_size, 1); //set memory server node id as 1.
     rdma_mg->Mempool_initialize(std::string("FlushBuffer"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
-    opts->filter_policy = NewBloomFilterPolicy(opts->bloom_bits);
-
+    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
+    opts->comparator = &internal_comparator_;
+    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
+    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
+    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
+    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
   }
 //  void leveldb::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
 //                                             void* background_work_arg,

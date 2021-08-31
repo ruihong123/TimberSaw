@@ -39,7 +39,7 @@
 
 namespace leveldb {
 
-const int kNumNonTableCacheFiles = 10;
+
 int SuperVersion::dummy = 0;
 void* const SuperVersion::kSVInUse = &SuperVersion::dummy;
 void* const SuperVersion::kSVObsolete = nullptr;
@@ -71,12 +71,7 @@ struct DBImpl::Writer {
 
 
 
-// Fix user-supplied options to be reasonable
-template <class T, class V>
-static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
-  if (static_cast<V>(*ptr) > maxvalue) *ptr = maxvalue;
-  if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
-}
+
 Options SanitizeOptions(const std::string& dbname,
                         const InternalKeyComparator* icmp,
                         const InternalFilterPolicy* ipolicy,

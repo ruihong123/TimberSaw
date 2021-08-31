@@ -41,12 +41,15 @@ class Memory_Node_Keeper {
  private:
   std::shared_ptr<Options> opts;
   const InternalKeyComparator internal_comparator_;
+//  const InternalFilterPolicy internal_filter_policy_;
   bool usesubcompaction;
   TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;
   ThreadPool message_handler_pool_;
   std::mutex versionset_mtx;
   VersionSet* versions_;
+
+
   Status InstallCompactionResults(CompactionState* compact,
                                   std::string& client_ip);
   int server_sock_connect(const char* servername, int port);

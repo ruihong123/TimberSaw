@@ -93,6 +93,7 @@
 
 #define GETANALYSIS
 #define R_SIZE 32
+
 //#define BLOOMANALYSIS
 #include "port/thread_annotations.h"
 namespace leveldb {
