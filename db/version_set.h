@@ -407,6 +407,8 @@ class VersionSet {
   void Pin_Version_For_Compute();
   bool Unpin_Version_For_Compute(size_t version_id);
   size_t version_id = 0;
+  TableCache* const table_cache_;
+
  private:
   class Builder;
 
@@ -436,7 +438,7 @@ class VersionSet {
   Env* const env_;
   const std::string dbname_;
   const Options* const options_;
-  TableCache* const table_cache_;
+//  TableCache* const table_cache_;
   const InternalKeyComparator icmp_;
   std::atomic<uint64_t> next_file_number_;
   uint64_t manifest_file_number_;

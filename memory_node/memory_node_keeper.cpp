@@ -562,7 +562,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
         }
       }
       if (sub_compact->builder->NumEntries() == 0) {
-        assert(key.data()[0] == '\000');
+//        assert(key.data()[0] == '\000');
         sub_compact->current_output()->smallest.DecodeFrom(key);
       }
 #ifndef NDEBUG
@@ -573,7 +573,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
       // Close output file if it is big enough
       if (sub_compact->builder->FileSize() >=
       sub_compact->compaction->MaxOutputFileSize()) {
-        assert(key.data()[0] == '\000');
+//        assert(key.data()[0] == '\000');
         sub_compact->current_output()->largest.DecodeFrom(key);
         assert(!sub_compact->current_output()->largest.Encode().ToString().empty());
 
@@ -821,6 +821,19 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       meta->remote_filter_mrs = out.remote_filter_mrs;
       compact->compaction->edit()->AddFile(level + 1, meta);
       assert(!meta->UnderCompaction);
+#ifndef NDEBUG
+
+        // Verify that the table is usable
+        Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), meta);
+//        s = it->status();
+
+        it->SeekToFirst();
+        while(it->Valid()){
+          it->Next();
+        }
+
+        delete it;
+#endif
     }
   }else{
     for(auto subcompact : compact->sub_compact_states){
