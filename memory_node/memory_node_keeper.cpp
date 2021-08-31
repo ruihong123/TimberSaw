@@ -831,7 +831,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         while(it->Valid()){
           it->Next();
         }
-        printf("Table Read successfully after compaction\n");
+        printf("Table %p Read successfully after compaction\n", meta.get());
         delete it;
 #endif
     }
