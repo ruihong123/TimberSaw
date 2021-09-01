@@ -161,7 +161,7 @@ bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  std::fprintf(stderr, "Polling\r");
+  std::fprintf(stderr, "Polling reply buffer\r");
   std::fflush(stderr);
   }
   return true;
