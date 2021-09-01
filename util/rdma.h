@@ -528,9 +528,13 @@ class RDMA_Manager {
     else
       rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
     if (rc)
+#ifndef NDEBUG
       fprintf(stderr, "failed to post RR\n");
+#endif
     else
+#ifndef NDEBUG
       fprintf(stdout, "Receive Request was posted\n");
+#endif
     return rc;
   }  // For a non-thread-local queue pair, send_cq==true poll the cq of send queue, send_cq==false poll the cq of receive queue
 };

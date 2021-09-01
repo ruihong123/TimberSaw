@@ -23,7 +23,7 @@ namespace leveldb {
 // Grouping of constants.  We may want to make some of these
 // parameters set via options.
 namespace config {
-static const int kNumLevels = 7;
+static const int kNumLevels = 6;
 static const int MaxImmuNumPerFlush = 1;
 // Immutable flushing will be triggered when hit this number
 static const int Immutable_FlushTrigger = 1;

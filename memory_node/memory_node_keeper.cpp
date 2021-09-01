@@ -131,8 +131,10 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
 
       auto stop = std::chrono::high_resolution_clock::now();
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+#ifndef NDEBUG
       printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
              duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+#endif
       DEBUG("Non-trivalcompaction!\n");
       std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
       if (!status.ok()) {

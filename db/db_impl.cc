@@ -94,7 +94,7 @@ Options SanitizeOptions(const std::string& dbname,
     }
   }
   if (result.block_cache == nullptr) {
-    result.block_cache = NewLRUCache(8 << 20);
+    result.block_cache = NewLRUCache(64 << 20);
   }
   return result;
 }
@@ -770,8 +770,10 @@ void DBImpl::CompactMemTable() {
   Status s = WriteLevel0Table(&f_job, &edit);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+#ifndef NDEBUG
   printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
-//  base->Unref();
+#endif
+  //  base->Unref();
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
 //  MaybeScheduleFlushOrCompaction();
@@ -1668,7 +1670,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
   auto rdma_mg = env_->rdma_mg;
   if (request.content.ive.trival){
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    printf("install trival version\n");
+    DEBUG("install trival version\n");
     auto f = versions_->current()->FindFileByNumber(request.content.ive.level, request.content.ive.file_number,
                                    request.content.ive.node_id);
     lck.unlock();
@@ -1688,7 +1690,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 
 
   }else{
-    printf("install non-trival version\n");
+    DEBUG("install non-trival version\n");
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
@@ -1718,9 +1720,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
     std::unique_lock<std::mutex> lck(superversion_mtx);
     versions_->LogAndApply(&version_edit, request.content.ive.version_id);
-//#ifndef NDEBUG
+#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
-//#endif
+#endif
 
     InstallSuperVersion();
     lck.unlock();
