@@ -564,6 +564,10 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     //  auto stop = std::chrono::high_resolution_clock::now();
     //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
     local_mem_pool.push_back(*p2mrpointer);
+    fprintf(stdout,
+            "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
+            (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
+            mr_flags, size, total_registered_size);
   }else{
     *p2mrpointer = pre_allocated_pool.back();
     pre_allocated_pool.pop_back();
@@ -593,10 +597,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     else
       printf("Register memory for computing node\n");
   total_registered_size = total_registered_size + (*p2mrpointer)->length;
-  fprintf(stdout,
-          "MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
-          (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-          mr_flags, size, total_registered_size);
+
 
   return true;
 };
