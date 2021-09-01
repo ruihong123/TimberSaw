@@ -451,11 +451,11 @@ class RDMA_Manager {
       rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
     else
       rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
-    if (rc)
-      fprintf(stderr, "failed to post SR\n");
-    else {
-      fprintf(stdout, "Send Request was posted\n");
-    }
+//    if (rc)
+//      fprintf(stderr, "failed to post SR\n");
+//    else {
+//      fprintf(stdout, "Send Request was posted\n");
+//    }
     return rc;}
 
   // three variables below are from rdma file system.

@@ -1562,7 +1562,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse: %ld us \n", duration.count());
+  DEBUG_arg("Sync version edit time elapse: %ld us \n", duration.count());
 
 }
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {

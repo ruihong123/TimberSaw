@@ -1559,11 +1559,13 @@ int RDMA_Manager::post_send(ibv_mr* mr, std::string qp_id, size_t size) {
     rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
   else
     rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+#ifndef NDEBUG
   if (rc)
     fprintf(stderr, "failed to post SR\n");
   else {
     fprintf(stdout, "Send Request was posted\n");
   }
+#endif
   return rc;
 }
 int RDMA_Manager::post_send(ibv_mr** mr_list, size_t sge_size,
@@ -1607,11 +1609,13 @@ int RDMA_Manager::post_send(ibv_mr** mr_list, size_t sge_size,
     rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
   else
     rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+#ifndef NDEBUG
   if (rc)
     fprintf(stderr, "failed to post SR\n");
   else {
     fprintf(stdout, "Send Request was posted\n");
   }
+#endif
   return rc;
 }
 int RDMA_Manager::post_receive(ibv_mr** mr_list, size_t sge_size,
