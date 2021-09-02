@@ -1119,7 +1119,7 @@ class Benchmark {
           }
         }
 
-        const int k = thread->rand.Uniform(FLAGS_num);
+        const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);
         key.Set(k);
         Status s =
             db_->Put(write_options_, key.slice(), gen.Generate(value_size_));

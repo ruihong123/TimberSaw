@@ -361,6 +361,7 @@ class RDMA_Manager {
       std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
       std::map<void*, In_Use_Array>& remote_mem_bitmap, ibv_mr* local_mr);
   //  void mem_pool_serialization
+  bool poll_reply_buffer(RDMA_Reply* rdma_reply);
   // TODO: Make all the variable more smart pointers.
   resources* res = nullptr;
   std::vector<ibv_mr*>
@@ -462,7 +463,7 @@ class RDMA_Manager {
   //  std::string* db_name_;
   //  std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta_;
   //  std::shared_mutex* fs_mutex_;
-  bool poll_reply_buffer(RDMA_Reply* rdma_reply);
+
 
  private:
   config_t rdma_config;

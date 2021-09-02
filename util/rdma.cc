@@ -613,7 +613,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
   size_t size = 1024*1024*1024;
 
   for (int i = 0; i < gb_number; ++i) {
-//    total_registered_size = total_registered_size + size;
+    total_registered_size = total_registered_size + size;
     std::fprintf(stderr, "Pre allocate registered memory %d GB %30s\r", i, "");
     std::fflush(stderr);
     char* buff_pointer = new char[size];
