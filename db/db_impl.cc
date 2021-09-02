@@ -1550,6 +1550,9 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
   rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
 
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
