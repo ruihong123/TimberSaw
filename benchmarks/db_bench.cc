@@ -775,7 +775,7 @@ class Benchmark {
     }
     delete[] arg;
     if (method == &Benchmark::WriteRandom)
-      sleep(15); // wait for SSTable digestion
+      sleep(30); // wait for SSTable digestion
   }
 
   void Crc32c(ThreadState* thread) {

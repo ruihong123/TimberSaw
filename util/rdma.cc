@@ -156,6 +156,7 @@ RDMA_Manager::~RDMA_Manager() {
 }
 bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
   volatile bool* check_byte = &(rdma_reply->received);
+  size_t counter = 0;
   while(!*check_byte){
     _mm_clflush(check_byte);
     asm volatile ("sfence\n" : : );
@@ -163,6 +164,9 @@ bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
     asm volatile ("mfence\n" : : );
     std::fprintf(stderr, "Polling reply buffer\r");
     std::fflush(stderr);
+    counter++;
+    if (counter == 1000000)
+      break;
   }
   return true;
 }
