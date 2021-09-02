@@ -21,6 +21,7 @@
 #include <cstdio>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "leveldb/db.h"
@@ -1713,9 +1714,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     char* polling_bit = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
     memset(polling_bit, 0, 1);
     rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
-                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+                        &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
     printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
-
+    size_t counter = 0;
     while (*polling_bit == 0){
       _mm_clflush(polling_bit);
       asm volatile ("sfence\n" : : );
@@ -1723,7 +1724,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       asm volatile ("mfence\n" : : );
       std::fprintf(stderr, "Polling install version handler\r");
       std::fflush(stderr);
+      counter++;
     }
+    printf("Get the printed result after %zu iteration\n", counter);
     VersionEdit version_edit;
     version_edit.DecodeFrom(
         Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
