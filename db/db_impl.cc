@@ -770,9 +770,9 @@ void DBImpl::CompactMemTable() {
   Status s = WriteLevel0Table(&f_job, &edit);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//#ifndef NDEBUG
+#ifndef NDEBUG
   printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
-//#endif
+#endif
   //  base->Unref();
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
