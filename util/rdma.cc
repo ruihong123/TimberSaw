@@ -165,8 +165,11 @@ bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
     std::fprintf(stderr, "Polling reply buffer\r");
     std::fflush(stderr);
     counter++;
-    if (counter == 1000000)
-      break;
+    if (counter == 1000000){
+      printf("Polling not get a result\n");
+      return false;
+    }
+
   }
   return true;
 }

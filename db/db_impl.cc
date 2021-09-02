@@ -1553,8 +1553,12 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
-
+  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    exit(0);
+  }
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
   // which means the polling result may not belongs to this thread, but it does not
   // matter in our case because we do not care when will the message arrive at the other side.
