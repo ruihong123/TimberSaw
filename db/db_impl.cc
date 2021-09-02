@@ -1557,6 +1557,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   {
     printf("Reply buffer is %p", receive_pointer->reply_buffer);
     printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
     exit(0);
   }
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
