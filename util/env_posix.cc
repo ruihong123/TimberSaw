@@ -805,7 +805,7 @@ PosixEnv::PosixEnv()
   struct config_t config = {
       NULL,  /* dev_name */
       NULL,  /* server_name */
-      19801, /* tcp_port */
+      19833, /* tcp_port */
       1,	 /* ib_port */ //physical
       1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/

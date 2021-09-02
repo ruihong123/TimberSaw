@@ -16,7 +16,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     struct leveldb::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
-        19801, /* tcp_port */
+        19833, /* tcp_port */
         1,	 /* ib_port */
         1, /* gid_idx */
         0};
