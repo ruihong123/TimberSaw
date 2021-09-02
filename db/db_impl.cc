@@ -1698,7 +1698,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 
 
   }else{
-    DEBUG("install non-trival version\n");
+    printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
+
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
