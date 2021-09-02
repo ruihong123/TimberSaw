@@ -1698,7 +1698,6 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 
 
   }else{
-    printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
 
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
@@ -1715,6 +1714,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     memset(polling_bit, 0, 1);
     rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+    printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
+
     while (*polling_bit == 0){
       _mm_clflush(polling_bit);
       asm volatile ("sfence\n" : : );
