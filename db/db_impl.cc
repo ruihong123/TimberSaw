@@ -1742,7 +1742,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       std::fflush(stderr);
       counter++;
     }
-    printf("Get the printed result after %zu iteration, received %d, checkbyte is %d\n", counter, send_pointer->received, check_byte);
+    printf("Get the printed result after %zu iteration, received %d,replied buffer is %p, checkbyte is %d\n", counter, send_pointer->received, ,check_byte);
     VersionEdit version_edit;
     version_edit.DecodeFrom(
         Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
