@@ -92,7 +92,7 @@
 //#define TIMEPRINT
 
 #define GETANALYSIS
-#define R_SIZE 32
+#define R_SIZE 512
 
 //#define BLOOMANALYSIS
 #include "port/thread_annotations.h"
