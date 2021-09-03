@@ -1261,7 +1261,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     }
     printf("Request was sent, sub version id is %lu, polled buffer address is %p",
            versions_->version_id, &receive_pointer->received);
-
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
     rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
 
     //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
