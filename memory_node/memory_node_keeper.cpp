@@ -1180,8 +1180,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-//    std::fprintf(stderr, "Polling install version handler\r");
-//    std::fflush(stderr);
+    std::fprintf(stderr, "Polling install version handler\r");
+    std::fflush(stderr);
   }
   VersionEdit version_edit;
   version_edit.DecodeFrom(

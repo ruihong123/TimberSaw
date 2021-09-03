@@ -1738,8 +1738,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
-//      std::fprintf(stderr, "Polling install version handler\r");
-//      std::fflush(stderr);
+      std::fprintf(stderr, "Polling install version handler\r");
+      std::fflush(stderr);
       counter++;
     }
 //    assert()
