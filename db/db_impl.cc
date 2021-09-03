@@ -1723,7 +1723,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     for (int i = 0; i < 100; ++i) {
       if(*polling_byte != 0){
         printf("polling byte error");
-        exit(0);
+        assert(false);
       }
     }
     asm volatile ("sfence\n" : : );
