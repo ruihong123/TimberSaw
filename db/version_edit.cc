@@ -273,7 +273,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
   uint8_t node_id;
   Slice str;
   InternalKey key;
-
+  size_t counter = 0;
   while (msg == nullptr && GetVarint32(&input, &tag)) {
     switch (tag) {
       case kComparator:
@@ -352,6 +352,11 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
       default:
         msg = "unknown tag";
         break;
+    }
+    counter++;
+    if(counter>100000){
+      printf("corrupted version edit decode\n");
+      exit(0);
     }
   }
 
