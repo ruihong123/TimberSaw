@@ -1703,8 +1703,12 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     {
       //first superversion then version set.
       std::unique_lock<std::mutex> l(superversion_memlist_mtx);
-      std::unique_lock<std::mutex> l1(versionset_mtx);
-      versions_->LogAndApply(&edit, request.content.ive.version_id);
+      {
+        std::unique_lock<std::mutex> l1(versionset_mtx);
+        versions_->LogAndApply(&edit, request.content.ive.version_id);
+      }
+
+
 #ifndef NDEBUG
       printf("version edit decoded level is %d file number is %zu\n", edit.compactlevel(), edit.GetNewFilesNum() );
 #endif
