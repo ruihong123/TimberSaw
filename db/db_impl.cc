@@ -1598,7 +1598,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
-        printf("Recieve a request!\n");
+//        printf("Recieve a request!\n");
         // copy the pointer of receive buf to a new place because
         // it is the same with send buff pointer.
         if (receive_msg_buf.command == install_version_edit) {
@@ -1754,19 +1754,21 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
 //    assert()
+#ifndef NDEBUG
     printf("Get the printed result after %zu iteration, received %d, checkbyte is %d\n", counter, send_pointer->received, check_byte);
+#endif
     VersionEdit version_edit;
     version_edit.DecodeFrom(
         Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
-    printf("Marker 1\n");
+//    printf("Marker 1\n");
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-    printf("Marker 2\n");
+//    printf("Marker 2\n");
     std::unique_lock<std::mutex> lck1(versionset_mtx);
     versions_->LogAndApply(&version_edit, request.content.ive.version_id);
     lck1.unlock();
-//#ifndef NDEBUG
+#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu\n", version_edit.compactlevel(), version_edit.GetNewFilesNum());
-//#endif
+#endif
 
     InstallSuperVersion();
     lck.unlock();
