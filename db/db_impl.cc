@@ -1733,13 +1733,13 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
     printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
     size_t counter = 0;
-    while (*polling_byte != check_byte){
+    while (*(unsigned char*)polling_byte != check_byte){
       _mm_clflush(polling_byte);
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
-      std::fprintf(stderr, "Polling install version handler\r");
-      std::fflush(stderr);
+//      std::fprintf(stderr, "Polling install version handler\r");
+//      std::fflush(stderr);
       counter++;
     }
 //    assert()

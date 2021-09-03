@@ -1175,13 +1175,13 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
 
-  while (*polling_byte == 0){
+  while (*(unsigned char*)polling_byte == 0){
     _mm_clflush(polling_byte);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    std::fprintf(stderr, "Polling install version handler\r");
-    std::fflush(stderr);
+//    std::fprintf(stderr, "Polling install version handler\r");
+//    std::fflush(stderr);
   }
   VersionEdit version_edit;
   version_edit.DecodeFrom(
