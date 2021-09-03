@@ -203,8 +203,7 @@ class MemTableList {
   // A list of memtables.
   explicit MemTableList(int min_write_buffer_number_to_merge,
                         int max_write_buffer_number_to_maintain,
-                        int64_t max_write_buffer_size_to_maintain,
-                        std::mutex* mtx)
+                        int64_t max_write_buffer_size_to_maintain)
       : cmp(BytewiseComparator()),
         imm_flush_needed(false),
         imm_trim_needed(false),
@@ -217,8 +216,7 @@ class MemTableList {
         flush_requested_(false),
         current_memory_usage_(0),
         current_memory_usage_excluding_last_(0),
-        current_has_history_(false),
-        sv_mtx(mtx) {
+        current_has_history_(false){
     current_.load()->Ref();
   }
 
@@ -411,16 +409,15 @@ class MemTableList {
 
   // Cached value of current_->HasHistory().
   std::atomic<bool> current_has_history_;
-  std::mutex* sv_mtx;
+//  std::mutex* sv_mtx;
   static std::mutex imm_mtx;
 };
 class FlushJob {
  public:
-  explicit FlushJob(std::mutex* imm_mtx,
-                    std::condition_variable* write_stall_cv,
+  explicit FlushJob(std::condition_variable* write_stall_cv,
                     const InternalKeyComparator* cmp);
   autovector<MemTable*> mem_vec;
-  std::mutex* imm_mtx_;
+//  std::mutex* imm_mtx_;
   std::condition_variable* write_stall_cv_;
   std::shared_ptr<RemoteMemTableMetaData> sst;
   const InternalKeyComparator* user_cmp;

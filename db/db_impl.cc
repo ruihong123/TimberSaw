@@ -162,7 +162,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       shutting_down_(false),
 //      write_stall_cv(&write_stall_mutex_),
       mem_(nullptr),
-      imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger, 64*1024*1024*config::Immutable_StopWritesTrigger ,&superversion_mtx),
+      imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger,
+           64 * 1024 * 1024 * config::Immutable_StopWritesTrigger),
       has_imm_(false),
       logfile_(nullptr),
       logfile_number_(0),
@@ -754,7 +755,7 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
-  FlushJob f_job(&superversion_mtx, &write_stall_cv, &internal_comparator_);
+  FlushJob f_job(&write_stall_cv, &internal_comparator_);
   { //This code should synchronized outside the superversion mutex, since nothing
     // has been changed for superversion.
     std::unique_lock<std::mutex> l(FlushPickMTX);
@@ -1475,18 +1476,20 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
       sv->version_number != super_version_number_.load()) {
     SuperVersion* sv_to_delete = nullptr;
     // if there is an old superversion unrefer old one and replace it as a new one
-    std::unique_lock<std::mutex> lck(superversion_mtx,std::defer_lock);
+
     if (sv && sv->Unref()) {
-      lck.lock();
+      std::unique_lock<std::mutex> lck(superversion_mtx);
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.
       sv->Cleanup();
+      sv = super_version->Ref();
 
     } else {
-      lck.lock();
+      std::unique_lock<std::mutex> lck(superversion_mtx);
+      sv = super_version->Ref();
     }
-    sv = super_version->Ref();
-    lck.unlock();
+
+//    lck.unlock();
   }
   assert(sv != nullptr);
   return sv;
@@ -1754,7 +1757,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     printf("Marker 1\n");
     std::unique_lock<std::mutex> lck(superversion_mtx);
     printf("Marker 2\n");
+    std::unique_lock<std::mutex> lck1(versionset_mtx);
     versions_->LogAndApply(&version_edit, request.content.ive.version_id);
+    lck1.unlock();
 //#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu\n", version_edit.compactlevel(), version_edit.GetNewFilesNum());
 //#endif

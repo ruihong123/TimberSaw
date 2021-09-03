@@ -801,10 +801,9 @@ void FlushJob::SetAllMemStateProcessing() {
 
   }
 }
-FlushJob::FlushJob(std::mutex* imm_mtx,
-                   std::condition_variable* write_stall_cv,
+FlushJob::FlushJob(std::condition_variable* write_stall_cv,
                    const InternalKeyComparator* cmp)
-    : imm_mtx_(imm_mtx), write_stall_cv_(write_stall_cv),
+    : write_stall_cv_(write_stall_cv),
       user_cmp(cmp){}
 Status FlushJob::BuildTable(const std::string& dbname, Env* env,
                             const Options& options, TableCache* table_cache,
