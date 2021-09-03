@@ -1751,8 +1751,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     VersionEdit version_edit;
     version_edit.DecodeFrom(
         Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
-    DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
+    printf("Marker 1\n");
     std::unique_lock<std::mutex> lck(superversion_mtx);
+    printf("Marker 2\n");
     versions_->LogAndApply(&version_edit, request.content.ive.version_id);
 //#ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu\n", version_edit.compactlevel(), version_edit.GetNewFilesNum());
