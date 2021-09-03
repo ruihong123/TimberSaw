@@ -1239,14 +1239,16 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::string serilized_ve;
     edit->EncodeTo(&serilized_ve);
     assert(serilized_ve.size() <= send_mr_ve.length-1);
+    uint8_t check_byte = rand()%256;
     memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
-    memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
+    memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, check_byte);
 
     send_pointer = (RDMA_Request*)send_mr.addr;
     send_pointer->command = install_version_edit;
     send_pointer->content.ive.trival = false;
     send_pointer->content.ive.buffer_size = serilized_ve.size();
     send_pointer->content.ive.version_id = versions_->version_id;
+    send_pointer->content.ive.check_byte = check_byte;
     send_pointer->reply_buffer = receive_mr.addr;
     send_pointer->rkey = receive_mr.rkey;
     RDMA_Reply* receive_pointer;
@@ -1262,12 +1264,18 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       fprintf(stderr, "failed to poll send for remote memory register\n");
       return;
     }
-    printf("Request was sent, sub version id is %lu, polled buffer address is %p",
-           versions_->version_id, &receive_pointer->received);
+    printf("Request was sent, sub version id is %lu, polled buffer address is %p, checkbyte is %d",
+           versions_->version_id, &receive_pointer->received, check_byte);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
+    if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+    {
+      printf("Reply buffer is %p", receive_pointer->reply_buffer);
+      printf("Received is %d", receive_pointer->received);
+      printf("receive structure size is %lu", sizeof(RDMA_Reply));
+      exit(0);
+    }
 
     //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
     // which means the polling result may not belongs to this thread, but it does not

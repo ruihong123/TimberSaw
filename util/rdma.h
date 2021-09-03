@@ -80,6 +80,7 @@ struct install_versionedit {
   bool trival;
   size_t buffer_size;
   size_t version_id;
+  uint8_t check_byte;
   int level;
   uint64_t file_number;
   uint8_t node_id;

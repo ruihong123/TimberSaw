@@ -1517,69 +1517,7 @@ void DBImpl::InstallSuperVersion() {
 //  ibv_wc wc[3] = {};
 //  env_->rdma_mg->poll_completion(wc, 1, "main", false);
 //}
-void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
-//  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
-  auto start = std::chrono::high_resolution_clock::now();
-  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-  // register the memory block from the remote memory
-  RDMA_Request* send_pointer;
-  ibv_mr send_mr = {};
-  ibv_mr send_mr_ve = {};
-  ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
 
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
-  std::string serilized_ve;
-  edit->EncodeTo(&serilized_ve);
-  assert(serilized_ve.size() <= send_mr_ve.length);
-  memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
-  memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
-
-  send_pointer = (RDMA_Request*)send_mr.addr;
-  send_pointer->command = install_version_edit;
-  send_pointer->content.ive.buffer_size = serilized_ve.size();
-  send_pointer->reply_buffer = receive_mr.addr;
-  send_pointer->rkey = receive_mr.rkey;
-  RDMA_Reply* receive_pointer;
-  receive_pointer = (RDMA_Reply*)receive_mr.addr;
-  //Clear the reply buffer for the polling.
-  *receive_pointer = {};
-  asm volatile ("sfence\n" : : );
-  asm volatile ("lfence\n" : : );
-  asm volatile ("mfence\n" : : );
-  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
-  ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
-    fprintf(stderr, "failed to poll send for remote memory register\n");
-    return;
-  }
-  asm volatile ("sfence\n" : : );
-  asm volatile ("lfence\n" : : );
-  asm volatile ("mfence\n" : : );
-  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
-  {
-    printf("Reply buffer is %p", receive_pointer->reply_buffer);
-    printf("Received is %d", receive_pointer->received);
-    printf("receive structure size is %lu", sizeof(RDMA_Reply));
-    exit(0);
-  }
-  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
-  // which means the polling result may not belongs to this thread, but it does not
-  // matter in our case because we do not care when will the message arrive at the other side.
-  asm volatile ("sfence\n" : : );
-  asm volatile ("lfence\n" : : );
-  asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
-                      &send_mr_ve, serilized_ve.size() + 1, "main", IBV_SEND_SIGNALED,1);
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
-  auto end = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  DEBUG_arg("Sync version edit time elapse: %ld us \n", duration.count());
-
-}
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
     ibv_qp* qp;
@@ -1679,6 +1617,69 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
     }
 }
+void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
+  //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
+  auto start = std::chrono::high_resolution_clock::now();
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // register the memory block from the remote memory
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_ve = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  std::string serilized_ve;
+  edit->EncodeTo(&serilized_ve);
+  assert(serilized_ve.size() <= send_mr_ve.length);
+  memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
+  memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
+
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = install_version_edit;
+  send_pointer->content.ive.buffer_size = serilized_ve.size();
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+    exit(0);
+  }
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side.
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+                      &send_mr_ve, serilized_ve.size() + 1, "main", IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  auto end = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  DEBUG_arg("Sync version edit time elapse: %ld us \n", duration.count());
+
+}
 void DBImpl::install_version_edit_handler(RDMA_Request request,
                                           std::string client_ip) {
 
@@ -1705,7 +1706,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 
 
   }else{
-
+    uint8_t check_byte = request.content.ive.check_byte;
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
@@ -1732,7 +1733,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
     printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
     size_t counter = 0;
-    while (*polling_byte == 0){
+    while (*polling_byte == check_byte){
       _mm_clflush(polling_byte);
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
@@ -1749,7 +1750,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     std::unique_lock<std::mutex> lck(superversion_mtx);
     versions_->LogAndApply(&version_edit, request.content.ive.version_id);
 #ifndef NDEBUG
-    printf("version edit decoded level is %d file number is %zu", version_edit.compactlevel(), version_edit.GetNewFilesNum() );
+    printf("version edit decoded level is %d file number is %zu, checkbyte is %d", version_edit.compactlevel(), version_edit.GetNewFilesNum(), check_byte);
 #endif
 
     InstallSuperVersion();
