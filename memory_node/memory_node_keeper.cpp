@@ -1241,7 +1241,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     assert(serilized_ve.size() <= send_mr_ve.length-1);
     uint8_t check_byte = rand()%256;
     memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
-    memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, check_byte);
+    memset((char*)send_mr_ve.addr + serilized_ve.size(), check_byte, 1);
 
     send_pointer = (RDMA_Request*)send_mr.addr;
     send_pointer->command = install_version_edit;
