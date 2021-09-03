@@ -1692,7 +1692,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
   auto rdma_mg = env_->rdma_mg;
   if (request.content.ive.trival){
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    printf("install trival version\n");
+    DEBUG("install trival version\n");
     auto f = versions_->current()->FindFileByNumber(request.content.ive.level, request.content.ive.file_number,
                                    request.content.ive.node_id);
     lck.unlock();
@@ -1743,7 +1743,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
-    printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
+    DEBUG("install non-trival version, version id is %lu\n", request.content.ive.version_id);
     size_t counter = 0;
     while (*(unsigned char*)polling_byte != check_byte){
       _mm_clflush(polling_byte);
