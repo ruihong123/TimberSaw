@@ -1733,7 +1733,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
     printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);
     size_t counter = 0;
-    while (*polling_byte == check_byte){
+    while (*polling_byte != check_byte){
       _mm_clflush(polling_byte);
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
@@ -1742,6 +1742,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       std::fflush(stderr);
       counter++;
     }
+    assert()
     printf("Get the printed result after %zu iteration, received %d, checkbyte is %d\n", counter, send_pointer->received, check_byte);
     VersionEdit version_edit;
     version_edit.DecodeFrom(
