@@ -1743,7 +1743,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
-    DEBUG("install non-trival version, version id is %lu\n", request.content.ive.version_id);
+    DEBUG_arg("install non-trival version, version id is %lu\n", request.content.ive.version_id);
     size_t counter = 0;
     while (*(unsigned char*)polling_byte != check_byte){
       _mm_clflush(polling_byte);
