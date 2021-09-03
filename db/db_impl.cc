@@ -131,6 +131,7 @@ void SuperVersion::Cleanup() {
   mem->Unref();
   std::unique_lock<std::mutex> lck(*versionset_mutex);// in case that the version list is messed up
   current->Unref(4);
+  lck.unlock();
   delete this;
 
 }
@@ -1742,6 +1743,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       std::fflush(stderr);
       counter++;
     }
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
 //    assert()
     printf("Get the printed result after %zu iteration, received %d, checkbyte is %d\n", counter, send_pointer->received, check_byte);
     VersionEdit version_edit;
