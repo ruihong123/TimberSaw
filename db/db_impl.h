@@ -208,7 +208,8 @@ class DBImpl : public DB {
   void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
 //  void Communication_To_Home_Node();
-  void Edit_sync_to_remote(VersionEdit* edit);
+  void Edit_sync_to_remote(VersionEdit* edit,
+                           std::unique_lock<std::mutex>* version_mtx);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }

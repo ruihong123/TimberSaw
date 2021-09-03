@@ -106,7 +106,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
           std::unique_lock<std::mutex> lck(versionset_mtx);
           status = versions_->LogAndApply(c->edit(), 0);
           versions_->Pin_Version_For_Compute();
-          Edit_sync_to_remote(c->edit(), *client_ip);
+          Edit_sync_to_remote(c->edit(), *client_ip, nullptr);
         }
 //        InstallSuperVersion();
       }
@@ -868,7 +868,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
   versions_->Pin_Version_For_Compute();
 
-  Edit_sync_to_remote(compact->compaction->edit(), client_ip);
+  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
 
   return s;
 }
@@ -1200,8 +1200,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::unique_lock<std::mutex> lck(versionset_mtx);
     versions_->Unpin_Version_For_Compute(request.content.unpinned_version_id);
   }
-  void Memory_Node_Keeper::Edit_sync_to_remote(VersionEdit* edit,
-                                               std::string& client_ip) {
+  void Memory_Node_Keeper::Edit_sync_to_remote(
+      VersionEdit* edit, std::string& client_ip,
+      std::unique_lock<std::mutex>* version_mtx) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
 
 //  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -1227,6 +1228,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->content.ive.node_id = node_id;
     send_pointer->content.ive.version_id = versions_->version_id;
     rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+    version_mtx->unlock();
     ibv_wc wc[2] = {};
     if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
       fprintf(stderr, "failed to poll send for remote memory register\n");
@@ -1263,6 +1265,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
     rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+    //TODO: Think of a better way to avoid deadlock and guarantee the same
+    // sequence of verision edit between compute node and memory server.
+    version_mtx->unlock();
     ibv_wc wc[2] = {};
     if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
       fprintf(stderr, "failed to poll send for remote memory register\n");

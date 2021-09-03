@@ -1390,7 +1390,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   {
     std::unique_lock<std::mutex> lck(versionset_mtx);
     s = vset->LogAndApply(edit, 0);
-    Edit_sync_to_remote(edit);
+    Edit_sync_to_remote(edit, &lck);
   }
 
 #ifndef NDEBUG
@@ -1621,7 +1621,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
     }
 }
-void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
+void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
+                                 std::unique_lock<std::mutex>* version_mtx) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   auto start = std::chrono::high_resolution_clock::now();
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -1653,6 +1654,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  version_mtx->unlock();
   ibv_wc wc[2] = {};
   if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
