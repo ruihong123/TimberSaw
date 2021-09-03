@@ -1169,6 +1169,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   // version edit in the first REQUEST from compute node.
   volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
   memset((void*)polling_byte, 0, 1);
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
 
