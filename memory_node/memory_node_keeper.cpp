@@ -106,7 +106,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
           std::unique_lock<std::mutex> lck(versionset_mtx);
           status = versions_->LogAndApply(c->edit(), 0);
           versions_->Pin_Version_For_Compute();
-          Edit_sync_to_remote(c->edit(), *client_ip, nullptr);
+          Edit_sync_to_remote(c->edit(), *client_ip, &lck);
         }
 //        InstallSuperVersion();
       }

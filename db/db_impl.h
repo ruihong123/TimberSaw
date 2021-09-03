@@ -241,7 +241,7 @@ class DBImpl : public DB {
   std::atomic<bool> shutting_down_;
   std::condition_variable write_stall_cv GUARDED_BY(superversion_mtx);
   std::mutex FlushPickMTX;
-  std::mutex superversion_mtx;
+  std::mutex superversion_memlist_mtx;
   std::mutex versionset_mtx;
   bool locked = false;
 //  SpinMutex LSMv_mtx;
