@@ -1711,8 +1711,15 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
-    memset(polling_byte, 0, 1);
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+    memset((void*)polling_byte, 0, 1);
+    for (int i = 0; i < 100; ++i) {
+      if(*polling_byte == 0){
+        printf("polling byte error");
+        exit(0);
+      }
+    }
+
     rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
     printf("install non-trival version, version id is %lu\n", request.content.ive.version_id);

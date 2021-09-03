@@ -1256,7 +1256,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       fprintf(stderr, "failed to poll send for remote memory register\n");
       return;
     }
-    printf("Request was sent, sub version id is %lu", versions_->version_id);
+    printf("Request was sent, sub version id is %lu, polled buffer address is %p",
+           versions_->version_id, &receive_pointer->received);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
