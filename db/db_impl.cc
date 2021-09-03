@@ -1594,7 +1594,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
-
+        printf("Recieve a request!\n");
         // copy the pointer of receive buf to a new place because
         // it is the same with send buff pointer.
         if (receive_msg_buf.command == install_version_edit) {
@@ -1686,7 +1686,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
   auto rdma_mg = env_->rdma_mg;
   if (request.content.ive.trival){
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    DEBUG("install trival version\n");
+    printf("install trival version\n");
     auto f = versions_->current()->FindFileByNumber(request.content.ive.level, request.content.ive.file_number,
                                    request.content.ive.node_id);
     lck.unlock();
@@ -1720,12 +1720,12 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     // version edit in the first REQUEST from compute node.
     volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
     memset((void*)polling_byte, 0, 1);
-    for (int i = 0; i < 100; ++i) {
-      if(*polling_byte != 0){
-        printf("polling byte error");
-        exit(0);
-      }
-    }
+//    for (int i = 0; i < 100; ++i) {
+//      if(*polling_byte != 0){
+//        printf("polling byte error");
+//        exit(0);
+//      }
+//    }
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
