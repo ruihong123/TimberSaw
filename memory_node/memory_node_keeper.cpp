@@ -1272,6 +1272,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
     // which means the polling result may not belongs to this thread, but it does not
     // matter in our case because we do not care when will the message arrive at the other side.
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
                         &send_mr_ve, serilized_ve.size() + 1, client_ip, IBV_SEND_SIGNALED,1);
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
