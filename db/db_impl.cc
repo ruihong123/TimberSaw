@@ -1720,12 +1720,12 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     // version edit in the first REQUEST from compute node.
     volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
     memset((void*)polling_byte, 0, 1);
-//    for (int i = 0; i < 100; ++i) {
-//      if(*polling_byte != 0){
-//        printf("polling byte error");
-//        exit(0);
-//      }
-//    }
+    for (int i = 0; i < 100; ++i) {
+      if(*polling_byte != 0){
+        printf("polling byte error");
+        exit(0);
+      }
+    }
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
