@@ -1,3 +1,4 @@
+
 #ifndef RDMA_H
 #define RDMA_H
 
@@ -34,7 +35,7 @@
 #include "util/thread_local.h"
 #include "port/thread_annotations.h"
 #include "limits.h"
-
+#include <list>
 //#ifdef __cplusplus
 //extern "C" { //only need to export C interface if
 //// used by C++ source code
@@ -267,6 +268,8 @@ class RDMA_Manager{
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
       std::string pool_name);// register the memory on the local side
+  bool Preregister_Memory(int gb_number); //Pre register the memroy do not allocate bit map
+
   // Remote Memory registering will call RDMA send and receive to the remote memory
   // it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
@@ -341,6 +344,8 @@ class RDMA_Manager{
   std::shared_mutex local_mem_mutex;
   std::unordered_map<std::string, ibv_mr*> fs_image;
   std::shared_mutex fs_image_mutex;
+  std::list<ibv_mr*> pre_allocated_pool;
+  size_t total_registered_size = 0;
   // use thread local qp and cq instead of map, this could be lock free.
 //  static __thread std::string thread_id;
  private:
@@ -497,3 +502,4 @@ class RDMA_Manager{
 ////#endif
 }
 #endif
+
