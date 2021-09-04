@@ -33,10 +33,10 @@ static const int Immutable_StopWritesTrigger = 10;
 static const int kL0_CompactionTrigger = 1;
 
 // Soft limit on number of level-0 files.  We slow down writes at this point.
-static const int kL0_SlowdownWritesTrigger = 65535;
+static const int kL0_SlowdownWritesTrigger = 20;
 
 // Maximum number of level-0 files.  We stop writes at this point.
-static const int kL0_StopWritesTrigger = 65535;
+static const int kL0_StopWritesTrigger = 36;
 
 // Maximum level to which a new compacted memtable is pushed if it
 // does not create overlap.  We try to push to level 2 to avoid the
