@@ -855,7 +855,7 @@ class Benchmark {
     int found = 0;
     KeyBuffer key;
     for (int i = 0; i < reads_; i++) {
-      const int k = thread->rand.Uniform(FLAGS_num);
+      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);
       key.Set(k);
       if (db_->Get(options, key.slice(), &value).ok()) {
         found++;
@@ -971,7 +971,7 @@ class Benchmark {
           }
         }
 
-        const int k = thread->rand.Uniform(FLAGS_num);
+        const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);
         key.Set(k);
         Status s =
             db_->Put(write_options_, key.slice(), gen.Generate(value_size_));
