@@ -688,6 +688,8 @@ class Benchmark {
       delete arg[i].thread;
     }
     delete[] arg;
+    if (method == &Benchmark::WriteRandom)
+      sleep(50); // wait for SSTable digestion
   }
 
   void Crc32c(ThreadState* thread) {
