@@ -714,7 +714,7 @@ void DBImpl::BackgroundCompaction() {
     CompactMemTable();
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-    printf("memtable flushing time elapse (%ld) us\n", duration.count());
+    DEBUG_arg("memtable flushing time elapse (%ld) us\n", duration.count());
     DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
     DEBUG("Memtable flushed\n");
     return;
