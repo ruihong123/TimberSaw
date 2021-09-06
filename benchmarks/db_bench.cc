@@ -1,7 +1,11 @@
+
 // Copyright (c) 2011 The LevelDB Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
-
+#ifdef NUMA
+#include <numa.h>
+#include <numaif.h>
+#endif
 #include <sys/types.h>
 
 #include <atomic>
@@ -9,6 +13,7 @@
 #include <cstdlib>
 
 #include "leveldb/cache.h"
+#include "db/table_cache.h"
 #include "leveldb/comparator.h"
 #include "leveldb/db.h"
 #include "leveldb/env.h"
@@ -73,7 +78,8 @@ static int FLAGS_threads = 1;
 
 // Size of each value
 static int FLAGS_value_size = 100;
-
+// Size of each value
+static int FLAGS_key_size = 20;
 // Arrange to generate values that shrink to this fraction of
 // their original size after compression
 static double FLAGS_compression_ratio = 0.5;
@@ -103,6 +109,7 @@ static int FLAGS_cache_size = -1;
 // Maximum number of files to keep open at the same time (use default if == 0)
 static int FLAGS_open_files = 0;
 
+static int FLAGS_block_restart_interval = 16;
 // Bloom filter bits per key.
 // Negative means use default settings.
 static int FLAGS_bloom_bits = -1;
@@ -114,7 +121,8 @@ static int FLAGS_key_prefix = 0;
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
 static bool FLAGS_use_existing_db = false;
-
+// whether the writer threads aware of the NUMA archetecture.
+static bool FLAGS_enable_numa = false;
 // If true, reuse existing log/MANIFEST files when re-opening a database.
 static bool FLAGS_reuse_logs = false;
 
@@ -196,10 +204,10 @@ class KeyBuffer {
 
   void Set(int k) {
     std::snprintf(buffer_ + FLAGS_key_prefix,
-                  sizeof(buffer_) - FLAGS_key_prefix, "%016d", k);
+                  sizeof(buffer_) - FLAGS_key_prefix, "%020d", k); //%016d means preceeding with 0s
   }
 
-  Slice slice() const { return Slice(buffer_, FLAGS_key_prefix + 16); }
+  Slice slice() const { return Slice(buffer_, FLAGS_key_prefix + 20); }
 
  private:
   char buffer_[1024];
@@ -310,12 +318,12 @@ class Stats {
     // Pretend at least one op was done in case we are running a benchmark
     // that does not call FinishedSingleOp().
     if (done_ < 1) done_ = 1;
-
+    double elapsed = (finish_ - start_) * 1e-6;
     std::string extra;
     if (bytes_ > 0) {
       // Rate is computed on actual elapsed time, not the sum of per-thread
       // elapsed times.
-      double elapsed = (finish_ - start_) * 1e-6;
+
       char rate[100];
       std::snprintf(rate, sizeof(rate), "%6.1f MB/s",
                     (bytes_ / 1048576.0) / elapsed);
@@ -323,9 +331,10 @@ class Stats {
     }
     AppendWithSpace(&extra, message_);
 
-    std::fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n",
-                 name.ToString().c_str(), seconds_ * 1e6 / done_,
+    std::fprintf(stdout, "%-12s : %11.3f micros/op; %ld ops/sec;%s%s\n",
+                 name.ToString().c_str(), seconds_ * 1e6 / done_, (long)(done_/elapsed),
                  (extra.empty() ? "" : " "), extra.c_str());
+
     if (FLAGS_histogram) {
       std::fprintf(stdout, "Microseconds per op:\n%s\n",
                    hist_.ToString().c_str());
@@ -357,7 +366,8 @@ struct SharedState {
 // Per-thread state for concurrent executions of the same benchmark.
 struct ThreadState {
   int tid;      // 0..n-1 when running in n threads
-  Random rand;  // Has different seeds for different threads
+  Random64 rand;  // Has different seeds for different threads
+//  Random rand;
   Stats stats;
   SharedState* shared;
 
@@ -379,6 +389,7 @@ class Benchmark {
   int heap_counter_;
   CountComparator count_comparator_;
   int total_thread_count_;
+  std::vector<std::string> validation_keys;
 
   void PrintHeader() {
     const int kKeySize = 16 + FLAGS_key_prefix;
@@ -462,8 +473,8 @@ class Benchmark {
   Benchmark()
       : cache_(FLAGS_cache_size >= 0 ? NewLRUCache(FLAGS_cache_size) : nullptr),
         filter_policy_(FLAGS_bloom_bits >= 0
-                           ? NewBloomFilterPolicy(FLAGS_bloom_bits)
-                           : nullptr),
+                       ? NewBloomFilterPolicy(FLAGS_bloom_bits)
+                       : nullptr),
         db_(nullptr),
         num_(FLAGS_num),
         value_size_(FLAGS_value_size),
@@ -489,13 +500,62 @@ class Benchmark {
     delete cache_;
     delete filter_policy_;
   }
+  Slice AllocateKey(std::unique_ptr<const char[]>* key_guard) {
+    char* data = new char[FLAGS_key_size];
+    const char* const_data = data;
+    key_guard->reset(const_data);
+    return Slice(key_guard->get(), FLAGS_key_size);
+  }
+  Slice AllocateKey(std::unique_ptr<const char[]>* key_guard, size_t key_size) {
+    char* data = new char[key_size];
+    const char* const_data = data;
+    key_guard->reset(const_data);
+    return Slice(key_guard->get(), key_size);
+  }
+  void GenerateKeyFromInt(uint64_t v, int64_t num_keys, Slice* key) {
 
+    char* start = const_cast<char*>(key->data());
+    char* pos = start;
+//    if (keys_per_prefix_ > 0) {
+//      int64_t num_prefix = num_keys / keys_per_prefix_;
+//      int64_t prefix = v % num_prefix;
+//      int bytes_to_fill = std::min(prefix_size_, 8);
+//      if (port::kLittleEndian) {
+//        for (int i = 0; i < bytes_to_fill; ++i) {
+//          pos[i] = (prefix >> ((bytes_to_fill - i - 1) << 3)) & 0xFF;
+//        }
+//      } else {
+//        memcpy(pos, static_cast<void*>(&prefix), bytes_to_fill);
+//      }
+//      if (prefix_size_ > 8) {
+//        // fill the rest with 0s
+//        memset(pos + 8, '0', prefix_size_ - 8);
+//      }
+//      pos += prefix_size_;
+//    }
+
+    int bytes_to_fill = std::min(FLAGS_key_size, 8);
+    if (port::kLittleEndian) {
+      for (int i = 0; i < bytes_to_fill; ++i) {
+        pos[i] = (v >> ((bytes_to_fill - i - 1) << 3)) & 0xFF;
+      }
+    } else {
+      memcpy(pos, static_cast<void*>(&v), bytes_to_fill);
+    }
+    pos += bytes_to_fill;
+    if (FLAGS_key_size > pos - start) {
+      memset(pos, '0', FLAGS_key_size - (pos - start));
+    }
+  }
   void Run() {
+
     PrintHeader();
     Open();
 
     const char* benchmarks = FLAGS_benchmarks;
+//    Validation_Write();
     while (benchmarks != nullptr) {
+      printf("The benchmark start.\n");
       const char* sep = strchr(benchmarks, ',');
       Slice name;
       if (sep == nullptr) {
@@ -603,9 +663,15 @@ class Benchmark {
       }
 
       if (method != nullptr) {
+//        if (name == "readrandom"){
+//          TableCache::CleanAll();
+//        }
         RunBenchmark(num_threads, name, method);
+        printf("Benchmark finished\n");
+
       }
     }
+    Validation_Read();
   }
 
  private:
@@ -646,10 +712,31 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
+    if (name.ToString() == "fillrandom")
+      Validation_Write();
+//    if (name.ToString() == "readrandom"){
+//    }
     SharedState shared(n);
 
     ThreadArg* arg = new ThreadArg[n];
     for (int i = 0; i < n; i++) {
+#ifdef NUMA
+      if (FLAGS_enable_numa) {
+        // Performs a local allocation of memory to threads in numa node.
+        int n_nodes = numa_num_task_nodes();  // Number of nodes in NUMA.
+        numa_exit_on_error = 1;
+        int numa_node = i % n_nodes;
+        bitmask* nodes = numa_allocate_nodemask();
+        numa_bitmask_clearall(nodes);
+        numa_bitmask_setbit(nodes, numa_node);
+        // numa_bind() call binds the process to the node and these
+        // properties are passed on to the thread that is created in
+        // StartThread method called later in the loop.
+        numa_bind(nodes);
+        numa_set_strict(1);
+        numa_free_nodemask(nodes);
+      }
+#endif
       arg[i].bm = this;
       arg[i].method = method;
       arg[i].shared = &shared;
@@ -689,7 +776,7 @@ class Benchmark {
     }
     delete[] arg;
     if (method == &Benchmark::WriteRandom)
-      sleep(50); // wait for SSTable digestion
+      sleep(60); // wait for SSTable digestion
   }
 
   void Crc32c(ThreadState* thread) {
@@ -767,6 +854,8 @@ class Benchmark {
     options.write_buffer_size = FLAGS_write_buffer_size;
     options.max_file_size = FLAGS_max_file_size;
     options.block_size = FLAGS_block_size;
+//    options.bloom_bits = FLAGS_bloom_bits;
+    options.block_restart_interval = FLAGS_block_restart_interval;
     if (FLAGS_comparisons) {
       options.comparator = &count_comparator_;
     }
@@ -791,7 +880,51 @@ class Benchmark {
   void WriteSeq(ThreadState* thread) { DoWrite(thread, true); }
 
   void WriteRandom(ThreadState* thread) { DoWrite(thread, false); }
+  void Validation_Write() {
+    Random64 rand(123);
+    RandomGenerator gen;
+    Status s;
+    std::unique_ptr<const char[]> key_guard;
+    WriteBatch batch;
+    Slice key = AllocateKey(&key_guard, FLAGS_key_size+1);
+    for (int i = 0; i < 1000; i++) {
+      batch.Clear();
+//      //The key range should be adjustable.
+////        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
+//      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
+      GenerateKeyFromInt(i, FLAGS_num, &key);
+      key.Reset(key.data(), key.size()-1);
+      char to_be_append = 'v';// add an extra char to make key different from write bench.
+      assert(key.size() == FLAGS_key_size);
+      key.append(&to_be_append, 1);
+////      batch.Put(key, gen.Generate(value_size_));
+      batch.Put(key, key);
 
+      s = db_->Write(write_options_, &batch);
+      validation_keys.push_back(key.ToString());
+    }
+    printf("validation write finished\n");
+  }
+  void Validation_Read() {
+    ReadOptions options;
+    //TODO(ruihong): specify the cache option.
+    std::string value;
+    int not_found = 0;
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+    for (int i = 0; i < 1000; i++) {
+      key = validation_keys[i];
+      if (db_->Get(options, key, &value).ok()) {
+
+      }else{
+//        printf("Validation failed\n");
+        not_found++;
+//        assert(false);
+      }
+    }
+    printf("validation read finished, not found num %d\n", not_found);
+  }
   void DoWrite(ThreadState* thread, bool seq) {
     if (num_ != FLAGS_num) {
       char msg[100];
@@ -803,15 +936,22 @@ class Benchmark {
     WriteBatch batch;
     Status s;
     int64_t bytes = 0;
-    KeyBuffer key;
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < num_; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
-        // KEEP the total number of key invarant across the tests.
-        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
-        key.Set(k);
-        batch.Put(key.slice(), gen.Generate(value_size_));
-        bytes += value_size_ + key.slice().size();
+        //The key range should be adjustable.
+//        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
+        const int k = seq ? i + j : thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+
+//        key.Set(k);
+        GenerateKeyFromInt(k, FLAGS_num, &key);
+//        batch.Put(key.slice(), gen.Generate(value_size_));
+        batch.Put(key, gen.Generate(value_size_));
+//        bytes += value_size_ + key.slice().size();
+        bytes += value_size_ + key.size();
         thread->stats.FinishedSingleOp();
       }
       s = db_->Write(write_options_, &batch);
@@ -851,13 +991,22 @@ class Benchmark {
 
   void ReadRandom(ThreadState* thread) {
     ReadOptions options;
+    //TODO(ruihong): specify the cache option.
     std::string value;
     int found = 0;
-    KeyBuffer key;
+//    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
     for (int i = 0; i < reads_; i++) {
-      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);
-      key.Set(k);
-      if (db_->Get(options, key.slice(), &value).ok()) {
+//      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+      const int k = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+//
+//            key.Set(k);
+      GenerateKeyFromInt(k, FLAGS_num, &key);
+//      if (db_->Get(options, key.slice(), &value).ok()) {
+//        found++;
+//      }
+      if (db_->Get(options, key, &value).ok()) {
         found++;
       }
       thread->stats.FinishedSingleOp();
@@ -1056,6 +1205,8 @@ int main(int argc, char** argv) {
       FLAGS_threads = n;
     } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
       FLAGS_value_size = n;
+    } else if (sscanf(argv[i], "--key_size=%d%c", &n, &junk) == 1) {
+      FLAGS_key_size = n;
     } else if (sscanf(argv[i], "--write_buffer_size=%d%c", &n, &junk) == 1) {
       FLAGS_write_buffer_size = n;
     } else if (sscanf(argv[i], "--max_file_size=%d%c", &n, &junk) == 1) {
@@ -1070,6 +1221,10 @@ int main(int argc, char** argv) {
       FLAGS_bloom_bits = n;
     } else if (sscanf(argv[i], "--open_files=%d%c", &n, &junk) == 1) {
       FLAGS_open_files = n;
+    } else if (sscanf(argv[i], "--numa_awared=%d%c", &n, &junk) == 1) {
+      FLAGS_enable_numa = n;
+    } else if (sscanf(argv[i], "--block_restart_interval=%d%c", &n, &junk) == 1) {
+      FLAGS_block_restart_interval = n;
     } else if (strncmp(argv[i], "--db=", 5) == 0) {
       FLAGS_db = argv[i] + 5;
     } else {

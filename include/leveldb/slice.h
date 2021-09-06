@@ -23,7 +23,7 @@
 #include "leveldb/export.h"
 
 namespace leveldb {
-
+//TODO: make the size of slice extensible from outside.
 class LEVELDB_EXPORT Slice {
  public:
   // Create an empty slice.
@@ -63,7 +63,15 @@ class LEVELDB_EXPORT Slice {
     data_ = "";
     size_ = 0;
   }
-
+  // Move the data pointer to the end of this slice
+  void ResetNext() {
+    data_ = data_+size_;
+    size_ = 0;
+  }
+  void Reset(const char* data, size_t size) {
+    data_ = data;
+    size_ = size;
+  }
   // Drop the first "n" bytes from this slice.
   void remove_prefix(size_t n) {
     assert(n <= size());
@@ -84,7 +92,11 @@ class LEVELDB_EXPORT Slice {
   bool starts_with(const Slice& x) const {
     return ((size_ >= x.size_) && (memcmp(data_, x.data_, x.size_) == 0));
   }
-
+  void append(const char* p, size_t size){
+//    assert(size_+size <= buffer_limit);
+    memcpy((void*)(data_ + size_), (void*)p , size);
+    size_+= size;
+  }
  private:
   const char* data_;
   size_t size_;
@@ -108,7 +120,14 @@ inline int Slice::compare(const Slice& b) const {
   }
   return r;
 }
+struct SliceParts {
+  SliceParts(const Slice* _parts, int _num_parts)
+      : parts(_parts), num_parts(_num_parts) {}
+  SliceParts() : parts(nullptr), num_parts(0) {}
 
+  const Slice* parts;
+  int num_parts;
+};
 }  // namespace leveldb
 
 #endif  // STORAGE_LEVELDB_INCLUDE_SLICE_H_
