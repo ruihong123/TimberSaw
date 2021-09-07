@@ -113,7 +113,7 @@ Options SanitizeOptions(const std::string& dbname,
     }
   }
   if (result.block_cache == nullptr) {
-    result.block_cache = NewLRUCache(8 << 20);
+    result.block_cache = NewLRUCache(64 << 20);
   }
   return result;
 }
