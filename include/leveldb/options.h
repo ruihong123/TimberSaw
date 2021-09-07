@@ -85,7 +85,7 @@ struct LEVELDB_EXPORT Options {
   // Number of open files that can be used by the DB.  You may need to
   // increase this if your database has a large working set (budget
   // one open file per 2MB of working set).
-  int max_open_files = 1000;
+  int max_open_files = 5000;
 
   // Control over blocks (user data is stored in a set of blocks, and
   // a block is the unit of reading from disk).
@@ -129,7 +129,7 @@ struct LEVELDB_EXPORT Options {
   // worth switching to kNoCompression.  Even if the input data is
   // incompressible, the kSnappyCompression implementation will
   // efficiently detect that and will switch to uncompressed mode.
-  CompressionType compression = kSnappyCompression;
+  CompressionType compression = kNoCompression;
 
   // EXPERIMENTAL: If true, append to existing MANIFEST and log files
   // when a database is opened.  This can significantly speed up open.
@@ -152,7 +152,7 @@ struct LEVELDB_EXPORT ReadOptions {
 
   // If true, all data read from underlying storage will be
   // verified against corresponding checksums.
-  bool verify_checksums = false;
+  bool verify_checksums = true;
 
   // Should the data read for this iteration be cached in memory?
   // Callers may wish to set this field to false for bulk scans.
