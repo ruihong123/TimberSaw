@@ -45,12 +45,12 @@ struct LEVELDB_EXPORT Options {
   // comparator provided to previous open calls on the same DB.
   const Comparator* comparator;
 
-  int max_background_flushes = 4;
+  int max_background_flushes = 2;
 
 
 
-  int max_background_compactions = 12;
-  int MaxSubcompaction = 12;
+  int max_background_compactions = 6;
+  int MaxSubcompaction = 6;
   bool usesubcompaction = true;
   // If true, the database will be created if it is missing.
   bool create_if_missing = false;
