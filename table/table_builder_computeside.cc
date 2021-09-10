@@ -189,9 +189,9 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
 //#ifndef NDEBUG
 //    size_t key_length = r->last_key.size();
 //#endif
-    assert(r->last_key.size()>= 8);
+//    assert(r->last_key.size()>= 8);
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
-    assert(r->last_key.size() >= 8  );
+//    assert(r->last_key.size() >= 8  );
     std::string handle_encoding;
     //Note that the handle block size does not contain CRC!
     r->pending_data_handle.EncodeTo(&handle_encoding);
@@ -226,8 +226,8 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
   }
 
   r->last_key.assign(key.data(), key.size());
-  assert(key.size() == 28 || key.size() == 29);
-  assert(r->last_key.c_str()[8] == 060);
+//  assert(key.size() == 28 || key.size() == 29);
+//  assert(r->last_key.c_str()[8] == 060);
   r->num_entries++;
   r->data_block->Add(key, value);
 
