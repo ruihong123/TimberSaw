@@ -278,9 +278,10 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
 
 //    case kSnappyCompression: {
 //      std::string* compressed = &r->compressed_output;
-//      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-//          compressed->size() < raw.size() - (raw.size() / 8u)) {
+//      if (port::Snappy_Compress(raw->data(), raw->size(), compressed) &&
+//          compressed->size() < raw->size() - (raw->size() / 8u)) {
 //        block_contents = *compressed;
+//        memcpy(block_contents.data);
 //      } else {
 //        // Snappy not supported, or compressed less than 12.5%, so just
 //        // store uncompressed form
