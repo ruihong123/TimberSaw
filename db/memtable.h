@@ -5,7 +5,7 @@
 #ifndef STORAGE_LEVELDB_DB_MEMTABLE_H_
 #define STORAGE_LEVELDB_DB_MEMTABLE_H_
 // #define MEMTABLE_SEQ_SIZE 153846 //Make the in memory buffer close to 64MB
-#define MEMTABLE_SEQ_SIZE 159783
+#define MEMTABLE_SEQ_SIZE 79892
 #include "db/dbformat.h"
 #include "db/inlineskiplist.h"
 #include <string>
