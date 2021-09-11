@@ -116,7 +116,7 @@ struct LEVELDB_EXPORT Options {
   // compression is enabled.  This parameter can be changed dynamically.
   //This value have to be hardcoded for 8k, because the RDMA mempool will
   // be initialized by this value
-  size_t block_size = 16 * 1024;
+  size_t block_size = 4 * 1024;
 
   // Number of keys between restart points for delta encoding of keys.
   // This parameter can be changed dynamically.  Most clients should
