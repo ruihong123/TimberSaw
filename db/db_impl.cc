@@ -2293,15 +2293,41 @@ static void CleanupIteratorState(void* arg1, void* arg2) {
 Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
                                       SequenceNumber* latest_snapshot,
                                       uint32_t* seed) {
-//  undefine_mutex.Lock();
-  *latest_snapshot = versions_->LastSequence();
-  //TODO: use read wirte spin Lock to concurrent control the get of the imm and mem
-  MemTable* mem = mem_.load();
-  MemTableListVersion* imm = imm_.current();
+  SequenceNumber snapshot;
+  if (options.snapshot != nullptr) {
+    snapshot =
+        static_cast<const SnapshotImpl*>(options.snapshot)->sequence_number();
+  } else {
+    snapshot = versions_->LastSequence();
+  }
+
+  auto sv = GetThreadLocalSuperVersion();
+
+  MemTable* mem = sv->mem;
+  MemTableListVersion* imm = sv->imm;
+  Version* current = sv->current;
+
+  //  if (sv != nullptr){
+  //    sv->Ref();
+  //    if (sv == super_version.load()){// there is no superversion change between.
+  //      MemTable* mem = sv->mem;
+  //      MemTableListVersion* imm = sv->imm;
+  //      Version* current = sv->current;
+  //      mem->Ref();
+  //      if (imm != nullptr) imm->Ref();
+  //      current->Ref();
+  //    }else{
+  //      sv->Unref();
+  //    }
+  //
+  //  }
+  bool have_stat_update = false;
+  Version::GetStats stats;
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
   list.push_back(mem->NewIterator());
   mem->Ref();
+//  imm
   imm->AddIteratorsToList(&list);
   versions_->current()->AddIterators(options, &list);
   Iterator* internal_iter =
@@ -2313,6 +2339,7 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
 
   *seed = ++seed_;
 //  undefine_mutex.Unlock();
+  ReturnAndCleanupSuperVersion(sv);
   return internal_iter;
 }
 

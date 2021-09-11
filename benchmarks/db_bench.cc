@@ -111,7 +111,7 @@ static int FLAGS_open_files = 0;
 static int FLAGS_block_restart_interval = 16;
 // Bloom filter bits per key.
 // Negative means use default settings.
-static int FLAGS_bloom_bits = -1;
+static int FLAGS_bloom_bits = 10;
 
 // Common key prefix length.
 static int FLAGS_key_prefix = 0;
