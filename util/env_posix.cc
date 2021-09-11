@@ -30,6 +30,7 @@
 #include "leveldb/env.h"
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
+#include "leveldb/options.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/env_posix_test_helper.h"
@@ -810,7 +811,7 @@ PosixEnv::PosixEnv()
       1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/
   };
-  size_t remote_block_size = 1024*1024;
+  size_t remote_block_size = RDMA_WRITE_BLOCK;
   //Initialize the rdma manager, the remote block size will be configured in the beggining.
   // remote block size will always be the same.
   rdma_mg = std::make_shared<RDMA_Manager>(config, remote_block_size, 0);
