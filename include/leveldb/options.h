@@ -55,12 +55,12 @@ struct LEVELDB_EXPORT Options {
   // comparator provided to previous open calls on the same DB.
   const Comparator* comparator;
 
-  int max_background_flushes = 4;
+  int max_background_flushes = 2;
 
 
 
-  int max_background_compactions = 12;
-  int MaxSubcompaction = 12;
+  int max_background_compactions = 6;
+  int MaxSubcompaction = 6;
   bool usesubcompaction = true;
   // If true, the database will be created if it is missing.
   bool create_if_missing = false;
@@ -116,7 +116,7 @@ struct LEVELDB_EXPORT Options {
   // compression is enabled.  This parameter can be changed dynamically.
   //This value have to be hardcoded for 8k, because the RDMA mempool will
   // be initialized by this value
-  size_t block_size = 16 * 1024;
+  size_t block_size = 8 * 1024;
 
   // Number of keys between restart points for delta encoding of keys.
   // This parameter can be changed dynamically.  Most clients should
