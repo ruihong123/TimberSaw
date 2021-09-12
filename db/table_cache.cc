@@ -14,7 +14,7 @@
 #include "util/coding.h"
 
 namespace leveldb {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> TableCache::GetTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::GetNum = 0;
 std::atomic<uint64_t> TableCache::filtered = 0;
@@ -62,7 +62,7 @@ TableCache::TableCache(const std::string& dbname, const Options& options,
       cache_(NewLRUCache(entries)) {}
 
 TableCache::~TableCache() {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (TableCache::GetNum.load() >0)
     printf("Cache Get time statics is %zu, %zu, %zu, need binary search: "
            "%zu, filtered %zu, foundNum is %zu\n",
@@ -209,7 +209,7 @@ Status TableCache::Get(const ReadOptions& options,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&,
                                              const Slice&)) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   Cache::Handle* handle = nullptr;
@@ -219,7 +219,7 @@ Status TableCache::Get(const ReadOptions& options,
     s = t->InternalGet(options, k, arg, handle_result);
     cache_->Release(handle);
   }
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());

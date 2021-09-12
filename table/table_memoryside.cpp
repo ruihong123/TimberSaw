@@ -199,8 +199,8 @@ Status Table_Memory_Side::InternalGet(const ReadOptions& options, const Slice& k
   FullFilterBlockReader* filter = rep_->filter;
   if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
     // Not found
-#ifdef GETANALYSIS
-int dummy = 0;
+#ifdef PROCESSANALYSIS
+    int dummy = 0;
 TableCache::filtered.fetch_add(1);
 #endif
 #ifdef BLOOMANALYSIS
@@ -234,12 +234,12 @@ if (iiter->Valid()) {
   } else {
 
     Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
 #endif
     iiter->Seek(k);//binary search for block index
-#ifdef GETANALYSIS
-auto stop = std::chrono::high_resolution_clock::now();
+#ifdef PROCESSANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
 auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
 TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
@@ -249,23 +249,23 @@ if (iiter->Valid()) {
   Slice handle_value = iiter->value();
 
   BlockHandle handle;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   TableCache::not_filtered.fetch_add(1);
 
   start = std::chrono::high_resolution_clock::now();
 #endif
   Iterator* block_iter = BlockReader(this, options, iiter->value());
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
   TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
 #endif
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   start = std::chrono::high_resolution_clock::now();
 #endif
   block_iter->Seek(k);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   stop = std::chrono::high_resolution_clock::now();
   duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
@@ -277,7 +277,7 @@ if (iiter->Valid()) {
   s = block_iter->status();
   delete block_iter;
 
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   Saver* saver = reinterpret_cast<Saver*>(arg);
   if(saver->state == kFound){
     TableCache::foundNum.fetch_add(1);

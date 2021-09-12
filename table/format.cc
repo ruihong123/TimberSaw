@@ -142,13 +142,13 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  printf("Local memory allocation time elapse is %zu\n",  duration.count());
 //#endif
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
     rdma_mg->RDMA_Read(&remote_mr, &contents, n + kBlockTrailerSize,
                      "read_local", IBV_SEND_SIGNALED, 1);
-#ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
+#ifdef PROCESSANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   if (n + kBlockTrailerSize <= 8192){
     RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());

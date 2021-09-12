@@ -90,7 +90,7 @@ void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
   }
 }
 MemTableList::~MemTableList(){
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (MemTable::GetNum.load() >0)
     printf("Memtable GET time statics is %zu, %zu, %zu, Memtable found Num %zu\n",
            MemTable::GetTimeElapseSum.load(), MemTable::GetNum.load(),

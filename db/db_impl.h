@@ -239,7 +239,7 @@ class DBImpl : public DB {
 //  port::Mutex write_stall_mutex_;
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
-  std::condition_variable write_stall_cv GUARDED_BY(superversion_mtx);
+  std::condition_variable write_stall_cv;
   std::mutex FlushPickMTX;
   std::mutex superversion_memlist_mtx;
   std::mutex versionset_mtx;
@@ -283,6 +283,10 @@ class DBImpl : public DB {
 //  std::unique_ptr<ThreadLocalPtr> local_sv_;
   ThreadLocalPtr* local_sv_;
   std::vector<std::thread> main_comm_threads;
+#ifdef PROCESSANALYSIS
+  std::atomic<size_t> Total_time_elapse;
+  std::atomic<size_t> flush_times;
+#endif
 
 };
 

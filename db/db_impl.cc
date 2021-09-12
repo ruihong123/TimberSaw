@@ -175,7 +175,12 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       versions_(new VersionSet(dbname_, &options_, table_cache_,
                                &internal_comparator_, &versionset_mtx)),
       super_version_number_(0),
-      super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)){
+      super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle))
+#ifdef PROCESSANALYSIS
+      ,Total_time_elapse(0),
+      flush_times(0)
+#endif
+{
 //        main_comm_threads.emplace_back(Clientmessagehandler());
 
       main_comm_threads.emplace_back(
@@ -197,7 +202,7 @@ DBImpl::~DBImpl() {
 //  while (background_compaction_scheduled_) {
 //    env_->SleepForMicroseconds(10);
 //  }
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (RDMA_Manager::ReadCount.load() != 0)
     printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
 #endif
@@ -229,6 +234,12 @@ DBImpl::~DBImpl() {
   if (owns_cache_) {
     delete options_.block_cache;
   }
+#ifdef PROCESSANALYSIS
+  if (flush_times.load() >0)
+    printf("Memtable total flush time, number of flush, average flush time are %zu, %zu, %zu\n",
+           Total_time_elapse.load(), flush_times.load(),
+           Total_time_elapse.load()/flush_times.load());
+#endif
 }
 
 Status DBImpl::NewDB() {
@@ -769,12 +780,18 @@ void DBImpl::CompactMemTable() {
 
 //  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
 //  base->Ref();
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
+#endif
   Status s = WriteLevel0Table(&f_job, &edit);
+#ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  Total_time_elapse.fetch_add(duration.count());
+  flush_times.fetch_add(1);
 #ifndef NDEBUG
-  printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
+      printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
+#endif
 #endif
   //  base->Unref();
 

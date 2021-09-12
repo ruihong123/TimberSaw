@@ -26,7 +26,7 @@ class TableCache {
  public:
   TableCache(const std::string& dbname, const Options& options, int entries);
   ~TableCache();
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> not_filtered;

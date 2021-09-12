@@ -21,7 +21,7 @@
 #include "util/logging.h"
 
 namespace leveldb {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
 std::atomic<uint64_t> VersionSet::GetNum = 0;
 #endif
@@ -272,7 +272,7 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
 
 Status Version::Get(const ReadOptions& options, const LookupKey& k,
                     std::string* value, GetStats* stats) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   stats->seek_file = nullptr;
@@ -346,7 +346,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
   state.saver.value = value;
 
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (!state.found){
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -799,7 +799,7 @@ VersionSet::~VersionSet() {
   assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log_;
   delete descriptor_file_;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   if (VersionSet::GetNum.load() >0)
     printf("LSM Version GET time statics is %zu, %zu, %zu\n",
            VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),

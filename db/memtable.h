@@ -44,7 +44,7 @@ class MemTable {
   std::atomic<bool> able_to_flush = false;
   std::shared_ptr<RemoteMemTableMetaData> sstable;
   const KeyComparator comparator;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
   static std::atomic<uint64_t> foundNum;

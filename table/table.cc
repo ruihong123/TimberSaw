@@ -144,23 +144,23 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
       EncodeFixed64(cache_key_buffer + 8, handle.offset());
       Slice key(cache_key_buffer, sizeof(cache_key_buffer));
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       auto start = std::chrono::high_resolution_clock::now();
 #endif
       cache_handle = block_cache->Lookup(key);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       auto stop = std::chrono::high_resolution_clock::now();
       auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 #endif
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
 //        DEBUG("Cache hit\n");
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
         TableCache::cache_hit.fetch_add(1);
         TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
 #endif
       } else {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
         TableCache::cache_miss.fetch_add(1);
 //        if(TableCache::cache_miss < TableCache::not_filtered){
 //          printf("warning\n");
@@ -169,7 +169,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 
 #endif
         s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
         stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
         TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
@@ -220,7 +220,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
   FullFilterBlockReader* filter = rep_->filter;
   if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
     // Not found
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     int dummy = 0;
     TableCache::filtered.fetch_add(1);
 #endif
@@ -255,11 +255,11 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
   } else {
 
     Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
 #endif
     iiter->Seek(k);//binary search for block index
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
@@ -270,23 +270,23 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       Slice handle_value = iiter->value();
 
       BlockHandle handle;
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       TableCache::not_filtered.fetch_add(1);
 
       start = std::chrono::high_resolution_clock::now();
 #endif
       Iterator* block_iter = BlockReader(this, options, iiter->value());
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
       TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
 #endif
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       start = std::chrono::high_resolution_clock::now();
 #endif
       block_iter->Seek(k);
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
@@ -298,7 +298,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       s = block_iter->status();
       delete block_iter;
 
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
       Saver* saver = reinterpret_cast<Saver*>(arg);
       if(saver->state == kFound){
         TableCache::foundNum.fetch_add(1);

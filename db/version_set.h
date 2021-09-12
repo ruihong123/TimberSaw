@@ -290,7 +290,7 @@ class VersionSet {
   int version_remain;
   int version_all;
 #endif
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
 

@@ -403,7 +403,7 @@ class RDMA_Manager {
   std::shared_mutex local_mem_mutex;
   uint8_t node_id;
 
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
 #endif

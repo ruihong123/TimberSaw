@@ -11,7 +11,7 @@
 #include "util/coding.h"
 
 namespace leveldb {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
 std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
 std::atomic<uint64_t> MemTable::GetNum = 0;
 std::atomic<uint64_t> MemTable::foundNum = 0;
@@ -120,7 +120,7 @@ Iterator* MemTable::NewIterator() { return new MemTableIterator(&table_); }
 }
 
 bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   Slice memkey = key.memtable_key();
@@ -147,7 +147,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
         case kTypeValue: {
           Slice v = GetLengthPrefixedSlice(key_ptr + key_length);
           value->assign(v.data(), v.size());
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
           foundNum.fetch_add(1);
 #endif
           return true;
@@ -158,7 +158,7 @@ bool MemTable::Get(const LookupKey& key, std::string* value, Status* s) {
       }
     }
   }
-#ifdef GETANALYSIS
+#ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
 //  std::printf("Get from memtable (not found) time elapse is %zu\n",  duration.count());
