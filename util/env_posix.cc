@@ -471,7 +471,7 @@ class RDMARandomAccessFile final : public RandomAccessFile {
     Status s = Status::OK();
     assert(size <= rdma_mg_->name_to_size.at("read"));
 
-    if (size + chunk_offset >= rdma_mg_->Table_Size ){
+    if (size + chunk_offset > rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
       size_t first_half = rdma_mg_->Table_Size - chunk_offset;
