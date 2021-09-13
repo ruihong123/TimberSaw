@@ -147,7 +147,10 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       background_compaction_scheduled_(false),
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
-                               &internal_comparator_)) {}
+                               &internal_comparator_)) {
+          Total_time_elapse = 0;
+          flush_times = 0;
+}
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
@@ -178,6 +181,12 @@ DBImpl::~DBImpl() {
   }
   if (env_)
   env_->fs_meta_save();
+#ifdef PROCESSANALYSIS
+  if (flush_times.load() >0)
+    printf("Memtable total flush time, number of flush, average flush time are %zu, %zu, %zu\n",
+           Total_time_elapse.load(), flush_times.load(),
+           Total_time_elapse.load()/flush_times.load());
+#endif
 }
 
 Status DBImpl::NewDB() {
@@ -561,6 +570,7 @@ void DBImpl::CompactMemTable() {
   VersionEdit edit;
   Version* base = versions_->current();
   base->Ref();
+
   Status s = WriteLevel0Table(imm_, &edit, base);
   base->Unref();
 
@@ -945,13 +955,19 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       const uint64_t imm_start = env_->NowMicros();
       mutex_.Lock();
       if (imm_ != nullptr) {
+#ifdef PROCESSANALYSIS
         auto start = std::chrono::high_resolution_clock::now();
+#endif
         CompactMemTable();
+#ifdef PROCESSANALYSIS
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        Total_time_elapse.fetch_add(duration.count());
+        flush_times.fetch_add(1);
         DEBUG_arg("Within DoCompaction memtable flushing time elapse (%ld) us\n", duration.count());
         DEBUG_arg("First level's file number is %d", versions_->NumLevelFiles(0));
         DEBUG("Memtable flushed\n");
+#endif
         // Wake up MakeRoomForWrite() if necessary.
         background_work_finished_signal_.SignalAll();
       }

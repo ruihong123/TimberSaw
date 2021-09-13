@@ -90,6 +90,7 @@
 #define DEBUG(x) printf(x)
 #endif
 //#define TIMEPRINT
+#define PROCESSANALYSIS
 //#define DETAILS
 #include "port/thread_annotations.h"
 namespace leveldb {
