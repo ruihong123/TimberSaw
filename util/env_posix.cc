@@ -524,6 +524,8 @@ class RDMARandomAccessFile final : public RandomAccessFile {
       }
       remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
       chunk_offset += size;
+      if (chunk_offset == rdma_mg_->Table_Size)
+        chunk_offset = 0;
       buff_ptr += size;
     }
 //  auto stop = std::chrono::high_resolution_clock::now();
