@@ -1,16 +1,14 @@
-/snap/clion/139/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ruihong/Projects/leveldb
+/snap/clion/163/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DWITH_NUMA=1 -DCMAKE_DEPENDS_USE_COMPILER=FALSE -G "CodeBlocks - Unix Makefiles" /home/ruihong/Projects/leveldb
 -- The C compiler identification is GNU 9.3.0
 -- The CXX compiler identification is GNU 9.3.0
--- Check for working C compiler: /usr/bin/cc
--- Check for working C compiler: /usr/bin/cc - works
 -- Detecting C compiler ABI info
 -- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
 -- Detecting C compile features
 -- Detecting C compile features - done
--- Check for working CXX compiler: /usr/bin/c++
--- Check for working CXX compiler: /usr/bin/c++ - works
 -- Detecting CXX compiler ABI info
 -- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
 -- Detecting CXX compile features
 -- Detecting CXX compile features - done
 -- Looking for unistd.h
@@ -42,7 +40,8 @@
 -- Looking for pthread_create in pthread
 -- Looking for pthread_create in pthread - found
 -- Found Threads: TRUE  
--- Found PythonInterp: /usr/bin/python3.8 (found version "3.8.5") 
+-- Found ibverbs: /usr/include  
+-- Found Python: /usr/bin/python3.8 (found version "3.8.10") found components: Interpreter 
 -- Failed to find LLVM FileCheck
 -- Found Git: /usr/bin/git (found version "2.25.1") 
 -- git Version: v1.5.2-bf585a27
@@ -95,4 +94,10 @@
 -- Performing Test HAVE_KYOTOCABINET - Failed
 -- Configuring done
 -- Generating done
+CMake Warning:
+  Manually-specified variables were not used by the project:
+
+    WITH_NUMA
+
+
 -- Build files have been written to: /home/ruihong/Projects/leveldb/cmake-build-debug

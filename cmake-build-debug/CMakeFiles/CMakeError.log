@@ -1,60 +1,60 @@
 Determining if the function crc32c_value exists in the crc32c failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_1b039/fast && /usr/bin/make  -f CMakeFiles/cmTC_1b039.dir/build.make CMakeFiles/cmTC_1b039.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_9dd19/fast && /usr/bin/make  -f CMakeFiles/cmTC_9dd19.dir/build.make CMakeFiles/cmTC_9dd19.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_1b039.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=crc32c_value   -std=c11 -o CMakeFiles/cmTC_1b039.dir/CheckFunctionExists.c.o   -c /snap/clion/139/bin/cmake/linux/share/cmake-3.17/Modules/CheckFunctionExists.c
-Linking C executable cmTC_1b039
-/snap/clion/139/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_1b039.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=crc32c_value    CMakeFiles/cmTC_1b039.dir/CheckFunctionExists.c.o  -o cmTC_1b039  -lcrc32c 
+Building C object CMakeFiles/cmTC_9dd19.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=crc32c_value -std=c11 -o CMakeFiles/cmTC_9dd19.dir/CheckFunctionExists.c.o -c /snap/clion/163/bin/cmake/linux/share/cmake-3.20/Modules/CheckFunctionExists.c
+Linking C executable cmTC_9dd19
+/snap/clion/163/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_9dd19.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=crc32c_value CMakeFiles/cmTC_9dd19.dir/CheckFunctionExists.c.o -o cmTC_9dd19  -lcrc32c 
 /usr/bin/ld: cannot find -lcrc32c
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_1b039.dir/build.make:107: cmTC_1b039] Error 1
+make[1]: *** [CMakeFiles/cmTC_9dd19.dir/build.make:99: cmTC_9dd19] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_1b039/fast] Error 2
+make: *** [Makefile:127: cmTC_9dd19/fast] Error 2
 
 
 
 Determining if the function malloc exists in the tcmalloc failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_40912/fast && /usr/bin/make  -f CMakeFiles/cmTC_40912.dir/build.make CMakeFiles/cmTC_40912.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_dfe58/fast && /usr/bin/make  -f CMakeFiles/cmTC_dfe58.dir/build.make CMakeFiles/cmTC_dfe58.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_40912.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=malloc   -std=c11 -o CMakeFiles/cmTC_40912.dir/CheckFunctionExists.c.o   -c /snap/clion/139/bin/cmake/linux/share/cmake-3.17/Modules/CheckFunctionExists.c
+Building C object CMakeFiles/cmTC_dfe58.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -DCHECK_FUNCTION_EXISTS=malloc -std=c11 -o CMakeFiles/cmTC_dfe58.dir/CheckFunctionExists.c.o -c /snap/clion/163/bin/cmake/linux/share/cmake-3.20/Modules/CheckFunctionExists.c
 <command-line>: warning: conflicting types for built-in function ‘malloc’; expected ‘void *(long unsigned int)’ [-Wbuiltin-declaration-mismatch]
-/snap/clion/139/bin/cmake/linux/share/cmake-3.17/Modules/CheckFunctionExists.c:7:3: note: in expansion of macro ‘CHECK_FUNCTION_EXISTS’
+/snap/clion/163/bin/cmake/linux/share/cmake-3.20/Modules/CheckFunctionExists.c:7:3: note: in expansion of macro ‘CHECK_FUNCTION_EXISTS’
     7 |   CHECK_FUNCTION_EXISTS(void);
       |   ^~~~~~~~~~~~~~~~~~~~~
-/snap/clion/139/bin/cmake/linux/share/cmake-3.17/Modules/CheckFunctionExists.c:1:1: note: ‘malloc’ is declared in header ‘<stdlib.h>’
+/snap/clion/163/bin/cmake/linux/share/cmake-3.20/Modules/CheckFunctionExists.c:1:1: note: ‘malloc’ is declared in header ‘<stdlib.h>’
   +++ |+#include <stdlib.h>
     1 | #ifdef CHECK_FUNCTION_EXISTS
-Linking C executable cmTC_40912
-/snap/clion/139/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_40912.dir/link.txt --verbose=1
-/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=malloc    CMakeFiles/cmTC_40912.dir/CheckFunctionExists.c.o  -o cmTC_40912  -ltcmalloc 
+Linking C executable cmTC_dfe58
+/snap/clion/163/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_dfe58.dir/link.txt --verbose=1
+/usr/bin/cc  -DCHECK_FUNCTION_EXISTS=malloc CMakeFiles/cmTC_dfe58.dir/CheckFunctionExists.c.o -o cmTC_dfe58  -ltcmalloc 
 /usr/bin/ld: cannot find -ltcmalloc
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_40912.dir/build.make:107: cmTC_40912] Error 1
+make[1]: *** [CMakeFiles/cmTC_dfe58.dir/build.make:99: cmTC_dfe58] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_40912/fast] Error 2
+make: *** [Makefile:127: cmTC_dfe58/fast] Error 2
 
 
 
 Determining if the F_FULLFSYNC exist failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_9657d/fast && /usr/bin/make  -f CMakeFiles/cmTC_9657d.dir/build.make CMakeFiles/cmTC_9657d.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_7884e/fast && /usr/bin/make  -f CMakeFiles/cmTC_7884e.dir/build.make CMakeFiles/cmTC_7884e.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_9657d.dir/CheckSymbolExists.cxx.o
-/usr/bin/c++    -std=c++11 -o CMakeFiles/cmTC_9657d.dir/CheckSymbolExists.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
+Building CXX object CMakeFiles/cmTC_7884e.dir/CheckSymbolExists.cxx.o
+/usr/bin/c++   -std=c++17 -o CMakeFiles/cmTC_7884e.dir/CheckSymbolExists.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx
 /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx: In function ‘int main(int, char**)’:
 /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:8:19: error: ‘F_FULLFSYNC’ was not declared in this scope
     8 |   return ((int*)(&F_FULLFSYNC))[argc];
       |                   ^~~~~~~~~~~
-make[1]: *** [CMakeFiles/cmTC_9657d.dir/build.make:86: CMakeFiles/cmTC_9657d.dir/CheckSymbolExists.cxx.o] Error 1
+make[1]: *** [CMakeFiles/cmTC_7884e.dir/build.make:78: CMakeFiles/cmTC_7884e.dir/CheckSymbolExists.cxx.o] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_9657d/fast] Error 2
+make: *** [Makefile:127: cmTC_7884e/fast] Error 2
 
 
 File /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/CheckSymbolExists.cxx:
@@ -74,14 +74,14 @@ int main(int argc, char** argv)
 Performing C++ SOURCE FILE Test HAVE_CLANG_THREAD_SAFETY failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_c9f0c/fast && /usr/bin/make  -f CMakeFiles/cmTC_c9f0c.dir/build.make CMakeFiles/cmTC_c9f0c.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_9c5fa/fast && /usr/bin/make  -f CMakeFiles/cmTC_9c5fa.dir/build.make CMakeFiles/cmTC_9c5fa.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_c9f0c.dir/src.cxx.o
-/usr/bin/c++    -fno-exceptions -fno-rtti -DHAVE_CLANG_THREAD_SAFETY   -Wthread-safety -std=c++11 -o CMakeFiles/cmTC_c9f0c.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+Building CXX object CMakeFiles/cmTC_9c5fa.dir/src.cxx.o
+/usr/bin/c++ -DHAVE_CLANG_THREAD_SAFETY  -fno-exceptions -fno-rtti    -Wthread-safety -std=c++17 -o CMakeFiles/cmTC_9c5fa.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
 c++: error: unrecognized command line option '-Wthread-safety'
-make[1]: *** [CMakeFiles/cmTC_c9f0c.dir/build.make:86: CMakeFiles/cmTC_c9f0c.dir/src.cxx.o] Error 1
+make[1]: *** [CMakeFiles/cmTC_9c5fa.dir/build.make:78: CMakeFiles/cmTC_9c5fa.dir/src.cxx.o] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_c9f0c/fast] Error 2
+make: *** [Makefile:127: cmTC_9c5fa/fast] Error 2
 
 
 Source file was:
@@ -89,28 +89,28 @@ int main() { return 0; }
 Performing C SOURCE FILE Test CMAKE_HAVE_LIBC_PTHREAD failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_5cde8/fast && /usr/bin/make  -f CMakeFiles/cmTC_5cde8.dir/build.make CMakeFiles/cmTC_5cde8.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_38271/fast && /usr/bin/make  -f CMakeFiles/cmTC_38271.dir/build.make CMakeFiles/cmTC_38271.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_5cde8.dir/src.c.o
-/usr/bin/cc   -Wstrict-prototypes -DCMAKE_HAVE_LIBC_PTHREAD   -std=c11 -o CMakeFiles/cmTC_5cde8.dir/src.c.o   -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
-Linking C executable cmTC_5cde8
-/snap/clion/139/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_5cde8.dir/link.txt --verbose=1
-/usr/bin/cc  -Wstrict-prototypes -DCMAKE_HAVE_LIBC_PTHREAD    CMakeFiles/cmTC_5cde8.dir/src.c.o  -o cmTC_5cde8 
-/usr/bin/ld: CMakeFiles/cmTC_5cde8.dir/src.c.o: in function `main':
+Building C object CMakeFiles/cmTC_38271.dir/src.c.o
+/usr/bin/cc -DCMAKE_HAVE_LIBC_PTHREAD  -Wstrict-prototypes  -std=c11 -o CMakeFiles/cmTC_38271.dir/src.c.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.c
+Linking C executable cmTC_38271
+/snap/clion/163/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_38271.dir/link.txt --verbose=1
+/usr/bin/cc  -Wstrict-prototypes  CMakeFiles/cmTC_38271.dir/src.c.o -o cmTC_38271 
+/usr/bin/ld: CMakeFiles/cmTC_38271.dir/src.c.o: in function `main':
 src.c:(.text+0x46): undefined reference to `pthread_create'
 /usr/bin/ld: src.c:(.text+0x52): undefined reference to `pthread_detach'
 /usr/bin/ld: src.c:(.text+0x5e): undefined reference to `pthread_cancel'
 /usr/bin/ld: src.c:(.text+0x6f): undefined reference to `pthread_join'
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_5cde8.dir/build.make:107: cmTC_5cde8] Error 1
+make[1]: *** [CMakeFiles/cmTC_38271.dir/build.make:99: cmTC_38271] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_5cde8/fast] Error 2
+make: *** [Makefile:127: cmTC_38271/fast] Error 2
 
 
 Source file was:
 #include <pthread.h>
 
-void* test_func(void* data)
+static void* test_func(void* data)
 {
   return data;
 }
@@ -131,33 +131,33 @@ int main(void)
 Determining if the function pthread_create exists in the pthreads failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_0aeaa/fast && /usr/bin/make  -f CMakeFiles/cmTC_0aeaa.dir/build.make CMakeFiles/cmTC_0aeaa.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_b7588/fast && /usr/bin/make  -f CMakeFiles/cmTC_b7588.dir/build.make CMakeFiles/cmTC_b7588.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_0aeaa.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=pthread_create   -std=c11 -o CMakeFiles/cmTC_0aeaa.dir/CheckFunctionExists.c.o   -c /snap/clion/139/bin/cmake/linux/share/cmake-3.17/Modules/CheckFunctionExists.c
-Linking C executable cmTC_0aeaa
-/snap/clion/139/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_0aeaa.dir/link.txt --verbose=1
-/usr/bin/cc  -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=pthread_create    CMakeFiles/cmTC_0aeaa.dir/CheckFunctionExists.c.o  -o cmTC_0aeaa  -lpthreads 
+Building C object CMakeFiles/cmTC_b7588.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=pthread_create -std=c11 -o CMakeFiles/cmTC_b7588.dir/CheckFunctionExists.c.o -c /snap/clion/163/bin/cmake/linux/share/cmake-3.20/Modules/CheckFunctionExists.c
+Linking C executable cmTC_b7588
+/snap/clion/163/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_b7588.dir/link.txt --verbose=1
+/usr/bin/cc  -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=pthread_create CMakeFiles/cmTC_b7588.dir/CheckFunctionExists.c.o -o cmTC_b7588  -lpthreads 
 /usr/bin/ld: cannot find -lpthreads
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_0aeaa.dir/build.make:107: cmTC_0aeaa] Error 1
+make[1]: *** [CMakeFiles/cmTC_b7588.dir/build.make:99: cmTC_b7588] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_0aeaa/fast] Error 2
+make: *** [Makefile:127: cmTC_b7588/fast] Error 2
 
 
 
 Performing C++ SOURCE FILE Test HAVE_CXX_FLAG_WSHORTEN_64_TO_32 failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_d0652/fast && /usr/bin/make  -f CMakeFiles/cmTC_d0652.dir/build.make CMakeFiles/cmTC_d0652.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_3e6d5/fast && /usr/bin/make  -f CMakeFiles/cmTC_3e6d5.dir/build.make CMakeFiles/cmTC_3e6d5.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_d0652.dir/src.cxx.o
-/usr/bin/c++    -fno-exceptions -fno-rtti  -std=c++11  -Wall  -Wextra  -Wshadow -DHAVE_CXX_FLAG_WSHORTEN_64_TO_32  -Wshorten-64-to-32   -Wshorten-64-to-32 -std=c++11 -o CMakeFiles/cmTC_d0652.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+Building CXX object CMakeFiles/cmTC_3e6d5.dir/src.cxx.o
+/usr/bin/c++ -DHAVE_CXX_FLAG_WSHORTEN_64_TO_32  -fno-exceptions -fno-rtti  -std=c++11  -Wall  -Wextra  -Wshadow  -Wshorten-64-to-32   -Wshorten-64-to-32 -std=c++17 -o CMakeFiles/cmTC_3e6d5.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
 c++: error: unrecognized command line option '-Wshorten-64-to-32'
 c++: error: unrecognized command line option '-Wshorten-64-to-32'
-make[1]: *** [CMakeFiles/cmTC_d0652.dir/build.make:86: CMakeFiles/cmTC_d0652.dir/src.cxx.o] Error 1
+make[1]: *** [CMakeFiles/cmTC_3e6d5.dir/build.make:78: CMakeFiles/cmTC_3e6d5.dir/src.cxx.o] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_d0652/fast] Error 2
+make: *** [Makefile:127: cmTC_3e6d5/fast] Error 2
 
 
 Source file was:
@@ -165,15 +165,15 @@ int main() { return 0; }
 Performing C++ SOURCE FILE Test HAVE_CXX_FLAG_WD654 failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_2e5a8/fast && /usr/bin/make  -f CMakeFiles/cmTC_2e5a8.dir/build.make CMakeFiles/cmTC_2e5a8.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_a0662/fast && /usr/bin/make  -f CMakeFiles/cmTC_a0662.dir/build.make CMakeFiles/cmTC_a0662.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_2e5a8.dir/src.cxx.o
-/usr/bin/c++    -fno-exceptions -fno-rtti  -std=c++11  -Wall  -Wextra  -Wshadow  -fstrict-aliasing  -Wno-deprecated-declarations  -fno-exceptions  -Wstrict-aliasing -DHAVE_CXX_FLAG_WD654  -wd654   -wd654 -std=c++11 -o CMakeFiles/cmTC_2e5a8.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+Building CXX object CMakeFiles/cmTC_a0662.dir/src.cxx.o
+/usr/bin/c++ -DHAVE_CXX_FLAG_WD654  -fno-exceptions -fno-rtti  -std=c++11  -Wall  -Wextra  -Wshadow  -fstrict-aliasing  -Wno-deprecated-declarations  -fno-exceptions  -Wstrict-aliasing  -wd654   -wd654 -std=c++17 -o CMakeFiles/cmTC_a0662.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
 c++: error: unrecognized command line option '-wd654'
 c++: error: unrecognized command line option '-wd654'
-make[1]: *** [CMakeFiles/cmTC_2e5a8.dir/build.make:86: CMakeFiles/cmTC_2e5a8.dir/src.cxx.o] Error 1
+make[1]: *** [CMakeFiles/cmTC_a0662.dir/build.make:78: CMakeFiles/cmTC_a0662.dir/src.cxx.o] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_2e5a8/fast] Error 2
+make: *** [Makefile:127: cmTC_a0662/fast] Error 2
 
 
 Source file was:
@@ -181,15 +181,15 @@ int main() { return 0; }
 Performing C++ SOURCE FILE Test HAVE_CXX_FLAG_WTHREAD_SAFETY failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_fa6a0/fast && /usr/bin/make  -f CMakeFiles/cmTC_fa6a0.dir/build.make CMakeFiles/cmTC_fa6a0.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_2bbf6/fast && /usr/bin/make  -f CMakeFiles/cmTC_2bbf6.dir/build.make CMakeFiles/cmTC_2bbf6.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_fa6a0.dir/src.cxx.o
-/usr/bin/c++    -fno-exceptions -fno-rtti  -std=c++11  -Wall  -Wextra  -Wshadow  -fstrict-aliasing  -Wno-deprecated-declarations  -fno-exceptions  -Wstrict-aliasing -DHAVE_CXX_FLAG_WTHREAD_SAFETY  -Wthread-safety   -Wthread-safety -std=c++11 -o CMakeFiles/cmTC_fa6a0.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+Building CXX object CMakeFiles/cmTC_2bbf6.dir/src.cxx.o
+/usr/bin/c++ -DHAVE_CXX_FLAG_WTHREAD_SAFETY  -fno-exceptions -fno-rtti  -std=c++11  -Wall  -Wextra  -Wshadow  -fstrict-aliasing  -Wno-deprecated-declarations  -fno-exceptions  -Wstrict-aliasing  -Wthread-safety   -Wthread-safety -std=c++17 -o CMakeFiles/cmTC_2bbf6.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
 c++: error: unrecognized command line option '-Wthread-safety'
 c++: error: unrecognized command line option '-Wthread-safety'
-make[1]: *** [CMakeFiles/cmTC_fa6a0.dir/build.make:86: CMakeFiles/cmTC_fa6a0.dir/src.cxx.o] Error 1
+make[1]: *** [CMakeFiles/cmTC_2bbf6.dir/build.make:78: CMakeFiles/cmTC_2bbf6.dir/src.cxx.o] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_fa6a0/fast] Error 2
+make: *** [Makefile:127: cmTC_2bbf6/fast] Error 2
 
 
 Source file was:
@@ -197,35 +197,35 @@ int main() { return 0; }
 Determining if the function sqlite3_open exists in the sqlite3 failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_368ea/fast && /usr/bin/make  -f CMakeFiles/cmTC_368ea.dir/build.make CMakeFiles/cmTC_368ea.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_bc3e2/fast && /usr/bin/make  -f CMakeFiles/cmTC_bc3e2.dir/build.make CMakeFiles/cmTC_bc3e2.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building C object CMakeFiles/cmTC_368ea.dir/CheckFunctionExists.c.o
-/usr/bin/cc   -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=sqlite3_open   -std=c11 -o CMakeFiles/cmTC_368ea.dir/CheckFunctionExists.c.o   -c /snap/clion/139/bin/cmake/linux/share/cmake-3.17/Modules/CheckFunctionExists.c
-Linking C executable cmTC_368ea
-/snap/clion/139/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_368ea.dir/link.txt --verbose=1
-/usr/bin/cc  -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=sqlite3_open    CMakeFiles/cmTC_368ea.dir/CheckFunctionExists.c.o  -o cmTC_368ea  -lsqlite3 
+Building C object CMakeFiles/cmTC_bc3e2.dir/CheckFunctionExists.c.o
+/usr/bin/cc   -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=sqlite3_open -std=c11 -o CMakeFiles/cmTC_bc3e2.dir/CheckFunctionExists.c.o -c /snap/clion/163/bin/cmake/linux/share/cmake-3.20/Modules/CheckFunctionExists.c
+Linking C executable cmTC_bc3e2
+/snap/clion/163/bin/cmake/linux/bin/cmake -E cmake_link_script CMakeFiles/cmTC_bc3e2.dir/link.txt --verbose=1
+/usr/bin/cc  -Wstrict-prototypes -DCHECK_FUNCTION_EXISTS=sqlite3_open CMakeFiles/cmTC_bc3e2.dir/CheckFunctionExists.c.o -o cmTC_bc3e2  -lsqlite3 
 /usr/bin/ld: cannot find -lsqlite3
 collect2: error: ld returned 1 exit status
-make[1]: *** [CMakeFiles/cmTC_368ea.dir/build.make:107: cmTC_368ea] Error 1
+make[1]: *** [CMakeFiles/cmTC_bc3e2.dir/build.make:99: cmTC_bc3e2] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_368ea/fast] Error 2
+make: *** [Makefile:127: cmTC_bc3e2/fast] Error 2
 
 
 
 Performing C++ SOURCE FILE Test HAVE_KYOTOCABINET failed with the following output:
 Change Dir: /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp
 
-Run Build Command(s):/usr/bin/make cmTC_c3bf4/fast && /usr/bin/make  -f CMakeFiles/cmTC_c3bf4.dir/build.make CMakeFiles/cmTC_c3bf4.dir/build
+Run Build Command(s):/usr/bin/make -f Makefile cmTC_0b504/fast && /usr/bin/make  -f CMakeFiles/cmTC_0b504.dir/build.make CMakeFiles/cmTC_0b504.dir/build
 make[1]: Entering directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-Building CXX object CMakeFiles/cmTC_c3bf4.dir/src.cxx.o
-/usr/bin/c++    -fno-exceptions -fno-rtti -DHAVE_KYOTOCABINET   -std=c++11 -o CMakeFiles/cmTC_c3bf4.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
+Building CXX object CMakeFiles/cmTC_0b504.dir/src.cxx.o
+/usr/bin/c++ -DHAVE_KYOTOCABINET  -fno-exceptions -fno-rtti  -std=c++17 -o CMakeFiles/cmTC_0b504.dir/src.cxx.o -c /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx
 /home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp/src.cxx:2:10: fatal error: kcpolydb.h: No such file or directory
     2 | #include <kcpolydb.h>
       |          ^~~~~~~~~~~~
 compilation terminated.
-make[1]: *** [CMakeFiles/cmTC_c3bf4.dir/build.make:86: CMakeFiles/cmTC_c3bf4.dir/src.cxx.o] Error 1
+make[1]: *** [CMakeFiles/cmTC_0b504.dir/build.make:78: CMakeFiles/cmTC_0b504.dir/src.cxx.o] Error 1
 make[1]: Leaving directory '/home/ruihong/Projects/leveldb/cmake-build-debug/CMakeFiles/CMakeTmp'
-make: *** [Makefile:141: cmTC_c3bf4/fast] Error 2
+make: *** [Makefile:127: cmTC_0b504/fast] Error 2
 
 
 Source file was:

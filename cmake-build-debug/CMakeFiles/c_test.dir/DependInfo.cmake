@@ -1,3 +1,7 @@
+
+# Consider dependencies only in project.
+set(CMAKE_DEPENDS_IN_PROJECT_ONLY OFF)
+
 # The set of languages for which implicit dependencies are needed:
 set(CMAKE_DEPENDS_LANGUAGES
   "C"
@@ -17,6 +21,9 @@ set(CMAKE_TARGET_DEFINITIONS_C
 # The include file search paths:
 set(CMAKE_C_TARGET_INCLUDE_PATH
   "include"
+  "db"
+  "port"
+  "util"
   "../."
   "../include"
   "../third_party/benchmark/src/../include"
@@ -38,6 +45,9 @@ set(CMAKE_TARGET_DEFINITIONS_CXX
 # The include file search paths:
 set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "include"
+  "db"
+  "port"
+  "util"
   "../."
   "../include"
   "../third_party/benchmark/src/../include"
@@ -45,6 +55,10 @@ set(CMAKE_CXX_TARGET_INCLUDE_PATH
   "../third_party/googletest/googlemock"
   "../third_party/googletest/googletest/include"
   "../third_party/googletest/googletest"
+  )
+
+# The set of dependency files which are needed:
+set(CMAKE_DEPENDS_DEPENDENCY_FILES
   )
 
 # Targets to which this target links.
