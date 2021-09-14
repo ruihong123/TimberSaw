@@ -77,7 +77,7 @@ static int FLAGS_reads = -1;
 static int FLAGS_threads = 1;
 
 // Size of each value
-static int FLAGS_value_size = 400;
+static int FLAGS_value_size = 100;
 // Size of each value
 static int FLAGS_key_size = 20;
 // Arrange to generate values that shrink to this fraction of

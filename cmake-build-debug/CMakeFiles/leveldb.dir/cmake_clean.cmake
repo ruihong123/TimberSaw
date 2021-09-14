@@ -15,7 +15,6 @@ file(REMOVE_RECURSE
   "CMakeFiles/leveldb.dir/db/version_set.cc.o"
   "CMakeFiles/leveldb.dir/db/write_batch.cc.o"
   "CMakeFiles/leveldb.dir/helpers/memenv/memenv.cc.o"
-  "CMakeFiles/leveldb.dir/port/port_posix.cc.o"
   "CMakeFiles/leveldb.dir/table/block.cc.o"
   "CMakeFiles/leveldb.dir/table/block_builder.cc.o"
   "CMakeFiles/leveldb.dir/table/filter_block.cc.o"
@@ -37,10 +36,7 @@ file(REMOVE_RECURSE
   "CMakeFiles/leveldb.dir/util/hash.cc.o"
   "CMakeFiles/leveldb.dir/util/logging.cc.o"
   "CMakeFiles/leveldb.dir/util/options.cc.o"
-  "CMakeFiles/leveldb.dir/util/random.cc.o"
-  "CMakeFiles/leveldb.dir/util/rdma.cc.o"
   "CMakeFiles/leveldb.dir/util/status.cc.o"
-  "CMakeFiles/leveldb.dir/util/thread_local.cc.o"
   "libleveldb.a"
   "libleveldb.pdb"
 )

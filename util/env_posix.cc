@@ -471,7 +471,7 @@ class RDMARandomAccessFile final : public RandomAccessFile {
     Status s = Status::OK();
     assert(size <= rdma_mg_->name_to_size.at("read"));
 
-    if (size + chunk_offset >= rdma_mg_->Table_Size ){
+    if (size + chunk_offset > rdma_mg_->Table_Size ){
       // if block write accross two SSTable chunks, seperate it into 2 steps.
       //First step
       size_t first_half = rdma_mg_->Table_Size - chunk_offset;
@@ -489,22 +489,19 @@ class RDMARandomAccessFile final : public RandomAccessFile {
       sst_meta_current = sst_meta_current->next_ptr;
       remote_mr = *(sst_meta_current->mr);
       chunk_offset = 0;
-      if (second_half != 0){
-        flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
-                                   thread_id, IBV_SEND_SIGNALED,1);
-        memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
-                                                                //    std::cout << "read blocks accross Table chunk" << std::endl;
-        if (flag!=0){
+      flag = rdma_mg_->RDMA_Read(&remote_mr, local_mr_pointer, second_half,
+                                 thread_id, IBV_SEND_SIGNALED,1);
+      memcpy(buff_ptr, local_mr_pointer->addr, second_half);// copy to the buffer
+//    std::cout << "read blocks accross Table chunk" << std::endl;
+      if (flag!=0){
 
-          return Status::IOError("While appending to file", sst_meta_head_->fname);
+        return Status::IOError("While appending to file", sst_meta_head_->fname);
 
 
-        }
-        remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
-        chunk_offset = second_half;
-        buff_ptr += second_half;
       }
-
+      remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + second_half);
+      chunk_offset = second_half;
+      buff_ptr += second_half;
     }else{
 //    auto start = std::chrono::high_resolution_clock::now();
       int flag =
@@ -527,10 +524,8 @@ class RDMARandomAccessFile final : public RandomAccessFile {
       }
       remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) + size);
       chunk_offset += size;
-//      if (chunk_offset == rdma_mg_->Table_Size){
-//        chunk_offset = 0;
-//      }
-
+      if (chunk_offset == rdma_mg_->Table_Size)
+        chunk_offset = 0;
       buff_ptr += size;
     }
 //  auto stop = std::chrono::high_resolution_clock::now();

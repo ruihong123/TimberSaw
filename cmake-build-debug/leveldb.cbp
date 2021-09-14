@@ -56,9 +56,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
@@ -89,9 +86,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
@@ -122,9 +116,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -156,9 +147,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -190,9 +178,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -224,9 +209,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -258,9 +240,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -292,9 +271,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -336,9 +312,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -370,9 +343,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -404,9 +374,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -438,9 +405,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -472,9 +436,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -506,9 +467,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -531,6 +489,192 @@
 					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="no_destructor_test">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/no_destructor_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 no_destructor_test"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="no_destructor_test/fast">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/no_destructor_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 no_destructor_test/fast"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="filter_block_test">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/filter_block_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 filter_block_test"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="filter_block_test/fast">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/filter_block_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 filter_block_test/fast"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="corruption_test">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/corruption_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 corruption_test"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="corruption_test/fast">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/corruption_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 corruption_test/fast"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 			<Target title="env_test">
 				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/env_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
@@ -540,9 +684,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -574,9 +715,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -608,9 +746,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -642,9 +777,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -676,9 +808,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -710,9 +839,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -745,9 +871,6 @@
 					<Add option="-DLEVELDB_COMPILE_LIBRARY"/>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/usr/include/c++/9"/>
@@ -775,9 +898,6 @@
 					<Add option="-DLEVELDB_COMPILE_LIBRARY"/>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/usr/include/c++/9"/>
@@ -804,9 +924,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -838,9 +955,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -882,9 +996,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -916,9 +1027,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -960,9 +1068,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -994,9 +1099,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1028,9 +1130,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1062,9 +1161,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1087,62 +1183,6 @@
 					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
-			<Target title="Server">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/Server" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 Server"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="Server/fast">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/Server" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 Server/fast"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
 			<Target title="issue178_test">
 				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/issue178_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
@@ -1152,9 +1192,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1186,9 +1223,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1219,9 +1253,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/usr/include/c++/9"/>
@@ -1247,9 +1278,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/usr/include/c++/9"/>
@@ -1286,9 +1314,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1320,9 +1345,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1345,346 +1367,6 @@
 					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
-			<Target title="no_destructor_test">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/no_destructor_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 no_destructor_test"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="no_destructor_test/fast">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/no_destructor_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 no_destructor_test/fast"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="filter_block_test">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/filter_block_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 filter_block_test"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="filter_block_test/fast">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/filter_block_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 filter_block_test/fast"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="corruption_test">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/corruption_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 corruption_test"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="corruption_test/fast">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/corruption_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 corruption_test/fast"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="memenv_test">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/memenv_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 memenv_test"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="memenv_test/fast">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/memenv_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 memenv_test/fast"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="dbformat_test">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/dbformat_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 dbformat_test"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
-			<Target title="dbformat_test/fast">
-				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/dbformat_test" prefix_auto="0" extension_auto="0"/>
-				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
-				<Option object_output="./"/>
-				<Option type="1"/>
-				<Option compiler="gcc"/>
-				<Compiler>
-					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
-					<Add directory="/home/ruihong/Projects/leveldb/."/>
-					<Add directory="/home/ruihong/Projects/leveldb/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
-					<Add directory="/usr/include/c++/9"/>
-					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
-					<Add directory="/usr/include/c++/9/backward"/>
-					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
-					<Add directory="/usr/local/include"/>
-					<Add directory="/usr/include/x86_64-linux-gnu"/>
-					<Add directory="/usr/include"/>
-				</Compiler>
-				<MakeCommands>
-					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 dbformat_test/fast"/>
-					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
-					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
-				</MakeCommands>
-			</Target>
 			<Target title="fault_injection_test">
 				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/fault_injection_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
@@ -1694,9 +1376,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1728,9 +1407,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1762,9 +1438,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1796,9 +1469,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1821,6 +1491,130 @@
 					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
 				</MakeCommands>
 			</Target>
+			<Target title="dbformat_test">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/dbformat_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 dbformat_test"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="dbformat_test/fast">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/dbformat_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 dbformat_test/fast"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="memenv_test">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/memenv_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 memenv_test"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
+			<Target title="memenv_test/fast">
+				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/memenv_test" prefix_auto="0" extension_auto="0"/>
+				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
+				<Option object_output="./"/>
+				<Option type="1"/>
+				<Option compiler="gcc"/>
+				<Compiler>
+					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
+					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/."/>
+					<Add directory="/home/ruihong/Projects/leveldb/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
+					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
+					<Add directory="/usr/include/c++/9"/>
+					<Add directory="/usr/include/x86_64-linux-gnu/c++/9"/>
+					<Add directory="/usr/include/c++/9/backward"/>
+					<Add directory="/usr/lib/gcc/x86_64-linux-gnu/9/include"/>
+					<Add directory="/usr/local/include"/>
+					<Add directory="/usr/include/x86_64-linux-gnu"/>
+					<Add directory="/usr/include"/>
+				</Compiler>
+				<MakeCommands>
+					<Build command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 memenv_test/fast"/>
+					<CompileFile command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 &quot;$file&quot;"/>
+					<Clean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+					<DistClean command="/usr/bin/make -j24 -f &quot;/home/ruihong/Projects/leveldb/cmake-build-debug/Makefile&quot;  VERBOSE=1 clean"/>
+				</MakeCommands>
+			</Target>
 			<Target title="table_test">
 				<Option output="/home/ruihong/Projects/leveldb/cmake-build-debug/table_test" prefix_auto="0" extension_auto="0"/>
 				<Option working_dir="/home/ruihong/Projects/leveldb/cmake-build-debug"/>
@@ -1830,9 +1624,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1864,9 +1655,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1898,9 +1686,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1932,9 +1717,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -1966,9 +1748,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2000,9 +1779,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2034,9 +1810,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2068,9 +1841,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2102,9 +1872,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2136,9 +1903,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2170,9 +1934,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2204,9 +1965,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2238,9 +1996,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2272,9 +2027,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2306,9 +2058,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2340,9 +2089,6 @@
 				<Compiler>
 					<Add option="-DLEVELDB_PLATFORM_POSIX=1"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src/../include"/>
@@ -2373,9 +2119,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
@@ -2404,9 +2147,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
@@ -2435,9 +2175,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
@@ -2466,9 +2203,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googlemock"/>
@@ -2497,9 +2231,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -2526,9 +2257,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -2555,9 +2283,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -2584,9 +2309,6 @@
 				<Option compiler="gcc"/>
 				<Compiler>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/googletest/googletest"/>
@@ -2616,9 +2338,6 @@
 					<Add option="-DHAVE_POSIX_REGEX"/>
 					<Add option="-DHAVE_STEADY_CLOCK"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src"/>
@@ -2649,9 +2368,6 @@
 					<Add option="-DHAVE_POSIX_REGEX"/>
 					<Add option="-DHAVE_STEADY_CLOCK"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src"/>
@@ -2682,9 +2398,6 @@
 					<Add option="-DHAVE_POSIX_REGEX"/>
 					<Add option="-DHAVE_STEADY_CLOCK"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src"/>
@@ -2715,9 +2428,6 @@
 					<Add option="-DHAVE_POSIX_REGEX"/>
 					<Add option="-DHAVE_STEADY_CLOCK"/>
 					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/include"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/db"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/port"/>
-					<Add directory="/home/ruihong/Projects/leveldb/cmake-build-debug/util"/>
 					<Add directory="/home/ruihong/Projects/leveldb/."/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/include"/>
 					<Add directory="/home/ruihong/Projects/leveldb/third_party/benchmark/src"/>
@@ -2749,6 +2459,9 @@
 			<Option target="coding_test"/>
 			<Option target="bloom_test"/>
 			<Option target="arena_test"/>
+			<Option target="no_destructor_test"/>
+			<Option target="filter_block_test"/>
+			<Option target="corruption_test"/>
 			<Option target="env_test"/>
 			<Option target="status_test"/>
 			<Option target="issue320_test"/>
@@ -2759,13 +2472,10 @@
 			<Option target="c_test"/>
 			<Option target="issue178_test"/>
 			<Option target="write_batch_test"/>
-			<Option target="no_destructor_test"/>
-			<Option target="filter_block_test"/>
-			<Option target="corruption_test"/>
-			<Option target="memenv_test"/>
-			<Option target="dbformat_test"/>
 			<Option target="fault_injection_test"/>
 			<Option target="filename_test"/>
+			<Option target="dbformat_test"/>
+			<Option target="memenv_test"/>
 			<Option target="table_test"/>
 			<Option target="log_test"/>
 			<Option target="recovery_test"/>
@@ -2831,9 +2541,6 @@
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/db/filename_test.cc">
 			<Option target="filename_test"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/db/inlineskiplist.h">
-			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/db/leveldbutil.cc">
 			<Option target="leveldbutil"/>
@@ -2976,17 +2683,11 @@
 		<Unit filename="/home/ruihong/Projects/leveldb/port/port.h">
 			<Option target="leveldb"/>
 		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/port/port_posix.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/port/port_posix.h">
+		<Unit filename="/home/ruihong/Projects/leveldb/port/port_stdcxx.h">
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/port/thread_annotations.h">
 			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/server.cc">
-			<Option target="Server"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/table/block.cc">
 			<Option target="leveldb"/>
@@ -3174,9 +2875,6 @@
 		<Unit filename="/home/ruihong/Projects/leveldb/third_party/googletest/googletest/src/gtest_main.cc">
 			<Option target="gtest_main"/>
 		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/allocator.h">
-			<Option target="leveldb"/>
-		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/arena.cc">
 			<Option target="leveldb"/>
 		</Unit>
@@ -3185,9 +2883,6 @@
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/arena_test.cc">
 			<Option target="arena_test"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/autovector.h">
-			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/bloom.cc">
 			<Option target="leveldb"/>
@@ -3211,9 +2906,6 @@
 			<Option target="coding_test"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/comparator.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/core_local.h">
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/crc32c.cc">
@@ -3279,16 +2971,7 @@
 		<Unit filename="/home/ruihong/Projects/leveldb/util/posix_logger.h">
 			<Option target="leveldb"/>
 		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/random.cc">
-			<Option target="leveldb"/>
-		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/random.h">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/rdma.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/rdma.h">
 			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/util/status.cc">
@@ -3305,6 +2988,9 @@
 			<Option target="coding_test"/>
 			<Option target="bloom_test"/>
 			<Option target="arena_test"/>
+			<Option target="no_destructor_test"/>
+			<Option target="filter_block_test"/>
+			<Option target="corruption_test"/>
 			<Option target="env_test"/>
 			<Option target="status_test"/>
 			<Option target="issue320_test"/>
@@ -3314,13 +3000,10 @@
 			<Option target="c_test"/>
 			<Option target="issue178_test"/>
 			<Option target="write_batch_test"/>
-			<Option target="no_destructor_test"/>
-			<Option target="filter_block_test"/>
-			<Option target="corruption_test"/>
-			<Option target="memenv_test"/>
-			<Option target="dbformat_test"/>
 			<Option target="fault_injection_test"/>
 			<Option target="filename_test"/>
+			<Option target="dbformat_test"/>
+			<Option target="memenv_test"/>
 			<Option target="table_test"/>
 			<Option target="log_test"/>
 			<Option target="recovery_test"/>
@@ -3338,6 +3021,9 @@
 			<Option target="coding_test"/>
 			<Option target="bloom_test"/>
 			<Option target="arena_test"/>
+			<Option target="no_destructor_test"/>
+			<Option target="filter_block_test"/>
+			<Option target="corruption_test"/>
 			<Option target="env_test"/>
 			<Option target="status_test"/>
 			<Option target="issue320_test"/>
@@ -3347,13 +3033,10 @@
 			<Option target="c_test"/>
 			<Option target="issue178_test"/>
 			<Option target="write_batch_test"/>
-			<Option target="no_destructor_test"/>
-			<Option target="filter_block_test"/>
-			<Option target="corruption_test"/>
-			<Option target="memenv_test"/>
-			<Option target="dbformat_test"/>
 			<Option target="fault_injection_test"/>
 			<Option target="filename_test"/>
+			<Option target="dbformat_test"/>
+			<Option target="memenv_test"/>
 			<Option target="table_test"/>
 			<Option target="log_test"/>
 			<Option target="recovery_test"/>
@@ -3362,12 +3045,6 @@
 			<Option target="cache_test"/>
 			<Option target="skiplist_test"/>
 			<Option target="version_edit_test"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/thread_local.cc">
-			<Option target="leveldb"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/util/thread_local.h">
-			<Option target="leveldb"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/CMakeLists.txt">
 			<Option virtualFolder="CMake Files\"/>
@@ -3434,9 +3111,6 @@
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/port/port_config.h.in">
 			<Option virtualFolder="CMake Files\port\"/>
-		</Unit>
-		<Unit filename="/home/ruihong/Projects/leveldb/cmake/Findibverbs.cmake">
-			<Option virtualFolder="CMake Files\cmake\"/>
 		</Unit>
 		<Unit filename="/home/ruihong/Projects/leveldb/cmake/leveldbConfig.cmake.in">
 			<Option virtualFolder="CMake Files\cmake\"/>
