@@ -1,9 +1,9 @@
-**LevelDB is a fast key-value storage library written at Google that provides an ordered mapping from string keys to string values.**
+**TimberSaw is a key-value remote memory library written at Google that provides an ordered mapping from string keys to string values.**
 
 [![Build Status](https://travis-ci.org/google/leveldb.svg?branch=master)](https://travis-ci.org/google/leveldb)
 [![Build status](https://ci.appveyor.com/api/projects/status/g2j5j4rfkda6eyw5/branch/master?svg=true)](https://ci.appveyor.com/project/pwnall/leveldb)
 
-Authors: Sanjay Ghemawat (sanjay@google.com) and Jeff Dean (jeff@google.com)
+Authors: Ruihong Wang (wang4996@purdue.edu)
 
 # Features
 
@@ -100,7 +100,7 @@ Contribution requirements:
    clang-format -i --style=file <file>
    ```
 
-## Submitting a Pull Request
+<!-- ## Submitting a Pull Request
 
 Before any pull request will be accepted the author must first sign a
 Contributor License Agreement (CLA) at https://cla.developers.google.com/.
@@ -110,7 +110,7 @@ In order to keep the commit timeline linear
 your changes down to a single commit and [rebase](https://git-scm.com/docs/git-rebase)
 on google/leveldb/master. This keeps the commit timeline linear and more easily sync'ed
 with the internal repository at Google. More information at GitHub's
-[About Git rebase](https://help.github.com/articles/about-git-rebase/) page.
+[About Git rebase](https://help.github.com/articles/about-git-rebase/) page. -->
 
 # Performance
 
@@ -202,9 +202,9 @@ internal APIs may be changed without warning.
 Guide to header files:
 
 * **include/leveldb/db.h**: Main interface to the DB: Start here.
-
+<!-- 
 * **include/leveldb/options.h**: Control over the behavior of an entire database,
-and also control over the behavior of individual reads and writes.
+and also control over the behavior of individual reads and writes. -->
 
 * **include/leveldb/comparator.h**: Abstraction for user-specified comparison function.
 If you want just bytewise comparison of keys, you can use the default
@@ -214,8 +214,8 @@ want custom ordering (e.g. to handle different character encodings, etc.).
 * **include/leveldb/iterator.h**: Interface for iterating over data. You can get
 an iterator from a DB object.
 
-* **include/leveldb/write_batch.h**: Interface for atomically applying multiple
-updates to a database.
+<!-- * **include/leveldb/write_batch.h**: Interface for atomically applying multiple -->
+<!-- updates to a database. -->
 
 * **include/leveldb/slice.h**: A simple module for maintaining a pointer and a
 length into some other byte array.
