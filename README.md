@@ -1,9 +1,6 @@
 ## TimberSaw: LSM Indexing for RDMA-Enabled Disaggregated Memory
 
-TimberSaw is the first highly optimized LSM-tree for RDMA-enabled disaggregated memory. The project is based on [LevelDB](https://github.com/google/leveldb) and implement some effective optimizations from [RocksDB](https://github.com/facebook/rocksdb)
-
-
-Coder: Ruihong Wang (wang4996@purdue.edu)
+TimberSaw is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. TimberSaw borrows from [LevelDB](https://github.com/google/leveldb), but it develops a series of optimizations to address the performance challenges. TimberSaw significantly reduces the software overhead (e.g., the overhead of synchronizing the write queue and flushing), to unlock the full potential of the fast RDMA networking. TimberSaw offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., consistency and garbage collection) to significantly reduce the data movement. TimberSaw optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
 
 # New Features
