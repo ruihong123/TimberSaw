@@ -1,6 +1,6 @@
 ## TimberSaw: LSM Indexing for RDMA-Enabled Disaggregated Memory
 
-**TimberSaw is the first highly optimized LSM-tree for RDMA-enabled disaggregated memory. The code base is based on [LevelDB](https://github.com/google/leveldb) and implementsome effective optimizations from [RocksDB](https://github.com/facebook/rocksdb)**
+**TimberSaw is the first highly optimized LSM-tree for RDMA-enabled disaggregated memory. The code base is based on [LevelDB](https://github.com/google/leveldb) and implement some effective optimizations from [RocksDB](https://github.com/facebook/rocksdb)**
 
 
 Authors: Ruihong Wang (wang4996@purdue.edu)
@@ -10,53 +10,50 @@ Authors: Ruihong Wang (wang4996@purdue.edu)
 * Write queue removal
 * Optimistic Memtable switching.
 * Asynchronous flushing.
-* Near-data computing for remote compaction.
-* RDMA specific optimiations.
-
-
+* Near-data compaction.
+* RDMA specific optimizations.
 # Usage
-
 * Keys and values are arbitrary byte arrays.
 * Data is stored sorted by key.
 * The basic operations are `Put(key,value)`, `Get(key)`, `Delete(key)`.
 * Users can create a transient snapshot to get a consistent view of data.
 * Forward and backward iteration is supported over the data.
-
-
-
-
-
 # Getting the Source
-
 ```bash
 git clone --recurse-submodules https://anonymous.4open.science/r/TimberSaw2021-B137/
 ```
-
 # Building
-
 This project supports [CMake](https://cmake.org/) out of the box.
-
-### Build for POSIX
-
-Quick start:
+## Build for POSIX
 
 ```bash
 mkdir -p build && cd build
- cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
+cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench TimberSaw
 ```
-### How to run
-
-
+## How to run
+### Memory node side: 
+```bash
+./Server
+```
+### Compute node side: 
+To run the benchmark:
+```bash
+./db_bench --benchmarks=fillrandom,readrandom,readwhilewriting --threads=1 --value_size=400 --key_size=20 --num=100000000 < MemoryNodeIP
+```
+To utilize TimberSaw in your code, you need refer to public interface in **include/TimberSaw/\*.h** .
+```bash
+YourCodeOverTimberSaw < MemoryNodeIP
+```
 # Performance
 
-Here is a performance report (with explanations) from the run of the
+Here is a performance report from the run of the
 "fillrandom" and "readrandom" included in the "db_bench" under benchmarks folder.  
 
 ## Setup
 
-We use a database with a 100 million entries.  Each entry has a 20 byte 
+We test a database with a 100 million entries.  Each entry has a 20 byte 
 key, and a 400 byte value.  We conduct the experiments on two platforms with 
-different types of RDMA fabrics: the BigData testbed andCloudLabtestbed4[25]. The 
+different types of RDMA fabrics: the BigData testbed andCloudLabtestbed4. The 
 BigDatatestbed consists of two servers: The compute node has a Xeon Platinum 8168
 CPU (24 cores, 2.7GHz) and the memory node has 3TB of DRAM, connected by an RDMA-enabled 
 Mellanox EDR Connectx-5 NIC with a bandwidth of 100Gb/s. Eachnode runs Ubuntu 18.04.5. 
@@ -66,9 +63,9 @@ Memory. The nodes are connected by an RDMA-enabled MellanoxFDR Connectx-3 NIC wi
 a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
 
 ## LSM-tree Configurations
-we set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
+We set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
 10 bits per key for the Bloom filters. For the in-memory buffer, the MemTable size is
-set to 64MB.We set 12 background compaction threads and 4 background threads for flushing.
+set to 64MB. We set 12 background compaction threads and 4 background threads for flushing.
 We set the number of immutable tables to 10 to fully utilize the background flushing threads.
 
 ## Write performance
@@ -104,10 +101,10 @@ The "readrandom" benchmarks run 100 million random key-value queries and report 
 
 ## Repository contents
 
-See [doc/index.md](doc/index.md) for more explanation. See
-[doc/impl.md](doc/impl.md) for a brief overview of the implementation.
+[comment]: <> (See [doc/index.md]&#40;doc/index.md&#41; for more explanation. See)
 
-The public interface is in include/TimberSaw/*.h. 
+[comment]: <> ([doc/impl.md]&#40;doc/impl.md&#41; for a brief overview of the implementation.)
+
 
 Guide to header files:
 

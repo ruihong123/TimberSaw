@@ -65,81 +65,131 @@ if (s.ok()) s = db->Put(TimberSaw::WriteOptions(), key2, value);
 if (s.ok()) s = db->Delete(TimberSaw::WriteOptions(), key1);
 ```
 
-## Atomic Updates
+[comment]: <> (## Atomic Updates)
 
-Note that if the process dies after the Put of key2 but before the delete of
-key1, the same value may be left stored under multiple keys. Such problems can
-be avoided by using the `WriteBatch` class to atomically apply a set of updates:
+[comment]: <> (Note that if the process dies after the Put of key2 but before the delete of)
 
-```c++
-#include "TimberSaw/write_batch.h"
-...
-std::string value;
-TimberSaw::Status s = db->Get(TimberSaw::ReadOptions(), key1, &value);
-if (s.ok()) {
-  TimberSaw::WriteBatch batch;
-  batch.Delete(key1);
-  batch.Put(key2, value);
-  s = db->Write(TimberSaw::WriteOptions(), &batch);
-}
-```
+[comment]: <> (key1, the same value may be left stored under multiple keys. Such problems can)
 
-The `WriteBatch` holds a sequence of edits to be made to the database, and these
-edits within the batch are applied in order. Note that we called Delete before
-Put so that if key1 is identical to key2, we do not end up erroneously dropping
-the value entirely.
+[comment]: <> (be avoided by using the `WriteBatch` class to atomically apply a set of updates:)
 
-Apart from its atomicity benefits, `WriteBatch` may also be used to speed up
-bulk updates by placing lots of individual mutations into the same batch.
+[comment]: <> (```c++)
 
-## Synchronous Writes
+[comment]: <> (#include "TimberSaw/write_batch.h")
 
-By default, each write to TimberSaw is asynchronous: it returns after pushing the
-write from the process into the operating system. The transfer from operating
-system memory to the underlying persistent storage happens asynchronously. The
-sync flag can be turned on for a particular write to make the write operation
-not return until the data being written has been pushed all the way to
-persistent storage. (On Posix systems, this is implemented by calling either
-`fsync(...)` or `fdatasync(...)` or `msync(..., MS_SYNC)` before the write
-operation returns.)
+[comment]: <> (...)
 
-```c++
-TimberSaw::WriteOptions write_options;
-write_options.sync = true;
-db->Put(write_options, ...);
-```
+[comment]: <> (std::string value;)
 
-Asynchronous writes are often more than a thousand times as fast as synchronous
-writes. The downside of asynchronous writes is that a crash of the machine may
-cause the last few updates to be lost. Note that a crash of just the writing
-process (i.e., not a reboot) will not cause any loss since even when sync is
-false, an update is pushed from the process memory into the operating system
-before it is considered done.
+[comment]: <> (TimberSaw::Status s = db->Get&#40;TimberSaw::ReadOptions&#40;&#41;, key1, &value&#41;;)
 
-Asynchronous writes can often be used safely. For example, when loading a large
-amount of data into the database you can handle lost updates by restarting the
-bulk load after a crash. A hybrid scheme is also possible where every Nth write
-is synchronous, and in the event of a crash, the bulk load is restarted just
-after the last synchronous write finished by the previous run. (The synchronous
-write can update a marker that describes where to restart on a crash.)
+[comment]: <> (if &#40;s.ok&#40;&#41;&#41; {)
 
-`WriteBatch` provides an alternative to asynchronous writes. Multiple updates
-may be placed in the same WriteBatch and applied together using a synchronous
-write (i.e., `write_options.sync` is set to true). The extra cost of the
-synchronous write will be amortized across all of the writes in the batch.
+[comment]: <> (  TimberSaw::WriteBatch batch;)
 
-## Concurrency
+[comment]: <> (  batch.Delete&#40;key1&#41;;)
 
-A database may only be opened by one process at a time. The TimberSaw
-implementation acquires a lock from the operating system to prevent misuse.
-Within a single process, the same `TimberSaw::DB` object may be safely shared by
-multiple concurrent threads. I.e., different threads may write into or fetch
-iterators or call Get on the same database without any external synchronization
-(the TimberSaw implementation will automatically do the required synchronization).
-However other objects (like Iterator and `WriteBatch`) may require external
-synchronization. If two threads share such an object, they must protect access
-to it using their own locking protocol. More details are available in the public
-header files.
+[comment]: <> (  batch.Put&#40;key2, value&#41;;)
+
+[comment]: <> (  s = db->Write&#40;TimberSaw::WriteOptions&#40;&#41;, &batch&#41;;)
+
+[comment]: <> (})
+
+[comment]: <> (```)
+
+[comment]: <> (The `WriteBatch` holds a sequence of edits to be made to the database, and these)
+
+[comment]: <> (edits within the batch are applied in order. Note that we called Delete before)
+
+[comment]: <> (Put so that if key1 is identical to key2, we do not end up erroneously dropping)
+
+[comment]: <> (the value entirely.)
+
+[comment]: <> (Apart from its atomicity benefits, `WriteBatch` may also be used to speed up)
+
+[comment]: <> (bulk updates by placing lots of individual mutations into the same batch.)
+
+[comment]: <> (## Synchronous Writes)
+
+[comment]: <> (By default, each write to TimberSaw is asynchronous: it returns after pushing the)
+
+[comment]: <> (write from the process into the operating system. The transfer from operating)
+
+[comment]: <> (system memory to the underlying persistent storage happens asynchronously. The)
+
+[comment]: <> (sync flag can be turned on for a particular write to make the write operation)
+
+[comment]: <> (not return until the data being written has been pushed all the way to)
+
+[comment]: <> (persistent storage. &#40;On Posix systems, this is implemented by calling either)
+
+[comment]: <> (`fsync&#40;...&#41;` or `fdatasync&#40;...&#41;` or `msync&#40;..., MS_SYNC&#41;` before the write)
+
+[comment]: <> (operation returns.&#41;)
+
+[comment]: <> (```c++)
+
+[comment]: <> (TimberSaw::WriteOptions write_options;)
+
+[comment]: <> (write_options.sync = true;)
+
+[comment]: <> (db->Put&#40;write_options, ...&#41;;)
+
+[comment]: <> (```)
+
+[comment]: <> (Asynchronous writes are often more than a thousand times as fast as synchronous)
+
+[comment]: <> (writes. The downside of asynchronous writes is that a crash of the machine may)
+
+[comment]: <> (cause the last few updates to be lost. Note that a crash of just the writing)
+
+[comment]: <> (process &#40;i.e., not a reboot&#41; will not cause any loss since even when sync is)
+
+[comment]: <> (false, an update is pushed from the process memory into the operating system)
+
+[comment]: <> (before it is considered done.)
+
+[comment]: <> (Asynchronous writes can often be used safely. For example, when loading a large)
+
+[comment]: <> (amount of data into the database you can handle lost updates by restarting the)
+
+[comment]: <> (bulk load after a crash. A hybrid scheme is also possible where every Nth write)
+
+[comment]: <> (is synchronous, and in the event of a crash, the bulk load is restarted just)
+
+[comment]: <> (after the last synchronous write finished by the previous run. &#40;The synchronous)
+
+[comment]: <> (write can update a marker that describes where to restart on a crash.&#41;)
+
+[comment]: <> (`WriteBatch` provides an alternative to asynchronous writes. Multiple updates)
+
+[comment]: <> (may be placed in the same WriteBatch and applied together using a synchronous)
+
+[comment]: <> (write &#40;i.e., `write_options.sync` is set to true&#41;. The extra cost of the)
+
+[comment]: <> (synchronous write will be amortized across all of the writes in the batch.)
+
+[comment]: <> (## Concurrency)
+
+[comment]: <> (A database may only be opened by one process at a time. The TimberSaw)
+
+[comment]: <> (implementation acquires a lock from the operating system to prevent misuse.)
+
+[comment]: <> (Within a single process, the same `TimberSaw::DB` object may be safely shared by)
+
+[comment]: <> (multiple concurrent threads. I.e., different threads may write into or fetch)
+
+[comment]: <> (iterators or call Get on the same database without any external synchronization)
+
+[comment]: <> (&#40;the TimberSaw implementation will automatically do the required synchronization&#41;.)
+
+[comment]: <> (However other objects &#40;like Iterator and `WriteBatch`&#41; may require external)
+
+[comment]: <> (synchronization. If two threads share such an object, they must protect access)
+
+[comment]: <> (to it using their own locking protocol. More details are available in the public)
+
+[comment]: <> (header files.)
 
 ## Iteration
 
