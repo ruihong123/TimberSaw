@@ -20,7 +20,7 @@ Coder: Ruihong Wang (wang4996@purdue.edu)
 * Forward and backward iteration is supported over the data.
 # Getting the Source
 ```bash
-git clone --recurse-submodules https://anonymous.4open.science/r/TimberSaw2021-B137/
+git clone --recurse-submodules hhttps://github.com/ruihong123/TimberSaw2021
 ```
 # Building
 This project supports [CMake](https://cmake.org/) out of the box.
