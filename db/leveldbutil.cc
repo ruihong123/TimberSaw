@@ -8,7 +8,7 @@
 #include "leveldb/env.h"
 #include "leveldb/status.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace {
 
 class StdoutPrinter : public WritableFile {
@@ -46,7 +46,7 @@ static void Usage() {
 }
 
 int main(int argc, char** argv) {
-  leveldb::Env* env = leveldb::Env::Default();
+  TimberSaw::Env* env = TimberSaw::Env::Default();
   bool ok = true;
   if (argc < 2) {
     Usage();
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
   } else {
     std::string command = argv[1];
     if (command == "dump") {
-      ok = leveldb::HandleDumpCommand(env, argv + 2, argc - 2);
+      ok = TimberSaw::HandleDumpCommand(env, argv + 2, argc - 2);
     } else {
       Usage();
       ok = false;

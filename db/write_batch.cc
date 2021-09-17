@@ -21,7 +21,7 @@
 #include "leveldb/db.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // WriteBatch header has an 8-byte sequence number followed by a 4-byte count.
 static const size_t kHeader = 12;

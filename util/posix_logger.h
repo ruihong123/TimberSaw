@@ -19,7 +19,7 @@
 
 #include "leveldb/env.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class PosixLogger final : public Logger {
  public:

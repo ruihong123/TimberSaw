@@ -12,7 +12,7 @@
 #include "db/dbformat.h"
 #include "util/rdma.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class VersionSet;
 class RDMA_Manager;

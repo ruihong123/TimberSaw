@@ -7,7 +7,7 @@
 #include "leveldb/comparator.h"
 #include "leveldb/env.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
   if (!env->initialized){

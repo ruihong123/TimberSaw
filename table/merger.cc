@@ -8,7 +8,7 @@
 #include "leveldb/iterator.h"
 #include "table/iterator_wrapper.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 //namespace {
 class MergingIterator : public Iterator {

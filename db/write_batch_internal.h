@@ -8,7 +8,7 @@
 #include "db/dbformat.h"
 #include "leveldb/write_batch.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class MemTable;
 

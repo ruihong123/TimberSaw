@@ -16,7 +16,7 @@
 #include "util/logging.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 static const int kValueSize = 1000;
 
@@ -51,7 +51,7 @@ class CorruptionTest : public testing::Test {
   void RepairDB() {
     delete db_;
     db_ = nullptr;
-    ASSERT_LEVELDB_OK(::leveldb::RepairDB(dbname_, options_));
+    ASSERT_LEVELDB_OK(::TimberSaw::RepairDB(dbname_, options_));
   }
 
   void Build(int n) {

@@ -12,7 +12,7 @@
 #undef DeleteFile
 #endif
 
-namespace leveldb {
+namespace TimberSaw {
 
 Env::Env() = default;
 

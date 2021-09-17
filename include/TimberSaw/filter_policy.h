@@ -21,7 +21,7 @@
 #include "leveldb/export.h"
 #include "util/hash.h"
 #include "leveldb/slice.h"
-namespace leveldb {
+namespace TimberSaw {
 
 
 static uint32_t BloomHash(const Slice& key) {

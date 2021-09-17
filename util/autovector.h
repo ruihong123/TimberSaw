@@ -47,7 +47,7 @@ class autovector : public std::vector<T> {
 //     operations.
 //
 // Naming style of public methods almost follows that of the STL's.
-namespace leveldb {
+namespace TimberSaw {
 template <class T, size_t kSize = 8>
 class autovector {
  public:

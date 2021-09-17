@@ -7,7 +7,7 @@
 #include "gtest/gtest.h"
 #include "util/random.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(ArenaTest, Empty) { Arena arena; }
 

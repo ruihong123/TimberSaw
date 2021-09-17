@@ -11,7 +11,7 @@
 #include "util/logging.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // For testing: emit an array with one hash value per key
 class TestHashFilter : public FilterPolicy {

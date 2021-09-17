@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "leveldb/slice.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(Status, MoveConstructor) {
   {

@@ -11,7 +11,7 @@
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class SequentialFile;
 

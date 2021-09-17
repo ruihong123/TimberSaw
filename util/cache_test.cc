@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Conversions between numeric keys/values and the types expected by Cache.
 static std::string EncodeKey(int k) {

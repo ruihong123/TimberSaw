@@ -12,7 +12,7 @@
 #include "leveldb/iterator.h"
 #include "leveldb/options.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Update CMakeLists.txt if you change these
 static const int kMajorVersion = 1;

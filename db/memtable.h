@@ -14,7 +14,7 @@
 
 //#include "util/arena_old.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class InternalKeyComparator;
 class MemTableIterator;

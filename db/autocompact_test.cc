@@ -8,7 +8,7 @@
 #include "leveldb/db.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class AutoCompactTest : public testing::Test {
  public:

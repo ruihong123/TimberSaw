@@ -9,7 +9,7 @@
 #include "leveldb/env.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 static std::string PrintContents(WriteBatch* b) {
   InternalKeyComparator cmp(BytewiseComparator());

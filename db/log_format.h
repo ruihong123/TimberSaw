@@ -8,7 +8,7 @@
 #ifndef STORAGE_LEVELDB_DB_LOG_FORMAT_H_
 #define STORAGE_LEVELDB_DB_LOG_FORMAT_H_
 
-namespace leveldb {
+namespace TimberSaw {
 namespace log {
 
 enum RecordType {

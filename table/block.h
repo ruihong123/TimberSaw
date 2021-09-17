@@ -18,7 +18,7 @@
 #include "util/coding.h"
 #include "util/logging.h"
 #include "util/rdma.h"
-namespace leveldb {
+namespace TimberSaw {
 
 struct BlockContents;
 class Comparator;

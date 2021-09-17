@@ -4,7 +4,7 @@
 //#include ""
 
 #include <leveldb/table_builder.h>
-namespace leveldb{
+namespace TimberSaw {
 TableBuilder::TableBuilder() {}
 TableBuilder::~TableBuilder() {}
 }

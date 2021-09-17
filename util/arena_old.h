@@ -11,7 +11,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Arena {
  public:

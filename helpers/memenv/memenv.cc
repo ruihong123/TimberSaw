@@ -16,7 +16,7 @@
 #include "port/thread_annotations.h"
 #include "util/mutexlock.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 

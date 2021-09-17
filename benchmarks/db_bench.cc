@@ -128,10 +128,10 @@ static bool FLAGS_reuse_logs = false;
 // Use the db with the following name.
 static const char* FLAGS_db = nullptr;
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
-leveldb::Env* g_env = nullptr;
+TimberSaw::Env* g_env = nullptr;
 
 class CountComparator : public Comparator {
  public:
@@ -1170,17 +1170,17 @@ class Benchmark {
 }  // namespace leveldb
 
 int main(int argc, char** argv) {
-  FLAGS_write_buffer_size = leveldb::Options().write_buffer_size;
-  FLAGS_max_file_size = leveldb::Options().max_file_size;
-  FLAGS_block_size = leveldb::Options().block_size;
-  FLAGS_open_files = leveldb::Options().max_open_files;
+  FLAGS_write_buffer_size = TimberSaw::Options().write_buffer_size;
+  FLAGS_max_file_size = TimberSaw::Options().max_file_size;
+  FLAGS_block_size = TimberSaw::Options().block_size;
+  FLAGS_open_files = TimberSaw::Options().max_open_files;
   std::string default_db_path;
 
   for (int i = 1; i < argc; i++) {
     double d;
     int n;
     char junk;
-    if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
+    if (TimberSaw::Slice(argv[i]).starts_with("--benchmarks=")) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
     } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
       FLAGS_compression_ratio = d;
@@ -1232,16 +1232,16 @@ int main(int argc, char** argv) {
     }
   }
 
-  leveldb::g_env = leveldb::Env::Default();
+  TimberSaw::g_env = TimberSaw::Env::Default();
 
   // Choose a location for the test database if none given with --db=<path>
   if (FLAGS_db == nullptr) {
-    leveldb::g_env->GetTestDirectory(&default_db_path);
+    TimberSaw::g_env->GetTestDirectory(&default_db_path);
     default_db_path += "/dbbench";
     FLAGS_db = default_db_path.c_str();
   }
 
-  leveldb::Benchmark benchmark;
+  TimberSaw::Benchmark benchmark;
   benchmark.Run();
   return 0;
 }

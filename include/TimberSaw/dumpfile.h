@@ -11,7 +11,7 @@
 #include "leveldb/export.h"
 #include "leveldb/status.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Dump the contents of the file named by fname in text format to
 // *dst.  Makes a sequence of dst->Append() calls; each call is passed

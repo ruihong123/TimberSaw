@@ -19,7 +19,7 @@
 #include "leveldb/write_batch.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 

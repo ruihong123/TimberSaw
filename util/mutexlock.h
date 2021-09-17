@@ -13,7 +13,7 @@
 
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Helper class that locks a mutex on construction and unlocks the mutex when
 // the destructor of the MutexLock object is invoked.

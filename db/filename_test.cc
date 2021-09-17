@@ -9,7 +9,7 @@
 #include "port/port.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(FileNameTest, Parse) {
   Slice db;

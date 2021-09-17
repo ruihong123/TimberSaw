@@ -8,7 +8,7 @@
 #include "util/logging.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class FindFileTest : public testing::Test {
  public:

@@ -13,7 +13,7 @@
 #include "leveldb//slice.h"
 //#include "leveldb/slice_transform.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // conversion' conversion from 'type1' to 'type2', possible loss of data
 #if defined(_MSC_VER)

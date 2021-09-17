@@ -10,7 +10,7 @@
 #include "leveldb/export.h"
 #include "leveldb/iterator.h"
 #include "db/version_edit.h"
-namespace leveldb {
+namespace TimberSaw {
 class Block;
 class BlockHandle;
 class Footer;

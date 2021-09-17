@@ -8,12 +8,12 @@
 
 #include "table/table_builder_memoryside.h"
 
-namespace leveldb{
+namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
-leveldb::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): internal_comparator_(BytewiseComparator()), opts(std::make_shared<Options>(true)),
+TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): internal_comparator_(BytewiseComparator()), opts(std::make_shared<Options>(true)),
 usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
 versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx)){
-    struct leveldb::config_t config = {
+    struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
         19833, /* tcp_port */

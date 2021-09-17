@@ -7,7 +7,7 @@
 
 #include "leveldb/export.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Env;
 

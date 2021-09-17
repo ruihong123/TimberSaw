@@ -164,7 +164,7 @@ void CheckCloseOnExecDoesNotLeakFDs(
 
 #endif  // HAVE_O_CLOEXEC
 
-namespace leveldb {
+namespace TimberSaw {
 
 static const int kReadOnlyFileLimit = 4;
 static const int kMMapLimit = 4;
@@ -196,7 +196,7 @@ TEST_F(EnvPosixTest, TestOpenOnRead) {
   // Open test file some number above the sum of the two limits to force
   // open-on-read behavior of POSIX Env leveldb::RandomAccessFile.
   const int kNumFiles = kReadOnlyFileLimit + kMMapLimit + 5;
-  leveldb::RandomAccessFile* files[kNumFiles] = {0};
+  TimberSaw::RandomAccessFile* files[kNumFiles] = {0};
   for (int i = 0; i < kNumFiles; i++) {
     ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(test_file, &files[i]));
   }
@@ -345,8 +345,8 @@ int main(int argc, char** argv) {
 #endif  // HAVE_O_CLOEXEC
 
   // All tests currently run with the same read-only file limits.
-  leveldb::EnvPosixTest::SetFileLimits(leveldb::kReadOnlyFileLimit,
-                                       leveldb::kMMapLimit);
+  TimberSaw::EnvPosixTest::SetFileLimits(TimberSaw::kReadOnlyFileLimit,
+                                         TimberSaw::kMMapLimit);
 
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();

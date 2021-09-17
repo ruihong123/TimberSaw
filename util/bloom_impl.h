@@ -20,7 +20,7 @@
 #include <immintrin.h>
 #endif
 
-namespace leveldb {
+namespace TimberSaw {
 
 class BloomMath {
  public:

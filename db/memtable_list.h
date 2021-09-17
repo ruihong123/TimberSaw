@@ -28,7 +28,7 @@
 #include "leveldb/table_builder.h"
 #include "version_set.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class InternalKeyComparator;
 

@@ -9,7 +9,7 @@
 #include "leveldb/filter_policy.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // See doc/table_format.md for an explanation of the filter block format.
 

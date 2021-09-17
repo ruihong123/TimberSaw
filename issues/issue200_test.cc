@@ -10,7 +10,7 @@
 #include "leveldb/db.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(Issue200, Test) {
   // Get rid of any state from an old run.

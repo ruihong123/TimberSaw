@@ -10,7 +10,7 @@
 
 #include "leveldb/slice.h"
 #include "util/rdma.h"
-namespace leveldb {
+namespace TimberSaw {
 
 struct Options;
 

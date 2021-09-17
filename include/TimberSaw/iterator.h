@@ -19,7 +19,7 @@
 #include "leveldb/slice.h"
 #include "leveldb/status.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class LEVELDB_EXPORT Iterator {
  public:

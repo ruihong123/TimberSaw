@@ -20,7 +20,7 @@
 #include "util/coding.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 #ifdef PROCESSANALYSIS
 std::atomic<uint64_t> VersionSet::GetTimeElapseSum = 0;
 std::atomic<uint64_t> VersionSet::GetNum = 0;

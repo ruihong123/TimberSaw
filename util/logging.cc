@@ -12,7 +12,7 @@
 #include "leveldb/env.h"
 #include "leveldb/slice.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 void AppendNumberTo(std::string* str, uint64_t num) {
   char buf[30];

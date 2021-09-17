@@ -61,7 +61,7 @@
 #else
 #error __BYTE_ORDER is neither __LITTLE_ENDIAN nor __BIG_ENDIAN
 #endif
-namespace leveldb {
+namespace TimberSaw {
 struct config_t {
   const char* dev_name;    /* IB device name */
   const char* server_name; /* server host name */

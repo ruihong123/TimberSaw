@@ -6,7 +6,7 @@
 
 #include "gtest/gtest.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(HASH, SignedUnsignedIssue) {
   const uint8_t data1[1] = {0x62};

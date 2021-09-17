@@ -12,7 +12,7 @@
 #include "util/mutexlock.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 static const int kDelayMicros = 100000;
 

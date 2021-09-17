@@ -6,7 +6,7 @@
 
 #include "gtest/gtest.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 static void TestEncodeDecode(const VersionEdit& edit) {
   std::string encoded, encoded2;

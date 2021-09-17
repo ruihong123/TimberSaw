@@ -23,7 +23,7 @@
 #include "leveldb/export.h"
 #include "leveldb/slice.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class LEVELDB_EXPORT Cache;
 

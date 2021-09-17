@@ -14,7 +14,7 @@
 
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Slice;
 class WritableFile;

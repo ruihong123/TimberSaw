@@ -11,7 +11,7 @@
 #include "leveldb/env.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // A utility routine: write "data" to the named file and Sync() it.
 Status WriteStringToFileSync(Env* env, const Slice& data,

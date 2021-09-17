@@ -14,7 +14,7 @@
 #include "leveldb/write_batch.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 

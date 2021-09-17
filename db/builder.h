@@ -16,7 +16,7 @@
 #include "leveldb/env.h"
 #include "leveldb/iterator.h"
 #include "leveldb/status.h"
-namespace leveldb {
+namespace TimberSaw {
 
 struct Options;
 struct RemoteMemTableMetaData;

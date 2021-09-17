@@ -10,7 +10,7 @@
 #include "port/port.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 void AppendInternalKey(std::string* result, const ParsedInternalKey& key) {
   result->append(key.user_key.data(), key.user_key.size());

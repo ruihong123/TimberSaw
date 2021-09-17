@@ -18,7 +18,7 @@
 
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Env;
 class Table_Memory_Side;

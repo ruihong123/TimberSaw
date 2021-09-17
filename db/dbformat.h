@@ -18,7 +18,7 @@
 #include "util/coding.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Grouping of constants.  We may want to make some of these
 // parameters set via options.

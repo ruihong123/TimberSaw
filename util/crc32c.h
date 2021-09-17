@@ -8,7 +8,7 @@
 #include <cstddef>
 #include <cstdint>
 
-namespace leveldb {
+namespace TimberSaw {
 namespace crc32c {
 
 // Return the crc32c of concat(A, data[0,n-1]) where init_crc is the

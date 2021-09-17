@@ -8,7 +8,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Wraps an instance whose destructor is never called.
 //

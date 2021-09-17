@@ -13,7 +13,7 @@
 #include "leveldb/env.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class MemEnvTest : public testing::Test {
  public:

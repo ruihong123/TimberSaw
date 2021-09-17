@@ -28,7 +28,7 @@
 #include "util/coding.h"
 #include "util/crc32c.h"
 #include "include/leveldb/table_builder.h"
-namespace leveldb {
+namespace TimberSaw {
 
 //class BlockBuilder;
 class BlockHandle;

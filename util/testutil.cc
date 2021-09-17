@@ -8,7 +8,7 @@
 
 #include "util/random.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace test {
 
 Slice RandomString(Random* rnd, int len, std::string* dst) {

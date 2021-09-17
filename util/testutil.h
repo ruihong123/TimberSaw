@@ -12,7 +12,7 @@
 #include "leveldb/slice.h"
 #include "util/random.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace test {
 
 MATCHER(IsOK, "") { return arg.ok(); }
@@ -20,9 +20,9 @@ MATCHER(IsOK, "") { return arg.ok(); }
 // Macros for testing the results of functions that return leveldb::Status or
 // absl::StatusOr<T> (for any type T).
 #define EXPECT_LEVELDB_OK(expression) \
-  EXPECT_THAT(expression, leveldb::test::IsOK())
+  EXPECT_THAT(expression, TimberSaw::test::IsOK())
 #define ASSERT_LEVELDB_OK(expression) \
-  ASSERT_THAT(expression, leveldb::test::IsOK())
+  ASSERT_THAT(expression, TimberSaw::test::IsOK())
 
 // Returns the random seed used at the start of the current test run.
 inline int RandomSeed() {

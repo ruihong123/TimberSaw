@@ -13,7 +13,7 @@
 
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 #ifdef PROCESSANALYSIS
 std::atomic<uint64_t> TableCache::GetTimeElapseSum = 0;
 std::atomic<uint64_t> TableCache::GetNum = 0;

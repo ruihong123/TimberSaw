@@ -23,7 +23,7 @@
 #include "gtest/gtest.h"
 #include "table_builder_computeside.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Return reverse of "key".
 // Used to test non-lexicographic comparators.

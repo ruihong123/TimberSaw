@@ -8,7 +8,7 @@
 #include "memory_node/memory_node_keeper.h"
 #include "leveldb/env.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 inline uint32_t Block::NumRestarts() const {
   assert(size_ >= sizeof(uint32_t));

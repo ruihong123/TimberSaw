@@ -12,7 +12,7 @@
 #include <atomic>
 #include <port/port_posix.h>
 #include <assert.h>
-namespace leveldb{
+namespace TimberSaw {
 class DBImpl;
 enum ThreadPoolType{FlushThreadPool, CompactionThreadPool, SubcompactionThreadPool};
 struct BGItem {

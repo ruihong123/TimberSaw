@@ -18,7 +18,7 @@
 #include "leveldb/env.h"
 //#include "test_util/sync_point.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // MSVC complains that it is already defined since it is static in the header.
 #ifndef _MSC_VER

@@ -41,7 +41,7 @@
 #endif  // defined(DeleteFile)
 #endif  // defined(_WIN32)
 
-namespace leveldb {
+namespace TimberSaw {
 
 class FileLock;
 class Logger;

@@ -19,7 +19,7 @@
 #include "util/coding.h"
 
 #include "full_filter_block.h"
-namespace leveldb{
+namespace TimberSaw {
 struct Table_Memory_Side::Rep {
   Rep(const Options& options) : options(options) {
 

@@ -20,7 +20,7 @@
 
 #include "full_filter_block.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 struct Table::Rep {
   Rep(const Options& options) : options(options) {

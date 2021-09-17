@@ -13,7 +13,7 @@
 #include "util/hash.h"
 #include "util/mutexlock.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 Cache::~Cache() {}
 

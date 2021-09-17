@@ -7,7 +7,7 @@
 #include "gtest/gtest.h"
 #include "util/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 static std::string IKey(const std::string& user_key, uint64_t seq,
                         ValueType vt) {

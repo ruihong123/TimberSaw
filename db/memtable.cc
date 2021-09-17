@@ -10,7 +10,7 @@
 #include "db/version_edit.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 #ifdef PROCESSANALYSIS
 std::atomic<uint64_t> MemTable::GetTimeElapseSum = 0;
 std::atomic<uint64_t> MemTable::GetNum = 0;

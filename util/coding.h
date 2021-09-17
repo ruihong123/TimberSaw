@@ -27,7 +27,7 @@
   #define PLATFORM_UNALIGNED_ACCESS_NOT_ALLOWED
 #endif
 
-namespace leveldb {
+namespace TimberSaw {
 
 // The maximum length of a varint in bytes for 64-bit.
 const unsigned int kMaxVarint64Length = 10;

@@ -9,7 +9,7 @@
 
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 const double Histogram::kBucketLimit[kNumBuckets] = {
     1,

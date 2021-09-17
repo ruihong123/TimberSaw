@@ -14,7 +14,7 @@
 #include "leveldb/status.h"
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Env;
 

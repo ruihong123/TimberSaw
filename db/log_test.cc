@@ -10,7 +10,7 @@
 #include "util/crc32c.h"
 #include "util/random.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace log {
 
 // Construct a string of the specified length made out of the supplied

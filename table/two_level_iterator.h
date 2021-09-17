@@ -13,7 +13,7 @@
 #include "table/block.h"
 #include "table/format.h"
 #include "table/iterator_wrapper.h"
-namespace leveldb {
+namespace TimberSaw {
 
 struct ReadOptions;
 class FileIteratorWrapper {

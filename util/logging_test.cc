@@ -10,7 +10,7 @@
 #include "gtest/gtest.h"
 #include "leveldb/slice.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(Logging, NumberToString) {
   ASSERT_EQ("0", NumberToString(0));

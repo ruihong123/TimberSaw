@@ -20,7 +20,7 @@
 
 #include "block_builder.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class FilterPolicy;
 class Env;

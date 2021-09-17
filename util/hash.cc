@@ -17,7 +17,7 @@
   } while (0)
 #endif
 
-namespace leveldb {
+namespace TimberSaw {
 
 uint32_t Hash(const char* data, size_t n, uint32_t seed) {
   // MurmurHash1 - fast but mediocre quality

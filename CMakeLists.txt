@@ -99,7 +99,7 @@ check_cxx_source_compiles("
 int main() { std::string str; return 0; }
 " HAVE_CXX17_HAS_INCLUDE)
 
-set(LEVELDB_PUBLIC_INCLUDE_DIR "include/leveldb")
+set(LEVELDB_PUBLIC_INCLUDE_DIR "include/TimberSaw")
 set(LEVELDB_PORT_CONFIG_DIR "include/port")
 
 configure_file(
@@ -190,7 +190,7 @@ target_sources(leveldb
     "table/table_builder_computeside.h"
     "table/table_builder_computeside.cc"
     "table/table.cc"
-    "include/leveldb/table_builder.h"
+    "include/TimberSaw/table_builder.h"
     "table/two_level_iterator.cc"
     "table/two_level_iterator.h"
     "util/arena.cc"

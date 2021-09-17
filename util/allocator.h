@@ -15,7 +15,7 @@
 #include <cstddef>
 //#include "rocksdb/write_buffer_manager.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Logger;
 

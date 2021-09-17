@@ -20,7 +20,7 @@
 #define STORAGE_DECL static
 #endif
 
-namespace leveldb {
+namespace TimberSaw {
 
 Random* Random::GetTLSInstance() {
   STORAGE_DECL Random* tls_instance;

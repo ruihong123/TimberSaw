@@ -19,30 +19,30 @@
 #include "leveldb/status.h"
 #include "leveldb/write_batch.h"
 
-using leveldb::Cache;
-using leveldb::Comparator;
-using leveldb::CompressionType;
-using leveldb::DB;
-using leveldb::Env;
-using leveldb::FileLock;
-using leveldb::FilterPolicy;
-using leveldb::Iterator;
-using leveldb::kMajorVersion;
-using leveldb::kMinorVersion;
-using leveldb::Logger;
-using leveldb::NewBloomFilterPolicy;
-using leveldb::NewLRUCache;
-using leveldb::Options;
-using leveldb::RandomAccessFile;
-using leveldb::Range;
-using leveldb::ReadOptions;
-using leveldb::SequentialFile;
-using leveldb::Slice;
-using leveldb::Snapshot;
-using leveldb::Status;
-using leveldb::WritableFile;
-using leveldb::WriteBatch;
-using leveldb::WriteOptions;
+using TimberSaw::Cache;
+using TimberSaw::Comparator;
+using TimberSaw::CompressionType;
+using TimberSaw::DB;
+using TimberSaw::Env;
+using TimberSaw::FileLock;
+using TimberSaw::FilterPolicy;
+using TimberSaw::Iterator;
+using TimberSaw::kMajorVersion;
+using TimberSaw::kMinorVersion;
+using TimberSaw::Logger;
+using TimberSaw::NewBloomFilterPolicy;
+using TimberSaw::NewLRUCache;
+using TimberSaw::Options;
+using TimberSaw::RandomAccessFile;
+using TimberSaw::Range;
+using TimberSaw::ReadOptions;
+using TimberSaw::SequentialFile;
+using TimberSaw::Slice;
+using TimberSaw::Snapshot;
+using TimberSaw::Status;
+using TimberSaw::WritableFile;
+using TimberSaw::WriteBatch;
+using TimberSaw::WriteOptions;
 
 extern "C" {
 

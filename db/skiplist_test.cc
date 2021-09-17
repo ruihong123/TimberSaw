@@ -18,7 +18,7 @@
 
 #include "gtest/gtest.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 typedef uint64_t Key;
 

@@ -4,7 +4,7 @@
 
 #include "leveldb/filter_policy.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 FilterPolicy::~FilterPolicy() {}
 

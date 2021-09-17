@@ -22,7 +22,7 @@
 
 #include "leveldb/export.h"
 
-namespace leveldb {
+namespace TimberSaw {
 //TODO: make the size of slice extensible from outside.
 class LEVELDB_EXPORT Slice {
  public:

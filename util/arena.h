@@ -25,7 +25,7 @@
 
 #include "util/allocator.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Arena : public Allocator {
  public:

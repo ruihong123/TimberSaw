@@ -26,7 +26,7 @@
 #undef HAVE_UINT128_EXTENSION
 #endif
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace detail {
 

@@ -13,7 +13,7 @@
 #include "util/logging.h"
 #include "util/no_destructor.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 Comparator::~Comparator() = default;
 

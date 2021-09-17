@@ -34,7 +34,7 @@
 #include "util/arena_old.h"
 #include "util/random.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Arena;
 

@@ -35,7 +35,7 @@
 #include "leveldb/options.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 BlockBuilder::BlockBuilder(const Options* options, ibv_mr* mr)
     : options_(options), local_mr(mr),

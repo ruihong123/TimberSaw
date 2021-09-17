@@ -7,7 +7,7 @@
 #include <cassert>
 #include "db/dbformat.h"
 
-namespace leveldb{
+namespace TimberSaw {
 struct TableBuilder_Memoryside::Rep {
   Rep(const Options& opt, IO_type type, std::shared_ptr<RDMA_Manager> rdma)
       : options(opt),

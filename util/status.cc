@@ -8,7 +8,7 @@
 
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 const char* Status::CopyState(const char* state) {
   uint32_t size;

@@ -27,7 +27,7 @@
 #include <cstdlib>
 //#include "logging/logging.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // We want to give users opportunity to default all the mutexes to adaptive if
 // not specified otherwise. This enables a quick way to conduct various

@@ -12,7 +12,7 @@
 #include "port/port.h"
 #include "util/coding.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace crc32c {
 
 namespace {

@@ -7,7 +7,7 @@
 #include "db/dbformat.h"
 #include <cassert>
 
-namespace leveldb {
+namespace TimberSaw {
 //TOthink: how to save the remote mr?
 //TOFIX : now we suppose the index and filter block will not over the write buffer.
 // TODO: make the Option of tablebuilder a pointer avoiding large data copying

@@ -10,7 +10,7 @@
 #include "util/coding.h"
 #include "util/crc32c.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace log {
 
 static void InitTypeCrc(uint32_t* type_crc) {

@@ -38,7 +38,7 @@
 #include "util/logging.h"
 #include "util/mutexlock.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 
 int SuperVersion::dummy = 0;

@@ -7,7 +7,7 @@
 
 #include <string>
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Histogram {
  public:

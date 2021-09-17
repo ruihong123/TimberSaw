@@ -19,7 +19,7 @@
 #include "table/merger.h"
 #include "db/table_cache.h"
 #include "table/table_builder_computeside.h"
-namespace leveldb {
+namespace TimberSaw {
 
 std::mutex MemTableList::imm_mtx;
 
@@ -366,7 +366,7 @@ void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
 //      m->flush_in_progress_ = true;  // flushing will start very soon
       mems->push_back(m);
       // at most pick 2 table and do the merge
-      if(++table_counter >= leveldb::config::MaxImmuNumPerFlush)
+      if(++table_counter >= TimberSaw::config::MaxImmuNumPerFlush)
         break;
     }
   }

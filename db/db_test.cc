@@ -25,7 +25,7 @@
 #include "util/mutexlock.h"
 #include "util/testutil.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 static std::string RandomString(Random* rnd, int len) {
   std::string r;

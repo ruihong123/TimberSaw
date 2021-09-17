@@ -6,7 +6,7 @@
 
 #include "gtest/gtest.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace crc32c {
 
 TEST(CRC, StandardResults) {

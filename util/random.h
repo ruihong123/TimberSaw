@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <random>
 
-namespace leveldb {
+namespace TimberSaw {
 
 // A very simple random number generator.  Not especially good at
 // generating truly random bits, but good enough for our needs in this

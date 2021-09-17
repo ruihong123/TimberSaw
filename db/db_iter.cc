@@ -14,7 +14,7 @@
 #include "util/mutexlock.h"
 #include "util/random.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 #if 0
 static void DumpInternalIter(Iterator* iter) {

@@ -31,7 +31,7 @@
 #define ROCKSDB_FIELD_UNUSED
 #endif  // __clang__
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Logger;
 

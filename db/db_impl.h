@@ -24,7 +24,7 @@
 #include "memtable_list.h"
 #include "version_set.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class MemTable;
 class TableCache;

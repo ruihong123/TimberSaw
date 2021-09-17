@@ -7,7 +7,7 @@
 
 #include "include/leveldb/table_builder.h"
 //#include "dumpfile.h"
-namespace leveldb{
+namespace TimberSaw {
 //class BlockBuilder;
 class BlockHandle;
 //class WritableFile;

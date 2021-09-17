@@ -18,7 +18,7 @@
 #include "util/autovector.h"
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 // Cleanup function that will be called for a stored thread local
 // pointer (if not NULL) when one of the following happens:
 // (1) a thread terminates

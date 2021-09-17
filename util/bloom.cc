@@ -7,7 +7,7 @@
 #include "leveldb/slice.h"
 //#include "util/hash.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 

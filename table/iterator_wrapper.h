@@ -8,7 +8,7 @@
 #include "leveldb/iterator.h"
 #include "leveldb/slice.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // A internal wrapper class with an interface similar to Iterator that
 // caches the valid() and key() results for an underlying iterator.

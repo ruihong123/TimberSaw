@@ -12,7 +12,7 @@
 #include "port/likely.h"
 #include <stdlib.h>
 
-namespace leveldb {
+namespace TimberSaw {
 
 struct Entry {
   Entry() : ptr(nullptr) {}

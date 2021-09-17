@@ -5,7 +5,7 @@
 #ifndef STORAGE_LEVELDB_UTIL_ENV_POSIX_TEST_HELPER_H_
 #define STORAGE_LEVELDB_UTIL_ENV_POSIX_TEST_HELPER_H_
 
-namespace leveldb {
+namespace TimberSaw {
 
 class EnvPosixTest;
 

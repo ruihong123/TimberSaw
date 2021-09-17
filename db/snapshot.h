@@ -8,7 +8,7 @@
 #include "db/dbformat.h"
 #include "leveldb/db.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class SnapshotList;
 

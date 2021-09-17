@@ -10,7 +10,7 @@
 
 #include "gtest/gtest.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 

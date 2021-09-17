@@ -8,7 +8,7 @@
 
 #include "gtest/gtest.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 TEST(Coding, Fixed32) {
   std::string s;

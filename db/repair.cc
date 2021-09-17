@@ -39,7 +39,7 @@
 #include "leveldb/env.h"
 #include "table/table_builder_computeside.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 

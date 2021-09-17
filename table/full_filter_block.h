@@ -17,7 +17,7 @@
 
 #include "block_builder.h"
 
-namespace leveldb {
+namespace TimberSaw {
 using LegacyBloomImpl = LegacyLocalityBloomImpl</*ExtraRotates*/ false>;
 class FilterPolicy;
 class Env;

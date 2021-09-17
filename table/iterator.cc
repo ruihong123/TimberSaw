@@ -4,7 +4,7 @@
 
 #include "leveldb/iterator.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 Iterator::Iterator() {
   cleanup_head_.function = nullptr;

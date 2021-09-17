@@ -26,7 +26,7 @@
 #include "leveldb/export.h"
 #include "leveldb/status.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 class Slice;
 
