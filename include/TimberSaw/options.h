@@ -1,13 +1,13 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_OPTIONS_H_
-#define STORAGE_LEVELDB_INCLUDE_OPTIONS_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_OPTIONS_H_
+#define STORAGE_TimberSaw_INCLUDE_OPTIONS_H_
 
 #include <cstddef>
 
-#include "leveldb/export.h"
+#include "TimberSaw/export.h"
 
 namespace TimberSaw {
 
@@ -39,7 +39,7 @@ enum CompressionType {
 };
 
 // Options to control the behavior of a database (passed to DB::Open)
-struct LEVELDB_EXPORT Options {
+struct TimberSaw_EXPORT Options {
   // Create an Options object with default values for all fields.
   Options();
   Options(bool is_memory_side);
@@ -107,7 +107,7 @@ struct LEVELDB_EXPORT Options {
   // a block is the unit of reading from disk).
 
   // If non-null, use the specified cache for blocks.
-  // If null, leveldb will automatically create and use an 8MB internal cache.
+  // If null, TimberSaw will automatically create and use an 8MB internal cache.
   Cache* block_cache = nullptr;
 
   // Approximate size of user data packed per block.  Note that the
@@ -123,7 +123,7 @@ struct LEVELDB_EXPORT Options {
   // leave this parameter alone.
   int block_restart_interval = 1;
 
-  // Leveldb will write up to this amount of bytes to a file before
+  // TimberSaw will write up to this amount of bytes to a file before
   // switching to a new one.
   // Most clients should leave this parameter alone.  However if your
   // filesystem is more efficient with larger files, you could
@@ -163,7 +163,7 @@ struct LEVELDB_EXPORT Options {
 };
 
 // Options that control read operations
-struct LEVELDB_EXPORT ReadOptions {
+struct TimberSaw_EXPORT ReadOptions {
   ReadOptions() = default;
 
   // If true, all data read from underlying storage will be
@@ -182,7 +182,7 @@ struct LEVELDB_EXPORT ReadOptions {
 };
 
 // Options that control write operations
-struct LEVELDB_EXPORT WriteOptions {
+struct TimberSaw_EXPORT WriteOptions {
   WriteOptions() = default;
 
   // If true, the write will be flushed from the operating system
@@ -202,6 +202,6 @@ struct LEVELDB_EXPORT WriteOptions {
   bool sync = false;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_OPTIONS_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_OPTIONS_H_

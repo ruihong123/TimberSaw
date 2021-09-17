@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -24,10 +24,10 @@
 #include <utility>
 #include <vector>
 
-#include "leveldb/db.h"
-#include "leveldb/env.h"
-#include "leveldb/status.h"
-#include "leveldb/table.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/status.h"
+#include "TimberSaw/table.h"
 
 #include "port/port.h"
 #include "table/block.h"
@@ -397,7 +397,7 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
   //
   // Note that PrevLogNumber() is no longer used, but we pay
   // attention to it in case we are recovering a database
-  // produced by an older version of leveldb.
+  // produced by an older version of TimberSaw.
   const uint64_t min_log = versions_->LogNumber();
   const uint64_t prev_log = versions_->PrevLogNumber();
   std::vector<std::string> filenames;
@@ -2076,7 +2076,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 //    assert(key.data()[0] == '0');
 
   }
-//  reinterpret_cast<leveldb::MergingIterator>
+//  reinterpret_cast<TimberSaw::MergingIterator>
   // You can not call prev here because the iterator is not valid any more
 //  input->Prev();
 //  assert(input->Valid());
@@ -2230,7 +2230,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // be invalid also.
 //    assert(key.data()[0] == '0');
   }
-//  reinterpret_cast<leveldb::MergingIterator>
+//  reinterpret_cast<TimberSaw::MergingIterator>
   // You can not call prev here because the iterator is not valid any more
 //  input->Prev();
 //  assert(input->Valid());
@@ -2981,7 +2981,7 @@ bool DBImpl::GetProperty(const Slice& property, std::string* value) {
   MemTable* mem = mem_.load();
 //  MemTableListVersion* imm = imm_->current();
   Slice in = property;
-  Slice prefix("leveldb.");
+  Slice prefix("TimberSaw.");
   if (!in.starts_with(prefix)) return false;
   in.remove_prefix(prefix.size());
 
@@ -3152,4 +3152,4 @@ Status DestroyDB(const std::string& dbname, const Options& options) {
   return result;
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

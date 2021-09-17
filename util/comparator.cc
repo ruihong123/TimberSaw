@@ -1,15 +1,15 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/comparator.h"
+#include "TimberSaw/comparator.h"
 
 #include <algorithm>
 #include <cstdint>
 #include <string>
 #include <type_traits>
 
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 #include "util/logging.h"
 #include "util/no_destructor.h"
 
@@ -22,7 +22,7 @@ class BytewiseComparatorImpl : public Comparator {
  public:
   BytewiseComparatorImpl() = default;
 
-  const char* Name() const override { return "leveldb.BytewiseComparator"; }
+  const char* Name() const override { return "TimberSaw.BytewiseComparator"; }
 
   int Compare(const Slice& a, const Slice& b) const override {
     return a.compare(b);
@@ -72,4 +72,4 @@ const Comparator* BytewiseComparator() {
   return singleton.get();
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

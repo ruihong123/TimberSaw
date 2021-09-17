@@ -3,7 +3,7 @@
 
 #include "util/rdma.h"
 
-//namespace leveldb{
+//namespace TimberSaw{
 int main()
 {
   TimberSaw::Memory_Node_Keeper mn_keeper(true);

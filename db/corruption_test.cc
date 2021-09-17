@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -9,10 +9,10 @@
 #include "db/filename.h"
 #include "db/log_format.h"
 #include "db/version_set.h"
-#include "leveldb/cache.h"
-#include "leveldb/db.h"
-#include "leveldb/table.h"
-#include "leveldb/write_batch.h"
+#include "TimberSaw/cache.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/table.h"
+#include "TimberSaw/write_batch.h"
 #include "util/logging.h"
 #include "util/testutil.h"
 
@@ -46,12 +46,12 @@ class CorruptionTest : public testing::Test {
     return DB::Open(options_, dbname_, &db_);
   }
 
-  void Reopen() { ASSERT_LEVELDB_OK(TryReopen()); }
+  void Reopen() { ASSERT_TimberSaw_OK(TryReopen()); }
 
   void RepairDB() {
     delete db_;
     db_ = nullptr;
-    ASSERT_LEVELDB_OK(::TimberSaw::RepairDB(dbname_, options_));
+    ASSERT_TimberSaw_OK(::TimberSaw::RepairDB(dbname_, options_));
   }
 
   void Build(int n) {
@@ -68,7 +68,7 @@ class CorruptionTest : public testing::Test {
       if (i == n - 1) {
         options.sync = true;
       }
-      ASSERT_LEVELDB_OK(db_->Write(options, &batch));
+      ASSERT_TimberSaw_OK(db_->Write(options, &batch));
     }
   }
 
@@ -113,7 +113,7 @@ class CorruptionTest : public testing::Test {
   void Corrupt(FileType filetype, int offset, int bytes_to_corrupt) {
     // Pick file to corrupt
     std::vector<std::string> filenames;
-    ASSERT_LEVELDB_OK(env_.target()->GetChildren(dbname_, &filenames));
+    ASSERT_TimberSaw_OK(env_.target()->GetChildren(dbname_, &filenames));
     uint64_t number;
     FileType type;
     std::string fname;
@@ -128,7 +128,7 @@ class CorruptionTest : public testing::Test {
     ASSERT_TRUE(!fname.empty()) << filetype;
 
     uint64_t file_size;
-    ASSERT_LEVELDB_OK(env_.target()->GetFileSize(fname, &file_size));
+    ASSERT_TimberSaw_OK(env_.target()->GetFileSize(fname, &file_size));
 
     if (offset < 0) {
       // Relative to end of file; make it absolute
@@ -269,28 +269,28 @@ TEST_F(CorruptionTest, MissingDescriptor) {
 }
 
 TEST_F(CorruptionTest, SequenceNumberRecovery) {
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "v1"));
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "v2"));
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "v3"));
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "v4"));
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "v5"));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "v1"));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "v2"));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "v3"));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "v4"));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "v5"));
   RepairDB();
   Reopen();
   std::string v;
-  ASSERT_LEVELDB_OK(db_->Get(ReadOptions(), "foo", &v));
+  ASSERT_TimberSaw_OK(db_->Get(ReadOptions(), "foo", &v));
   ASSERT_EQ("v5", v);
   // Write something.  If sequence number was not recovered properly,
   // it will be hidden by an earlier write.
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "v6"));
-  ASSERT_LEVELDB_OK(db_->Get(ReadOptions(), "foo", &v));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "v6"));
+  ASSERT_TimberSaw_OK(db_->Get(ReadOptions(), "foo", &v));
   ASSERT_EQ("v6", v);
   Reopen();
-  ASSERT_LEVELDB_OK(db_->Get(ReadOptions(), "foo", &v));
+  ASSERT_TimberSaw_OK(db_->Get(ReadOptions(), "foo", &v));
   ASSERT_EQ("v6", v);
 }
 
 TEST_F(CorruptionTest, CorruptedDescriptor) {
-  ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), "foo", "hello"));
+  ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), "foo", "hello"));
   DBImpl* dbi = reinterpret_cast<DBImpl*>(db_);
   dbi->TEST_CompactMemTable();
   dbi->TEST_CompactRange(0, nullptr, nullptr);
@@ -302,7 +302,7 @@ TEST_F(CorruptionTest, CorruptedDescriptor) {
   RepairDB();
   Reopen();
   std::string v;
-  ASSERT_LEVELDB_OK(db_->Get(ReadOptions(), "foo", &v));
+  ASSERT_TimberSaw_OK(db_->Get(ReadOptions(), "foo", &v));
   ASSERT_EQ("hello", v);
 }
 
@@ -311,7 +311,7 @@ TEST_F(CorruptionTest, CompactionInputError) {
   DBImpl* dbi = reinterpret_cast<DBImpl*>(db_);
   dbi->TEST_CompactMemTable();
   const int last = config::kMaxMemCompactLevel;
-  ASSERT_EQ(1, Property("leveldb.num-files-at-level" + NumberToString(last)));
+  ASSERT_EQ(1, Property("TimberSaw.num-files-at-level" + NumberToString(last)));
 
   Corrupt(kTableFile, 100, 1);
   Check(5, 9);
@@ -349,17 +349,17 @@ TEST_F(CorruptionTest, UnrelatedKeys) {
   Corrupt(kTableFile, 100, 1);
 
   std::string tmp1, tmp2;
-  ASSERT_LEVELDB_OK(
+  ASSERT_TimberSaw_OK(
       db_->Put(WriteOptions(), Key(1000, &tmp1), Value(1000, &tmp2)));
   std::string v;
-  ASSERT_LEVELDB_OK(db_->Get(ReadOptions(), Key(1000, &tmp1), &v));
+  ASSERT_TimberSaw_OK(db_->Get(ReadOptions(), Key(1000, &tmp1), &v));
   ASSERT_EQ(Value(1000, &tmp2).ToString(), v);
   dbi->TEST_CompactMemTable();
-  ASSERT_LEVELDB_OK(db_->Get(ReadOptions(), Key(1000, &tmp1), &v));
+  ASSERT_TimberSaw_OK(db_->Get(ReadOptions(), Key(1000, &tmp1), &v));
   ASSERT_EQ(Value(1000, &tmp2).ToString(), v);
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

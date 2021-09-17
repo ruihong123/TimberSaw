@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -7,7 +7,7 @@
 #include <atomic>
 #include <set>
 
-#include "leveldb/env.h"
+#include "TimberSaw/env.h"
 
 #include "port/port.h"
 #include "port/thread_annotations.h"
@@ -367,7 +367,7 @@ TEST(SkipTest, Concurrent3) { RunConcurrent(3); }
 TEST(SkipTest, Concurrent4) { RunConcurrent(4); }
 TEST(SkipTest, Concurrent5) { RunConcurrent(5); }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

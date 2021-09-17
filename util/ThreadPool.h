@@ -2,8 +2,8 @@
 // Created by ruihong on 7/29/21.
 //
 
-#ifndef LEVELDB_THREADPOOL_H
-#define LEVELDB_THREADPOOL_H
+#ifndef TimberSaw_THREADPOOL_H
+#define TimberSaw_THREADPOOL_H
 #include <condition_variable>
 #include <deque>
 #include <mutex>
@@ -138,4 +138,4 @@ class ThreadPool{
 };}
 
 
-#endif  // LEVELDB_THREADPOOL_H
+#endif  // TimberSaw_THREADPOOL_H

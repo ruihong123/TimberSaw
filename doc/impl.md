@@ -1,6 +1,6 @@
 ## Files
 
-The implementation of leveldb is similar in spirit to the representation of a
+The implementation of TimberSaw is similar in spirit to the representation of a
 single [Bigtable tablet (section 5.3)](https://research.google/pubs/pub27898/).
 However the organization of the files that make up the representation is
 somewhat different and is explained below.

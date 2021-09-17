@@ -1,14 +1,14 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/env.h"
+#include "TimberSaw/env.h"
 
 #include <cstdarg>
 
-// This workaround can be removed when leveldb::Env::DeleteFile is removed.
+// This workaround can be removed when TimberSaw::Env::DeleteFile is removed.
 // See env.h for justification.
-#if defined(_WIN32) && defined(LEVELDB_DELETEFILE_UNDEFINED)
+#if defined(_WIN32) && defined(TimberSaw_DELETEFILE_UNDEFINED)
 #undef DeleteFile
 #endif
 
@@ -106,4 +106,4 @@ Status ReadFileToString(Env* env, const std::string& fname, std::string* data) {
 
 EnvWrapper::~EnvWrapper() {}
 
-}  // namespace leveldb
+}  // namespace TimberSaw

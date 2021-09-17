@@ -1,15 +1,15 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_UTIL_TESTUTIL_H_
-#define STORAGE_LEVELDB_UTIL_TESTUTIL_H_
+#ifndef STORAGE_TimberSaw_UTIL_TESTUTIL_H_
+#define STORAGE_TimberSaw_UTIL_TESTUTIL_H_
 
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include "helpers/memenv/memenv.h"
-#include "leveldb/env.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/slice.h"
 #include "util/random.h"
 
 namespace TimberSaw {
@@ -17,11 +17,11 @@ namespace test {
 
 MATCHER(IsOK, "") { return arg.ok(); }
 
-// Macros for testing the results of functions that return leveldb::Status or
+// Macros for testing the results of functions that return TimberSaw::Status or
 // absl::StatusOr<T> (for any type T).
-#define EXPECT_LEVELDB_OK(expression) \
+#define EXPECT_TimberSaw_OK(expression) \
   EXPECT_THAT(expression, TimberSaw::test::IsOK())
-#define ASSERT_LEVELDB_OK(expression) \
+#define ASSERT_TimberSaw_OK(expression) \
   ASSERT_THAT(expression, TimberSaw::test::IsOK())
 
 // Returns the random seed used at the start of the current test run.
@@ -77,6 +77,6 @@ class ErrorEnv : public EnvWrapper {
 };
 
 }  // namespace test
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_UTIL_TESTUTIL_H_
+#endif  // STORAGE_TimberSaw_UTIL_TESTUTIL_H_

@@ -1,4 +1,4 @@
-leveldb File format
+TimberSaw File format
 ===================
 
     <beginning_of_file>

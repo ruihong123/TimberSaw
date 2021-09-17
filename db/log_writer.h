@@ -1,15 +1,15 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_DB_LOG_WRITER_H_
-#define STORAGE_LEVELDB_DB_LOG_WRITER_H_
+#ifndef STORAGE_TimberSaw_DB_LOG_WRITER_H_
+#define STORAGE_TimberSaw_DB_LOG_WRITER_H_
 
 #include <cstdint>
 
 #include "db/log_format.h"
-#include "leveldb/slice.h"
-#include "leveldb/status.h"
+#include "TimberSaw/slice.h"
+#include "TimberSaw/status.h"
 
 namespace TimberSaw {
 
@@ -49,6 +49,6 @@ class Writer {
 };
 
 }  // namespace log
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_LOG_WRITER_H_
+#endif  // STORAGE_TimberSaw_DB_LOG_WRITER_H_

@@ -1,12 +1,12 @@
-// Copyright (c) 2012 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2012 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include <cstdio>
 
-#include "leveldb/dumpfile.h"
-#include "leveldb/env.h"
-#include "leveldb/status.h"
+#include "TimberSaw/dumpfile.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/status.h"
 
 namespace TimberSaw {
 namespace {
@@ -36,12 +36,12 @@ bool HandleDumpCommand(Env* env, char** files, int num) {
 }
 
 }  // namespace
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 static void Usage() {
   std::fprintf(
       stderr,
-      "Usage: leveldbutil command...\n"
+      "Usage: TimberSawutil command...\n"
       "   dump files...         -- dump contents of specified files\n");
 }
 

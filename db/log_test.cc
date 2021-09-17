@@ -1,11 +1,11 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "gtest/gtest.h"
 #include "db/log_reader.h"
 #include "db/log_writer.h"
-#include "leveldb/env.h"
+#include "TimberSaw/env.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
 #include "util/random.h"
@@ -555,7 +555,7 @@ TEST_F(LogTest, ReadEnd) { CheckOffsetPastEndReturnsNoRecords(0); }
 TEST_F(LogTest, ReadPastEnd) { CheckOffsetPastEndReturnsNoRecords(5); }
 
 }  // namespace log
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

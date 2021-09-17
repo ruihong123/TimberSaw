@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -13,12 +13,12 @@
 //    len: varint32
 //    data: uint8[len]
 
-#include "leveldb/write_batch.h"
+#include "TimberSaw/write_batch.h"
 
 #include "db/dbformat.h"
 #include "db/memtable.h"
 #include "db/write_batch_internal.h"
-#include "leveldb/db.h"
+#include "TimberSaw/db.h"
 #include "util/coding.h"
 
 namespace TimberSaw {
@@ -150,4 +150,4 @@ void WriteBatchInternal::Append(WriteBatch* dst, const WriteBatch* src) {
   dst->rep_.append(src->rep_.data() + kHeader, src->rep_.size() - kHeader);
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

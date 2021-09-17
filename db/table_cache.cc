@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -8,8 +8,8 @@
 #include "table/table_memoryside.h"
 #include <utility>
 
-#include "leveldb/env.h"
-#include "leveldb/table.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/table.h"
 
 #include "util/coding.h"
 
@@ -235,4 +235,4 @@ void TableCache::Evict(uint64_t file_number) {
   cache_->Erase(Slice(buf, sizeof(buf)));
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

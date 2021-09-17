@@ -1,10 +1,10 @@
-# Copyright 2017 The LevelDB Authors. All rights reserved.
+# Copyright 2017 The TimberSaw Authors. All rights reserved.
 # Use of this source code is governed by a BSD-style license that can be
 # found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 cmake_minimum_required(VERSION 3.0)
 # Keep the version below in sync with the one in db.h
-project(leveldb VERSION 1.22.0 LANGUAGES C CXX)
+project(TimberSaw VERSION 1.22.0 LANGUAGES C CXX)
 
 # C cmpstandard can be overridden when this is used as a sub-project.
 if(NOT CMAKE_C_STANDARD)
@@ -23,16 +23,16 @@ if(NOT CMAKE_CXX_STANDARD)
 endif(NOT CMAKE_CXX_STANDARD)
 
 if (WIN32)
-  set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_WINDOWS)
+  set(TimberSaw_PLATFORM_NAME TimberSaw_PLATFORM_WINDOWS)
   # TODO(cmumford): Make UNICODE configurable for Windows.
   add_definitions(-D_UNICODE -DUNICODE)
 else (WIN32)
-  set(LEVELDB_PLATFORM_NAME LEVELDB_PLATFORM_POSIX)
+  set(TimberSaw_PLATFORM_NAME TimberSaw_PLATFORM_POSIX)
 endif (WIN32)
 
-option(LEVELDB_BUILD_TESTS "Build LevelDB's unit tests" ON)
-option(LEVELDB_BUILD_BENCHMARKS "Build LevelDB's benchmarks" ON)
-option(LEVELDB_INSTALL "Install LevelDB's header and library" ON)
+option(TimberSaw_BUILD_TESTS "Build TimberSaw's unit tests" ON)
+option(TimberSaw_BUILD_BENCHMARKS "Build TimberSaw's benchmarks" ON)
+option(TimberSaw_INSTALL "Install TimberSaw's header and library" ON)
 
 include(CheckIncludeFile)
 check_include_file("unistd.h" HAVE_UNISTD_H)
@@ -87,7 +87,7 @@ check_cxx_compiler_flag(-Wthread-safety HAVE_CLANG_THREAD_SAFETY)
 
 # Used by googletest.
 check_cxx_compiler_flag(-Wno-missing-field-initializers
-                        LEVELDB_HAVE_NO_MISSING_FIELD_INITIALIZERS)
+                        TimberSaw_HAVE_NO_MISSING_FIELD_INITIALIZERS)
 
 include(CheckCXXSourceCompiles)
 
@@ -99,12 +99,12 @@ check_cxx_source_compiles("
 int main() { std::string str; return 0; }
 " HAVE_CXX17_HAS_INCLUDE)
 
-set(LEVELDB_PUBLIC_INCLUDE_DIR "include/TimberSaw")
-set(LEVELDB_PORT_CONFIG_DIR "include/port")
+set(TimberSaw_PUBLIC_INCLUDE_DIR "include/TimberSaw")
+set(TimberSaw_PORT_CONFIG_DIR "include/port")
 
 configure_file(
   "port/port_config.h.in"
-  "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+  "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
 )
 
 include_directories(
@@ -116,17 +116,17 @@ include_directories(
 )
 
 if(BUILD_SHARED_LIBS)
-  # Only export LEVELDB_EXPORT symbols from the shared library.
+  # Only export TimberSaw_EXPORT symbols from the shared library.
   add_compile_options(-fvisibility=hidden)
 endif(BUILD_SHARED_LIBS)
 
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(leveldb table/table_builder.cpp)
-target_sources(leveldb
+add_library(TimberSaw table/table_builder.cpp)
+target_sources(TimberSaw
   PRIVATE
-    "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+    "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
     "db/builder.cc"
     "db/builder.h"
     "db/c.cc"
@@ -228,110 +228,110 @@ target_sources(leveldb
 
   # Only CMake 3.3+ supports PUBLIC sources in targets exported by "install".
   $<$<VERSION_GREATER:CMAKE_VERSION,3.2>:PUBLIC>
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/c.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/cache.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/comparator.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/db.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/dumpfile.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/env.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/export.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/filter_policy.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/iterator.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/options.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/slice.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/status.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/table_builder.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/table.h"
-    "${LEVELDB_PUBLIC_INCLUDE_DIR}/write_batch.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/c.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/cache.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/comparator.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/db.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/dumpfile.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/env.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/export.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/filter_policy.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/iterator.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/options.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/slice.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/status.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/table_builder.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/table.h"
+    "${TimberSaw_PUBLIC_INCLUDE_DIR}/write_batch.h"
 )
 
-if (WIN32)
-  target_sources(leveldb
-    PRIVATE
-      "util/env_windows.cc"
-      "util/windows_logger.h"
-  )
-else (WIN32)
-  target_sources(leveldb
+#if (WIN32)
+#  target_sources(TimberSaw
+#    PRIVATE
+#      "util/env_windows.cc"
+#      "util/windows_logger.h"
+#  )
+#else (WIN32)
+  target_sources(TimberSaw
     PRIVATE
       "util/env_posix.cc"
       "util/posix_logger.h"
   )
-endif (WIN32)
+#endif (WIN32)
 
 # MemEnv is not part of the interface and could be pulled to a separate library.
-target_sources(leveldb
+target_sources(TimberSaw
   PRIVATE
     "helpers/memenv/memenv.cc"
     "helpers/memenv/memenv.h"
 )
 
-target_include_directories(leveldb
+target_include_directories(TimberSaw
   PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
-set_target_properties(leveldb
+set_target_properties(TimberSaw
   PROPERTIES VERSION ${PROJECT_VERSION} SOVERSION ${PROJECT_VERSION_MAJOR})
 
-target_compile_definitions(leveldb
+target_compile_definitions(TimberSaw
   PRIVATE
     # Used by include/export.h when building shared libraries.
-    LEVELDB_COMPILE_LIBRARY
+    TimberSaw_COMPILE_LIBRARY
     # Used by port/port.h.
-    ${LEVELDB_PLATFORM_NAME}=1
+    ${TimberSaw_PLATFORM_NAME}=1
 )
 if (NOT HAVE_CXX17_HAS_INCLUDE)
-  target_compile_definitions(leveldb
+  target_compile_definitions(TimberSaw
     PRIVATE
-      LEVELDB_HAS_PORT_CONFIG_H=1
+      TimberSaw_HAS_PORT_CONFIG_H=1
   )
 endif(NOT HAVE_CXX17_HAS_INCLUDE)
 
 if(BUILD_SHARED_LIBS)
-  target_compile_definitions(leveldb
+  target_compile_definitions(TimberSaw
     PUBLIC
       # Used by include/export.h.
-      LEVELDB_SHARED_LIBRARY
+      TimberSaw_SHARED_LIBRARY
   )
 endif(BUILD_SHARED_LIBS)
 
 if(HAVE_CLANG_THREAD_SAFETY)
-  target_compile_options(leveldb
+  target_compile_options(TimberSaw
     PUBLIC
       -Werror -Wthread-safety)
 endif(HAVE_CLANG_THREAD_SAFETY)
 
 if(HAVE_CRC32C)
-  target_link_libraries(leveldb crc32c)
+  target_link_libraries(TimberSaw crc32c)
 endif(HAVE_CRC32C)
 if(HAVE_SNAPPY)
-  target_link_libraries(leveldb snappy)
+  target_link_libraries(TimberSaw snappy)
 endif(HAVE_SNAPPY)
 if(HAVE_TCMALLOC)
-  target_link_libraries(leveldb tcmalloc)
+  target_link_libraries(TimberSaw tcmalloc)
 endif(HAVE_TCMALLOC)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 # Needed by port_stdcxx.h
 find_package(Threads REQUIRED)
-target_link_libraries(leveldb Threads::Threads)
+target_link_libraries(TimberSaw Threads::Threads)
 find_package(ibverbs REQUIRED)
-target_link_libraries(leveldb ibverbs::ibverbs)
+target_link_libraries(TimberSaw ibverbs::ibverbs)
 if(WITH_NUMA)
   find_package(NUMA REQUIRED)
   add_definitions(-DNUMA)
   include_directories(${NUMA_INCLUDE_DIR})
-  target_link_libraries(leveldb NUMA::NUMA)
+  target_link_libraries(TimberSaw NUMA::NUMA)
 endif()
-add_executable(leveldbutil
-  "db/leveldbutil.cc"
-)
-target_link_libraries(leveldbutil leveldb)
+#add_executable(TimberSawutil
+#  "db/TimberSawutil.cc"
+#)
+#target_link_libraries(TimberSawutil TimberSaw)
 add_executable(Server server.cc)
-target_link_libraries(Server leveldb)
-if(LEVELDB_BUILD_TESTS)
+target_link_libraries(Server TimberSaw)
+if(TimberSaw_BUILD_TESTS)
   enable_testing()
 
   # Prevent overriding the parent project's compiler/linker settings on Windows.
@@ -349,95 +349,95 @@ if(LEVELDB_BUILD_TESTS)
   add_subdirectory("third_party/benchmark")
 
   # GoogleTest triggers a missing field initializers warning.
-  if(LEVELDB_HAVE_NO_MISSING_FIELD_INITIALIZERS)
+  if(TimberSaw_HAVE_NO_MISSING_FIELD_INITIALIZERS)
     set_property(TARGET gtest
         APPEND PROPERTY COMPILE_OPTIONS -Wno-missing-field-initializers)
     set_property(TARGET gmock
         APPEND PROPERTY COMPILE_OPTIONS -Wno-missing-field-initializers)
-  endif(LEVELDB_HAVE_NO_MISSING_FIELD_INITIALIZERS)
+  endif(TimberSaw_HAVE_NO_MISSING_FIELD_INITIALIZERS)
 
-  function(leveldb_test test_file)
+  function(TimberSaw_test test_file)
     get_filename_component(test_target_name "${test_file}" NAME_WE)
 
     add_executable("${test_target_name}" "")
     target_sources("${test_target_name}"
       PRIVATE
-        "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+        "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
         "util/testutil.cc"
         "util/testutil.h"
 
         "${test_file}"
     )
-    target_link_libraries("${test_target_name}" leveldb gmock gtest benchmark)
+    target_link_libraries("${test_target_name}" TimberSaw gmock gtest benchmark)
     target_compile_definitions("${test_target_name}"
       PRIVATE
-        ${LEVELDB_PLATFORM_NAME}=1
+        ${TimberSaw_PLATFORM_NAME}=1
     )
     if (NOT HAVE_CXX17_HAS_INCLUDE)
       target_compile_definitions("${test_target_name}"
         PRIVATE
-          LEVELDB_HAS_PORT_CONFIG_H=1
+          TimberSaw_HAS_PORT_CONFIG_H=1
       )
     endif(NOT HAVE_CXX17_HAS_INCLUDE)
 
     add_test(NAME "${test_target_name}" COMMAND "${test_target_name}")
-  endfunction(leveldb_test)
+  endfunction(TimberSaw_test)
 
-  leveldb_test("db/c_test.c")
-  leveldb_test("db/fault_injection_test.cc")
+  TimberSaw_test("db/c_test.c")
+  TimberSaw_test("db/fault_injection_test.cc")
 
-  leveldb_test("issues/issue178_test.cc")
-  leveldb_test("issues/issue200_test.cc")
-  leveldb_test("issues/issue320_test.cc")
+  TimberSaw_test("issues/issue178_test.cc")
+  TimberSaw_test("issues/issue200_test.cc")
+  TimberSaw_test("issues/issue320_test.cc")
 
-  leveldb_test("util/env_test.cc")
-  leveldb_test("util/status_test.cc")
-  leveldb_test("util/no_destructor_test.cc")
+  TimberSaw_test("util/env_test.cc")
+  TimberSaw_test("util/status_test.cc")
+  TimberSaw_test("util/no_destructor_test.cc")
 
   if(NOT BUILD_SHARED_LIBS)
-    leveldb_test("db/autocompact_test.cc")
-    leveldb_test("db/corruption_test.cc")
-    leveldb_test("db/db_test.cc")
-    leveldb_test("db/dbformat_test.cc")
-    leveldb_test("db/filename_test.cc")
-    leveldb_test("db/log_test.cc")
-    leveldb_test("db/recovery_test.cc")
-    leveldb_test("db/skiplist_test.cc")
-    leveldb_test("db/version_edit_test.cc")
-    leveldb_test("db/version_set_test.cc")
-    leveldb_test("db/write_batch_test.cc")
+    TimberSaw_test("db/autocompact_test.cc")
+    TimberSaw_test("db/corruption_test.cc")
+    TimberSaw_test("db/db_test.cc")
+    TimberSaw_test("db/dbformat_test.cc")
+    TimberSaw_test("db/filename_test.cc")
+    TimberSaw_test("db/log_test.cc")
+    TimberSaw_test("db/recovery_test.cc")
+    TimberSaw_test("db/skiplist_test.cc")
+    TimberSaw_test("db/version_edit_test.cc")
+    TimberSaw_test("db/version_set_test.cc")
+    TimberSaw_test("db/write_batch_test.cc")
 
-    leveldb_test("helpers/memenv/memenv_test.cc")
+    TimberSaw_test("helpers/memenv/memenv_test.cc")
 
-    leveldb_test("table/filter_block_test.cc")
-    leveldb_test("table/table_test.cc")
+    TimberSaw_test("table/filter_block_test.cc")
+    TimberSaw_test("table/table_test.cc")
 
-    leveldb_test("util/arena_test.cc")
-    leveldb_test("util/bloom_test.cc")
-    leveldb_test("util/cache_test.cc")
-    leveldb_test("util/coding_test.cc")
-    leveldb_test("util/crc32c_test.cc")
-    leveldb_test("util/hash_test.cc")
-    leveldb_test("util/logging_test.cc")
+    TimberSaw_test("util/arena_test.cc")
+    TimberSaw_test("util/bloom_test.cc")
+    TimberSaw_test("util/cache_test.cc")
+    TimberSaw_test("util/coding_test.cc")
+    TimberSaw_test("util/crc32c_test.cc")
+    TimberSaw_test("util/hash_test.cc")
+    TimberSaw_test("util/logging_test.cc")
 
     # TODO(costan): This test also uses
     #               "util/env_{posix|windows}_test_helper.h"
     if (WIN32)
-      leveldb_test("util/env_windows_test.cc")
+      TimberSaw_test("util/env_windows_test.cc")
     else (WIN32)
-      leveldb_test("util/env_posix_test.cc")
+      TimberSaw_test("util/env_posix_test.cc")
     endif (WIN32)
   endif(NOT BUILD_SHARED_LIBS)
-endif(LEVELDB_BUILD_TESTS)
+endif(TimberSaw_BUILD_TESTS)
 
-if(LEVELDB_BUILD_BENCHMARKS)
-  function(leveldb_benchmark bench_file)
+if(TimberSaw_BUILD_BENCHMARKS)
+  function(TimberSaw_benchmark bench_file)
     get_filename_component(bench_target_name "${bench_file}" NAME_WE)
 
     add_executable("${bench_target_name}" "")
     target_sources("${bench_target_name}"
       PRIVATE
-        "${PROJECT_BINARY_DIR}/${LEVELDB_PORT_CONFIG_DIR}/port_config.h"
+        "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
         "util/histogram.cc"
         "util/histogram.h"
         "util/testutil.cc"
@@ -445,26 +445,26 @@ if(LEVELDB_BUILD_BENCHMARKS)
 
         "${bench_file}"
     )
-    target_link_libraries("${bench_target_name}" leveldb gmock gtest)
+    target_link_libraries("${bench_target_name}" TimberSaw gmock gtest)
     target_compile_definitions("${bench_target_name}"
       PRIVATE
-        ${LEVELDB_PLATFORM_NAME}=1
+        ${TimberSaw_PLATFORM_NAME}=1
     )
     if (NOT HAVE_CXX17_HAS_INCLUDE)
       target_compile_definitions("${bench_target_name}"
         PRIVATE
-          LEVELDB_HAS_PORT_CONFIG_H=1
+          TimberSaw_HAS_PORT_CONFIG_H=1
       )
     endif(NOT HAVE_CXX17_HAS_INCLUDE)
-  endfunction(leveldb_benchmark)
+  endfunction(TimberSaw_benchmark)
 
   if(NOT BUILD_SHARED_LIBS)
-    leveldb_benchmark("benchmarks/db_bench.cc")
+    TimberSaw_benchmark("benchmarks/db_bench.cc")
   endif(NOT BUILD_SHARED_LIBS)
 
   check_library_exists(sqlite3 sqlite3_open "" HAVE_SQLITE3)
   if(HAVE_SQLITE3)
-    leveldb_benchmark("benchmarks/db_bench_sqlite3.cc")
+    TimberSaw_benchmark("benchmarks/db_bench_sqlite3.cc")
     target_link_libraries(db_bench_sqlite3 sqlite3)
   endif(HAVE_SQLITE3)
 
@@ -484,36 +484,36 @@ int main() {
   "  HAVE_KYOTOCABINET)
   set(CMAKE_REQUIRED_LIBRARIES ${OLD_CMAKE_REQURED_LIBRARIES})
   if(HAVE_KYOTOCABINET)
-    leveldb_benchmark("benchmarks/db_bench_tree_db.cc")
+    TimberSaw_benchmark("benchmarks/db_bench_tree_db.cc")
     target_link_libraries(db_bench_tree_db kyotocabinet)
   endif(HAVE_KYOTOCABINET)
-endif(LEVELDB_BUILD_BENCHMARKS)
+endif(TimberSaw_BUILD_BENCHMARKS)
 
-if(LEVELDB_INSTALL)
-  install(TARGETS leveldb
-    EXPORT leveldbTargets
+if(TimberSaw_INSTALL)
+  install(TARGETS TimberSaw
+    EXPORT TimberSawTargets
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
   )
   install(
     FILES
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/c.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/cache.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/comparator.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/db.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/dumpfile.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/env.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/export.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/filter_policy.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/iterator.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/options.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/slice.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/status.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/table_builder.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/table.h"
-      "${LEVELDB_PUBLIC_INCLUDE_DIR}/write_batch.h"
-    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/leveldb"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/c.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/cache.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/comparator.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/db.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/dumpfile.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/env.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/export.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/filter_policy.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/iterator.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/options.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/slice.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/status.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/table_builder.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/table.h"
+      "${TimberSaw_PUBLIC_INCLUDE_DIR}/write_batch.h"
+    DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/TimberSaw"
   )
 
   include(CMakePackageConfigHelpers)
@@ -527,8 +527,8 @@ if(LEVELDB_INSTALL)
     COMPATIBILITY SameMajorVersion
   )
   install(
-    EXPORT leveldbTargets
-    NAMESPACE leveldb::
+    EXPORT TimberSawTargets
+    NAMESPACE TimberSaw::
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
   )
   install(
@@ -537,4 +537,4 @@ if(LEVELDB_INSTALL)
       "${PROJECT_BINARY_DIR}/cmake/${PROJECT_NAME}ConfigVersion.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/${PROJECT_NAME}"
   )
-endif(LEVELDB_INSTALL)
+endif(TimberSaw_INSTALL)

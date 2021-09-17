@@ -1,11 +1,11 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 // Thread-safe (provides internal synchronization)
 
-#ifndef STORAGE_LEVELDB_DB_TABLE_CACHE_H_
-#define STORAGE_LEVELDB_DB_TABLE_CACHE_H_
+#ifndef STORAGE_TimberSaw_DB_TABLE_CACHE_H_
+#define STORAGE_TimberSaw_DB_TABLE_CACHE_H_
 
 #include "db/dbformat.h"
 #include "db/version_edit.h"
@@ -13,8 +13,8 @@
 #include <string>
 //#include <table/table_memoryside.h>
 
-#include "leveldb/cache.h"
-#include "leveldb/table.h"
+#include "TimberSaw/cache.h"
+#include "TimberSaw/table.h"
 
 #include "port/port.h"
 
@@ -91,6 +91,6 @@ class TableCache {
   Cache* cache_;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_TABLE_CACHE_H_
+#endif  // STORAGE_TimberSaw_DB_TABLE_CACHE_H_

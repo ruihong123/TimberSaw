@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -34,9 +34,9 @@
 #include "db/table_cache.h"
 #include "db/version_edit.h"
 #include "db/write_batch_internal.h"
-#include "leveldb/comparator.h"
-#include "leveldb/db.h"
-#include "leveldb/env.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
 #include "table/table_builder_computeside.h"
 
 namespace TimberSaw {
@@ -81,7 +81,7 @@ class Repairer {
         bytes += tables_[i].meta->file_size;
       }
       Log(options_.info_log,
-          "**** Repaired leveldb %s; "
+          "**** Repaired TimberSaw %s; "
           "recovered %d files; %llu bytes. "
           "Some data may have been lost. "
           "****",
@@ -449,4 +449,4 @@ Status RepairDB(const std::string& dbname, const Options& options) {
   return repairer.Run();
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

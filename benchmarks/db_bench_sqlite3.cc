@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -112,7 +112,7 @@ inline static void WalCheckpoint(sqlite3* db_) {
   }
 }
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Helper for quickly generating random data.
 namespace {
@@ -457,7 +457,7 @@ class Benchmark {
     if (FLAGS_WAL_enabled) {
       std::string WAL_stmt = "PRAGMA journal_mode = WAL";
 
-      // LevelDB's default cache size is a combined 4 MB
+      // TimberSaw's default cache size is a combined 4 MB
       std::string WAL_checkpoint = "PRAGMA wal_autocheckpoint = 4096";
       status = sqlite3_exec(db_, WAL_stmt.c_str(), nullptr, nullptr, &err_msg);
       ExecErrorCheck(status, err_msg);
@@ -669,7 +669,7 @@ class Benchmark {
   }
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   std::string default_db_path;
@@ -677,7 +677,7 @@ int main(int argc, char** argv) {
     double d;
     int n;
     char junk;
-    if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
+    if (TimberSaw::Slice(argv[i]).starts_with("--benchmarks=")) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
     } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
@@ -696,7 +696,7 @@ int main(int argc, char** argv) {
       FLAGS_reads = n;
     } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
       FLAGS_value_size = n;
-    } else if (leveldb::Slice(argv[i]) == leveldb::Slice("--no_transaction")) {
+    } else if (TimberSaw::Slice(argv[i]) == TimberSaw::Slice("--no_transaction")) {
       FLAGS_transaction = false;
     } else if (sscanf(argv[i], "--page_size=%d%c", &n, &junk) == 1) {
       FLAGS_page_size = n;
@@ -715,12 +715,12 @@ int main(int argc, char** argv) {
 
   // Choose a location for the test database if none given with --db=<path>
   if (FLAGS_db == nullptr) {
-    leveldb::Env::Default()->GetTestDirectory(&default_db_path);
+    TimberSaw::Env::Default()->GetTestDirectory(&default_db_path);
     default_db_path += "/dbbench";
     FLAGS_db = default_db_path.c_str();
   }
 
-  leveldb::Benchmark benchmark;
+  TimberSaw::Benchmark benchmark;
   benchmark.Run();
   return 0;
 }

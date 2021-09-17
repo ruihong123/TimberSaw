@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 #ifdef NUMA
@@ -11,13 +11,13 @@
 #include <cstdio>
 #include <cstdlib>
 
-#include "leveldb/cache.h"
+#include "TimberSaw/cache.h"
 #include "db/table_cache.h"
-#include "leveldb/comparator.h"
-#include "leveldb/db.h"
-#include "leveldb/env.h"
-#include "leveldb/filter_policy.h"
-#include "leveldb/write_batch.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/filter_policy.h"
+#include "TimberSaw/write_batch.h"
 #include "port/port.h"
 #include "util/crc32c.h"
 #include "util/histogram.h"
@@ -433,7 +433,7 @@ class Benchmark {
   }
 
   void PrintEnvironment() {
-    std::fprintf(stderr, "LevelDB:    version %d.%d\n", kMajorVersion,
+    std::fprintf(stderr, "TimberSaw:    version %d.%d\n", kMajorVersion,
                  kMinorVersion);
 
 #if defined(__linux)
@@ -638,9 +638,9 @@ class Benchmark {
       } else if (name == Slice("heapprofile")) {
         HeapProfile();
       } else if (name == Slice("stats")) {
-        PrintStats("leveldb.stats");
+        PrintStats("TimberSaw.stats");
       } else if (name == Slice("sstables")) {
-        PrintStats("leveldb.sstables");
+        PrintStats("TimberSaw.sstables");
       } else {
         if (!name.empty()) {  // No error message for empty name
           std::fprintf(stderr, "unknown benchmark '%s'\n",
@@ -1167,7 +1167,7 @@ class Benchmark {
   }
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   FLAGS_write_buffer_size = TimberSaw::Options().write_buffer_size;

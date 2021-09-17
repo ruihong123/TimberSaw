@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -7,17 +7,17 @@
 // * In addition we support variable length "varint" encoding
 // * Strings are encoded prefixed by their length in varint format
 
-#ifndef STORAGE_LEVELDB_UTIL_CODING_H_
-#define STORAGE_LEVELDB_UTIL_CODING_H_
+#ifndef STORAGE_TimberSaw_UTIL_CODING_H_
+#define STORAGE_TimberSaw_UTIL_CODING_H_
 
 #include <cstdint>
 #include <cstring>
 #include <string>
 
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 #include "port/port.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Standard Put... routines append to a string
 void PutFixed16(Slice* dst, uint32_t value);
@@ -128,6 +128,6 @@ inline const char* GetVarint32Ptr(const char* p, const char* limit,
   return GetVarint32PtrFallback(p, limit, value);
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_UTIL_CODING_H_
+#endif  // STORAGE_TimberSaw_UTIL_CODING_H_

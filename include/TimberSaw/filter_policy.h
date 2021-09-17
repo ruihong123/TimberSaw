@@ -1,11 +1,11 @@
-// Copyright (c) 2012 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2012 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 // A database can be configured with a custom FilterPolicy object.
 // This object is responsible for creating a small filter from a set
-// of keys.  These filters are stored in leveldb and are consulted
-// automatically by leveldb to decide whether or not to read some
+// of keys.  These filters are stored in TimberSaw and are consulted
+// automatically by TimberSaw to decide whether or not to read some
 // information from disk. In many cases, a filter can cut down the
 // number of disk seeks form a handful to a single disk seek per
 // DB::Get() call.
@@ -13,20 +13,20 @@
 // Most people will want to use the builtin bloom filter support (see
 // NewBloomFilterPolicy() below).
 
-#ifndef STORAGE_LEVELDB_INCLUDE_FILTER_POLICY_H_
-#define STORAGE_LEVELDB_INCLUDE_FILTER_POLICY_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_FILTER_POLICY_H_
+#define STORAGE_TimberSaw_INCLUDE_FILTER_POLICY_H_
 
 #include <string>
 
-#include "leveldb/export.h"
+#include "TimberSaw/export.h"
 #include "util/hash.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 namespace TimberSaw {
 
 
 static uint32_t BloomHash(const Slice& key) {
   return Hash(key.data(), key.size(), 0xbc9f1d34);
-}class LEVELDB_EXPORT FilterPolicy {
+}class TimberSaw_EXPORT FilterPolicy {
  public:
   virtual ~FilterPolicy();
 
@@ -66,8 +66,8 @@ static uint32_t BloomHash(const Slice& key) {
 // ignores trailing spaces, it would be incorrect to use a
 // FilterPolicy (like NewBloomFilterPolicy) that does not ignore
 // trailing spaces in keys.
-LEVELDB_EXPORT const FilterPolicy* NewBloomFilterPolicy(int bits_per_key);
+TimberSaw_EXPORT const FilterPolicy* NewBloomFilterPolicy(int bits_per_key);
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_FILTER_POLICY_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_FILTER_POLICY_H_

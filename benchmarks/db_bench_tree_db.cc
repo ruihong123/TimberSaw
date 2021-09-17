@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -79,7 +79,7 @@ inline static void DBSynchronize(kyotocabinet::TreeDB* db_) {
   }
 }
 
-namespace leveldb {
+namespace TimberSaw {
 
 // Helper for quickly generating random data.
 namespace {
@@ -482,7 +482,7 @@ class Benchmark {
   }
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   std::string default_db_path;
@@ -490,7 +490,7 @@ int main(int argc, char** argv) {
     double d;
     int n;
     char junk;
-    if (leveldb::Slice(argv[i]).starts_with("--benchmarks=")) {
+    if (TimberSaw::Slice(argv[i]).starts_with("--benchmarks=")) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
     } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
       FLAGS_compression_ratio = d;
@@ -520,12 +520,12 @@ int main(int argc, char** argv) {
 
   // Choose a location for the test database if none given with --db=<path>
   if (FLAGS_db == nullptr) {
-    leveldb::Env::Default()->GetTestDirectory(&default_db_path);
+    TimberSaw::Env::Default()->GetTestDirectory(&default_db_path);
     default_db_path += "/dbbench";
     FLAGS_db = default_db_path.c_str();
   }
 
-  leveldb::Benchmark benchmark;
+  TimberSaw::Benchmark benchmark;
   benchmark.Run();
   return 0;
 }

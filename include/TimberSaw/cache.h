@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -15,23 +15,23 @@
 // they want something more sophisticated (like scan-resistance, a
 // custom eviction policy, variable cache sizing, etc.)
 
-#ifndef STORAGE_LEVELDB_INCLUDE_CACHE_H_
-#define STORAGE_LEVELDB_INCLUDE_CACHE_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_CACHE_H_
+#define STORAGE_TimberSaw_INCLUDE_CACHE_H_
 
 #include <cstdint>
 
-#include "leveldb/export.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/slice.h"
 
 namespace TimberSaw {
 
-class LEVELDB_EXPORT Cache;
+class TimberSaw_EXPORT Cache;
 
 // Create a new cache with a fixed size capacity.  This implementation
 // of Cache uses a least-recently-used eviction policy.
-LEVELDB_EXPORT Cache* NewLRUCache(size_t capacity);
+TimberSaw_EXPORT Cache* NewLRUCache(size_t capacity);
 
-class LEVELDB_EXPORT Cache {
+class TimberSaw_EXPORT Cache {
  public:
   Cache() = default;
 
@@ -90,7 +90,7 @@ class LEVELDB_EXPORT Cache {
   // applications may wish to call this method to reduce memory usage.
   // Default implementation of Prune() does nothing.  Subclasses are strongly
   // encouraged to override the default implementation.  A future release of
-  // leveldb may change Prune() to a pure abstract method.
+  // TimberSaw may change Prune() to a pure abstract method.
   virtual void Prune() {}
 
   // Return an estimate of the combined charges of all elements stored in the
@@ -106,6 +106,6 @@ class LEVELDB_EXPORT Cache {
   Rep* rep_;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_CACHE_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_CACHE_H_

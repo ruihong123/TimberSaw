@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -7,12 +7,12 @@
 // specific port_<platform>.h file.  Use this file as a reference for
 // how to port this package to a new platform.
 
-#ifndef STORAGE_LEVELDB_PORT_PORT_EXAMPLE_H_
-#define STORAGE_LEVELDB_PORT_PORT_EXAMPLE_H_
+#ifndef STORAGE_TimberSaw_PORT_PORT_EXAMPLE_H_
+#define STORAGE_TimberSaw_PORT_PORT_EXAMPLE_H_
 
 #include "port/thread_annotations.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace port {
 
 // TODO(jorlow): Many of these belong more in the environment class rather than
@@ -95,6 +95,6 @@ bool GetHeapProfile(void (*func)(void*, const char*, int), void* arg);
 uint32_t AcceleratedCRC32C(uint32_t crc, const char* buf, size_t size);
 
 }  // namespace port
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_PORT_PORT_EXAMPLE_H_
+#endif  // STORAGE_TimberSaw_PORT_PORT_EXAMPLE_H_

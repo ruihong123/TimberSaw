@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -12,8 +12,8 @@
 // Version,VersionSet are thread-compatible, but require external
 // synchronization on all accesses.
 
-#ifndef STORAGE_LEVELDB_DB_VERSION_SET_H_
-#define STORAGE_LEVELDB_DB_VERSION_SET_H_
+#ifndef STORAGE_TimberSaw_DB_VERSION_SET_H_
+#define STORAGE_TimberSaw_DB_VERSION_SET_H_
 
 #include "db/dbformat.h"
 #include "db/version_edit.h"
@@ -649,6 +649,6 @@ struct CompactionStats {
   int64_t bytes_read;
   int64_t bytes_written;
 };
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_VERSION_SET_H_
+#endif  // STORAGE_TimberSaw_DB_VERSION_SET_H_

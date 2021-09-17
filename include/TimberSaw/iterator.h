@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -12,16 +12,16 @@
 // non-const method, all threads accessing the same Iterator must use
 // external synchronization.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_ITERATOR_H_
-#define STORAGE_LEVELDB_INCLUDE_ITERATOR_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_ITERATOR_H_
+#define STORAGE_TimberSaw_INCLUDE_ITERATOR_H_
 
-#include "leveldb/export.h"
-#include "leveldb/slice.h"
-#include "leveldb/status.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/slice.h"
+#include "TimberSaw/status.h"
 
 namespace TimberSaw {
 
-class LEVELDB_EXPORT Iterator {
+class TimberSaw_EXPORT Iterator {
  public:
   Iterator();
 
@@ -102,11 +102,11 @@ class LEVELDB_EXPORT Iterator {
 };
 
 // Return an empty iterator (yields nothing).
-LEVELDB_EXPORT Iterator* NewEmptyIterator();
+TimberSaw_EXPORT Iterator* NewEmptyIterator();
 
 // Return an empty iterator with the specified status.
-LEVELDB_EXPORT Iterator* NewErrorIterator(const Status& status);
+TimberSaw_EXPORT Iterator* NewErrorIterator(const Status& status);
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_ITERATOR_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_ITERATOR_H_

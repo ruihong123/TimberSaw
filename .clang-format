@@ -10,7 +10,7 @@ DerivePointerAlignment: false
 IncludeCategories:
   - Regex:           '^(<|"(benchmarks|db|helpers)/)'
     Priority:        1
-  - Regex:           '^"(leveldb)/'
+  - Regex:           '^"(TimberSaw)/'
     Priority:        2
   - Regex:           '^(<|"(issues|port|table|third_party|util)/)'
     Priority:        3

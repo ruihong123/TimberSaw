@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -14,7 +14,7 @@
 #include <vector>
 
 #include "gtest/gtest.h"
-#include "leveldb/env.h"
+#include "TimberSaw/env.h"
 #include "port/port.h"
 #include "util/env_posix_test_helper.h"
 #include "util/testutil.h"
@@ -184,7 +184,7 @@ class EnvPosixTest : public testing::Test {
 TEST_F(EnvPosixTest, TestOpenOnRead) {
   // Write some test data to a single file that will be opened |n| times.
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string test_file = test_dir + "/open_on_read.txt";
 
   FILE* f = std::fopen(test_file.c_str(), "we");
@@ -194,22 +194,22 @@ TEST_F(EnvPosixTest, TestOpenOnRead) {
   std::fclose(f);
 
   // Open test file some number above the sum of the two limits to force
-  // open-on-read behavior of POSIX Env leveldb::RandomAccessFile.
+  // open-on-read behavior of POSIX Env TimberSaw::RandomAccessFile.
   const int kNumFiles = kReadOnlyFileLimit + kMMapLimit + 5;
   TimberSaw::RandomAccessFile* files[kNumFiles] = {0};
   for (int i = 0; i < kNumFiles; i++) {
-    ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(test_file, &files[i]));
+    ASSERT_TimberSaw_OK(env_->NewRandomAccessFile(test_file, &files[i]));
   }
   char scratch;
   Slice read_result;
   for (int i = 0; i < kNumFiles; i++) {
-    ASSERT_LEVELDB_OK(files[i]->Read(i, 1, &read_result, &scratch));
+    ASSERT_TimberSaw_OK(files[i]->Read(i, 1, &read_result, &scratch));
     ASSERT_EQ(kFileData[i], read_result[0]);
   }
   for (int i = 0; i < kNumFiles; i++) {
     delete files[i];
   }
-  ASSERT_LEVELDB_OK(env_->RemoveFile(test_file));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(test_file));
 }
 
 #if HAVE_O_CLOEXEC
@@ -219,16 +219,16 @@ TEST_F(EnvPosixTest, TestCloseOnExecSequentialFile) {
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_sequential.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_TimberSaw_OK(WriteStringToFile(env_, "0123456789", file_path));
 
-  leveldb::SequentialFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewSequentialFile(file_path, &file));
+  TimberSaw::SequentialFile* file = nullptr;
+  ASSERT_TimberSaw_OK(env_->NewSequentialFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(file_path));
 }
 
 TEST_F(EnvPosixTest, TestCloseOnExecRandomAccessFile) {
@@ -236,27 +236,27 @@ TEST_F(EnvPosixTest, TestCloseOnExecRandomAccessFile) {
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_random_access.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_TimberSaw_OK(WriteStringToFile(env_, "0123456789", file_path));
 
   // Exhaust the RandomAccessFile mmap limit. This way, the test
   // RandomAccessFile instance below is backed by a file descriptor, not by an
   // mmap region.
-  leveldb::RandomAccessFile* mmapped_files[kReadOnlyFileLimit] = {nullptr};
+  TimberSaw::RandomAccessFile* mmapped_files[kReadOnlyFileLimit] = {nullptr};
   for (int i = 0; i < kReadOnlyFileLimit; i++) {
-    ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(file_path, &mmapped_files[i]));
+    ASSERT_TimberSaw_OK(env_->NewRandomAccessFile(file_path, &mmapped_files[i]));
   }
 
-  leveldb::RandomAccessFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewRandomAccessFile(file_path, &file));
+  TimberSaw::RandomAccessFile* file = nullptr;
+  ASSERT_TimberSaw_OK(env_->NewRandomAccessFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
   for (int i = 0; i < kReadOnlyFileLimit; i++) {
     delete mmapped_files[i];
   }
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(file_path));
 }
 
 TEST_F(EnvPosixTest, TestCloseOnExecWritableFile) {
@@ -264,16 +264,16 @@ TEST_F(EnvPosixTest, TestCloseOnExecWritableFile) {
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_writable.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_TimberSaw_OK(WriteStringToFile(env_, "0123456789", file_path));
 
-  leveldb::WritableFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewWritableFile(file_path, &file));
+  TimberSaw::WritableFile* file = nullptr;
+  ASSERT_TimberSaw_OK(env_->NewWritableFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(file_path));
 }
 
 TEST_F(EnvPosixTest, TestCloseOnExecAppendableFile) {
@@ -281,16 +281,16 @@ TEST_F(EnvPosixTest, TestCloseOnExecAppendableFile) {
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_appendable.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_TimberSaw_OK(WriteStringToFile(env_, "0123456789", file_path));
 
-  leveldb::WritableFile* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewAppendableFile(file_path, &file));
+  TimberSaw::WritableFile* file = nullptr;
+  ASSERT_TimberSaw_OK(env_->NewAppendableFile(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(file_path));
 }
 
 TEST_F(EnvPosixTest, TestCloseOnExecLockFile) {
@@ -298,16 +298,16 @@ TEST_F(EnvPosixTest, TestCloseOnExecLockFile) {
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_lock.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_TimberSaw_OK(WriteStringToFile(env_, "0123456789", file_path));
 
-  leveldb::FileLock* lock = nullptr;
-  ASSERT_LEVELDB_OK(env_->LockFile(file_path, &lock));
+  TimberSaw::FileLock* lock = nullptr;
+  ASSERT_TimberSaw_OK(env_->LockFile(file_path, &lock));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
-  ASSERT_LEVELDB_OK(env_->UnlockFile(lock));
+  ASSERT_TimberSaw_OK(env_->UnlockFile(lock));
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(file_path));
 }
 
 TEST_F(EnvPosixTest, TestCloseOnExecLogger) {
@@ -315,21 +315,21 @@ TEST_F(EnvPosixTest, TestCloseOnExecLogger) {
   GetOpenFileDescriptors(&open_fds);
 
   std::string test_dir;
-  ASSERT_LEVELDB_OK(env_->GetTestDirectory(&test_dir));
+  ASSERT_TimberSaw_OK(env_->GetTestDirectory(&test_dir));
   std::string file_path = test_dir + "/close_on_exec_logger.txt";
-  ASSERT_LEVELDB_OK(WriteStringToFile(env_, "0123456789", file_path));
+  ASSERT_TimberSaw_OK(WriteStringToFile(env_, "0123456789", file_path));
 
-  leveldb::Logger* file = nullptr;
-  ASSERT_LEVELDB_OK(env_->NewLogger(file_path, &file));
+  TimberSaw::Logger* file = nullptr;
+  ASSERT_TimberSaw_OK(env_->NewLogger(file_path, &file));
   CheckCloseOnExecDoesNotLeakFDs(open_fds);
   delete file;
 
-  ASSERT_LEVELDB_OK(env_->RemoveFile(file_path));
+  ASSERT_TimberSaw_OK(env_->RemoveFile(file_path));
 }
 
 #endif  // HAVE_O_CLOEXEC
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
 #if HAVE_O_CLOEXEC

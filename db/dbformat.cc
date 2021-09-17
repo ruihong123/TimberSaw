@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -35,7 +35,7 @@ std::string InternalKey::DebugString() const {
 }
 
 const char* InternalKeyComparator::Name() const {
-  return "leveldb.InternalKeyComparator";
+  return "TimberSaw.InternalKeyComparator";
 }
 
 int InternalKeyComparator::Compare(const Slice& akey, const Slice& bkey) const {
@@ -136,4 +136,4 @@ void IterKey::EnlargeBuffer(size_t key_size) {
   buf_ = new char[key_size];
   buf_size_ = key_size;
 }
-}  // namespace leveldb
+}  // namespace TimberSaw

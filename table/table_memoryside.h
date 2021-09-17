@@ -2,13 +2,13 @@
 // Created by ruihong on 8/7/21.
 //
 
-#ifndef LEVELDB_TABLE_MEMORYSIDE_H
-#define LEVELDB_TABLE_MEMORYSIDE_H
+#ifndef TimberSaw_TABLE_MEMORYSIDE_H
+#define TimberSaw_TABLE_MEMORYSIDE_H
 #include <cstdint>
 #include <memory>
 
-#include "leveldb/export.h"
-#include "leveldb/iterator.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/iterator.h"
 #include "db/version_edit.h"
 namespace TimberSaw {
 class Block;
@@ -18,7 +18,7 @@ struct Options;
 class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
-class LEVELDB_EXPORT Table_Memory_Side {
+class TimberSaw_EXPORT Table_Memory_Side {
  public:
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
@@ -76,4 +76,4 @@ class LEVELDB_EXPORT Table_Memory_Side {
 };
 }
 
-#endif  // LEVELDB_TABLE_MEMORYSIDE_H
+#endif  // TimberSaw_TABLE_MEMORYSIDE_H

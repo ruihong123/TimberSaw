@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -9,8 +9,8 @@
 #include <cstdlib>
 #include <limits>
 
-#include "leveldb/env.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/slice.h"
 
 namespace TimberSaw {
 
@@ -79,4 +79,4 @@ bool ConsumeDecimalNumber(Slice* in, uint64_t* val) {
   return digits_consumed != 0;
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

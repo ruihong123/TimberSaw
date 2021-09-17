@@ -1,9 +1,9 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_DB_DB_IMPL_H_
-#define STORAGE_LEVELDB_DB_DB_IMPL_H_
+#ifndef STORAGE_TimberSaw_DB_DB_IMPL_H_
+#define STORAGE_TimberSaw_DB_DB_IMPL_H_
 
 #include "db/dbformat.h"
 #include "db/log_writer.h"
@@ -14,8 +14,8 @@
 #include <set>
 #include <string>
 
-#include "leveldb/db.h"
-#include "leveldb/env.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
 
 #include "port/port.h"
 #include "port/thread_annotations.h"
@@ -297,6 +297,6 @@ Options SanitizeOptions(const std::string& db,
                         const InternalFilterPolicy* ipolicy,
                         const Options& src);
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_DB_IMPL_H_
+#endif  // STORAGE_TimberSaw_DB_DB_IMPL_H_

@@ -1,8 +1,8 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
-// An Env is an interface used by the leveldb implementation to access
+// An Env is an interface used by the TimberSaw implementation to access
 // operating system functionality like the filesystem etc.  Callers
 // may wish to provide a custom Env object when opening a database to
 // get fine gain control; e.g., to rate limit file system operations.
@@ -10,20 +10,20 @@
 // All Env implementations are safe for concurrent access from
 // multiple threads without any external synchronization.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_ENV_H_
-#define STORAGE_LEVELDB_INCLUDE_ENV_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_ENV_H_
+#define STORAGE_TimberSaw_INCLUDE_ENV_H_
 
 #include <cstdarg>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "leveldb/export.h"
-#include "leveldb/status.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/status.h"
 #include "util/ThreadPool.h"
 #include "util/rdma.h"
 
-// This workaround can be removed when leveldb::Env::DeleteFile is removed.
+// This workaround can be removed when TimberSaw::Env::DeleteFile is removed.
 #if defined(_WIN32)
 // On Windows, the method name DeleteFile (below) introduces the risk of
 // triggering undefined behavior by exposing the compiler to different
@@ -37,7 +37,7 @@
 // independently of whether <windows.h> was included.
 #if defined(DeleteFile)
 #undef DeleteFile
-#define LEVELDB_DELETEFILE_UNDEFINED
+#define TimberSaw_DELETEFILE_UNDEFINED
 #endif  // defined(DeleteFile)
 #endif  // defined(_WIN32)
 
@@ -50,7 +50,7 @@ class SequentialFile;
 class Slice;
 class WritableFile;
 
-class LEVELDB_EXPORT Env {
+class TimberSaw_EXPORT Env {
  public:
   Env();
 
@@ -63,7 +63,7 @@ class LEVELDB_EXPORT Env {
   // system.  Sophisticated users may wish to provide their own Env
   // implementation instead of relying on this default environment.
   //
-  // The result of Default() belongs to leveldb and must never be deleted.
+  // The result of Default() belongs to TimberSaw and must never be deleted.
   static Env* Default();
 
   // Create an object that sequentially reads the file with the specified name.
@@ -107,7 +107,7 @@ class LEVELDB_EXPORT Env {
   //
   // May return an IsNotSupportedError error if this Env does
   // not allow appending to an existing file.  Users of Env (including
-  // the leveldb implementation) must be prepared to deal with
+  // the TimberSaw implementation) must be prepared to deal with
   // an Env that does not support appending.
   virtual Status NewAppendableFile(const std::string& fname,
                                    WritableFile** result);
@@ -226,7 +226,7 @@ class LEVELDB_EXPORT Env {
 };
 
 // A file abstraction for reading sequentially through a file
-class LEVELDB_EXPORT SequentialFile {
+class TimberSaw_EXPORT SequentialFile {
  public:
   SequentialFile() = default;
 
@@ -256,7 +256,7 @@ class LEVELDB_EXPORT SequentialFile {
 };
 
 // A file abstraction for randomly reading the contents of a file.
-class LEVELDB_EXPORT RandomAccessFile {
+class TimberSaw_EXPORT RandomAccessFile {
  public:
   RandomAccessFile() = default;
 
@@ -281,7 +281,7 @@ class LEVELDB_EXPORT RandomAccessFile {
 // A file abstraction for sequential writing.  The implementation
 // must provide buffering since callers may append small fragments
 // at a time to the file.
-class LEVELDB_EXPORT WritableFile {
+class TimberSaw_EXPORT WritableFile {
  public:
   WritableFile() = default;
 
@@ -297,7 +297,7 @@ class LEVELDB_EXPORT WritableFile {
 };
 
 // An interface for writing log messages.
-class LEVELDB_EXPORT Logger {
+class TimberSaw_EXPORT Logger {
  public:
   Logger() = default;
 
@@ -311,7 +311,7 @@ class LEVELDB_EXPORT Logger {
 };
 
 // Identifies a locked file.
-class LEVELDB_EXPORT FileLock {
+class TimberSaw_EXPORT FileLock {
  public:
   FileLock() = default;
 
@@ -329,17 +329,17 @@ void Log(Logger* info_log, const char* format, ...)
     ;
 
 // A utility routine: write "data" to the named file.
-LEVELDB_EXPORT Status WriteStringToFile(Env* env, const Slice& data,
+TimberSaw_EXPORT Status WriteStringToFile(Env* env, const Slice& data,
                                         const std::string& fname);
 
 // A utility routine: read contents of named file into *data
-LEVELDB_EXPORT Status ReadFileToString(Env* env, const std::string& fname,
+TimberSaw_EXPORT Status ReadFileToString(Env* env, const std::string& fname,
                                        std::string* data);
 
 // An implementation of Env that forwards all calls to another Env.
 // May be useful to clients who wish to override just part of the
 // functionality of another Env.
-class LEVELDB_EXPORT EnvWrapper : public Env {
+class TimberSaw_EXPORT EnvWrapper : public Env {
  public:
   // Initialize an EnvWrapper that delegates all calls to *t.
   explicit EnvWrapper(Env* t) : target_(t) {}
@@ -409,16 +409,16 @@ class LEVELDB_EXPORT EnvWrapper : public Env {
   Env* target_;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-// This workaround can be removed when leveldb::Env::DeleteFile is removed.
+// This workaround can be removed when TimberSaw::Env::DeleteFile is removed.
 // Redefine DeleteFile if it was undefined earlier.
-#if defined(_WIN32) && defined(LEVELDB_DELETEFILE_UNDEFINED)
+#if defined(_WIN32) && defined(TimberSaw_DELETEFILE_UNDEFINED)
 #if defined(UNICODE)
 #define DeleteFile DeleteFileW
 #else
 #define DeleteFile DeleteFileA
 #endif  // defined(UNICODE)
-#endif  // defined(_WIN32) && defined(LEVELDB_DELETEFILE_UNDEFINED)
+#endif  // defined(_WIN32) && defined(TimberSaw_DELETEFILE_UNDEFINED)
 
-#endif  // STORAGE_LEVELDB_INCLUDE_ENV_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_ENV_H_

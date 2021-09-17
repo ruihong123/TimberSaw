@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2013 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -7,33 +7,33 @@
 // mutation has been added just before the current key.
 
 #include "gtest/gtest.h"
-#include "leveldb/db.h"
+#include "TimberSaw/db.h"
 #include "util/testutil.h"
 
 namespace TimberSaw {
 
 TEST(Issue200, Test) {
   // Get rid of any state from an old run.
-  std::string dbpath = testing::TempDir() + "leveldb_issue200_test";
+  std::string dbpath = testing::TempDir() + "TimberSaw_issue200_test";
   DestroyDB(dbpath, Options());
 
   DB* db;
   Options options;
   options.create_if_missing = true;
-  ASSERT_LEVELDB_OK(DB::Open(options, dbpath, &db));
+  ASSERT_TimberSaw_OK(DB::Open(options, dbpath, &db));
 
   WriteOptions write_options;
-  ASSERT_LEVELDB_OK(db->Put(write_options, "1", "b"));
-  ASSERT_LEVELDB_OK(db->Put(write_options, "2", "c"));
-  ASSERT_LEVELDB_OK(db->Put(write_options, "3", "d"));
-  ASSERT_LEVELDB_OK(db->Put(write_options, "4", "e"));
-  ASSERT_LEVELDB_OK(db->Put(write_options, "5", "f"));
+  ASSERT_TimberSaw_OK(db->Put(write_options, "1", "b"));
+  ASSERT_TimberSaw_OK(db->Put(write_options, "2", "c"));
+  ASSERT_TimberSaw_OK(db->Put(write_options, "3", "d"));
+  ASSERT_TimberSaw_OK(db->Put(write_options, "4", "e"));
+  ASSERT_TimberSaw_OK(db->Put(write_options, "5", "f"));
 
   ReadOptions read_options;
   Iterator* iter = db->NewIterator(read_options);
 
   // Add an element that should not be reflected in the iterator.
-  ASSERT_LEVELDB_OK(db->Put(write_options, "25", "cd"));
+  ASSERT_TimberSaw_OK(db->Put(write_options, "25", "cd"));
 
   iter->Seek("5");
   ASSERT_EQ(iter->key().ToString(), "5");
@@ -51,7 +51,7 @@ TEST(Issue200, Test) {
   DestroyDB(dbpath, options);
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

@@ -1,4 +1,4 @@
-// Copyright (c) 2013 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2013 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -8,8 +8,8 @@
 #include <sstream>
 
 #include "gtest/gtest.h"
-#include "leveldb/db.h"
-#include "leveldb/write_batch.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/write_batch.h"
 #include "util/testutil.h"
 
 namespace {
@@ -26,7 +26,7 @@ std::string Key2(int i) { return Key1(i) + "_xxx"; }
 
 TEST(Issue178, Test) {
   // Get rid of any state from an old run.
-  std::string dbpath = testing::TempDir() + "leveldb_cbug_test";
+  std::string dbpath = testing::TempDir() + "TimberSaw_cbug_test";
   DestroyDB(dbpath, TimberSaw::Options());
 
   // Open database.  Disable compression since it affects the creation
@@ -36,28 +36,28 @@ TEST(Issue178, Test) {
   TimberSaw::Options db_options;
   db_options.create_if_missing = true;
   db_options.compression = TimberSaw::kNoCompression;
-  ASSERT_LEVELDB_OK(TimberSaw::DB::Open(db_options, dbpath, &db));
+  ASSERT_TimberSaw_OK(TimberSaw::DB::Open(db_options, dbpath, &db));
 
   // create first key range
   TimberSaw::WriteBatch batch;
   for (size_t i = 0; i < kNumKeys; i++) {
     batch.Put(Key1(i), "value for range 1 key");
   }
-  ASSERT_LEVELDB_OK(db->Write(TimberSaw::WriteOptions(), &batch));
+  ASSERT_TimberSaw_OK(db->Write(TimberSaw::WriteOptions(), &batch));
 
   // create second key range
   batch.Clear();
   for (size_t i = 0; i < kNumKeys; i++) {
     batch.Put(Key2(i), "value for range 2 key");
   }
-  ASSERT_LEVELDB_OK(db->Write(TimberSaw::WriteOptions(), &batch));
+  ASSERT_TimberSaw_OK(db->Write(TimberSaw::WriteOptions(), &batch));
 
   // delete second key range
   batch.Clear();
   for (size_t i = 0; i < kNumKeys; i++) {
     batch.Delete(Key2(i));
   }
-  ASSERT_LEVELDB_OK(db->Write(TimberSaw::WriteOptions(), &batch));
+  ASSERT_TimberSaw_OK(db->Write(TimberSaw::WriteOptions(), &batch));
 
   // compact database
   std::string start_key = Key1(0);

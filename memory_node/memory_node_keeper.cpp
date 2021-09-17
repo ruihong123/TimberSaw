@@ -36,7 +36,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
     message_handler_pool_.SetBackgroundThreads(opts->max_background_compactions);
   }
-//  void leveldb::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
+//  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
 //                                             void* background_work_arg,
 //                                             ThreadPoolType type) {
 //    message_handler_pool_.Schedule(background_work_function, background_work_arg);
@@ -303,7 +303,7 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
     // be invalid also.
     //    assert(key.data()[0] == '0');
   }
-  //  reinterpret_cast<leveldb::MergingIterator>
+  //  reinterpret_cast<TimberSaw::MergingIterator>
   // You can not call prev here because the iterator is not valid any more
   //  input->Prev();
   //  assert(input->Valid());
@@ -607,7 +607,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
     //    assert(key.data()[0] == '0');
 
   }
-  //  reinterpret_cast<leveldb::MergingIterator>
+  //  reinterpret_cast<TimberSaw::MergingIterator>
   // You can not call prev here because the iterator is not valid any more
   //  input->Prev();
   //  assert(input->Valid());

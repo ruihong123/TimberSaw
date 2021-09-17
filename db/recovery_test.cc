@@ -1,4 +1,4 @@
-// Copyright (c) 2014 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2014 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -7,9 +7,9 @@
 #include "db/filename.h"
 #include "db/version_set.h"
 #include "db/write_batch_internal.h"
-#include "leveldb/db.h"
-#include "leveldb/env.h"
-#include "leveldb/write_batch.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/write_batch.h"
 #include "util/logging.h"
 #include "util/testutil.h"
 
@@ -63,7 +63,7 @@ class RecoveryTest : public testing::Test {
   }
 
   void Open(Options* options = nullptr) {
-    ASSERT_LEVELDB_OK(OpenWithStatus(options));
+    ASSERT_TimberSaw_OK(OpenWithStatus(options));
     ASSERT_EQ(1, NumLogs());
   }
 
@@ -84,7 +84,7 @@ class RecoveryTest : public testing::Test {
 
   std::string ManifestFileName() {
     std::string current;
-    EXPECT_LEVELDB_OK(
+    EXPECT_TimberSaw_OK(
         ReadFileToString(env_, CurrentFileName(dbname_), &current));
     size_t len = current.size();
     if (len > 0 && current[len - 1] == '\n') {
@@ -101,20 +101,20 @@ class RecoveryTest : public testing::Test {
     Close();
     std::vector<uint64_t> logs = GetFiles(kLogFile);
     for (size_t i = 0; i < logs.size(); i++) {
-      EXPECT_LEVELDB_OK(env_->RemoveFile(LogName(logs[i]))) << LogName(logs[i]);
+      EXPECT_TimberSaw_OK(env_->RemoveFile(LogName(logs[i]))) << LogName(logs[i]);
     }
     return logs.size();
   }
 
   void RemoveManifestFile() {
-    ASSERT_LEVELDB_OK(env_->RemoveFile(ManifestFileName()));
+    ASSERT_TimberSaw_OK(env_->RemoveFile(ManifestFileName()));
   }
 
   uint64_t FirstLogFile() { return GetFiles(kLogFile)[0]; }
 
   std::vector<uint64_t> GetFiles(FileType t) {
     std::vector<std::string> filenames;
-    EXPECT_LEVELDB_OK(env_->GetChildren(dbname_, &filenames));
+    EXPECT_TimberSaw_OK(env_->GetChildren(dbname_, &filenames));
     std::vector<uint64_t> result;
     for (size_t i = 0; i < filenames.size(); i++) {
       uint64_t number;
@@ -132,7 +132,7 @@ class RecoveryTest : public testing::Test {
 
   uint64_t FileSize(const std::string& fname) {
     uint64_t result;
-    EXPECT_LEVELDB_OK(env_->GetFileSize(fname, &result)) << fname;
+    EXPECT_TimberSaw_OK(env_->GetFileSize(fname, &result)) << fname;
     return result;
   }
 
@@ -142,13 +142,13 @@ class RecoveryTest : public testing::Test {
   void MakeLogFile(uint64_t lognum, SequenceNumber seq, Slice key, Slice val) {
     std::string fname = LogFileName(dbname_, lognum);
     WritableFile* file;
-    ASSERT_LEVELDB_OK(env_->NewWritableFile(fname, &file));
+    ASSERT_TimberSaw_OK(env_->NewWritableFile(fname, &file));
     log::Writer writer(file);
     WriteBatch batch;
     batch.Put(key, val);
     WriteBatchInternal::SetSequence(&batch, seq);
-    ASSERT_LEVELDB_OK(writer.AddRecord(WriteBatchInternal::Contents(&batch)));
-    ASSERT_LEVELDB_OK(file->Flush());
+    ASSERT_TimberSaw_OK(writer.AddRecord(WriteBatchInternal::Contents(&batch)));
+    ASSERT_TimberSaw_OK(file->Flush());
     delete file;
   }
 
@@ -164,7 +164,7 @@ TEST_F(RecoveryTest, ManifestReused) {
                  "skipping test because env does not support appending\n");
     return;
   }
-  ASSERT_LEVELDB_OK(Put("foo", "bar"));
+  ASSERT_TimberSaw_OK(Put("foo", "bar"));
   Close();
   std::string old_manifest = ManifestFileName();
   Open();
@@ -181,7 +181,7 @@ TEST_F(RecoveryTest, LargeManifestCompacted) {
                  "skipping test because env does not support appending\n");
     return;
   }
-  ASSERT_LEVELDB_OK(Put("foo", "bar"));
+  ASSERT_TimberSaw_OK(Put("foo", "bar"));
   Close();
   std::string old_manifest = ManifestFileName();
 
@@ -189,10 +189,10 @@ TEST_F(RecoveryTest, LargeManifestCompacted) {
   {
     uint64_t len = FileSize(old_manifest);
     WritableFile* file;
-    ASSERT_LEVELDB_OK(env()->NewAppendableFile(old_manifest, &file));
+    ASSERT_TimberSaw_OK(env()->NewAppendableFile(old_manifest, &file));
     std::string zeroes(3 * 1048576 - static_cast<size_t>(len), 0);
-    ASSERT_LEVELDB_OK(file->Append(zeroes));
-    ASSERT_LEVELDB_OK(file->Flush());
+    ASSERT_TimberSaw_OK(file->Append(zeroes));
+    ASSERT_TimberSaw_OK(file->Flush());
     delete file;
   }
 
@@ -208,7 +208,7 @@ TEST_F(RecoveryTest, LargeManifestCompacted) {
 }
 
 TEST_F(RecoveryTest, NoLogFiles) {
-  ASSERT_LEVELDB_OK(Put("foo", "bar"));
+  ASSERT_TimberSaw_OK(Put("foo", "bar"));
   ASSERT_EQ(1, RemoveLogFiles());
   Open();
   ASSERT_EQ("NOT_FOUND", Get("foo"));
@@ -223,7 +223,7 @@ TEST_F(RecoveryTest, LogFileReuse) {
     return;
   }
   for (int i = 0; i < 2; i++) {
-    ASSERT_LEVELDB_OK(Put("foo", "bar"));
+    ASSERT_TimberSaw_OK(Put("foo", "bar"));
     if (i == 0) {
       // Compact to ensure current log is empty
       CompactMemTable();
@@ -253,7 +253,7 @@ TEST_F(RecoveryTest, MultipleMemTables) {
   for (int i = 0; i < kNum; i++) {
     char buf[100];
     std::snprintf(buf, sizeof(buf), "%050d", i);
-    ASSERT_LEVELDB_OK(Put(buf, buf));
+    ASSERT_TimberSaw_OK(Put(buf, buf));
   }
   ASSERT_EQ(0, NumTables());
   Close();
@@ -277,7 +277,7 @@ TEST_F(RecoveryTest, MultipleMemTables) {
 }
 
 TEST_F(RecoveryTest, MultipleLogFiles) {
-  ASSERT_LEVELDB_OK(Put("foo", "bar"));
+  ASSERT_TimberSaw_OK(Put("foo", "bar"));
   Close();
   ASSERT_EQ(1, NumLogs());
 
@@ -323,7 +323,7 @@ TEST_F(RecoveryTest, MultipleLogFiles) {
 }
 
 TEST_F(RecoveryTest, ManifestMissing) {
-  ASSERT_LEVELDB_OK(Put("foo", "bar"));
+  ASSERT_TimberSaw_OK(Put("foo", "bar"));
   Close();
   RemoveManifestFile();
 
@@ -331,7 +331,7 @@ TEST_F(RecoveryTest, ManifestMissing) {
   ASSERT_TRUE(status.IsCorruption());
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

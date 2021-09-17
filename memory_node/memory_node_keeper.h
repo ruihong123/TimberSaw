@@ -2,8 +2,8 @@
 // Created by ruihong on 7/29/21.
 //
 
-#ifndef LEVELDB_HOME_NODE_KEEPER_H
-#define LEVELDB_HOME_NODE_KEEPER_H
+#ifndef TimberSaw_HOME_NODE_KEEPER_H
+#define TimberSaw_HOME_NODE_KEEPER_H
 
 
 #include <queue>
@@ -65,4 +65,4 @@ class Memory_Node_Keeper {
                            std::unique_lock<std::mutex>* version_mtx);
 };
 }
-#endif  // LEVELDB_HOME_NODE_KEEPER_H
+#endif  // TimberSaw_HOME_NODE_KEEPER_H

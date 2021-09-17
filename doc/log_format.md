@@ -1,4 +1,4 @@
-leveldb Log format
+TimberSaw Log format
 ==================
 The log file contents are a sequence of 32KB blocks.  The only exception is that
 the tail of the file may contain a partial block.

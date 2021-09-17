@@ -1,33 +1,33 @@
-// Copyright (c) 2017 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2017 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_EXPORT_H_
-#define STORAGE_LEVELDB_INCLUDE_EXPORT_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_EXPORT_H_
+#define STORAGE_TimberSaw_INCLUDE_EXPORT_H_
 
-#if !defined(LEVELDB_EXPORT)
+#if !defined(TimberSaw_EXPORT)
 
-#if defined(LEVELDB_SHARED_LIBRARY)
+#if defined(TimberSaw_SHARED_LIBRARY)
 #if defined(_WIN32)
 
-#if defined(LEVELDB_COMPILE_LIBRARY)
-#define LEVELDB_EXPORT __declspec(dllexport)
+#if defined(TimberSaw_COMPILE_LIBRARY)
+#define TimberSaw_EXPORT __declspec(dllexport)
 #else
-#define LEVELDB_EXPORT __declspec(dllimport)
-#endif  // defined(LEVELDB_COMPILE_LIBRARY)
+#define TimberSaw_EXPORT __declspec(dllimport)
+#endif  // defined(TimberSaw_COMPILE_LIBRARY)
 
 #else  // defined(_WIN32)
-#if defined(LEVELDB_COMPILE_LIBRARY)
-#define LEVELDB_EXPORT __attribute__((visibility("default")))
+#if defined(TimberSaw_COMPILE_LIBRARY)
+#define TimberSaw_EXPORT __attribute__((visibility("default")))
 #else
-#define LEVELDB_EXPORT
+#define TimberSaw_EXPORT
 #endif
 #endif  // defined(_WIN32)
 
-#else  // defined(LEVELDB_SHARED_LIBRARY)
-#define LEVELDB_EXPORT
+#else  // defined(TimberSaw_SHARED_LIBRARY)
+#define TimberSaw_EXPORT
 #endif
 
-#endif  // !defined(LEVELDB_EXPORT)
+#endif  // !defined(TimberSaw_EXPORT)
 
-#endif  // STORAGE_LEVELDB_INCLUDE_EXPORT_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_EXPORT_H_

@@ -20,12 +20,12 @@
 //#include "file/filename.h"
 //#include "logging/log_buffer.h"
 //#include "monitoring/instrumented_mutex.h"
-#include "leveldb/db.h"
-#include "leveldb/iterator.h"
-#include "leveldb/options.h"
-//#include "leveldb/types.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/iterator.h"
+#include "TimberSaw/options.h"
+//#include "TimberSaw/types.h"
 #include "util/autovector.h"
-#include "leveldb/table_builder.h"
+#include "TimberSaw/table_builder.h"
 #include "version_set.h"
 
 namespace TimberSaw {

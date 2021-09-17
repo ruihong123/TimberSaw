@@ -1,16 +1,16 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_DB_MEMTABLE_H_
-#define STORAGE_LEVELDB_DB_MEMTABLE_H_
+#ifndef STORAGE_TimberSaw_DB_MEMTABLE_H_
+#define STORAGE_TimberSaw_DB_MEMTABLE_H_
 #define MEMTABLE_SEQ_SIZE 153846 //Make the in memory buffer close to 64MB
 // #define MEMTABLE_SEQ_SIZE 610081
 #include "db/dbformat.h"
 #include "db/inlineskiplist.h"
 #include <string>
 
-#include "leveldb/db.h"
+#include "TimberSaw/db.h"
 
 //#include "util/arena_old.h"
 
@@ -165,6 +165,6 @@ class MemTable {
 
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_MEMTABLE_H_
+#endif  // STORAGE_TimberSaw_DB_MEMTABLE_H_

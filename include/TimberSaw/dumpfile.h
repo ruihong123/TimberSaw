@@ -1,15 +1,15 @@
-// Copyright (c) 2014 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2014 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_DUMPFILE_H_
-#define STORAGE_LEVELDB_INCLUDE_DUMPFILE_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_DUMPFILE_H_
+#define STORAGE_TimberSaw_INCLUDE_DUMPFILE_H_
 
 #include <string>
 
-#include "leveldb/env.h"
-#include "leveldb/export.h"
-#include "leveldb/status.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/status.h"
 
 namespace TimberSaw {
 
@@ -18,11 +18,11 @@ namespace TimberSaw {
 // the newline-terminated text corresponding to a single item found
 // in the file.
 //
-// Returns a non-OK result if fname does not name a leveldb storage
+// Returns a non-OK result if fname does not name a TimberSaw storage
 // file, or if the file cannot be read.
-LEVELDB_EXPORT Status DumpFile(Env* env, const std::string& fname,
+TimberSaw_EXPORT Status DumpFile(Env* env, const std::string& fname,
                                WritableFile* dst);
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_DUMPFILE_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_DUMPFILE_H_

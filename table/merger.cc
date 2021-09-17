@@ -1,11 +1,11 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "table/merger.h"
 
-#include "leveldb/comparator.h"
-#include "leveldb/iterator.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/iterator.h"
 #include "table/iterator_wrapper.h"
 
 namespace TimberSaw {
@@ -153,7 +153,7 @@ class MergingIterator : public Iterator {
 
   // We might want to use a heap in case there are lots of children.
   // For now we use a simple array since we expect a very small number
-  // of children in leveldb.
+  // of children in TimberSaw.
   const Comparator* comparator_;
   IteratorWrapper* children_;
   int n_;
@@ -214,4 +214,4 @@ Iterator* NewMergingIterator(const Comparator* comparator, Iterator** children,
   }
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

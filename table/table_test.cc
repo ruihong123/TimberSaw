@@ -1,8 +1,8 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/table.h"
+#include "TimberSaw/table.h"
 
 #include "db/dbformat.h"
 #include "db/memtable.h"
@@ -10,9 +10,9 @@
 #include <map>
 #include <string>
 
-#include "leveldb/db.h"
-#include "leveldb/env.h"
-#include "leveldb/iterator.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/iterator.h"
 
 #include "table/block.h"
 #include "table/block_builder.h"
@@ -41,7 +41,7 @@ namespace {
 class ReverseKeyComparator : public Comparator {
  public:
   const char* Name() const override {
-    return "leveldb.ReverseBytewiseComparator";
+    return "TimberSaw.ReverseBytewiseComparator";
   }
 
   int Compare(const Slice& a, const Slice& b) const override {
@@ -221,10 +221,10 @@ class TableConstructor : public Constructor {
 
     for (const auto& kvp : data) {
       builder.Add(kvp.first, kvp.second);
-      EXPECT_LEVELDB_OK(builder.status());
+      EXPECT_TimberSaw_OK(builder.status());
     }
     Status s = builder.Finish();
-    EXPECT_LEVELDB_OK(s);
+    EXPECT_TimberSaw_OK(s);
 
     EXPECT_EQ(sink.contents().size(), builder.FileSize());
 
@@ -619,8 +619,8 @@ TEST_F(Harness, Empty) {
   }
 }
 
-// Special test for a block with no restart entries.  The C++ leveldb
-// code never generates such blocks, but the Java version of leveldb
+// Special test for a block with no restart entries.  The C++ TimberSaw
+// code never generates such blocks, but the Java version of TimberSaw
 // seems to.
 TEST_F(Harness, ZeroRestartPointsInBlock) {
   char data[sizeof(uint32_t)];
@@ -716,7 +716,7 @@ TEST_F(Harness, RandomizedLongDB) {
   for (int level = 0; level < config::kNumLevels; level++) {
     std::string value;
     char name[100];
-    std::snprintf(name, sizeof(name), "leveldb.num-files-at-level%d", level);
+    std::snprintf(name, sizeof(name), "TimberSaw.num-files-at-level%d", level);
     ASSERT_TRUE(db()->GetProperty(name, &value));
     files += atoi(value.c_str());
   }
@@ -828,7 +828,7 @@ TEST(TableTest, ApproximateOffsetOfCompressed) {
   ASSERT_TRUE(Between(c.ApproximateOffsetOf("xyz"), 2 * min_z, 2 * max_z));
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

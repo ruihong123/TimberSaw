@@ -1,9 +1,9 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_TABLE_BLOCK_H_
-#define STORAGE_LEVELDB_TABLE_BLOCK_H_
+#ifndef STORAGE_TimberSaw_TABLE_BLOCK_H_
+#define STORAGE_TimberSaw_TABLE_BLOCK_H_
 
 #include <algorithm>
 #include <cstddef>
@@ -11,8 +11,8 @@
 #include <db/dbformat.h>
 #include <vector>
 
-#include "leveldb/comparator.h"
-#include "leveldb/iterator.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/iterator.h"
 
 #include "table/format.h"
 #include "util/coding.h"
@@ -345,6 +345,6 @@ class Block::Iter : public Iterator {
     }
   }
 };
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_TABLE_BLOCK_H_
+#endif  // STORAGE_TimberSaw_TABLE_BLOCK_H_

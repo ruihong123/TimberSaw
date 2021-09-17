@@ -3,7 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.  Use of
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.  Use of
 // this source code is governed by a BSD-style license that can be found
 // in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -47,7 +47,7 @@
 #include <stdlib.h>
 #include <type_traits>
 
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 
 #include "port/likely.h"
 #include "port/port.h"

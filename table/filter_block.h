@@ -1,4 +1,4 @@
-// Copyright (c) 2012 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2012 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -6,16 +6,16 @@
 // filters (e.g., bloom filters) for all data blocks in the table combined
 // into a single filter block.
 
-#ifndef STORAGE_LEVELDB_TABLE_FILTER_BLOCK_H_
-#define STORAGE_LEVELDB_TABLE_FILTER_BLOCK_H_
+#ifndef STORAGE_TimberSaw_TABLE_FILTER_BLOCK_H_
+#define STORAGE_TimberSaw_TABLE_FILTER_BLOCK_H_
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
 
-#include "leveldb/slice.h"
-#include "leveldb/options.h"
+#include "TimberSaw/slice.h"
+#include "TimberSaw/options.h"
 #include "util/hash.h"
 
 #include "block_builder.h"
@@ -84,6 +84,6 @@ class FilterBlockReader {
   std::shared_ptr<RDMA_Manager> rdma_mg_;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_TABLE_FILTER_BLOCK_H_
+#endif  // STORAGE_TimberSaw_TABLE_FILTER_BLOCK_H_

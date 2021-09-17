@@ -3,7 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -255,7 +255,7 @@ static inline void AsmVolatilePause() {
 extern int PhysicalCoreID();
 
 typedef pthread_once_t OnceType;
-#define LEVELDB_ONCE_INIT PTHREAD_ONCE_INIT
+#define TimberSaw_ONCE_INIT PTHREAD_ONCE_INIT
 extern void InitOnce(OnceType* once, void (*initializer)());
 
 #ifndef CACHE_LINE_SIZE

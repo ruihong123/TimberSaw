@@ -3,7 +3,7 @@
 //  COPYING file in the root directory) and Apache 2.0 License
 //  (found in the LICENSE.Apache file in the root directory).
 //
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -19,7 +19,7 @@
 #include <string.h>
 #include <string>
 
-#include "leveldb/write_batch.h"
+#include "TimberSaw/write_batch.h"
 #include "port/port.h"
 
 // Some processors does not allow unaligned access to memory

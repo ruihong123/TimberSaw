@@ -1,13 +1,13 @@
-// Copyright (c) 2018 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2018 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/status.h"
+#include "TimberSaw/status.h"
 
 #include <utility>
 
 #include "gtest/gtest.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 
 namespace TimberSaw {
 
@@ -36,7 +36,7 @@ TEST(Status, MoveConstructor) {
   }
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

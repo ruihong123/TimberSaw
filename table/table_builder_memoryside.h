@@ -2,17 +2,17 @@
 // Created by ruihong on 8/7/21.
 //
 
-#ifndef LEVELDB_TABLE_BUILDER_MEMORYSIDE_H
-#define LEVELDB_TABLE_BUILDER_MEMORYSIDE_H
+#ifndef TimberSaw_TABLE_BUILDER_MEMORYSIDE_H
+#define TimberSaw_TABLE_BUILDER_MEMORYSIDE_H
 
-#include "include/leveldb/table_builder.h"
+#include "include/TimberSaw/table_builder.h"
 //#include "dumpfile.h"
 namespace TimberSaw {
 //class BlockBuilder;
 class BlockHandle;
 //class WritableFile;
 //enum IO_type {Compact, Flush};
-class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder {
+class TimberSaw_EXPORT TableBuilder_Memoryside : public TableBuilder {
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
@@ -89,4 +89,4 @@ class LEVELDB_EXPORT TableBuilder_Memoryside : public TableBuilder {
   Rep* rep_;
 };
 }
-#endif  // LEVELDB_TABLE_BUILDER_MEMORYSIDE_H
+#endif  // TimberSaw_TABLE_BUILDER_MEMORYSIDE_H

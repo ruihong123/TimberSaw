@@ -1,15 +1,15 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_TABLE_TWO_LEVEL_ITERATOR_H_
-#define STORAGE_LEVELDB_TABLE_TWO_LEVEL_ITERATOR_H_
+#ifndef STORAGE_TimberSaw_TABLE_TWO_LEVEL_ITERATOR_H_
+#define STORAGE_TimberSaw_TABLE_TWO_LEVEL_ITERATOR_H_
 
 #include <db/version_edit.h>
 
-#include "leveldb/iterator.h"
+#include "TimberSaw/iterator.h"
 #include "db/version_set.h"
-#include "leveldb/table.h"
+#include "TimberSaw/table.h"
 #include "table/block.h"
 #include "table/format.h"
 #include "table/iterator_wrapper.h"
@@ -223,6 +223,6 @@ Iterator* NewTwoLevelFileIterator(
     Iterator* (*FileFunction)(void* arg, const ReadOptions& options,
                               std::shared_ptr<RemoteMemTableMetaData>),
     void* arg, const ReadOptions& options);
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_TABLE_TWO_LEVEL_ITERATOR_H_
+#endif  // STORAGE_TimberSaw_TABLE_TWO_LEVEL_ITERATOR_H_

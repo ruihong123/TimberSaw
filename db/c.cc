@@ -1,23 +1,23 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/c.h"
+#include "TimberSaw/c.h"
 
 #include <string.h>
 
 #include <cstdint>
 #include <cstdlib>
 
-#include "leveldb/cache.h"
-#include "leveldb/comparator.h"
-#include "leveldb/db.h"
-#include "leveldb/env.h"
-#include "leveldb/filter_policy.h"
-#include "leveldb/iterator.h"
-#include "leveldb/options.h"
-#include "leveldb/status.h"
-#include "leveldb/write_batch.h"
+#include "TimberSaw/cache.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/filter_policy.h"
+#include "TimberSaw/iterator.h"
+#include "TimberSaw/options.h"
+#include "TimberSaw/status.h"
+#include "TimberSaw/write_batch.h"
 
 using TimberSaw::Cache;
 using TimberSaw::Comparator;
@@ -46,48 +46,48 @@ using TimberSaw::WriteOptions;
 
 extern "C" {
 
-struct leveldb_t {
+struct TimberSaw_t {
   DB* rep;
 };
-struct leveldb_iterator_t {
+struct TimberSaw_iterator_t {
   Iterator* rep;
 };
-struct leveldb_writebatch_t {
+struct TimberSaw_writebatch_t {
   WriteBatch rep;
 };
-struct leveldb_snapshot_t {
+struct TimberSaw_snapshot_t {
   const Snapshot* rep;
 };
-struct leveldb_readoptions_t {
+struct TimberSaw_readoptions_t {
   ReadOptions rep;
 };
-struct leveldb_writeoptions_t {
+struct TimberSaw_writeoptions_t {
   WriteOptions rep;
 };
-struct leveldb_options_t {
+struct TimberSaw_options_t {
   Options rep;
 };
-struct leveldb_cache_t {
+struct TimberSaw_cache_t {
   Cache* rep;
 };
-struct leveldb_seqfile_t {
+struct TimberSaw_seqfile_t {
   SequentialFile* rep;
 };
-struct leveldb_randomfile_t {
+struct TimberSaw_randomfile_t {
   RandomAccessFile* rep;
 };
-struct leveldb_writablefile_t {
+struct TimberSaw_writablefile_t {
   WritableFile* rep;
 };
-struct leveldb_logger_t {
+struct TimberSaw_logger_t {
   Logger* rep;
 };
-struct leveldb_filelock_t {
+struct TimberSaw_filelock_t {
   FileLock* rep;
 };
 
-struct leveldb_comparator_t : public Comparator {
-  ~leveldb_comparator_t() override { (*destructor_)(state_); }
+struct TimberSaw_comparator_t : public Comparator {
+  ~TimberSaw_comparator_t() override { (*destructor_)(state_); }
 
   int Compare(const Slice& a, const Slice& b) const override {
     return (*compare_)(state_, a.data(), a.size(), b.data(), b.size());
@@ -106,8 +106,8 @@ struct leveldb_comparator_t : public Comparator {
   const char* (*name_)(void*);
 };
 
-struct leveldb_filterpolicy_t : public FilterPolicy {
-  ~leveldb_filterpolicy_t() override { (*destructor_)(state_); }
+struct TimberSaw_filterpolicy_t : public FilterPolicy {
+  ~TimberSaw_filterpolicy_t() override { (*destructor_)(state_); }
 
   const char* Name() const override { return (*name_)(state_); }
 
@@ -139,7 +139,7 @@ struct leveldb_filterpolicy_t : public FilterPolicy {
                         const char* filter, size_t filter_length);
 };
 
-struct leveldb_env_t {
+struct TimberSaw_env_t {
   Env* rep;
   bool is_default;
 };
@@ -165,40 +165,40 @@ static char* CopyString(const std::string& str) {
   return result;
 }
 
-leveldb_t* leveldb_open(const leveldb_options_t* options, const char* name,
+TimberSaw_t* TimberSaw_open(const TimberSaw_options_t* options, const char* name,
                         char** errptr) {
   DB* db;
   if (SaveError(errptr, DB::Open(options->rep, std::string(name), &db))) {
     return nullptr;
   }
-  leveldb_t* result = new leveldb_t;
+  TimberSaw_t* result = new TimberSaw_t;
   result->rep = db;
   return result;
 }
 
-void leveldb_close(leveldb_t* db) {
+void TimberSaw_close(TimberSaw_t* db) {
   delete db->rep;
   delete db;
 }
 
-void leveldb_put(leveldb_t* db, const leveldb_writeoptions_t* options,
+void TimberSaw_put(TimberSaw_t* db, const TimberSaw_writeoptions_t* options,
                  const char* key, size_t keylen, const char* val, size_t vallen,
                  char** errptr) {
   SaveError(errptr,
             db->rep->Put(options->rep, Slice(key, keylen), Slice(val, vallen)));
 }
 
-void leveldb_delete(leveldb_t* db, const leveldb_writeoptions_t* options,
+void TimberSaw_delete(TimberSaw_t* db, const TimberSaw_writeoptions_t* options,
                     const char* key, size_t keylen, char** errptr) {
   SaveError(errptr, db->rep->Delete(options->rep, Slice(key, keylen)));
 }
 
-void leveldb_write(leveldb_t* db, const leveldb_writeoptions_t* options,
-                   leveldb_writebatch_t* batch, char** errptr) {
+void TimberSaw_write(TimberSaw_t* db, const TimberSaw_writeoptions_t* options,
+                   TimberSaw_writebatch_t* batch, char** errptr) {
   SaveError(errptr, db->rep->Write(options->rep, &batch->rep));
 }
 
-char* leveldb_get(leveldb_t* db, const leveldb_readoptions_t* options,
+char* TimberSaw_get(TimberSaw_t* db, const TimberSaw_readoptions_t* options,
                   const char* key, size_t keylen, size_t* vallen,
                   char** errptr) {
   char* result = nullptr;
@@ -216,26 +216,26 @@ char* leveldb_get(leveldb_t* db, const leveldb_readoptions_t* options,
   return result;
 }
 
-leveldb_iterator_t* leveldb_create_iterator(
-    leveldb_t* db, const leveldb_readoptions_t* options) {
-  leveldb_iterator_t* result = new leveldb_iterator_t;
+TimberSaw_iterator_t* TimberSaw_create_iterator(
+    TimberSaw_t* db, const TimberSaw_readoptions_t* options) {
+  TimberSaw_iterator_t* result = new TimberSaw_iterator_t;
   result->rep = db->rep->NewIterator(options->rep);
   return result;
 }
 
-const leveldb_snapshot_t* leveldb_create_snapshot(leveldb_t* db) {
-  leveldb_snapshot_t* result = new leveldb_snapshot_t;
+const TimberSaw_snapshot_t* TimberSaw_create_snapshot(TimberSaw_t* db) {
+  TimberSaw_snapshot_t* result = new TimberSaw_snapshot_t;
   result->rep = db->rep->GetSnapshot();
   return result;
 }
 
-void leveldb_release_snapshot(leveldb_t* db,
-                              const leveldb_snapshot_t* snapshot) {
+void TimberSaw_release_snapshot(TimberSaw_t* db,
+                              const TimberSaw_snapshot_t* snapshot) {
   db->rep->ReleaseSnapshot(snapshot->rep);
   delete snapshot;
 }
 
-char* leveldb_property_value(leveldb_t* db, const char* propname) {
+char* TimberSaw_property_value(TimberSaw_t* db, const char* propname) {
   std::string tmp;
   if (db->rep->GetProperty(Slice(propname), &tmp)) {
     // We use strdup() since we expect human readable output.
@@ -245,7 +245,7 @@ char* leveldb_property_value(leveldb_t* db, const char* propname) {
   }
 }
 
-void leveldb_approximate_sizes(leveldb_t* db, int num_ranges,
+void TimberSaw_approximate_sizes(TimberSaw_t* db, int num_ranges,
                                const char* const* range_start_key,
                                const size_t* range_start_key_len,
                                const char* const* range_limit_key,
@@ -260,7 +260,7 @@ void leveldb_approximate_sizes(leveldb_t* db, int num_ranges,
   delete[] ranges;
 }
 
-void leveldb_compact_range(leveldb_t* db, const char* start_key,
+void TimberSaw_compact_range(TimberSaw_t* db, const char* start_key,
                            size_t start_key_len, const char* limit_key,
                            size_t limit_key_len) {
   Slice a, b;
@@ -270,76 +270,76 @@ void leveldb_compact_range(leveldb_t* db, const char* start_key,
       (limit_key ? (b = Slice(limit_key, limit_key_len), &b) : nullptr));
 }
 
-void leveldb_destroy_db(const leveldb_options_t* options, const char* name,
+void TimberSaw_destroy_db(const TimberSaw_options_t* options, const char* name,
                         char** errptr) {
   SaveError(errptr, DestroyDB(name, options->rep));
 }
 
-void leveldb_repair_db(const leveldb_options_t* options, const char* name,
+void TimberSaw_repair_db(const TimberSaw_options_t* options, const char* name,
                        char** errptr) {
   SaveError(errptr, RepairDB(name, options->rep));
 }
 
-void leveldb_iter_destroy(leveldb_iterator_t* iter) {
+void TimberSaw_iter_destroy(TimberSaw_iterator_t* iter) {
   delete iter->rep;
   delete iter;
 }
 
-uint8_t leveldb_iter_valid(const leveldb_iterator_t* iter) {
+uint8_t TimberSaw_iter_valid(const TimberSaw_iterator_t* iter) {
   return iter->rep->Valid();
 }
 
-void leveldb_iter_seek_to_first(leveldb_iterator_t* iter) {
+void TimberSaw_iter_seek_to_first(TimberSaw_iterator_t* iter) {
   iter->rep->SeekToFirst();
 }
 
-void leveldb_iter_seek_to_last(leveldb_iterator_t* iter) {
+void TimberSaw_iter_seek_to_last(TimberSaw_iterator_t* iter) {
   iter->rep->SeekToLast();
 }
 
-void leveldb_iter_seek(leveldb_iterator_t* iter, const char* k, size_t klen) {
+void TimberSaw_iter_seek(TimberSaw_iterator_t* iter, const char* k, size_t klen) {
   iter->rep->Seek(Slice(k, klen));
 }
 
-void leveldb_iter_next(leveldb_iterator_t* iter) { iter->rep->Next(); }
+void TimberSaw_iter_next(TimberSaw_iterator_t* iter) { iter->rep->Next(); }
 
-void leveldb_iter_prev(leveldb_iterator_t* iter) { iter->rep->Prev(); }
+void TimberSaw_iter_prev(TimberSaw_iterator_t* iter) { iter->rep->Prev(); }
 
-const char* leveldb_iter_key(const leveldb_iterator_t* iter, size_t* klen) {
+const char* TimberSaw_iter_key(const TimberSaw_iterator_t* iter, size_t* klen) {
   Slice s = iter->rep->key();
   *klen = s.size();
   return s.data();
 }
 
-const char* leveldb_iter_value(const leveldb_iterator_t* iter, size_t* vlen) {
+const char* TimberSaw_iter_value(const TimberSaw_iterator_t* iter, size_t* vlen) {
   Slice s = iter->rep->value();
   *vlen = s.size();
   return s.data();
 }
 
-void leveldb_iter_get_error(const leveldb_iterator_t* iter, char** errptr) {
+void TimberSaw_iter_get_error(const TimberSaw_iterator_t* iter, char** errptr) {
   SaveError(errptr, iter->rep->status());
 }
 
-leveldb_writebatch_t* leveldb_writebatch_create() {
-  return new leveldb_writebatch_t;
+TimberSaw_writebatch_t* TimberSaw_writebatch_create() {
+  return new TimberSaw_writebatch_t;
 }
 
-void leveldb_writebatch_destroy(leveldb_writebatch_t* b) { delete b; }
+void TimberSaw_writebatch_destroy(TimberSaw_writebatch_t* b) { delete b; }
 
-void leveldb_writebatch_clear(leveldb_writebatch_t* b) { b->rep.Clear(); }
+void TimberSaw_writebatch_clear(TimberSaw_writebatch_t* b) { b->rep.Clear(); }
 
-void leveldb_writebatch_put(leveldb_writebatch_t* b, const char* key,
+void TimberSaw_writebatch_put(TimberSaw_writebatch_t* b, const char* key,
                             size_t klen, const char* val, size_t vlen) {
   b->rep.Put(Slice(key, klen), Slice(val, vlen));
 }
 
-void leveldb_writebatch_delete(leveldb_writebatch_t* b, const char* key,
+void TimberSaw_writebatch_delete(TimberSaw_writebatch_t* b, const char* key,
                                size_t klen) {
   b->rep.Delete(Slice(key, klen));
 }
 
-void leveldb_writebatch_iterate(const leveldb_writebatch_t* b, void* state,
+void TimberSaw_writebatch_iterate(const TimberSaw_writebatch_t* b, void* state,
                                 void (*put)(void*, const char* k, size_t klen,
                                             const char* v, size_t vlen),
                                 void (*deleted)(void*, const char* k,
@@ -363,79 +363,79 @@ void leveldb_writebatch_iterate(const leveldb_writebatch_t* b, void* state,
   b->rep.Iterate(&handler);
 }
 
-void leveldb_writebatch_append(leveldb_writebatch_t* destination,
-                               const leveldb_writebatch_t* source) {
+void TimberSaw_writebatch_append(TimberSaw_writebatch_t* destination,
+                               const TimberSaw_writebatch_t* source) {
   destination->rep.Append(source->rep);
 }
 
-leveldb_options_t* leveldb_options_create() { return new leveldb_options_t; }
+TimberSaw_options_t* TimberSaw_options_create() { return new TimberSaw_options_t; }
 
-void leveldb_options_destroy(leveldb_options_t* options) { delete options; }
+void TimberSaw_options_destroy(TimberSaw_options_t* options) { delete options; }
 
-void leveldb_options_set_comparator(leveldb_options_t* opt,
-                                    leveldb_comparator_t* cmp) {
+void TimberSaw_options_set_comparator(TimberSaw_options_t* opt,
+                                    TimberSaw_comparator_t* cmp) {
   opt->rep.comparator = cmp;
 }
 
-void leveldb_options_set_filter_policy(leveldb_options_t* opt,
-                                       leveldb_filterpolicy_t* policy) {
+void TimberSaw_options_set_filter_policy(TimberSaw_options_t* opt,
+                                       TimberSaw_filterpolicy_t* policy) {
   opt->rep.filter_policy = policy;
 }
 
-void leveldb_options_set_create_if_missing(leveldb_options_t* opt, uint8_t v) {
+void TimberSaw_options_set_create_if_missing(TimberSaw_options_t* opt, uint8_t v) {
   opt->rep.create_if_missing = v;
 }
 
-void leveldb_options_set_error_if_exists(leveldb_options_t* opt, uint8_t v) {
+void TimberSaw_options_set_error_if_exists(TimberSaw_options_t* opt, uint8_t v) {
   opt->rep.error_if_exists = v;
 }
 
-void leveldb_options_set_paranoid_checks(leveldb_options_t* opt, uint8_t v) {
+void TimberSaw_options_set_paranoid_checks(TimberSaw_options_t* opt, uint8_t v) {
   opt->rep.paranoid_checks = v;
 }
 
-void leveldb_options_set_env(leveldb_options_t* opt, leveldb_env_t* env) {
+void TimberSaw_options_set_env(TimberSaw_options_t* opt, TimberSaw_env_t* env) {
   opt->rep.env = (env ? env->rep : nullptr);
 }
 
-void leveldb_options_set_info_log(leveldb_options_t* opt, leveldb_logger_t* l) {
+void TimberSaw_options_set_info_log(TimberSaw_options_t* opt, TimberSaw_logger_t* l) {
   opt->rep.info_log = (l ? l->rep : nullptr);
 }
 
-void leveldb_options_set_write_buffer_size(leveldb_options_t* opt, size_t s) {
+void TimberSaw_options_set_write_buffer_size(TimberSaw_options_t* opt, size_t s) {
   opt->rep.write_buffer_size = s;
 }
 
-void leveldb_options_set_max_open_files(leveldb_options_t* opt, int n) {
+void TimberSaw_options_set_max_open_files(TimberSaw_options_t* opt, int n) {
   opt->rep.max_open_files = n;
 }
 
-void leveldb_options_set_cache(leveldb_options_t* opt, leveldb_cache_t* c) {
+void TimberSaw_options_set_cache(TimberSaw_options_t* opt, TimberSaw_cache_t* c) {
   opt->rep.block_cache = c->rep;
 }
 
-void leveldb_options_set_block_size(leveldb_options_t* opt, size_t s) {
+void TimberSaw_options_set_block_size(TimberSaw_options_t* opt, size_t s) {
   opt->rep.block_size = s;
 }
 
-void leveldb_options_set_block_restart_interval(leveldb_options_t* opt, int n) {
+void TimberSaw_options_set_block_restart_interval(TimberSaw_options_t* opt, int n) {
   opt->rep.block_restart_interval = n;
 }
 
-void leveldb_options_set_max_file_size(leveldb_options_t* opt, size_t s) {
+void TimberSaw_options_set_max_file_size(TimberSaw_options_t* opt, size_t s) {
   opt->rep.max_file_size = s;
 }
 
-void leveldb_options_set_compression(leveldb_options_t* opt, int t) {
+void TimberSaw_options_set_compression(TimberSaw_options_t* opt, int t) {
   opt->rep.compression = static_cast<CompressionType>(t);
 }
 
-leveldb_comparator_t* leveldb_comparator_create(
+TimberSaw_comparator_t* TimberSaw_comparator_create(
     void* state, void (*destructor)(void*),
     int (*compare)(void*, const char* a, size_t alen, const char* b,
                    size_t blen),
     const char* (*name)(void*)) {
-  leveldb_comparator_t* result = new leveldb_comparator_t;
+  TimberSaw_comparator_t* result = new TimberSaw_comparator_t;
   result->state_ = state;
   result->destructor_ = destructor;
   result->compare_ = compare;
@@ -443,9 +443,9 @@ leveldb_comparator_t* leveldb_comparator_create(
   return result;
 }
 
-void leveldb_comparator_destroy(leveldb_comparator_t* cmp) { delete cmp; }
+void TimberSaw_comparator_destroy(TimberSaw_comparator_t* cmp) { delete cmp; }
 
-leveldb_filterpolicy_t* leveldb_filterpolicy_create(
+TimberSaw_filterpolicy_t* TimberSaw_filterpolicy_create(
     void* state, void (*destructor)(void*),
     char* (*create_filter)(void*, const char* const* key_array,
                            const size_t* key_length_array, int num_keys,
@@ -453,7 +453,7 @@ leveldb_filterpolicy_t* leveldb_filterpolicy_create(
     uint8_t (*key_may_match)(void*, const char* key, size_t length,
                              const char* filter, size_t filter_length),
     const char* (*name)(void*)) {
-  leveldb_filterpolicy_t* result = new leveldb_filterpolicy_t;
+  TimberSaw_filterpolicy_t* result = new TimberSaw_filterpolicy_t;
   result->state_ = state;
   result->destructor_ = destructor;
   result->create_ = create_filter;
@@ -462,15 +462,15 @@ leveldb_filterpolicy_t* leveldb_filterpolicy_create(
   return result;
 }
 
-void leveldb_filterpolicy_destroy(leveldb_filterpolicy_t* filter) {
+void TimberSaw_filterpolicy_destroy(TimberSaw_filterpolicy_t* filter) {
   delete filter;
 }
 
-leveldb_filterpolicy_t* leveldb_filterpolicy_create_bloom(int bits_per_key) {
-  // Make a leveldb_filterpolicy_t, but override all of its methods so
+TimberSaw_filterpolicy_t* TimberSaw_filterpolicy_create_bloom(int bits_per_key) {
+  // Make a TimberSaw_filterpolicy_t, but override all of its methods so
   // they delegate to a NewBloomFilterPolicy() instead of user
   // supplied C functions.
-  struct Wrapper : public leveldb_filterpolicy_t {
+  struct Wrapper : public TimberSaw_filterpolicy_t {
     static void DoNothing(void*) {}
 
     ~Wrapper() { delete rep_; }
@@ -491,60 +491,60 @@ leveldb_filterpolicy_t* leveldb_filterpolicy_create_bloom(int bits_per_key) {
   return wrapper;
 }
 
-leveldb_readoptions_t* leveldb_readoptions_create() {
-  return new leveldb_readoptions_t;
+TimberSaw_readoptions_t* TimberSaw_readoptions_create() {
+  return new TimberSaw_readoptions_t;
 }
 
-void leveldb_readoptions_destroy(leveldb_readoptions_t* opt) { delete opt; }
+void TimberSaw_readoptions_destroy(TimberSaw_readoptions_t* opt) { delete opt; }
 
-void leveldb_readoptions_set_verify_checksums(leveldb_readoptions_t* opt,
+void TimberSaw_readoptions_set_verify_checksums(TimberSaw_readoptions_t* opt,
                                               uint8_t v) {
   opt->rep.verify_checksums = v;
 }
 
-void leveldb_readoptions_set_fill_cache(leveldb_readoptions_t* opt, uint8_t v) {
+void TimberSaw_readoptions_set_fill_cache(TimberSaw_readoptions_t* opt, uint8_t v) {
   opt->rep.fill_cache = v;
 }
 
-void leveldb_readoptions_set_snapshot(leveldb_readoptions_t* opt,
-                                      const leveldb_snapshot_t* snap) {
+void TimberSaw_readoptions_set_snapshot(TimberSaw_readoptions_t* opt,
+                                      const TimberSaw_snapshot_t* snap) {
   opt->rep.snapshot = (snap ? snap->rep : nullptr);
 }
 
-leveldb_writeoptions_t* leveldb_writeoptions_create() {
-  return new leveldb_writeoptions_t;
+TimberSaw_writeoptions_t* TimberSaw_writeoptions_create() {
+  return new TimberSaw_writeoptions_t;
 }
 
-void leveldb_writeoptions_destroy(leveldb_writeoptions_t* opt) { delete opt; }
+void TimberSaw_writeoptions_destroy(TimberSaw_writeoptions_t* opt) { delete opt; }
 
-void leveldb_writeoptions_set_sync(leveldb_writeoptions_t* opt, uint8_t v) {
+void TimberSaw_writeoptions_set_sync(TimberSaw_writeoptions_t* opt, uint8_t v) {
   opt->rep.sync = v;
 }
 
-leveldb_cache_t* leveldb_cache_create_lru(size_t capacity) {
-  leveldb_cache_t* c = new leveldb_cache_t;
+TimberSaw_cache_t* TimberSaw_cache_create_lru(size_t capacity) {
+  TimberSaw_cache_t* c = new TimberSaw_cache_t;
   c->rep = NewLRUCache(capacity);
   return c;
 }
 
-void leveldb_cache_destroy(leveldb_cache_t* cache) {
+void TimberSaw_cache_destroy(TimberSaw_cache_t* cache) {
   delete cache->rep;
   delete cache;
 }
 
-leveldb_env_t* leveldb_create_default_env() {
-  leveldb_env_t* result = new leveldb_env_t;
+TimberSaw_env_t* TimberSaw_create_default_env() {
+  TimberSaw_env_t* result = new TimberSaw_env_t;
   result->rep = Env::Default();
   result->is_default = true;
   return result;
 }
 
-void leveldb_env_destroy(leveldb_env_t* env) {
+void TimberSaw_env_destroy(TimberSaw_env_t* env) {
   if (!env->is_default) delete env->rep;
   delete env;
 }
 
-char* leveldb_env_get_test_directory(leveldb_env_t* env) {
+char* TimberSaw_env_get_test_directory(TimberSaw_env_t* env) {
   std::string result;
   if (!env->rep->GetTestDirectory(&result).ok()) {
     return nullptr;
@@ -556,10 +556,10 @@ char* leveldb_env_get_test_directory(leveldb_env_t* env) {
   return buffer;
 }
 
-void leveldb_free(void* ptr) { std::free(ptr); }
+void TimberSaw_free(void* ptr) { std::free(ptr); }
 
-int leveldb_major_version() { return kMajorVersion; }
+int TimberSaw_major_version() { return kMajorVersion; }
 
-int leveldb_minor_version() { return kMinorVersion; }
+int TimberSaw_minor_version() { return kMinorVersion; }
 
 }  // end extern "C"

@@ -1,13 +1,13 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_COMPARATOR_H_
-#define STORAGE_LEVELDB_INCLUDE_COMPARATOR_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_COMPARATOR_H_
+#define STORAGE_TimberSaw_INCLUDE_COMPARATOR_H_
 
 #include <string>
 
-#include "leveldb/export.h"
+#include "TimberSaw/export.h"
 
 namespace TimberSaw {
 
@@ -15,9 +15,9 @@ class Slice;
 
 // A Comparator object provides a total order across slices that are
 // used as keys in an sstable or a database.  A Comparator implementation
-// must be thread-safe since leveldb may invoke its methods concurrently
+// must be thread-safe since TimberSaw may invoke its methods concurrently
 // from multiple threads.
-class LEVELDB_EXPORT Comparator {
+class TimberSaw_EXPORT Comparator {
  public:
   virtual ~Comparator();
 
@@ -35,7 +35,7 @@ class LEVELDB_EXPORT Comparator {
   // the comparator implementation changes in a way that will cause
   // the relative ordering of any two keys to change.
   //
-  // Names starting with "leveldb." are reserved and should not be used
+  // Names starting with "TimberSaw." are reserved and should not be used
   // by any clients of this package.
   virtual const char* Name() const = 0;
 
@@ -57,8 +57,8 @@ class LEVELDB_EXPORT Comparator {
 // Return a builtin comparator that uses lexicographic byte-wise
 // ordering.  The result remains the property of this module and
 // must not be deleted.
-LEVELDB_EXPORT const Comparator* BytewiseComparator();
+TimberSaw_EXPORT const Comparator* BytewiseComparator();
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_COMPARATOR_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_COMPARATOR_H_

@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -12,7 +12,7 @@
 #include <algorithm>
 #include <cstdio>
 
-#include "leveldb/env.h"
+#include "TimberSaw/env.h"
 
 #include "table/merger.h"
 #include "table/table_builder_computeside.h"
@@ -2002,4 +2002,4 @@ uint64_t Compaction::GetFileSizesForLevel(int level){
 }
 
 
-}  // namespace leveldb
+}  // namespace TimberSaw

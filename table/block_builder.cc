@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -31,8 +31,8 @@
 #include <algorithm>
 #include <cassert>
 
-#include "leveldb/comparator.h"
-#include "leveldb/options.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/options.h"
 #include "util/coding.h"
 
 namespace TimberSaw {
@@ -114,4 +114,4 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
 }
 
 
-}  // namespace leveldb
+}  // namespace TimberSaw

@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -6,7 +6,7 @@
 
 #include "table/block.h"
 #include "memory_node/memory_node_keeper.h"
-#include "leveldb/env.h"
+#include "TimberSaw/env.h"
 
 namespace TimberSaw {
 
@@ -76,4 +76,4 @@ Iterator* Block::NewIterator(const Comparator* comparator) {
   }
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

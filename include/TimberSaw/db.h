@@ -1,16 +1,16 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_DB_H_
-#define STORAGE_LEVELDB_INCLUDE_DB_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_DB_H_
+#define STORAGE_TimberSaw_INCLUDE_DB_H_
 
 #include <cstdint>
 #include <cstdio>
 
-#include "leveldb/export.h"
-#include "leveldb/iterator.h"
-#include "leveldb/options.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/iterator.h"
+#include "TimberSaw/options.h"
 
 namespace TimberSaw {
 
@@ -26,13 +26,13 @@ class WriteBatch;
 // Abstract handle to particular state of a DB.
 // A Snapshot is an immutable object and can therefore be safely
 // accessed from multiple threads without any external synchronization.
-class LEVELDB_EXPORT Snapshot {
+class TimberSaw_EXPORT Snapshot {
  protected:
   virtual ~Snapshot();
 };
 
 // A range of keys
-struct LEVELDB_EXPORT Range {
+struct TimberSaw_EXPORT Range {
   Range() = default;
   Range(const Slice& s, const Slice& l) : start(s), limit(l) {}
 
@@ -43,7 +43,7 @@ struct LEVELDB_EXPORT Range {
 // A DB is a persistent ordered map from keys to values.
 // A DB is safe for concurrent access from multiple threads without
 // any external synchronization.
-class LEVELDB_EXPORT DB {
+class TimberSaw_EXPORT DB {
  public:
   // Open the database with the specified "name".
   // Stores a pointer to a heap-allocated database in *dbptr and returns
@@ -113,13 +113,13 @@ class LEVELDB_EXPORT DB {
   //
   // Valid property names include:
   //
-  //  "leveldb.num-files-at-level<N>" - return the number of files at level <N>,
+  //  "TimberSaw.num-files-at-level<N>" - return the number of files at level <N>,
   //     where <N> is an ASCII representation of a level number (e.g. "0").
-  //  "leveldb.stats" - returns a multi-line string that describes statistics
+  //  "TimberSaw.stats" - returns a multi-line string that describes statistics
   //     about the internal operation of the DB.
-  //  "leveldb.sstables" - returns a multi-line string that describes all
+  //  "TimberSaw.sstables" - returns a multi-line string that describes all
   //     of the sstables that make up the db contents.
-  //  "leveldb.approximate-memory-usage" - returns the approximate number of
+  //  "TimberSaw.approximate-memory-usage" - returns the approximate number of
   //     bytes of memory in use by the DB.
   virtual bool GetProperty(const Slice& property, std::string* value) = 0;
 
@@ -152,16 +152,16 @@ class LEVELDB_EXPORT DB {
 //
 // Note: For backwards compatibility, if DestroyDB is unable to list the
 // database files, Status::OK() will still be returned masking this failure.
-LEVELDB_EXPORT Status DestroyDB(const std::string& name,
+TimberSaw_EXPORT Status DestroyDB(const std::string& name,
                                 const Options& options);
 
 // If a DB cannot be opened, you may attempt to call this method to
 // resurrect as much of the contents of the database as possible.
 // Some data may be lost, so be careful when calling this function
 // on a database that contains important information.
-LEVELDB_EXPORT Status RepairDB(const std::string& dbname,
+TimberSaw_EXPORT Status RepairDB(const std::string& dbname,
                                const Options& options);
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_DB_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_DB_H_

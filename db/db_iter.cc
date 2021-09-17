@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -7,8 +7,8 @@
 #include "db/db_impl.h"
 #include "db/dbformat.h"
 #include "db/filename.h"
-#include "leveldb/env.h"
-#include "leveldb/iterator.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/iterator.h"
 #include "port/port.h"
 #include "util/logging.h"
 #include "util/mutexlock.h"
@@ -315,4 +315,4 @@ Iterator* NewDBIterator(DBImpl* db, const Comparator* user_key_comparator,
   return new DBIter(db, user_key_comparator, internal_iter, sequence, seed);
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

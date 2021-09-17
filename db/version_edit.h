@@ -1,9 +1,9 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_DB_VERSION_EDIT_H_
-#define STORAGE_LEVELDB_DB_VERSION_EDIT_H_
+#ifndef STORAGE_TimberSaw_DB_VERSION_EDIT_H_
+#define STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 
 #include <set>
 #include <utility>
@@ -188,6 +188,6 @@ class VersionEdit {
   std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>> new_files_;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_VERSION_EDIT_H_
+#endif  // STORAGE_TimberSaw_DB_VERSION_EDIT_H_

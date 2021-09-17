@@ -1,15 +1,15 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_TABLE_H_
-#define STORAGE_LEVELDB_INCLUDE_TABLE_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_TABLE_H_
+#define STORAGE_TimberSaw_INCLUDE_TABLE_H_
 
 #include <cstdint>
 #include <memory>
 
-#include "leveldb/export.h"
-#include "leveldb/iterator.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/iterator.h"
 #include "db/version_edit.h"
 
 namespace TimberSaw {
@@ -25,7 +25,7 @@ class TableCache;
 // A Table is a sorted map from strings to strings.  Tables are
 // immutable and persistent.  A Table may be safely accessed from
 // multiple threads without external synchronization.
-class LEVELDB_EXPORT Table {
+class TimberSaw_EXPORT Table {
  public:
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
@@ -81,6 +81,6 @@ class LEVELDB_EXPORT Table {
   Rep* const rep_;
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_TABLE_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_TABLE_H_

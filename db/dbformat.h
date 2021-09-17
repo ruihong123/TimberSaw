@@ -1,19 +1,19 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_DB_DBFORMAT_H_
-#define STORAGE_LEVELDB_DB_DBFORMAT_H_
+#ifndef STORAGE_TimberSaw_DB_DBFORMAT_H_
+#define STORAGE_TimberSaw_DB_DBFORMAT_H_
 
 #include <cstddef>
 #include <cstdint>
 #include <string>
 
-#include "leveldb/comparator.h"
-#include "leveldb/db.h"
-#include "leveldb/filter_policy.h"
-#include "leveldb/slice.h"
-//#include "leveldb/table_builder_computeside.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/filter_policy.h"
+#include "TimberSaw/slice.h"
+//#include "TimberSaw/table_builder_computeside.h"
 
 #include "util/coding.h"
 #include "util/logging.h"
@@ -484,6 +484,6 @@ inline LookupKey::~LookupKey() {
   if (start_ != space_) delete[] start_;
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_DBFORMAT_H_
+#endif  // STORAGE_TimberSaw_DB_DBFORMAT_H_

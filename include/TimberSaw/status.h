@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -10,18 +10,18 @@
 // non-const method, all threads accessing the same Status must use
 // external synchronization.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_STATUS_H_
-#define STORAGE_LEVELDB_INCLUDE_STATUS_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_STATUS_H_
+#define STORAGE_TimberSaw_INCLUDE_STATUS_H_
 
 #include <algorithm>
 #include <string>
 
-#include "leveldb/export.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/slice.h"
 
 namespace TimberSaw {
 
-class LEVELDB_EXPORT Status {
+class TimberSaw_EXPORT Status {
  public:
   // Create a success status.
   Status() noexcept : state_(nullptr) {}
@@ -117,6 +117,6 @@ inline Status& Status::operator=(Status&& rhs) noexcept {
   return *this;
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_STATUS_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_STATUS_H_

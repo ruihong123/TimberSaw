@@ -1,18 +1,18 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_TABLE_FORMAT_H_
-#define STORAGE_LEVELDB_TABLE_FORMAT_H_
+#ifndef STORAGE_TimberSaw_TABLE_FORMAT_H_
+#define STORAGE_TimberSaw_TABLE_FORMAT_H_
 
 #include <cstdint>
 #include <string>
 
-#include "leveldb/slice.h"
-#include "leveldb/status.h"
+#include "TimberSaw/slice.h"
+#include "TimberSaw/status.h"
 #include <map>
 #include "util/rdma.h"
-//#include "leveldb/table_builder.h"
+//#include "TimberSaw/table_builder.h"
 
 namespace TimberSaw {
 
@@ -73,7 +73,7 @@ class Footer {
 };
 
 // kTableMagicNumber was picked by running
-//    echo http://code.google.com/p/leveldb/ | sha1sum
+//    echo http://code.google.com/p/TimberSaw/ | sha1sum
 // and taking the leading 64 bits.
 static const uint64_t kTableMagicNumber = 0xdb4775248b80fb57ull;
 
@@ -100,6 +100,6 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
 inline BlockHandle::BlockHandle()
     : offset_(~static_cast<uint64_t>(0)), size_(~static_cast<uint64_t>(0)) {}
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_TABLE_FORMAT_H_
+#endif  // STORAGE_TimberSaw_TABLE_FORMAT_H_

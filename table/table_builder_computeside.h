@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -10,24 +10,24 @@
 // non-const method, all threads accessing the same TableBuilder must use
 // external synchronization.
 
-#ifndef STORAGE_LEVELDB_TABLE_BUILDER_COMPUTESIDE_H
-#define STORAGE_LEVELDB_TABLE_BUILDER_COMPUTESIDE_H
+#ifndef STORAGE_TimberSaw_TABLE_BUILDER_COMPUTESIDE_H
+#define STORAGE_TimberSaw_TABLE_BUILDER_COMPUTESIDE_H
 
 //#include <cstdint>
-#include "leveldb/export.h"
-#include "leveldb/options.h"
-#include "leveldb/status.h"
-#include "leveldb/comparator.h"
-#include "leveldb/env.h"
-#include "leveldb/filter_policy.h"
-#include "leveldb/options.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/options.h"
+#include "TimberSaw/status.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/filter_policy.h"
+#include "TimberSaw/options.h"
 #include "table/block_builder.h"
 #include "table/filter_block.h"
 #include "table/full_filter_block.h"
 #include "table/format.h"
 #include "util/coding.h"
 #include "util/crc32c.h"
-#include "include/leveldb/table_builder.h"
+#include "include/TimberSaw/table_builder.h"
 namespace TimberSaw {
 
 //class BlockBuilder;
@@ -35,7 +35,7 @@ class BlockHandle;
 //class WritableFile;
 
 //enum IO_type {Compact, Flush};
-class LEVELDB_EXPORT TableBuilder_ComputeSide : public TableBuilder{
+class TimberSaw_EXPORT TableBuilder_ComputeSide : public TableBuilder{
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
@@ -114,6 +114,6 @@ class LEVELDB_EXPORT TableBuilder_ComputeSide : public TableBuilder{
 };
 
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_TABLE_BUILDER_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_TABLE_BUILDER_H_

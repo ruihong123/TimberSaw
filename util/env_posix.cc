@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -27,10 +27,10 @@
 #include <type_traits>
 #include <utility>
 
-#include "leveldb/env.h"
-#include "leveldb/slice.h"
-#include "leveldb/status.h"
-#include "leveldb/options.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/slice.h"
+#include "TimberSaw/status.h"
+#include "TimberSaw/options.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/env_posix_test_helper.h"
@@ -686,7 +686,7 @@ class PosixEnv : public Env {
       *result = env;
     } else {
       char buf[100];
-      std::snprintf(buf, sizeof(buf), "/tmp/leveldbtest-%d",
+      std::snprintf(buf, sizeof(buf), "/tmp/TimberSawtest-%d",
                     static_cast<int>(::geteuid()));
       *result = buf;
     }
@@ -986,4 +986,4 @@ Env* Env::Default() {
   return env_container.env();
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

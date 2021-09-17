@@ -1,11 +1,11 @@
-// Copyright (c) 2013 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2013 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "gtest/gtest.h"
 #include "db/db_impl.h"
-#include "leveldb/cache.h"
-#include "leveldb/db.h"
+#include "TimberSaw/cache.h"
+#include "TimberSaw/db.h"
 #include "util/testutil.h"
 
 namespace TimberSaw {
@@ -19,7 +19,7 @@ class AutoCompactTest : public testing::Test {
     DestroyDB(dbname_, options_);
     options_.create_if_missing = true;
     options_.compression = kNoCompression;
-    EXPECT_LEVELDB_OK(DB::Open(options_, dbname_, &db_));
+    EXPECT_TimberSaw_OK(DB::Open(options_, dbname_, &db_));
   }
 
   ~AutoCompactTest() {
@@ -62,15 +62,15 @@ void AutoCompactTest::DoReads(int n) {
 
   // Fill database
   for (int i = 0; i < kCount; i++) {
-    ASSERT_LEVELDB_OK(db_->Put(WriteOptions(), Key(i), value));
+    ASSERT_TimberSaw_OK(db_->Put(WriteOptions(), Key(i), value));
   }
-  ASSERT_LEVELDB_OK(dbi->TEST_CompactMemTable());
+  ASSERT_TimberSaw_OK(dbi->TEST_CompactMemTable());
 
   // Delete everything
   for (int i = 0; i < kCount; i++) {
-    ASSERT_LEVELDB_OK(db_->Delete(WriteOptions(), Key(i)));
+    ASSERT_TimberSaw_OK(db_->Delete(WriteOptions(), Key(i)));
   }
-  ASSERT_LEVELDB_OK(dbi->TEST_CompactMemTable());
+  ASSERT_TimberSaw_OK(dbi->TEST_CompactMemTable());
 
   // Get initial measurement of the space we will be reading.
   const int64_t initial_size = Size(Key(0), Key(n));
@@ -107,7 +107,7 @@ TEST_F(AutoCompactTest, ReadAll) { DoReads(kCount); }
 
 TEST_F(AutoCompactTest, ReadHalf) { DoReads(kCount / 2); }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

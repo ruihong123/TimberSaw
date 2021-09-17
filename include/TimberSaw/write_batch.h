@@ -1,4 +1,4 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
@@ -18,21 +18,21 @@
 // non-const method, all threads accessing the same WriteBatch must use
 // external synchronization.
 
-#ifndef STORAGE_LEVELDB_INCLUDE_WRITE_BATCH_H_
-#define STORAGE_LEVELDB_INCLUDE_WRITE_BATCH_H_
+#ifndef STORAGE_TimberSaw_INCLUDE_WRITE_BATCH_H_
+#define STORAGE_TimberSaw_INCLUDE_WRITE_BATCH_H_
 
 #include <string>
 
-#include "leveldb/export.h"
-#include "leveldb/status.h"
+#include "TimberSaw/export.h"
+#include "TimberSaw/status.h"
 
 namespace TimberSaw {
 
 class Slice;
 
-class LEVELDB_EXPORT WriteBatch {
+class TimberSaw_EXPORT WriteBatch {
  public:
-  class LEVELDB_EXPORT Handler {
+  class TimberSaw_EXPORT Handler {
    public:
     virtual ~Handler();
     virtual void Put(const Slice& key, const Slice& value) = 0;
@@ -59,7 +59,7 @@ class LEVELDB_EXPORT WriteBatch {
   // The size of the database changes caused by this batch.
   //
   // This number is tied to implementation details, and may change across
-  // releases. It is intended for LevelDB usage metrics.
+  // releases. It is intended for TimberSaw usage metrics.
   size_t ApproximateSize() const;
 
   // Copies the operations in "source" to this batch.
@@ -78,6 +78,6 @@ class LEVELDB_EXPORT WriteBatch {
   std::string rep_;  // See comment in write_batch.cc for the format of rep_
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_INCLUDE_WRITE_BATCH_H_
+#endif  // STORAGE_TimberSaw_INCLUDE_WRITE_BATCH_H_

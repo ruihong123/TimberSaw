@@ -1,18 +1,18 @@
-// Copyright (c) 2018 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2018 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_PORT_PORT_STDCXX_H_
-#define STORAGE_LEVELDB_PORT_PORT_STDCXX_H_
+#ifndef STORAGE_TimberSaw_PORT_PORT_STDCXX_H_
+#define STORAGE_TimberSaw_PORT_PORT_STDCXX_H_
 
 // port/port_config.h availability is automatically detected via __has_include
-// in newer compilers. If LEVELDB_HAS_PORT_CONFIG_H is defined, it overrides the
+// in newer compilers. If TimberSaw_HAS_PORT_CONFIG_H is defined, it overrides the
 // configuration detection.
-#if defined(LEVELDB_HAS_PORT_CONFIG_H)
+#if defined(TimberSaw_HAS_PORT_CONFIG_H)
 
-#if LEVELDB_HAS_PORT_CONFIG_H
+#if TimberSaw_HAS_PORT_CONFIG_H
 #include "port/port_config.h"
-#endif  // LEVELDB_HAS_PORT_CONFIG_H
+#endif  // TimberSaw_HAS_PORT_CONFIG_H
 
 #elif defined(__has_include)
 
@@ -20,7 +20,7 @@
 #include "port/port_config.h"
 #endif  // __has_include("port/port_config.h")
 
-#endif  // defined(LEVELDB_HAS_PORT_CONFIG_H)
+#endif  // defined(TimberSaw_HAS_PORT_CONFIG_H)
 
 #if HAVE_CRC32C
 #include <crc32c/crc32c.h>
@@ -38,7 +38,7 @@
 
 #include "port/thread_annotations.h"
 
-namespace leveldb {
+namespace TimberSaw {
 namespace port {
 
 class CondVar;
@@ -86,6 +86,6 @@ class CondVar {
 
 
 }  // namespace port
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_PORT_PORT_STDCXX_H_
+#endif  // STORAGE_TimberSaw_PORT_PORT_STDCXX_H_

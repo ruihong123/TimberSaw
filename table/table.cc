@@ -1,16 +1,16 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/table.h"
+#include "TimberSaw/table.h"
 
 #include "db/table_cache.h"
 
-#include "leveldb/cache.h"
-#include "leveldb/comparator.h"
-#include "leveldb/env.h"
-#include "leveldb/filter_policy.h"
-#include "leveldb/options.h"
+#include "TimberSaw/cache.h"
+#include "TimberSaw/comparator.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/filter_policy.h"
+#include "TimberSaw/options.h"
 
 #include "table/block.h"
 #include "table/filter_block.h"
@@ -343,4 +343,4 @@ uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
 }
 
 
-}  // namespace leveldb
+}  // namespace TimberSaw

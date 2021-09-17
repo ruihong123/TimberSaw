@@ -1,4 +1,4 @@
-// Copyright 2014 The LevelDB Authors. All rights reserved.
+// Copyright 2014 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -14,11 +14,11 @@
 #include "db/filename.h"
 #include "db/log_format.h"
 #include "db/version_set.h"
-#include "leveldb/cache.h"
-#include "leveldb/db.h"
-#include "leveldb/env.h"
-#include "leveldb/table.h"
-#include "leveldb/write_batch.h"
+#include "TimberSaw/cache.h"
+#include "TimberSaw/db.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/table.h"
+#include "TimberSaw/write_batch.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/logging.h"
@@ -300,7 +300,7 @@ void FaultInjectionTestEnv::UntrackFile(const std::string& f) {
 
 Status FaultInjectionTestEnv::RemoveFile(const std::string& f) {
   Status s = EnvWrapper::RemoveFile(f);
-  EXPECT_LEVELDB_OK(s);
+  EXPECT_TimberSaw_OK(s);
   if (s.ok()) {
     UntrackFile(f);
   }
@@ -402,7 +402,7 @@ class FaultInjectionTest : public testing::Test {
       batch.Clear();
       batch.Put(key, Value(i, &value_space));
       WriteOptions options;
-      ASSERT_LEVELDB_OK(db_->Write(options, &batch));
+      ASSERT_TimberSaw_OK(db_->Write(options, &batch));
     }
   }
 
@@ -465,7 +465,7 @@ class FaultInjectionTest : public testing::Test {
   void DeleteAllData() {
     Iterator* iter = db_->NewIterator(ReadOptions());
     for (iter->SeekToFirst(); iter->Valid(); iter->Next()) {
-      ASSERT_LEVELDB_OK(db_->Delete(WriteOptions(), iter->key()));
+      ASSERT_TimberSaw_OK(db_->Delete(WriteOptions(), iter->key()));
     }
 
     delete iter;
@@ -474,10 +474,10 @@ class FaultInjectionTest : public testing::Test {
   void ResetDBState(ResetMethod reset_method) {
     switch (reset_method) {
       case RESET_DROP_UNSYNCED_DATA:
-        ASSERT_LEVELDB_OK(env_->DropUnsyncedFileData());
+        ASSERT_TimberSaw_OK(env_->DropUnsyncedFileData());
         break;
       case RESET_DELETE_UNSYNCED_FILES:
-        ASSERT_LEVELDB_OK(env_->RemoveFilesCreatedAfterLastDirSync());
+        ASSERT_TimberSaw_OK(env_->RemoveFilesCreatedAfterLastDirSync());
         break;
       default:
         assert(false);
@@ -496,10 +496,10 @@ class FaultInjectionTest : public testing::Test {
     env_->SetFilesystemActive(false);
     CloseDB();
     ResetDBState(reset_method);
-    ASSERT_LEVELDB_OK(OpenDB());
-    ASSERT_LEVELDB_OK(
+    ASSERT_TimberSaw_OK(OpenDB());
+    ASSERT_TimberSaw_OK(
         Verify(0, num_pre_sync, FaultInjectionTest::VAL_EXPECT_NO_ERROR));
-    ASSERT_LEVELDB_OK(Verify(num_pre_sync, num_post_sync,
+    ASSERT_TimberSaw_OK(Verify(num_pre_sync, num_post_sync,
                              FaultInjectionTest::VAL_EXPECT_ERROR));
   }
 
@@ -508,12 +508,12 @@ class FaultInjectionTest : public testing::Test {
   void NoWriteTestReopenWithFault(ResetMethod reset_method) {
     CloseDB();
     ResetDBState(reset_method);
-    ASSERT_LEVELDB_OK(OpenDB());
+    ASSERT_TimberSaw_OK(OpenDB());
   }
 
   void DoTest() {
     Random rnd(0);
-    ASSERT_LEVELDB_OK(OpenDB());
+    ASSERT_TimberSaw_OK(OpenDB());
     for (size_t idx = 0; idx < kNumIterations; idx++) {
       int num_pre_sync = rnd.Uniform(kMaxNumValues);
       int num_post_sync = rnd.Uniform(kMaxNumValues);
@@ -547,7 +547,7 @@ TEST_F(FaultInjectionTest, FaultTestWithLogReuse) {
   DoTest();
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
 int main(int argc, char** argv) {
   testing::InitGoogleTest(&argc, argv);

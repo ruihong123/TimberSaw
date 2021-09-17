@@ -12,7 +12,7 @@
 #include <stdint.h>
 #include <cmath>
 
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 #include "port/port_posix.h"
 #include "util/hash.h"
 #include "util/fastrange.h"

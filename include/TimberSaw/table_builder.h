@@ -2,15 +2,15 @@
 // Created by ruihong on 8/13/21.
 //
 
-#ifndef LEVELDB_TABLE_BUILDER_H
-#define LEVELDB_TABLE_BUILDER_H
-//#include "leveldb/export.h"
-//#include "leveldb/options.h"
-//#include "leveldb/status.h"
-//#include "leveldb/comparator.h"
-//#include "leveldb/env.h"
-//#include "leveldb/filter_policy.h"
-//#include "leveldb/options.h"
+#ifndef TimberSaw_TABLE_BUILDER_H
+#define TimberSaw_TABLE_BUILDER_H
+//#include "TimberSaw/export.h"
+//#include "TimberSaw/options.h"
+//#include "TimberSaw/status.h"
+//#include "TimberSaw/comparator.h"
+//#include "TimberSaw/env.h"
+//#include "TimberSaw/filter_policy.h"
+//#include "TimberSaw/options.h"
 #include "table/block_builder.h"
 //#include "table/filter_block.h"
 #include "table/full_filter_block.h"
@@ -24,7 +24,7 @@ class BlockHandle;
 //class WritableFile;
 
 enum IO_type {Compact, Flush};
-class LEVELDB_EXPORT TableBuilder {
+class TimberSaw_EXPORT TableBuilder {
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
@@ -202,6 +202,6 @@ class LEVELDB_EXPORT TableBuilder {
 };
 
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // LEVELDB_TABLE_BUILDER_H
+#endif  // TimberSaw_TABLE_BUILDER_H

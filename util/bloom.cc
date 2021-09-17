@@ -1,10 +1,10 @@
-// Copyright (c) 2012 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2012 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#include "leveldb/filter_policy.h"
+#include "TimberSaw/filter_policy.h"
 
-#include "leveldb/slice.h"
+#include "TimberSaw/slice.h"
 //#include "util/hash.h"
 
 namespace TimberSaw {
@@ -21,7 +21,7 @@ class BloomFilterPolicy : public FilterPolicy {
     if (k_ > 30) k_ = 30;
   }
 
-  const char* Name() const override { return "leveldb.BuiltinBloomFilter2"; }
+  const char* Name() const override { return "TimberSaw.BuiltinBloomFilter2"; }
 
   void CreateFilter(const Slice* keys, int n, Slice* dst) const override {
     // Compute bloom filter size (in both bits and bytes)
@@ -91,4 +91,4 @@ const FilterPolicy* NewBloomFilterPolicy(int bits_per_key) {
   return new BloomFilterPolicy(bits_per_key);
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw

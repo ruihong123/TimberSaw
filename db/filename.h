@@ -1,17 +1,17 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 //
 // File names used by DB code
 
-#ifndef STORAGE_LEVELDB_DB_FILENAME_H_
-#define STORAGE_LEVELDB_DB_FILENAME_H_
+#ifndef STORAGE_TimberSaw_DB_FILENAME_H_
+#define STORAGE_TimberSaw_DB_FILENAME_H_
 
 #include <cstdint>
 #include <string>
 
-#include "leveldb/slice.h"
-#include "leveldb/status.h"
+#include "TimberSaw/slice.h"
+#include "TimberSaw/status.h"
 #include "port/port.h"
 
 namespace TimberSaw {
@@ -67,7 +67,7 @@ std::string InfoLogFileName(const std::string& dbname);
 // Return the name of the old info log file for "dbname".
 std::string OldInfoLogFileName(const std::string& dbname);
 
-// If filename is a leveldb file, store the type of the file in *type.
+// If filename is a TimberSaw file, store the type of the file in *type.
 // The number encoded in the filename is stored in *number.  If the
 // filename was successfully parsed, returns true.  Else return false.
 bool ParseFileName(const std::string& filename, uint64_t* number,
@@ -78,6 +78,6 @@ bool ParseFileName(const std::string& filename, uint64_t* number,
 Status SetCurrentFile(Env* env, const std::string& dbname,
                       uint64_t descriptor_number);
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_DB_FILENAME_H_
+#endif  // STORAGE_TimberSaw_DB_FILENAME_H_

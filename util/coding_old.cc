@@ -1,10 +1,10 @@
-// Copyright (c) 2011 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "util/coding_old.h"
 
-namespace leveldb {
+namespace TimberSaw {
 //TODO accellerate the Encoding process, avoid the data copy, put the encoded data directly onto Slice
 // Pull the last 8 bits and cast it to a character
 inline void PutFixed16(std::string* dst, uint16_t value) {
@@ -214,4 +214,4 @@ bool GetLengthPrefixedSlice(Slice* input, Slice* result) {
 //  return Slice(p, len);
 //}
 
-}  // namespace leveldb
+}  // namespace TimberSaw

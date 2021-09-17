@@ -1,9 +1,9 @@
-// Copyright 2017 The LevelDB Authors. All rights reserved.
+// Copyright 2017 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
-#ifndef STORAGE_LEVELDB_UTIL_ENV_POSIX_TEST_HELPER_H_
-#define STORAGE_LEVELDB_UTIL_ENV_POSIX_TEST_HELPER_H_
+#ifndef STORAGE_TimberSaw_UTIL_ENV_POSIX_TEST_HELPER_H_
+#define STORAGE_TimberSaw_UTIL_ENV_POSIX_TEST_HELPER_H_
 
 namespace TimberSaw {
 
@@ -23,6 +23,6 @@ class EnvPosixTestHelper {
   static void SetReadOnlyMMapLimit(int limit);
 };
 
-}  // namespace leveldb
+}  // namespace TimberSaw
 
-#endif  // STORAGE_LEVELDB_UTIL_ENV_POSIX_TEST_HELPER_H_
+#endif  // STORAGE_TimberSaw_UTIL_ENV_POSIX_TEST_HELPER_H_

@@ -1,4 +1,4 @@
-// Copyright (c) 2018 The LevelDB Authors. All rights reserved.
+// Copyright (c) 2018 The TimberSaw Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
@@ -24,8 +24,8 @@
 #include <string>
 #include <vector>
 
-#include "leveldb/env.h"
-#include "leveldb/slice.h"
+#include "TimberSaw/env.h"
+#include "TimberSaw/slice.h"
 #include "port/port.h"
 #include "port/thread_annotations.h"
 #include "util/env_windows_test_helper.h"
@@ -33,7 +33,7 @@
 #include "util/mutexlock.h"
 #include "util/windows_logger.h"
 
-namespace leveldb {
+namespace TimberSaw {
 
 namespace {
 
@@ -151,8 +151,8 @@ class WindowsSequentialFile : public SequentialFile {
 
   Status Read(size_t n, Slice* result, char* scratch) override {
     DWORD bytes_read;
-    // DWORD is 32-bit, but size_t could technically be larger. However leveldb
-    // files are limited to leveldb::Options::max_file_size which is clamped to
+    // DWORD is 32-bit, but size_t could technically be larger. However TimberSaw
+    // files are limited to TimberSaw::Options::max_file_size which is clamped to
     // 1<<30 or 1 GiB.
     assert(n <= std::numeric_limits<DWORD>::max());
     if (!::ReadFile(handle_.get(), scratch, static_cast<DWORD>(n), &bytes_read,
@@ -613,7 +613,7 @@ class WindowsEnv : public Env {
       return WindowsError("GetTempPath", ::GetLastError());
     }
     std::stringstream ss;
-    ss << tmp_path << "leveldbtest-" << std::this_thread::get_id();
+    ss << tmp_path << "TimberSawtest-" << std::this_thread::get_id();
     *result = ss.str();
 
     // Directory may already exist
@@ -793,4 +793,4 @@ Env* Env::Default() {
   return env_container.env();
 }
 
-}  // namespace leveldb
+}  // namespace TimberSaw
