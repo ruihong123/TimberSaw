@@ -9,6 +9,7 @@ TimberSaw is the first purpose-built LSM-based indexing system for the emerging 
 * Asynchronous flushing.
 * Near-data compaction.
 * RDMA specific optimizations.
+
 # Usage
 * Keys and values are arbitrary byte arrays.
 * Data is stored sorted by key.
