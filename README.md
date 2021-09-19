@@ -96,14 +96,10 @@ Bigdata:
 CloudLab:
     Thread number    1             2             4            8            16            
     Throughput       0.08Mops/sec  0.14Mops/sec  0.26Mops/sec 0.50Mops/sec 0.61Mops/sec 
+
 Compared to baselines:
     
 ## Repository contents
-
-[comment]: <> (See [doc/index.md]&#40;doc/index.md&#41; for more explanation. See)
-
-[comment]: <> ([doc/impl.md]&#40;doc/impl.md&#41; for a brief overview of the implementation.)
-
 
 Guide to header files:
 
