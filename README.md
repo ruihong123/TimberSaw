@@ -71,32 +71,28 @@ We set the number of immutable tables to 10 to fully utilize the background flus
 The "fillrandom" benchmarks create a brand new database, in a random order.  
 The throughput of the system is shown as below.
 
-[comment]: <> (    fillseq      :       1.765 micros/op;   62.7 MB/s)
-
-[comment]: <> (    fillsync     :     268.409 micros/op;    0.4 MB/s &#40;10000 ops&#41;)
-
-[comment]: <> (    fillrandom   :       2.460 micros/op;   45.0 MB/s)
-
-[comment]: <> (    overwrite    :       2.380 micros/op;   46.5 MB/s)
+Bigdata:
     Thread number    1             2             4            8            16            
     Throughput       0.99Mops/sec  1.47Mops/sec  1.72Mops/sec 1.84Mops/sec 1.96Mops/sec 
 
-[comment]: <> (1472997)
+CloudLab:
+    Thread number    1             2             4            8            16            
+    Throughput       0.86Mops/sec  1.27Mops/sec  1.30Mops/sec 1.48Mops/sec 1.67Mops/sec 
 
-[comment]: <> (1726871)
-
-[comment]: <> (1846320)
-
-[comment]: <> (1962307)
 
 
 ## Read performance
 
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
 
+Bigdata:
     Thread number    1             2             4            8            16            
     Throughput       0.10Mops/sec  0.19Mops/sec  0.36Mops/sec 0.68Mops/sec 1.01Mops/sec 
 
+CloudLab:
+    Thread number    1             2             4            8            16            
+    Throughput       0.08Mops/sec  0.14Mops/sec  0.26Mops/sec 0.50Mops/sec 0.61Mops/sec 
+    
 ## Repository contents
 
 [comment]: <> (See [doc/index.md]&#40;doc/index.md&#41; for more explanation. See)
