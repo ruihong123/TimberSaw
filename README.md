@@ -59,7 +59,8 @@ The CloudLab testbed also contains two servers with the instance type of c6220.
 Each c6220 node containstwo Xeon E5-2650v2 processors (8 cores each, 2.6GHz) and 64GB 
 Memory. The nodes are connected by an RDMA-enabled MellanoxFDR Connectx-3 NIC with 
 a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
-
+## Baseline
+We compare TimberSaw against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
 ## LSM-tree Configurations
 We set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
 10 bits per key for the Bloom filters. For the in-memory buffer, the MemTable size is
@@ -79,6 +80,7 @@ CloudLab:
     Thread number    1             2             4            8            16            
     Throughput       0.86Mops/sec  1.27Mops/sec  1.30Mops/sec 1.48Mops/sec 1.67Mops/sec 
 
+Compared to baselines:
 
 
 ## Read performance
@@ -92,6 +94,7 @@ Bigdata:
 CloudLab:
     Thread number    1             2             4            8            16            
     Throughput       0.08Mops/sec  0.14Mops/sec  0.26Mops/sec 0.50Mops/sec 0.61Mops/sec 
+Compared to baselines:
     
 ## Repository contents
 
@@ -103,9 +106,6 @@ CloudLab:
 Guide to header files:
 
 * **include/TimberSaw/db.h**: Main interface to the DB: Start here.
-<!-- 
-* **include/TimberSaw/options.h**: Control over the behavior of an entire database,
-and also control over the behavior of individual reads and writes. -->
 
 * **include/TimberSaw/comparator.h**: Abstraction for user-specified comparison function.
   If you want just bytewise comparison of keys, you can use the default
@@ -115,8 +115,7 @@ and also control over the behavior of individual reads and writes. -->
 * **include/TimberSaw/iterator.h**: Interface for iterating over data. You can get
   an iterator from a DB object.
 
-<!-- * **include/TimberSaw/write_batch.h**: Interface for atomically applying multiple -->
-<!-- updates to a database. -->
+
 
 * **include/TimberSaw/slice.h**: A simple module for maintaining a pointer and a
   length into some other byte array.
@@ -124,11 +123,6 @@ and also control over the behavior of individual reads and writes. -->
 * **include/TimberSaw/status.h**: Status is returned from many of the public interfaces
   and is used to report success and various kinds of errors.
 
-[comment]: <> (* **include/leveldb/env.h**:)
-
-[comment]: <> (  Abstraction of the OS environment.  A posix implementation of this interface is)
-
-[comment]: <> (  in util/env_posix.cc.)
 
 * **include/TimberSaw/table.h, include/TimberSaw/table_builder.h**: Lower-level modules that most
   clients probably won't use directly.
