@@ -59,8 +59,10 @@ The CloudLab testbed also contains two servers with the instance type of c6220.
 Each c6220 node containstwo Xeon E5-2650v2 processors (8 cores each, 2.6GHz) and 64GB 
 Memory. The nodes are connected by an RDMA-enabled MellanoxFDR Connectx-3 NIC with 
 a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
+
 ## Baseline
 We compare TimberSaw against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
+
 ## LSM-tree Configurations
 We set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
 10 bits per key for the Bloom filters. For the in-memory buffer, the MemTable size is
@@ -70,6 +72,7 @@ We set the number of immutable tables to 10 to fully utilize the background flus
 ## Write performance
 
 The "fillrandom" benchmarks create a brand new database, in a random order.  
+
 The throughput of the system is shown as below.
 
 Bigdata:
