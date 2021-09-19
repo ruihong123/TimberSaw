@@ -80,9 +80,11 @@ CloudLab:
     Thread number    1             2             4            8            16            
     Throughput       0.86Mops/sec  1.27Mops/sec  1.30Mops/sec 1.48Mops/sec 1.67Mops/sec 
 
-Compared to baselines:
-
-
+### Compared to baselines
+Bigdata:
+![RandomWriteBigdata](RandomWriteBigdata.pdf)
+CloudLab:
+![RandomWriteBigdata](RandomWriteCloudLab.pdf)
 ## Read performance
 
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
