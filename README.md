@@ -1,39 +1,39 @@
-## TimberSaw: LSM Indexing for RDMA-Enabled Disaggregated Memory
+# TimberSaw: LSM Indexing for RDMA-Enabled Disaggregated Memory
 
 TimberSaw is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. TimberSaw borrows from LevelDB, but it develops a series of optimizations to address the performance challenges. TimberSaw significantly reduces the software overhead (e.g., the overhead of synchronizing the write queue and flushing), to unlock the full potential of the fast RDMA networking. TimberSaw offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., consistency and garbage collection) to significantly reduce the data movement. TimberSaw optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
 
-# New Features
+## New Features
 * Write queue removal
 * Optimistic Memtable switching.
 * Asynchronous flushing.
 * Near-data compaction.
 * RDMA specific optimizations.
 
-# Usage
+## Usage
 * Keys and values are arbitrary byte arrays.
 * Data is stored sorted by key.
 * The basic operations are `Put(key,value)`, `Get(key)`, `Delete(key)`.
 * Users can create a transient snapshot to get a consistent view of data.
 * Forward and backward iteration is supported over the data.
-# Getting the Source
+## Getting the Source
 ```bash
 git clone --recurse-submodules https://github.com/ruihong123/TimberSaw2021
 ```
-# Building
+## Building
 This project supports CMake out of the box.
-## Build for POSIX
+### Build for POSIX
 
 ```bash
 mkdir -p build && cd build
 cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench TimberSaw
 ```
-## How to run
-### Memory node side: 
+### How to run
+* Memory node side: 
 ```bash
 ./Server
 ```
-### Compute node side: 
+* Compute node side: 
 To run the benchmark:
 ```bash
 ./db_bench --benchmarks=fillrandom,readrandom,readwhilewriting --threads=1 --value_size=400 --key_size=20 --num=100000000 < MemoryNodeIP
@@ -42,12 +42,12 @@ To utilize TimberSaw in your code, you need refer to public interface in **inclu
 ```bash
 YourCodeOverTimberSaw < MemoryNodeIP
 ```
-# Performance
+## Performance
 
 Here is a performance report from the run of the
 "fillrandom" and "readrandom" included in the "db_bench" under benchmarks folder.  
 
-## Setup
+### Setup
 
 We test a database with a 100 million entries.  Each entry has a 20 byte 
 key, and a 400 byte value.  We conduct the experiments on two platforms with 
@@ -60,16 +60,16 @@ Each c6220 node containstwo Xeon E5-2650v2 processors (8 cores each, 2.6GHz) and
 Memory. The nodes are connected by an RDMA-enabled MellanoxFDR Connectx-3 NIC with 
 a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
 
-## Baseline
+### Baseline
 We compare TimberSaw against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
 
-## LSM-tree Configurations
+### LSM-tree Configurations
 We set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
 10 bits per key for the Bloom filters. For the in-memory buffer, the MemTable size is
 set to 64MB. We set 12 background compaction threads and 4 background threads for flushing.
 We set the number of immutable tables to 10 to fully utilize the background flushing threads.
 
-## Write performance
+### Write performance
 
 The "fillrandom" benchmarks create a brand new database, in a random order.  
 
@@ -88,7 +88,7 @@ CloudLab:
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
-### Compared to baselines
+* Compared to baselines
 Bigdata:
 <!-- ![RandomWriteBigdata]() -->
 <img src="RandomWriteBigdata.png" alt="drawing" width="600"/>
@@ -96,7 +96,7 @@ Bigdata:
 CloudLab:
 <!-- ![RandomWriteCloudLab](RandomWriteCloudLab.pdf) -->
 <img src="RandomWriteCloudLab.png" alt="drawing" width="600"/>
-## Read performance
+### Read performance
 
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
 
@@ -115,7 +115,7 @@ CloudLab:
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 
-Compared to baselines:
+* Compared to baselines:
     
 Bigdata:
 <!-- ![RandomReadBigdata](RandomReadBigdata.png) -->
