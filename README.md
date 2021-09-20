@@ -76,8 +76,8 @@ The "fillrandom" benchmarks create a brand new database, in a random order.
 The throughput of the system is shown as below.
 
 Bigdata:
-    Thread number    | 1             | 2             | 4            | 8            | 16            
-    Throughput       | 0.99Mops/sec  | 1.47Mops/sec  | 1.72Mops/sec | 1.84Mops/sec | 1.96Mops/sec 
+    |Thread number    | 1             | 2             | 4            | 8            | 16            
+    |Throughput       | 0.99Mops/sec  | 1.47Mops/sec  | 1.72Mops/sec | 1.84Mops/sec | 1.96Mops/sec 
 
 CloudLab:
     Thread number    |1             |2             |4            |8            |16            
