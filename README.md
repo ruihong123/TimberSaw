@@ -85,9 +85,10 @@ CloudLab:
 
 ### Compared to baselines
 Bigdata:
-![RandomWriteBigdata](RandomWriteBigdata.pdf)
+![RandomWriteBigdata](RandomWriteBigdata.png)
+<!-- 
 CloudLab:
-![RandomWriteBigdata](RandomWriteCloudLab.pdf)
+![RandomWriteBigdata](RandomWriteCloudLab.pdf) -->
 ## Read performance
 
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
@@ -102,6 +103,11 @@ CloudLab:
 
 Compared to baselines:
     
+Bigdata:
+![RandomReadBigdata](RandomReadBigdata.png)
+
+CloudLab:
+![RandomReadBigdata](RandomReadCloudLab.png)
 ## Repository contents
 
 Guide to header files:
