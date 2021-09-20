@@ -21,7 +21,7 @@ TimberSaw is the first purpose-built LSM-based indexing system for the emerging 
 git clone --recurse-submodules https://github.com/ruihong123/TimberSaw2021
 ```
 # Building
-This project supports [CMake](https://cmake.org/) out of the box.
+This project supports CMake out of the box.
 ## Build for POSIX
 
 ```bash
