@@ -86,7 +86,7 @@ CloudLab:
 ### Compared to baselines
 Bigdata:
 <!-- ![RandomWriteBigdata]() -->
-<img src="RandomWriteBigdata.png" alt="drawing" width="200"/>
+<img src="RandomWriteBigdata.png" alt="drawing" width="600"/>
 <!-- 
 CloudLab:
 ![RandomWriteBigdata](RandomWriteCloudLab.pdf) -->
@@ -105,10 +105,12 @@ CloudLab:
 Compared to baselines:
     
 Bigdata:
-![RandomReadBigdata](RandomReadBigdata.png)
+<!-- ![RandomReadBigdata](RandomReadBigdata.png) -->
+<img src="RandomReadBigdata.png" alt="drawing" width="600"/>
 
 CloudLab:
-![RandomReadBigdata](RandomReadCloudLab.png)
+<!-- ![RandomReadBigdata](RandomReadCloudLab.png) -->
+<img src="RandomReadCloudLab.png" alt="drawing" width="600"/>
 ## Repository contents
 
 Guide to header files:
