@@ -85,7 +85,8 @@ CloudLab:
 
 ### Compared to baselines
 Bigdata:
-![RandomWriteBigdata](RandomWriteBigdata.png)
+<!-- ![RandomWriteBigdata]() -->
+<img src="RandomWriteBigdata.png" alt="drawing" width="200"/>
 <!-- 
 CloudLab:
 ![RandomWriteBigdata](RandomWriteCloudLab.pdf) -->
