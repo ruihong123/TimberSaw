@@ -78,16 +78,15 @@ The throughput of the system is shown as below.
 Bigdata:
 
     | Thread number | 1             | 2             | 4             | 8             | 16            |
-
-    <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
-
     | Throughput    | 0\.99Mops/sec | 1\.47Mops/sec | 1\.72Mops/sec | 1\.84Mops/sec | 1\.96Mops/sec |
 
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 CloudLab:
 
-| Thread number | 1             | 2             | 4             | 8             | 16            |
-| :------------ | :------------ | :------------ | :------------ | :------------ | :------------ |
-| Throughput    | 0\.86Mops/sec | 1\.27Mops/sec | 1\.30Mops/sec | 1\.48Mops/sec | 1\.67Mops/sec |
+    | Thread number | 1             | 2             | 4             | 8             | 16            |
+    | Throughput    | 0\.86Mops/sec | 1\.27Mops/sec | 1\.30Mops/sec | 1\.48Mops/sec | 1\.67Mops/sec |
+
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 ### Compared to baselines
 Bigdata:
