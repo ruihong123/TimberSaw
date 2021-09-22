@@ -1603,6 +1603,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       assert(false);// Never comes to here
       qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
       if (qp == NULL) {
+        //if qp not exist create a new qp
         rdma_mg->Remote_Query_Pair_Connection(q_id);
         qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
       }else{
