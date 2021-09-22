@@ -1587,7 +1587,7 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
-                      &send_mr_ve, sizeof(Options) + 1, "main", IBV_SEND_SIGNALED,1);
+                      &send_mr_ve, sizeof(Options) + 10, "main", IBV_SEND_SIGNALED,1);
 }
 
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {

@@ -1231,7 +1231,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
-      std::fprintf(stderr, "Polling install version handler\r");
+      std::fprintf(stderr, "Polling sync option handler\r");
       std::fflush(stderr);
     }
     *opts = *static_cast<Options*>(edit_recv_mr.addr);
