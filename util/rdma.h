@@ -416,7 +416,8 @@ class RDMA_Manager {
   // use thread local qp and cq instead of map, this could be lock free.
   //  static __thread std::string thread_id;
   template <typename T>
-  int post_send(ibv_mr* mr, std::string qp_id = "main"){struct ibv_send_wr sr;
+  int post_send(ibv_mr* mr, std::string qp_id = "main"){
+    struct ibv_send_wr sr;
     struct ibv_sge sge;
     struct ibv_send_wr* bad_wr = NULL;
     int rc;
@@ -474,10 +475,10 @@ class RDMA_Manager {
   int sock_sync_data(int sock, int xfer_size, char* local_data,
                      char* remote_data);
 
-  int post_send(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
+  int post_send(ibv_mr* mr, std::string q_id = "main", size_t size = 0);
   //  int post_receives(int len);
 
-  int post_receive(ibv_mr* mr, std::string qp_id = "main", size_t size = 0);
+  int post_receive(ibv_mr* mr, std::string q_id = "main", size_t size = 0);
 
   int resources_create();
   int modify_qp_to_reset(ibv_qp* qp);
@@ -494,8 +495,8 @@ class RDMA_Manager {
   void print_config(void);
   void usage(const char* argv0);
 
-  int post_receive(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
-  int post_send(ibv_mr** mr_list, size_t sge_size, std::string qp_id);
+  int post_receive(ibv_mr** mr_list, size_t sge_size, std::string q_id);
+  int post_send(ibv_mr** mr_list, size_t sge_size, std::string q_id);
   template <typename T>
   int post_receive(ibv_mr* mr, std::string qp_id = "main"){
     struct ibv_recv_wr rr;
