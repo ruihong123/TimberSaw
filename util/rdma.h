@@ -416,7 +416,7 @@ class RDMA_Manager {
   // use thread local qp and cq instead of map, this could be lock free.
   //  static __thread std::string thread_id;
   template <typename T>
-  int post_send(ibv_mr* mr, std::string qp_id = "main"){
+  int post_send(ibv_mr* mr, std::string q_id = "main"){
     struct ibv_send_wr sr;
     struct ibv_sge sge;
     struct ibv_send_wr* bad_wr = NULL;
@@ -450,11 +450,38 @@ class RDMA_Manager {
     /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
     //*(start) = std::chrono::steady_clock::now();
     // start = std::chrono::steady_clock::now();
-
-    if (rdma_config.server_name)
-      rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
-    else
-      rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+//
+//    if (rdma_config.server_name)
+//      rc = ibv_post_send(res->qp_map["main"], &sr, &bad_wr);
+//    else
+//      rc = ibv_post_send(res->qp_map[qp_id], &sr, &bad_wr);
+    if (q_id == "read_local"){
+      assert(false);// Never comes to here
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_read->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_read->Get());
+      }
+      rc = ibv_post_send(qp, &sr, &bad_wr);
+    }else if (q_id == "write_local_flush"){
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+      }
+      rc = ibv_post_send(qp, &sr, &bad_wr);
+    }else if (q_id == "write_local_compact"){
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+      }
+      rc = ibv_post_send(qp, &sr, &bad_wr);
+    } else {
+      std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+      rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
+      l.unlock();
+    }
 //    if (rc)
 //      fprintf(stderr, "failed to post SR\n");
 //    else {
@@ -498,7 +525,7 @@ class RDMA_Manager {
   int post_receive(ibv_mr** mr_list, size_t sge_size, std::string q_id);
   int post_send(ibv_mr** mr_list, size_t sge_size, std::string q_id);
   template <typename T>
-  int post_receive(ibv_mr* mr, std::string qp_id = "main"){
+  int post_receive(ibv_mr* mr, std::string q_id = "main"){
     struct ibv_recv_wr rr;
     struct ibv_sge sge;
     struct ibv_recv_wr* bad_wr;
@@ -527,10 +554,37 @@ class RDMA_Manager {
     rr.sg_list = &sge;
     rr.num_sge = 1;
     /* post the Receive Request to the RQ */
-    if (rdma_config.server_name)
-      rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
-    else
-      rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
+//    if (rdma_config.server_name)
+//      rc = ibv_post_recv(res->qp_map["main"], &rr, &bad_wr);
+//    else
+//      rc = ibv_post_recv(res->qp_map[qp_id], &rr, &bad_wr);
+    if (q_id == "read_local"){
+      assert(false);// Never comes to here
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_read->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_read->Get());
+      }
+      rc = ibv_post_recv(qp, &rr, &bad_wr);
+    }else if (q_id == "write_local_flush"){
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+      }
+      rc = ibv_post_recv(qp, &rr, &bad_wr);
+    }else if (q_id == "write_local_compact"){
+      ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+      if (qp == NULL) {
+        Remote_Query_Pair_Connection(q_id);
+        qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+      }
+      rc = ibv_post_recv(qp, &rr, &bad_wr);
+    } else {
+      std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+      rc = ibv_post_recv(res->qp_map.at(q_id), &rr, &bad_wr);
+      l.unlock();
+    }
 //    if (rc)
 //#ifndef NDEBUG
 //      fprintf(stderr, "failed to post RR\n");

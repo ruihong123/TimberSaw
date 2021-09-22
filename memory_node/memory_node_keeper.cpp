@@ -28,13 +28,14 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
-    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
-    opts->comparator = &internal_comparator_;
-    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
-    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
-    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
-    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
-    message_handler_pool_.SetBackgroundThreads(opts->max_background_compactions);
+//    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
+//    opts->comparator = &internal_comparator_;
+//    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
+//    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
+//    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
+//    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
+//    Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
+    Message_handler_pool_.SetBackgroundThreads(2);
   }
 //  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
 //                                             void* background_work_arg,
@@ -42,18 +43,18 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
 //    message_handler_pool_.Schedule(background_work_function, background_work_arg);
 //  }
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
-    message_handler_pool_.SetBackgroundThreads(num);
+    Compactor_pool_.SetBackgroundThreads(num);
   }
   void Memory_Node_Keeper::MaybeScheduleCompaction(std::string& client_ip) {
     if (versions_->NeedsCompaction()) {
       //    background_compaction_scheduled_ = true;
       void* function_args = new std::string(client_ip);
       BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-      if (message_handler_pool_.queue_len_.load()>256){
+      if (Compactor_pool_.queue_len_.load()>256){
         //If there has already be enough compaction scheduled, then drop this one
         return;
       }
-      message_handler_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
+      Compactor_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
       DEBUG("Schedule a Compaction !\n");
     }
   }
@@ -1073,7 +1074,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   return sockfd;
 }
   void Memory_Node_Keeper::JoinAllThreads(bool wait_for_jobs_to_complete) {
-  message_handler_pool_.JoinThreads(wait_for_jobs_to_complete);
+    Compactor_pool_.JoinThreads(wait_for_jobs_to_complete);
   }
   void Memory_Node_Keeper::create_mr_handler(RDMA_Request request,
                                              std::string& client_ip) {
@@ -1236,7 +1237,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     *opts = *static_cast<Options*>(edit_recv_mr.addr);
     opts->env = nullptr;
     opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
-    message_handler_pool_.SetBackgroundThreads(opts->max_background_compactions);
+    Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
   }
   void Memory_Node_Keeper::version_unpin_handler(RDMA_Request request,
                                                  std::string& client_ip) {
