@@ -1549,6 +1549,7 @@ void DBImpl::sync_option_to_remote() {
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
   *(Options*)send_mr_ve.addr = options_;
+  memset((char*)send_mr_ve.addr + sizeof(Options)+1, 1, 1);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = sync_option;
   send_pointer->content.ive.buffer_size = sizeof(Options);
@@ -1605,7 +1606,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         rdma_mg->Remote_Query_Pair_Connection(q_id);
         qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
       }else{
-        // if has already exist re initialize the qp to clear the old WRQs.
+        // if the qp has already been existed re initialize the qp to clear the old WRQs.
         assert(rdma_mg->local_read_qp_info->Get() != nullptr);
         rdma_mg->modify_qp_to_reset(qp);
         rdma_mg->connect_qp(qp, q_id);
