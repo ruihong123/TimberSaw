@@ -182,7 +182,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 #endif
 {
 //        main_comm_threads.emplace_back(Clientmessagehandler());
-      sync_option_to_remobtte();
+      sync_option_to_remote();
       main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
 //      main_comm_threads.back().detach();
