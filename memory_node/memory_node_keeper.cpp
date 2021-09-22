@@ -1078,8 +1078,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   }
   void Memory_Node_Keeper::create_mr_handler(RDMA_Request request,
                                              std::string& client_ip) {
-  std::cout << "create memory region command receive for" << client_ip
-  << std::endl;
+    DEBUG("Create new mr\n");
+//  std::cout << "create memory region command receive for" << client_ip
+//  << std::endl;
   //TODO: consider the edianess of the RDMA request and reply.
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
@@ -1109,6 +1110,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::create_qp_handler(RDMA_Request request,
                                              std::string& client_ip) {
     int rc;
+    DEBUG("Create new qp\n");
   assert(request.reply_buffer != nullptr);
   assert(request.rkey != 0);
   char gid_str[17];
