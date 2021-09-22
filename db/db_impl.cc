@@ -182,7 +182,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 #endif
 {
 //        main_comm_threads.emplace_back(Clientmessagehandler());
-
+      sync_option_to_remote();
       main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
 //      main_comm_threads.back().detach();
@@ -1538,6 +1538,56 @@ void DBImpl::InstallSuperVersion() {
 //  ibv_wc wc[3] = {};
 //  env_->rdma_mg->poll_completion(wc, 1, "main", false);
 //}
+void DBImpl::sync_option_to_remote() {
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // register the memory block from the remote memory
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_ve = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  *(Options*)send_mr_ve.addr = options_;
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = sync_option;
+  send_pointer->content.ive.buffer_size = sizeof(Options);
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the sending the request.
+  *receive_pointer = {};
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+    exit(0);
+  }
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side.
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+                      &send_mr_ve, sizeof(Options) + 1, "main", IBV_SEND_SIGNALED,1);
+}
 
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
@@ -3055,7 +3105,6 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
   v->Unref(0);
 }
-
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish

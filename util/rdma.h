@@ -90,6 +90,7 @@ enum RDMA_Command_Type {
   create_mr_,
   install_version_edit,
   version_unpin_,
+  sync_option,
   save_fs_serialized_data,
   retrieve_fs_serialized_data,
   save_log_serialized_data,

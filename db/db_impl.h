@@ -213,6 +213,7 @@ class DBImpl : public DB {
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
+  void sync_option_to_remote();
   void client_message_polling_and_handling_thread(std::string q_id);
   void install_version_edit_handler(RDMA_Request request, std::string client_ip);
 

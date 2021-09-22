@@ -28,13 +28,13 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
-    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
-    opts->comparator = &internal_comparator_;
-    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
-    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
-    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
-    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
-    message_handler_pool_.SetBackgroundThreads(opts->max_background_compactions);
+//    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
+//    opts->comparator = &internal_comparator_;
+//    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
+//    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
+//    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
+//    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
+//    message_handler_pool_.SetBackgroundThreads(opts->max_background_compactions);
   }
 //  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
 //                                             void* background_work_arg,
@@ -965,6 +965,9 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       } else if (receive_msg_buf.command == version_unpin_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         version_unpin_handler(receive_msg_buf, client_ip);
+      } else if (receive_msg_buf.command == create_qp_) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        sync_option_handler(receive_msg_buf, client_ip);
       } else {
         printf("corrupt message from client.");
         break;
@@ -1167,6 +1170,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
   send_pointer->reply_buffer = edit_recv_mr.addr;
   send_pointer->rkey = edit_recv_mr.rkey;
+  assert(request.content.ive.buffer_size < edit_recv_mr.length);
   send_pointer->received = true;
   //TODO: how to check whether the version edit message is ready, we need to know the size of the
   // version edit in the first REQUEST from compute node.
@@ -1197,6 +1201,41 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+  }
+  void Memory_Node_Keeper::sync_option_handler(RDMA_Request request,
+                                               std::string& client_ip) {
+    ibv_mr send_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+    send_pointer->content.ive = {};
+    ibv_mr edit_recv_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+    send_pointer->reply_buffer = edit_recv_mr.addr;
+    send_pointer->rkey = edit_recv_mr.rkey;
+    assert(request.content.ive.buffer_size < edit_recv_mr.length);
+    send_pointer->received = true;
+    //TODO: how to check whether the version edit message is ready, we need to know the size of the
+    // version edit in the first REQUEST from compute node.
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+    memset((void*)polling_byte, 0, 1);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
+    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+
+    while (*(unsigned char*)polling_byte == 0){
+      _mm_clflush(polling_byte);
+      asm volatile ("sfence\n" : : );
+      asm volatile ("lfence\n" : : );
+      asm volatile ("mfence\n" : : );
+      std::fprintf(stderr, "Polling install version handler\r");
+      std::fflush(stderr);
+    }
+    *opts = *static_cast<Options*>(edit_recv_mr.addr);
+    opts->env = nullptr;
+    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
+    message_handler_pool_.SetBackgroundThreads(opts->max_background_compactions);
   }
   void Memory_Node_Keeper::version_unpin_handler(RDMA_Request request,
                                                  std::string& client_ip) {

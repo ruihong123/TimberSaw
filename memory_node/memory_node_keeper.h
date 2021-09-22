@@ -60,6 +60,7 @@ class Memory_Node_Keeper {
     return internal_comparator_.user_comparator();
   }
   void install_version_edit_handler(RDMA_Request request, std::string& client_ip);
+  void sync_option_handler(RDMA_Request request, std::string& client_ip);
   void version_unpin_handler(RDMA_Request request, std::string& client_ip);
   void Edit_sync_to_remote(VersionEdit* edit, std::string& client_ip,
                            std::unique_lock<std::mutex>* version_mtx);
