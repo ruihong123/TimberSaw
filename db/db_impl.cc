@@ -1549,10 +1549,10 @@ void DBImpl::sync_option_to_remote() {
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
   *(Options*)send_mr_ve.addr = options_;
-  memset((char*)send_mr_ve.addr + sizeof(Options)+1, 1, 1);
+  memset((char*)send_mr_ve.addr + sizeof(options_), 1, 1);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = sync_option;
-  send_pointer->content.ive.buffer_size = sizeof(Options);
+  send_pointer->content.ive.buffer_size = sizeof(options_);
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
 
@@ -1587,7 +1587,7 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
-                      &send_mr_ve, sizeof(Options) + 10, "main", IBV_SEND_SIGNALED,1);
+                      &send_mr_ve, sizeof(options_) + 10, "main", IBV_SEND_SIGNALED,1);
 }
 
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
