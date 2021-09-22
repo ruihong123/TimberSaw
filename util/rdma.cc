@@ -678,7 +678,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     fprintf(stderr, "failed to create resources\n");
     return;
   }
-  Get_Remote_qp_Info();
+  Get_Remote_qp_Info_Then_Connect();
 }
 /******************************************************************************
 * Function: resources_create
@@ -795,7 +795,7 @@ int RDMA_Manager::resources_create() {
   return rc;
 }
 
-bool RDMA_Manager::Get_Remote_qp_Info() {
+bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect() {
   //  Connect Queue Pair through TCPIP
   int rc = 0;
   struct registered_qp_config local_con_data;

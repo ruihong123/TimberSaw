@@ -965,7 +965,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       } else if (receive_msg_buf.command == version_unpin_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         version_unpin_handler(receive_msg_buf, client_ip);
-      } else if (receive_msg_buf.command == create_qp_) {
+      } else if (receive_msg_buf.command == sync_option) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         sync_option_handler(receive_msg_buf, client_ip);
       } else {

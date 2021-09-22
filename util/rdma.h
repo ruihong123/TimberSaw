@@ -293,7 +293,7 @@ class RDMA_Manager {
   // RDMA set up create all the resources, and create one query pair for RDMA send & Receive.
   void Client_Set_Up_Resources();
   // Set up the socket connection to remote shared memory.
-  bool Get_Remote_qp_Info();
+  bool Get_Remote_qp_Info_Then_Connect();
   // client function to retrieve serialized data.
   //  bool client_retrieve_serialized_data(const std::string& db_name, char*& buff,
   //                                       size_t& buff_size, ibv_mr*& local_data_mr,
