@@ -911,7 +911,6 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
-    //TODO: preallocate a large amount of RDMA registered memory here.
     rdma_mg->local_mem_pool.reserve(100);
     {
       std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
