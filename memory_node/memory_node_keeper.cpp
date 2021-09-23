@@ -968,6 +968,10 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       } else if (receive_msg_buf.command == sync_option) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         sync_option_handler(receive_msg_buf, client_ip);
+      } else if (receive_msg_buf.command == qp_reset_) {
+        ibv_qp* qp = rdma_mg->res->qp_map.at(client_ip);
+        rdma_mg->modify_qp_to_reset(qp);
+        rdma_mg->connect_qp(qp, client_ip);
       } else {
         printf("corrupt message from client.");
         break;

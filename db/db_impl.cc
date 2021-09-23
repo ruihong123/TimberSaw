@@ -1589,7 +1589,7 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  sleep(1);
+//  sleep(1);
   rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
 
   ibv_wc wc[2] = {};
@@ -1615,8 +1615,26 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
                       &send_mr_ve, sizeof(options_) + 1, "main", IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
 }
+void DBImpl::remote_qp_reset(std::string& q_id){
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = qp_reset_;
+  rdma_mg->post_send<RDMA_Request>(&send_mr, q_id);
 
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, q_id,true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+}
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
     ibv_qp* qp;
@@ -1663,11 +1681,11 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
 
       if (rdma_mg->res->qp_map.find(q_id) != rdma_mg->res->qp_map.end()){
-//        qp = rdma_mg->res->qp_map.at(q_id);
-//        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
-//        l.unlock();
-//        rdma_mg->modify_qp_to_reset(qp);
-//        rdma_mg->connect_qp(qp, q_id);
+        qp = rdma_mg->res->qp_map.at(q_id);
+        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
+        l.unlock();
+        rdma_mg->modify_qp_to_reset(qp);
+        rdma_mg->connect_qp(qp, q_id);
       }else{
         l.unlock();
         rdma_mg->Remote_Query_Pair_Connection(q_id);
@@ -1718,6 +1736,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
     }
+
+    remote_qp_reset(q_id);
     for (int i = 0; i < R_SIZE; ++i) {
       rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
     }
