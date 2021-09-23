@@ -2041,7 +2041,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
 //  asm volatile ("mfence\n" : : );
   printf("Remote memory registeration, size: %zu\n", size);
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
-  printf("poll reply buffer\n");
+  printf("polled reply buffer\n");
   auto* temp_pointer = new ibv_mr();
   // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
   // Please remember to delete it when diregistering mem region from the remote memory
