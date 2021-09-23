@@ -1679,6 +1679,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     }
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      sleep(1);
       check_and_clear_pending_recvWR = true;
       write_stall_cv.notify_one();
     }
