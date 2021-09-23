@@ -1665,7 +1665,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     RDMA_Request receive_msg_buf;
     int buffer_counter = 0;
 //    sync_option_to_remote();
-    rdma_mg->Remote_Memory_Register(1024*1024*1024);
+//    rdma_mg->Remote_Memory_Register(1024*1024*1024);
+    std::string trial("trial");
+    rdma_mg->Remote_Query_Pair_Connection(trial);
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
