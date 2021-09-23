@@ -28,13 +28,13 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
-    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
-    opts->comparator = &internal_comparator_;
-    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
-    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
-    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
-    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
-    Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
+//    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
+//    opts->comparator = &internal_comparator_;
+//    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
+//    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
+//    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
+//    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
+//    Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
     Message_handler_pool_.SetBackgroundThreads(2);
   }
 //  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
