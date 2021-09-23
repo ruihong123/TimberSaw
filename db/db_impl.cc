@@ -1663,11 +1663,11 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
 
       if (rdma_mg->res->qp_map.find(q_id) != rdma_mg->res->qp_map.end()){
-        qp = rdma_mg->res->qp_map.at(q_id);
-        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
-        l.unlock();
-        rdma_mg->modify_qp_to_reset(qp);
-        rdma_mg->connect_qp(qp, q_id);
+//        qp = rdma_mg->res->qp_map.at(q_id);
+//        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
+//        l.unlock();
+//        rdma_mg->modify_qp_to_reset(qp);
+//        rdma_mg->connect_qp(qp, q_id);
       }else{
         l.unlock();
         rdma_mg->Remote_Query_Pair_Connection(q_id);
