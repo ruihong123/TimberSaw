@@ -2036,6 +2036,9 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
   printf("Remote memory registeration, size: %zu\n", size);
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
   printf("poll reply buffer\n");
@@ -2113,6 +2116,9 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
   registered_qp_config* temp_buff = new registered_qp_config(receive_pointer->content.qp_config);
   std::shared_lock<std::shared_mutex> l1(qp_cq_map_mutex);
