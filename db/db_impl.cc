@@ -183,8 +183,17 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 {
 //        main_comm_threads.emplace_back(Clientmessagehandler());
 
-      main_comm_threads.emplace_back(
+    main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
+    //Wait for the clearance of pending receive work request from the last DB open.
+    {
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      while (!check_and_clear_pending_recvWR) {
+        write_stall_cv.wait(lck);
+      }
+    }
+    sync_option_to_remote();
+
 //      main_comm_threads.back().detach();
 }
 
@@ -1651,7 +1660,11 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
     }
-
+    {
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      check_and_clear_pending_recvWR = true;
+      write_stall_cv.notify_one();
+    }
     ibv_mr recv_mr[R_SIZE] = {};
     for(int i = 0; i<R_SIZE; i++){
       rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
@@ -1664,10 +1677,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
     int buffer_counter = 0;
-//    sync_option_to_remote();
 //    rdma_mg->Remote_Memory_Register(1024*1024*1024);
-    std::string trial("trial");
-    rdma_mg->Remote_Query_Pair_Connection(trial);
+//    std::string trial("trial");
+//    rdma_mg->Remote_Query_Pair_Connection(trial);
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
