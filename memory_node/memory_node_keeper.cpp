@@ -28,7 +28,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
-//    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
+    opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
 //    opts->comparator = &internal_comparator_;
 //    ClipToRange(&opts->max_open_files, 64 + kNumNonTableCacheFiles, 50000);
 //    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
