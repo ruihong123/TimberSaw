@@ -1563,6 +1563,7 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
+  sleep(1);
   rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
 
   ibv_wc wc[2] = {};

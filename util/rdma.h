@@ -121,6 +121,7 @@ struct RDMA_Request {
   RDMA_Request_Content content;
   void* reply_buffer;
   uint32_t rkey;
+//  Options opt;
 } __attribute__((packed));
 
 struct RDMA_Reply {
