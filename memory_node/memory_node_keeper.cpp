@@ -34,7 +34,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
 //    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
 //    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
 //    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
-//    Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
+    Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
     Message_handler_pool_.SetBackgroundThreads(2);
   }
 //  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
