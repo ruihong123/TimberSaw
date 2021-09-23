@@ -182,7 +182,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 #endif
 {
 //        main_comm_threads.emplace_back(Clientmessagehandler());
-
+    std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
     //Wait for the clearance of pending receive work request from the last DB open.
@@ -193,9 +193,24 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       }
     }
 //    sync_option_to_remote();
-//        env_->rdma_mg->Remote_Memory_Register(1024*1024*1024);
+//      rdma_mg->Remote_Memory_Register(1024*1024*1024);
         std::string trial("trial");
-        env_->rdma_mg->Remote_Query_Pair_Connection(trial);
+        rdma_mg->Remote_Query_Pair_Connection(trial);
+//        std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
+//
+//        if (rdma_mg->res->qp_map.find(trial) != rdma_mg->res->qp_map.end()){
+//          ibv_qp* qp = rdma_mg->res->qp_map.at(trial);
+//          assert(rdma_mg->res->qp_connection_info.find(trial)!= rdma_mg->res->qp_connection_info.end());
+//          l.unlock();
+//          rdma_mg->modify_qp_to_reset(qp);
+//          rdma_mg->connect_qp(qp, trial);
+//        }else{
+//          l.unlock();
+//          rdma_mg->Remote_Query_Pair_Connection(trial);
+//          l.lock();
+//          ibv_qp* qp = rdma_mg->res->qp_map.at(trial);
+//          l.unlock();
+//        }
 //      main_comm_threads.back().detach();
 }
 
