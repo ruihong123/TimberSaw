@@ -2031,11 +2031,12 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   post_send<RDMA_Request>(&send_mr, std::string("main"));
   ibv_wc wc[2] = {};
 
-  printf("Remote memory registeration, size: %zu\n", size);
+
   if (poll_completion(wc, 1, std::string("main"),true)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }
+  printf("Remote memory registeration, size: %zu\n", size);
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
   printf("poll reply buffer\n");
   auto* temp_pointer = new ibv_mr();
