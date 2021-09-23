@@ -192,8 +192,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
         write_stall_cv.wait(lck);
       }
     }
-    sync_option_to_remote();
-//      rdma_mg->Remote_Memory_Register(1024*1024*1024);
+//    sync_option_to_remote();
+      rdma_mg->Remote_Memory_Register(1024*1024*1024);
 //        std::string trial("trial");
 //        rdma_mg->Remote_Query_Pair_Connection(trial);
 //        std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
