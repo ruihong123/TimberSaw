@@ -971,6 +971,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       } else if (receive_msg_buf.command == qp_reset_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         qp_reset_handler(receive_msg_buf, client_ip);
+        DEBUG("QP has been reconnect from the memory node side\n");
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
       } else {
@@ -1215,8 +1216,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
     //reset the qp state.
     ibv_qp* qp = rdma_mg->res->qp_map.at(client_ip);
+    printf("qp number before reset is %d", qp->qp_num);
     rdma_mg->modify_qp_to_reset(qp);
     rdma_mg->connect_qp(qp, client_ip);
+    printf("qp number after reset is %d", qp->qp_num);
+    //NOte: this will not work because the qp has been reset
+    // the remote side can not receive this RDMA write reply
     //send back the reply through RDMA write
     send_pointer->received = true;
     rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
