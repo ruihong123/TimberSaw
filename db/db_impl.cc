@@ -192,7 +192,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
         write_stall_cv.wait(lck);
       }
     }
-    sync_option_to_remote();
+//    sync_option_to_remote();
 
 //      main_comm_threads.back().detach();
 }
