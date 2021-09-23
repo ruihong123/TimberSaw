@@ -194,8 +194,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     }
 //    sync_option_to_remote();
 //        env_->rdma_mg->Remote_Memory_Register(1024*1024*1024);
-    //    std::string trial("trial");
-    //    rdma_mg->Remote_Query_Pair_Connection(trial);
+        std::string trial("trial");
+        env_->rdma_mg->Remote_Query_Pair_Connection(trial);
 //      main_comm_threads.back().detach();
 }
 

@@ -619,7 +619,7 @@ Status TableBuilder_ComputeSide::Finish() {
   }
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(wc, num_of_poll, r->type_string_,
-                                           false);
+                                           true); //it does not matter whether it is true or false
 #ifndef NDEBUG
   usleep(10);
   int check_poll_number =
