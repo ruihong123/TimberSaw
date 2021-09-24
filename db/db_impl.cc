@@ -1750,6 +1750,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         // copy the pointer of receive buf to a new place because
         // it is the same with send buff pointer.
         if (receive_msg_buf.command == install_version_edit) {
+          ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
           install_version_edit_handler(receive_msg_buf, q_id);
         } else {

@@ -86,6 +86,7 @@ struct install_versionedit {
   uint8_t node_id;
 } __attribute__((packed));
 enum RDMA_Command_Type {
+  invalid_command_,
   create_qp_,
   create_mr_,
   install_version_edit,
