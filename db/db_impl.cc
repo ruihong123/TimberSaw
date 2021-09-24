@@ -1711,12 +1711,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
     }
-    {
-      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      sleep(1);
-      check_and_clear_pending_recvWR = true;
-      write_stall_cv.notify_one();
-    }
+
     ibv_mr* recv_mr;
     int buffer_counter;
     //TODO: keep the recv mr in rdma manager so that next time we restart
@@ -1741,7 +1736,12 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
-
+    {
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      sleep(1);
+      check_and_clear_pending_recvWR = true;
+      write_stall_cv.notify_one();
+    }
 
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){

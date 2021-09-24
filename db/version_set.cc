@@ -763,6 +763,13 @@ class VersionSet::Builder {
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
                                     f->smallest) < 0);
       }
+#ifndef NDEBUG
+      if (level == 0 && !files->empty()){
+        for(const auto& existed_f : *files){
+          assert(existed_f->number!= f->number );
+        }
+      }
+#endif
 //      f->refs++;
       files->push_back(f);
       if (f->UnderCompaction){

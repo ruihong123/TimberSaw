@@ -21,7 +21,7 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     env->SetBackgroundThreads(max_background_flushes,ThreadPoolType::FlushThreadPool);
     env->SetBackgroundThreads(max_background_compactions,ThreadPoolType::CompactionThreadPool);
   }
-
+  env->initialized = true;
 }
 Options::Options(bool is_memory_side) : comparator(BytewiseComparator()), env(is_memory_side? nullptr : Env::Default()){
 
