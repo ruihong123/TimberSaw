@@ -1622,18 +1622,20 @@ void DBImpl::sync_option_to_remote() {
 void DBImpl::remote_qp_reset(std::string& q_id){
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   RDMA_Request* send_pointer;
+  char temp_receive[2];
+  char temp_send[] = "Q";
   ibv_mr send_mr = {};
-  ibv_mr receive_mr = {};
+//  ibv_mr receive_mr = {};
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+//  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = qp_reset_;
-  send_pointer->reply_buffer = receive_mr.addr;
-  send_pointer->rkey = receive_mr.rkey;
-  RDMA_Reply* receive_pointer;
-  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+//  send_pointer->reply_buffer = receive_mr.addr;
+//  send_pointer->rkey = receive_mr.rkey;
+//  RDMA_Reply* receive_pointer;
+//  receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
-  *receive_pointer = {};
+//  *receive_pointer = {};
   rdma_mg->post_send<RDMA_Request>(&send_mr, q_id);
 
   ibv_wc wc[2] = {};
@@ -1641,8 +1643,10 @@ void DBImpl::remote_qp_reset(std::string& q_id){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
-  rdma_mg->poll_reply_buffer(receive_pointer);
-  printf("polled reply buffer\n");
+  // Use out of bind socket to sync two sides
+  rdma_mg->sock_sync_data(rdma_mg->res->sock_map[q_id.c_str()], 1, temp_send,temp_receive);
+//  rdma_mg->poll_reply_buffer(receive_pointer);
+//  printf("polled reply buffer\n");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 }
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
@@ -1748,6 +1752,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     }
 
     remote_qp_reset(q_id);
+
+    sleep(1);
     for (int i = 0; i < R_SIZE; ++i) {
       rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
     }

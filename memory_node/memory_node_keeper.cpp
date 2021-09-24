@@ -922,8 +922,8 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
       fprintf(stderr, "sync error after QPs are were moved to RTS\n");
       rc = 1;
       }
-      shutdown(socket_fd, 2);
-    close(socket_fd);
+//      shutdown(socket_fd, 2);
+//    close(socket_fd);
     //  post_send<int>(res->mr_send, client_ip);
     ibv_wc wc[3] = {};
     //  if(poll_completion(wc, 2, client_ip))
@@ -970,7 +970,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         sync_option_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf.command == qp_reset_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        qp_reset_handler(receive_msg_buf, client_ip);
+        qp_reset_handler(receive_msg_buf, client_ip, socket_fd);
         DEBUG("QP has been reconnect from the memory node side\n");
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
@@ -1210,23 +1210,31 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
   }
-  void Memory_Node_Keeper::qp_reset_handler(RDMA_Request request, std::string& client_ip) {
+  void Memory_Node_Keeper::qp_reset_handler(RDMA_Request request,
+                                            std::string& client_ip,
+                                            int socket_fd) {
     ibv_mr send_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+    char temp_receive[2];
+    char temp_send[] = "Q";
+//    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+//    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
     //reset the qp state.
     ibv_qp* qp = rdma_mg->res->qp_map.at(client_ip);
-    printf("qp number before reset is %d", qp->qp_num);
+    printf("qp number before reset is %d\n", qp->qp_num);
+
+
     rdma_mg->modify_qp_to_reset(qp);
     rdma_mg->connect_qp(qp, client_ip);
-    printf("qp number after reset is %d", qp->qp_num);
+    printf("qp number after reset is %d\n", qp->qp_num);
     //NOte: this will not work because the qp has been reset
     // the remote side can not receive this RDMA write reply
     //send back the reply through RDMA write
-    send_pointer->received = true;
-    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
-                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+//    send_pointer->received = true;
+//    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+//                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+    rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
+                            temp_receive);
+//    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   }
   void Memory_Node_Keeper::sync_option_handler(RDMA_Request request,
                                                std::string& client_ip) {
