@@ -18,8 +18,6 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
                                      RDMA_WRITE_BLOCK);
     env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"),
                                      RDMA_WRITE_BLOCK);
-    env->SetBackgroundThreads(max_background_flushes,ThreadPoolType::FlushThreadPool);
-    env->SetBackgroundThreads(max_background_compactions,ThreadPoolType::CompactionThreadPool);
   }
   env->initialized = true;
 }
