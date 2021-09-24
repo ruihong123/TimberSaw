@@ -969,6 +969,8 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         sync_option_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf.command == qp_reset_) {
+        //THis should not be called because the recevei mr will be reset and the buffer
+        // counter will be reset as 0
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         qp_reset_handler(receive_msg_buf, client_ip, socket_fd);
         DEBUG("QP has been reconnect from the memory node side\n");
@@ -1226,9 +1228,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->modify_qp_to_reset(qp);
     rdma_mg->connect_qp(qp, client_ip);
     printf("qp number after reset is %d\n", qp->qp_num);
-    //NOte: this will not work because the qp has been reset
-    // the remote side can not receive this RDMA write reply
-    //send back the reply through RDMA write
+    //NOte: This is not correct because we did not recycle the receive mr, so we also
+    //  need to repost the receive wr and start from mr #1
 //    send_pointer->received = true;
 //    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
 //                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);

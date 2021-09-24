@@ -1717,18 +1717,31 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       check_and_clear_pending_recvWR = true;
       write_stall_cv.notify_one();
     }
-    ibv_mr recv_mr[R_SIZE] = {};
-    for(int i = 0; i<R_SIZE; i++){
-      rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
+    ibv_mr* recv_mr;
+    int buffer_counter;
+    //TODO: keep the recv mr in rdma manager so that next time we restart
+    // the database we can retrieve from the rdma_mg.
+    if (rdma_mg->comm_thread_recv_mrs.find(q_id) != rdma_mg->comm_thread_recv_mrs.end()){
+      recv_mr = rdma_mg->comm_thread_recv_mrs.at(q_id);
+      buffer_counter = rdma_mg->comm_threead_buffer.at(q_id);
+    }else{
+      // Some where we need to delete the recv_mr in case of memory leak.
+      ibv_mr* recv_mr = new ibv_mr[R_SIZE]();
+      for(int i = 0; i<R_SIZE; i++){
+        rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
+      }
+
+      for(int i = 0; i<R_SIZE; i++) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], q_id);
+      }
+      buffer_counter = 0;
+      rdma_mg->comm_thread_recv_mrs.insert({q_id, recv_mr});
     }
 
-    for(int i = 0; i<R_SIZE; i++) {
-      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], q_id);
-    }
 
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
-    int buffer_counter = 0;
+
 
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
@@ -1753,12 +1766,12 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
     }
 
-    remote_qp_reset(q_id);
-
-    sleep(1);
-    for (int i = 0; i < R_SIZE; ++i) {
-      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
-    }
+//    remote_qp_reset(q_id);
+    rdma_mg->comm_threead_buffer.insert({q_id, buffer_counter});
+//    sleep(1);
+//    for (int i = 0; i < R_SIZE; ++i) {
+//      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
+//    }
 }
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
                                  std::unique_lock<std::mutex>* version_mtx) {
