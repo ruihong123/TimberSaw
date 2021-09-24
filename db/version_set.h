@@ -300,7 +300,7 @@ class VersionSet {
   // current version.  Will release *mu while actually writing to the file.
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
-  Status LogAndApply(VersionEdit* edit, size_t remote_version_id);
+  Status LogAndApply(VersionEdit* edit, size_t remote_subversion_id);
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool* save_manifest);

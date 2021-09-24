@@ -834,7 +834,7 @@ void VersionSet::AppendVersion(Version* v) {
   v->next_->prev_ = v;
 }
 
-Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_version_id) {
+Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_subversion_id) {
 //  if (edit->has_log_number_) {
 //    assert(edit->log_number_ >= log_number_);
 //    assert(edit->log_number_ < next_file_number_.load());
@@ -850,7 +850,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_version_id) {
   edit->SetLastSequence(last_sequence_);
   Version* v;
   //Build an empty version.
-  if (remote_version_id == 0){
+  if (remote_subversion_id == 0){
     v = new Version(this, current_->subversion);
 #ifndef NDEBUG
     printf("sub version for the new version is %p", current_->subversion.get());
@@ -861,12 +861,13 @@ Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_version_id) {
   }else{
     //TODO: how to let the function know whether it is memory node or compute node.
     assert(Env::Default() != nullptr);
-    std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(remote_version_id, Env::Default()->rdma_mg);
+    std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(
+        remote_subversion_id, Env::Default()->rdma_mg);
     v = new Version(this, subverison);
 #ifndef NDEBUG
     printf("sub version for the new version is %p", v->subversion.get());
     if (v->subversion.get() != nullptr){
-      printf("version id for this subversion is %lu", remote_version_id);
+      printf("version id for this subversion is %lu", remote_subversion_id);
     }
 #endif
   }

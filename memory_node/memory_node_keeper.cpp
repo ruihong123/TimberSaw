@@ -1191,14 +1191,19 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-
+  size_t counter = 0;
   while (*(unsigned char*)polling_byte == 0){
     _mm_clflush(polling_byte);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    std::fprintf(stderr, "Polling install version handler\r");
-    std::fflush(stderr);
+    if (counter == 1000){
+      std::fprintf(stderr, "Polling install version handler\r");
+      std::fflush(stderr);
+      counter = 0;
+    }
+
+    counter++;
   }
   VersionEdit version_edit;
   version_edit.DecodeFrom(
