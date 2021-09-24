@@ -1668,8 +1668,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }else{
         // if the qp has already been existed re initialize the qp to clear the old WRQs.
         assert(rdma_mg->local_read_qp_info->Get() != nullptr);
-        rdma_mg->modify_qp_to_reset(qp);
-        rdma_mg->connect_qp(qp, q_id);
+//        rdma_mg->modify_qp_to_reset(qp);
+//        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_flush"){
       qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
@@ -1678,8 +1678,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
       }else{
         assert(rdma_mg->local_write_flush_qp_info->Get() != nullptr);
-        rdma_mg->modify_qp_to_reset(qp);
-        rdma_mg->connect_qp(qp, q_id);
+//        rdma_mg->modify_qp_to_reset(qp);
+//        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_compact"){
       qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
@@ -1688,20 +1688,20 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
       }else{
         assert(rdma_mg->local_write_compact_qp_info->Get() != nullptr);
-        rdma_mg->modify_qp_to_reset(qp);
-        rdma_mg->connect_qp(qp, q_id);
+//        rdma_mg->modify_qp_to_reset(qp);
+//        rdma_mg->connect_qp(qp, q_id);
       }
     } else {
       std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
 
       if (rdma_mg->res->qp_map.find(q_id) != rdma_mg->res->qp_map.end()){
-        qp = rdma_mg->res->qp_map.at(q_id);
-        printf("qp number before reset is %d\n", qp->qp_num);
-        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
-        l.unlock();
-        rdma_mg->modify_qp_to_reset(qp);
-        rdma_mg->connect_qp(qp, q_id);
-        printf("qp number after reset is %d\n", qp->qp_num);
+//        qp = rdma_mg->res->qp_map.at(q_id);
+//        printf("qp number before reset is %d\n", qp->qp_num);
+//        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
+//        l.unlock();
+//        rdma_mg->modify_qp_to_reset(qp);
+//        rdma_mg->connect_qp(qp, q_id);
+//        printf("qp number after reset is %d\n", qp->qp_num);
       }else{
         l.unlock();
         rdma_mg->Remote_Query_Pair_Connection(q_id);
