@@ -1696,10 +1696,12 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
       if (rdma_mg->res->qp_map.find(q_id) != rdma_mg->res->qp_map.end()){
         qp = rdma_mg->res->qp_map.at(q_id);
+        printf("qp number before reset is %d\n", qp->qp_num);
         assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
         l.unlock();
         rdma_mg->modify_qp_to_reset(qp);
         rdma_mg->connect_qp(qp, q_id);
+        printf("qp number after reset is %d\n", qp->qp_num);
       }else{
         l.unlock();
         rdma_mg->Remote_Query_Pair_Connection(q_id);
