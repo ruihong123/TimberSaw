@@ -632,6 +632,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
 //    }
     meta->level = 0;
     edit->AddFile(0, meta);
+    assert(edit->GetNewFilesNum()==1);
   }
 
   CompactionStats stats;
