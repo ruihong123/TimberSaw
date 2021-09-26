@@ -33,7 +33,7 @@ class ThreadPool{
   std::mutex mu_;
   std::condition_variable bgsignal_;
   int total_threads_limit_;
-  std::atomic_uint queue_len_;
+  std::atomic_uint queue_len_ = 0;
   bool exit_all_threads_ = false;
   bool wait_for_jobs_to_complete_;
   void WakeUpAllThreads() { bgsignal_.notify_all();
