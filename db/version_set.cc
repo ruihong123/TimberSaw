@@ -1173,7 +1173,7 @@ void VersionSet::Finalize(Version* v) {
       }
     }
   }
-  if (v->levels_[1].size() == 0){
+  if (v->levels_[0].size() == 0){
     printf("level 0 file equals 0 marker\n");
   }
 //  v->compaction_level_ = best_level;
