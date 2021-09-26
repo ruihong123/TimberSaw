@@ -53,6 +53,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
       BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
       if (Compactor_pool_.queue_len_.load()>256){
         //If there has already be enough compaction scheduled, then drop this one
+        printf("queue length has been too long %d elements in the queue\n", Compactor_pool_.queue_len_.load());
         return;
       }
       Compactor_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
