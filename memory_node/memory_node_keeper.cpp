@@ -56,7 +56,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
         return;
       }
       Compactor_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
-      DEBUG("Schedule a Compaction !\n");
+      printf("Schedule a Compaction !\n");
     }
   }
   void Memory_Node_Keeper::BGWork_Compaction(void* thread_arg) {
