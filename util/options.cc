@@ -11,7 +11,6 @@ namespace TimberSaw {
 
 Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
   if (!env->initialized){
-    env->rdma_mg->Mempool_initialize(std::string("DataBlock"), block_size);
     env->rdma_mg->Mempool_initialize(std::string("DataIndexBlock"),
                                      RDMA_WRITE_BLOCK);
     env->rdma_mg->Mempool_initialize(std::string("FilterBlock"),
@@ -19,6 +18,7 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"),
                                      RDMA_WRITE_BLOCK);
   }
+
   env->initialized = true;
 }
 Options::Options(bool is_memory_side) : comparator(BytewiseComparator()), env(is_memory_side? nullptr : Env::Default()){

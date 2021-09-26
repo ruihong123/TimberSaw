@@ -39,6 +39,7 @@ enum CompressionType {
 };
 
 // Options to control the behavior of a database (passed to DB::Open)
+// The options now do not support dynamically change.
 struct TimberSaw_EXPORT Options {
   // Create an Options object with default values for all fields.
   Options();

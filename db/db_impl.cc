@@ -185,6 +185,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
+    env_->rdma_mg->Mempool_initialize(std::string("DataBlock"), options_.block_size);
+
     main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
     //Wait for the clearance of pending receive work request from the last DB open.
