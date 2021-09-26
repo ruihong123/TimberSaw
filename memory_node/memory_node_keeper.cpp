@@ -48,6 +48,7 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
   void Memory_Node_Keeper::MaybeScheduleCompaction(std::string& client_ip) {
     if (versions_->NeedsCompaction()) {
       //    background_compaction_scheduled_ = true;
+      printf("Need a compaction.\n");
       void* function_args = new std::string(client_ip);
       BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
       if (Compactor_pool_.queue_len_.load()>256){
