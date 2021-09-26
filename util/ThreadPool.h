@@ -84,6 +84,7 @@ class ThreadPool{
     if (exit_all_threads_) {
       return;
     }
+    printf("schedule a work request!\n");
     StartBGThreads();
     // Add to priority queue
     queue_.push_back(BGItem());
