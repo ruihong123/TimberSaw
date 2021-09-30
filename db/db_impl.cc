@@ -219,7 +219,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //          l.unlock();
 //        }
 //      main_comm_threads.back().detach();
-
+    printf("DBImpl finished\n");
 }
 
 DBImpl::~DBImpl() {
