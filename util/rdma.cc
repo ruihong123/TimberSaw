@@ -203,7 +203,9 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
       .ai_flags = AI_PASSIVE, .ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
   if (sprintf(service, "%d", port) < 0) goto sock_connect_exit;
   /* Resolve DNS address, use sockfd as temp storage */
+  printf("Mark: valgrind socket info1\n");
   sockfd = getaddrinfo(servername, service, &hints, &resolved_addr);
+  printf("Mark: valgrind socket info2\n");
   if (sockfd < 0) {
     fprintf(stderr, "%s for %s:%d\n", gai_strerror(sockfd), servername, port);
     goto sock_connect_exit;
