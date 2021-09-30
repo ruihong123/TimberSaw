@@ -329,6 +329,8 @@ endif()
 #  "db/TimberSawutil.cc"
 #)
 #target_link_libraries(TimberSawutil TimberSaw)
+add_executable(Mem_leak_checker memory_leak.cpp)
+target_link_libraries(Mem_leak_checker TimberSaw)
 add_executable(Server server.cc)
 target_link_libraries(Server TimberSaw)
 if(TimberSaw_BUILD_TESTS)
