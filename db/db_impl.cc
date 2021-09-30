@@ -1662,7 +1662,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     //NOte: Re-initialize below is very important because DBImple may be
     // initialize serveral times, every time we need to clear the qp.
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-    printf("client handling thread\n");
+
 //    assert(!shutting_down_.load());
     if (q_id == "read_local"){
       assert(false);// Never comes to here
@@ -1748,7 +1748,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       check_and_clear_pending_recvWR = true;
       write_stall_cv.notify_one();
     }
-
+    printf("client handling thread\n");
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
