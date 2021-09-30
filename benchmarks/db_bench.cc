@@ -658,6 +658,7 @@ class Benchmark {
           db_ = nullptr;
           DestroyDB(FLAGS_db, Options());
           Open();
+          DEBUG("The second open finished.\n");
         }
       }
 
@@ -665,9 +666,9 @@ class Benchmark {
         if (name == "readrandom"){
           TableCache::CleanAll();
         }
-        printf("The benchmark start.\n");
+        DEBUG("The benchmark start.\n");
         RunBenchmark(num_threads, name, method);
-        printf("Benchmark finished\n");
+        DEBUG("Benchmark finished\n");
 
       }
     }
