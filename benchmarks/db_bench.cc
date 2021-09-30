@@ -712,6 +712,7 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
+    printf("Bechmark start\n");
     if (name.ToString() == "fillrandom")
       Validation_Write();
 //    if (name.ToString() == "readrandom"){
@@ -746,6 +747,7 @@ class Benchmark {
       // but reproducible when rerunning the same set of benchmarks.
       arg[i].thread = new ThreadState(i, /*seed=*/1000 + total_thread_count_);
       arg[i].thread->shared = &shared;
+      printf("start front-end threads\n");
       g_env->StartThread(ThreadBody, &arg[i]);
     }
 
