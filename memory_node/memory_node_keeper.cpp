@@ -1280,7 +1280,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
     opts->comparator = &internal_comparator_;
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
-    DEBUG("Option sync finished\n");
+    printf("Option sync finished\n");
   }
   void Memory_Node_Keeper::version_unpin_handler(RDMA_Request request,
                                                  std::string& client_ip) {
