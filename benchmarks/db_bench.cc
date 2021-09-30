@@ -554,7 +554,7 @@ class Benchmark {
     const char* benchmarks = FLAGS_benchmarks;
 //    Validation_Write();
     while (benchmarks != nullptr) {
-      printf("The benchmark start.\n");
+
       const char* sep = strchr(benchmarks, ',');
       Slice name;
       if (sep == nullptr) {
@@ -665,6 +665,7 @@ class Benchmark {
         if (name == "readrandom"){
           TableCache::CleanAll();
         }
+        printf("The benchmark start.\n");
         RunBenchmark(num_threads, name, method);
         printf("Benchmark finished\n");
 
@@ -712,7 +713,7 @@ class Benchmark {
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
-    printf("Bechmark start\n");
+//    printf("Bechmark start\n");
     if (name.ToString() == "fillrandom")
       Validation_Write();
 //    if (name.ToString() == "readrandom"){
