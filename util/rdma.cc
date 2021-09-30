@@ -992,6 +992,8 @@ int RDMA_Manager::connect_qp(ibv_qp* qp, std::string& q_id) {
   if (rc) {
     fprintf(stderr, "failed to modify QP state to RTS\n");
     goto connect_qp_exit;
+  }else{
+    printf("connection built up!\n");
   }
   fprintf(stdout, "QP %p state was change to RTS\n", qp);
 /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
