@@ -859,16 +859,26 @@ void PosixEnv::Schedule(
     void* background_work_arg, ThreadPoolType type) {
   switch (type) {
     case FlushThreadPool:
+      if (flushing.queue_len_.load()>256){
+        //If there has already be enough compaction scheduled, then drop this one
+        printf("queue length has been too long %d elements in the queue\n", flushing.queue_len_.load());
+        return;
+      }
       DEBUG_arg("flushing thread pool task queue length %zu\n", flushing.queue_.size());
       flushing.Schedule(background_work_function, background_work_arg);
       break;
     case CompactionThreadPool:
+      if (compaction.queue_len_.load()>256){
+        //If there has already be enough compaction scheduled, then drop this one
+        printf("queue length has been too long %d elements in the queue\n", compaction.queue_len_.load());
+        return;
+      }
       DEBUG_arg("compaction thread pool task queue length %zu\n", compaction.queue_.size());
       compaction.Schedule(background_work_function, background_work_arg);
       break;
-    case SubcompactionThreadPool:
-      subcompaction.Schedule(background_work_function, background_work_arg);
-      break;
+//    case SubcompactionThreadPool:
+//      subcompaction.Schedule(background_work_function, background_work_arg);
+//      break;
   }
 }
 unsigned int PosixEnv::Queue_Length_Quiry(ThreadPoolType type){
