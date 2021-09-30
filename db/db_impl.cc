@@ -1752,7 +1752,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       check_and_clear_pending_recvWR = true;
 
     }
-    write_stall_cv.notify_one();
+    write_stall_cv.notify_all();
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
