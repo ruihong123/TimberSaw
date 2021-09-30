@@ -203,9 +203,9 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
       .ai_flags = AI_PASSIVE, .ai_family = AF_INET, .ai_socktype = SOCK_STREAM};
   if (sprintf(service, "%d", port) < 0) goto sock_connect_exit;
   /* Resolve DNS address, use sockfd as temp storage */
-  printf("Mark: valgrind socket info1\n");
+//  printf("Mark: valgrind socket info1\n");
   sockfd = getaddrinfo(servername, service, &hints, &resolved_addr);
-  printf("Mark: valgrind socket info2\n");
+//  printf("Mark: valgrind socket info2\n");
   if (sockfd < 0) {
     fprintf(stderr, "%s for %s:%d\n", gai_strerror(sockfd), servername, port);
     goto sock_connect_exit;
@@ -667,10 +667,10 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   std::cin >> ip_add;
   rdma_config.server_name = ip_add.c_str();
   /* if client side */
-
+  printf("Mark: valgrind socket info1\n");
   res->sock_map["main"] =
       client_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
-  printf("socket connected successfully\n");
+
   if (res->sock_map["main"] < 0) {
     fprintf(stderr,
             "failed to establish TCP connection to server %s, port %d\n",
