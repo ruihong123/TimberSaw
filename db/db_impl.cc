@@ -196,6 +196,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
         write_stall_cv.wait(lck);
       }
     }
+    printf("Start to sync options\n");
     sync_option_to_remote();
 //      rdma_mg->Remote_Memory_Register(1024*1024*1024);
 //        std::string trial("trial");
@@ -216,7 +217,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //          l.unlock();
 //        }
 //      main_comm_threads.back().detach();
-    printf("DBImpl has been created\n");
+
 }
 
 DBImpl::~DBImpl() {
