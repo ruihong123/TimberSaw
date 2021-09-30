@@ -668,6 +668,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 
   res->sock_map["main"] =
       client_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
+  printf("socket connected successfully\n");
   if (res->sock_map["main"] < 0) {
     fprintf(stderr,
             "failed to establish TCP connection to server %s, port %d\n",
@@ -992,9 +993,10 @@ int RDMA_Manager::connect_qp(ibv_qp* qp, std::string& q_id) {
   if (rc) {
     fprintf(stderr, "failed to modify QP state to RTS\n");
     goto connect_qp_exit;
-  }else{
-    printf("connection built up!\n");
   }
+//  else{
+//    printf("connection built up!\n");
+//  }
   fprintf(stdout, "QP %p state was change to RTS\n", qp);
 /* sync to make sure that both sides are in states that they can connect to prevent packet loose */
 connect_qp_exit:
