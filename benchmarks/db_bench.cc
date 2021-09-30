@@ -868,7 +868,7 @@ class Benchmark {
     options.reuse_logs = FLAGS_reuse_logs;
     Status s = DB::Open(options, FLAGS_db, &db_);
     if (!s.ok()) {
-      std::fprintf(stderr, "open error: %s\n", s.ToString().c_str());
+      std::fprintf(stdout, "open error: %s\n", s.ToString().c_str());
       std::exit(1);
     }
   }
