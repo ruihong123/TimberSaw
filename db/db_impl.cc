@@ -181,6 +181,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       flush_times(0)
 #endif
 {
+  printf("DBImpl start\n");
 //        main_comm_threads.emplace_back(Clientmessagehandler());
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
@@ -189,6 +190,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
     main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
+    printf("communication thread created\n");
     //Wait for the clearance of pending receive work request from the last DB open.
 //    {
 //      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
