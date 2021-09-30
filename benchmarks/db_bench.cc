@@ -685,6 +685,7 @@ class Benchmark {
     ThreadArg* arg = reinterpret_cast<ThreadArg*>(v);
     SharedState* shared = arg->shared;
     ThreadState* thread = arg->thread;
+    printf("Wait for thread start\n");
     {
       MutexLock l(&shared->mu);
       shared->num_initialized++;
@@ -695,7 +696,7 @@ class Benchmark {
         shared->cv.Wait();
       }
     }
-
+    printf("Threads start to run\n");
     thread->stats.Start();
     (arg->bm->*(arg->method))(thread);
     thread->stats.Stop();
