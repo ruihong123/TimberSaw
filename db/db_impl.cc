@@ -199,7 +199,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       }
     }
     printf("Start to sync options\n");
-    sync_option_to_remote();
+
 //      rdma_mg->Remote_Memory_Register(1024*1024*1024);
 //        std::string trial("trial");
 //        rdma_mg->Remote_Query_Pair_Connection(trial);
@@ -1743,7 +1743,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       rdma_mg->comm_thread_recv_mrs.insert({q_id, recv_mr});
     }
 
-
+    sync_option_to_remote();
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
     {
