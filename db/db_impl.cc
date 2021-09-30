@@ -193,6 +193,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       while (!check_and_clear_pending_recvWR) {
+        printf("Start to sleep options\n");
         write_stall_cv.wait(lck);
       }
     }
