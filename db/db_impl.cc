@@ -2760,7 +2760,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
   std::printf("Real insert to memtable, time elapse is %zu\n",  duration.count());
   std::printf("total time, time elapse is %zu\n",  total_duration.count());
 #endif
-//  printf("A value has been inserted\n");
+  printf("A value has been inserted\n");
   return status;
 }
 
