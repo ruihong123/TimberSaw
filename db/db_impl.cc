@@ -192,14 +192,14 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
     printf("communication thread created\n");
     //Wait for the clearance of pending receive work request from the last DB open.
-//    {
-//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-//      while (!check_and_clear_pending_recvWR) {
-//        printf("Start to sleep\n");
-//        write_stall_cv.wait(lck);
-//        printf("Waked up\n");
-//      }
-//    }
+    {
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      while (!check_and_clear_pending_recvWR) {
+        printf("Start to sleep\n");
+        write_stall_cv.wait(lck);
+        printf("Waked up\n");
+      }
+    }
 
 
 //      rdma_mg->Remote_Memory_Register(1024*1024*1024);
@@ -1748,12 +1748,12 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     sync_option_to_remote();
     ibv_wc wc[3] = {};
     RDMA_Request receive_msg_buf;
-//    {
-//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-//      check_and_clear_pending_recvWR = true;
-//
-//    }
-//    write_stall_cv.notify_all();
+    {
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      check_and_clear_pending_recvWR = true;
+
+    }
+    write_stall_cv.notify_all();
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
