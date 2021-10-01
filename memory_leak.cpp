@@ -5,12 +5,16 @@
 #include <string>
 #include <iostream>
 #include "include/TimberSaw/db.h"
+#include "include/TimberSaw/filter_policy.h"
 int main()
 {
   TimberSaw::DB* db;
   TimberSaw::Options options;
   options.max_background_compactions = 1;
   options.max_background_flushes = 1;
+  //TODO: implement the FIlter policy before initial the database
+  auto b_policy = TimberSaw::NewBloomFilterPolicy(options.bloom_bits);
+  options.filter_policy = b_policy;
   TimberSaw::Status s = TimberSaw::DB::Open(options, "mem_leak", &db);
   std::string value;
   std::string key;
