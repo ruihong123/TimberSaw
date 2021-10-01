@@ -1758,7 +1758,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     while (!shutting_down_.load()) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
-        printf("Buffer counter %d has been used!\n");
+        printf("Buffer counter %d has been used!\n", buffer_counter);
         // copy the pointer of receive buf to a new place because
         // it is the same with send buff pointer.
         if (receive_msg_buf.command == install_version_edit) {
