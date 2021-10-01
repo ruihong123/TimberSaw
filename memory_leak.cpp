@@ -22,7 +22,7 @@ int main()
   for (int i = 0; i<10000000; i++){
     key = std::to_string(i);
     key.insert(0, 20 - key.length(), '0');
-    value = std::to_string(std::rand() % ( 4500001 ));
+    value = std::to_string(std::rand() % ( 10000000 ));
     value.insert(0, 400 - value.length(), '0');
     s = db->Put(option_wr, key, value);
     if (!s.ok()){
