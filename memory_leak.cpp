@@ -19,7 +19,7 @@ int main()
   options.filter_policy = b_policy;
   TimberSaw::Status s = TimberSaw::DB::Open(options, "mem_leak", &db);
   DestroyDB("mem_leak", TimberSaw::Options());
-  s = TimberSaw::DB::Open(options, "mem_leak", &db);
+  TimberSaw::DB::Open(options, "mem_leak", &db);
   std::string value;
   std::string key;
   auto option_wr = TimberSaw::WriteOptions();
