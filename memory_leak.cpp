@@ -24,7 +24,7 @@ int main()
   std::string value;
   std::string key;
   auto option_wr = TimberSaw::WriteOptions();
-  for (int i = 0; i<10000000; i++){
+  for (int i = 0; i<1000000; i++){
     key = std::to_string(i);
     key.insert(0, 20 - key.length(), '1');
     value = std::to_string(std::rand() % ( 10000000 ));
