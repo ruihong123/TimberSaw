@@ -26,9 +26,9 @@ int main()
   auto option_wr = TimberSaw::WriteOptions();
   for (int i = 0; i<10000000; i++){
     key = std::to_string(i);
-    key.insert(0, 20 - key.length(), '0');
+    key.insert(0, 20 - key.length(), '1');
     value = std::to_string(std::rand() % ( 10000000 ));
-    value.insert(0, 400 - value.length(), '0');
+    value.insert(0, 400 - value.length(), '1');
     s = db->Put(option_wr, key, value);
     if (!s.ok()){
       std::cerr << s.ToString() << std::endl;
