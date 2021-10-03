@@ -407,7 +407,7 @@ class RDMA_Manager {
   std::shared_mutex local_mem_mutex;
   uint8_t node_id;
   std::unordered_map<std::string, ibv_mr*> comm_thread_recv_mrs;
-  std::unordered_map<std::string, int> comm_threead_buffer;
+  std::unordered_map<std::string, int> comm_thread_buffer;
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;

@@ -1730,7 +1730,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     // the database we can retrieve from the rdma_mg.
     if (rdma_mg->comm_thread_recv_mrs.find(q_id) != rdma_mg->comm_thread_recv_mrs.end()){
       recv_mr = rdma_mg->comm_thread_recv_mrs.at(q_id);
-      buffer_counter = rdma_mg->comm_threead_buffer.at(q_id);
+      buffer_counter = rdma_mg->comm_thread_buffer.at(q_id);
     }else{
       // Some where we need to delete the recv_mr in case of memory leak.
       ibv_mr* recv_mr = new ibv_mr[R_SIZE]();
@@ -1780,7 +1780,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     }
 
 //    remote_qp_reset(q_id);
-    rdma_mg->comm_threead_buffer.insert({q_id, buffer_counter});
+    rdma_mg->comm_thread_buffer.insert({q_id, buffer_counter});
 //    sleep(1);
 //    for (int i = 0; i < R_SIZE; ++i) {
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
@@ -3255,7 +3255,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   }
   if (s.ok()) {
 //    impl->RemoveObsoleteFiles();
-impl->MaybeScheduleFlushOrCompaction();
+  impl->MaybeScheduleFlushOrCompaction();
   }
   impl->undefine_mutex.Unlock();
   if (s.ok()) {
