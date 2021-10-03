@@ -474,6 +474,7 @@ void TableBuilder_ComputeSide::FlushData(){
       r->local_data_mr.insert(r->local_data_mr.begin() + r->data_inuse_start++, new_local_mr);
       DEBUG_arg("One more local write buffer is added, now %zu total\n", r->local_data_mr.size());
     }
+    delete[] wc;
   }
   remote_mr->length = msg_size;
 //  if(r->remote_data_mrs.empty()){

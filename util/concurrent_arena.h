@@ -51,7 +51,7 @@ class ConcurrentArena : public Allocator {
   explicit ConcurrentArena(size_t block_size = Arena::kMinBlockSize,
                            AllocTracker* tracker = nullptr,
                            size_t huge_page_size = 0);
-
+  ~ConcurrentArena() override;
   char* Allocate(size_t bytes) override {
     return AllocateImpl(bytes, false /*force_arena*/,
                         [this, bytes]() { return arena_.Allocate(bytes); });

@@ -36,6 +36,11 @@ ConcurrentArena::ConcurrentArena(size_t block_size, AllocTracker* tracker,
 //  thread_local_shard = 0;
   Fixup();
 }
+ConcurrentArena::~ConcurrentArena() {
+  for(auto iter : Threadlocal_Shardmap){
+    delete iter.second;
+  }
+}
 
 //ConcurrentArena::Shard* ConcurrentArena::Repick() {
 //  auto shard_and_index = shards_.AccessElementAndIndex();
