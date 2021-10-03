@@ -135,6 +135,15 @@ RDMA_Manager::~RDMA_Manager() {
         fprintf(stderr, "failed to destroy CQ\n");
       }
     }
+  if (!res->qp_map.empty())
+    for (auto it = res->qp_map.begin(); it != res->qp_map.end(); it++) {
+      if (ibv_destroy_qp(it->second)) {
+        fprintf(stderr, "failed to destroy CQ\n");
+      }
+      if (it->second!= nullptr && ibv_destroy_qp(it->second)){
+        fprintf(stderr, "failed to destroy CQ\n");
+      }
+    }
 
   if (res->pd)
     if (ibv_dealloc_pd(res->pd)) {

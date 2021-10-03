@@ -36,5 +36,7 @@ int main()
 
     //     std::cout << "iteration number " << i << std::endl;
   }
+
   delete db;
+  delete b_policy;
 }

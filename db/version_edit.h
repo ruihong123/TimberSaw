@@ -61,6 +61,7 @@ struct RemoteMemTableMetaData {
       if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr)){
         return false;
       }
+      delete it->second;
     }
     return true;
   }
@@ -71,6 +72,7 @@ struct RemoteMemTableMetaData {
       if(!rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer")){
         return false;
       }
+      delete it->second;
     }
     return true;
   }
