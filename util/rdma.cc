@@ -91,24 +91,7 @@ RDMA_Manager::~RDMA_Manager() {
       }
     }
   printf("RDMA Manager get destroyed\n");
-
-  //  delete qp_local_write_flush;
-  //  delete  cq_local_write_flush;
-  //  delete t_local_1;
-  //  for (auto & iter : name_to_mem_pool){
-  //    delete iter.second;
-  //  }
-  //  if (res->mr_receive)
-  //    if (ibv_dereg_mr(res->mr_receive)) {
-  //      fprintf(stderr, "failed to deregister MR\n");
-  //    }
-  //  if (res->mr_send)
-  //    if (ibv_dereg_mr(res->mr_send)) {
-  //      fprintf(stderr, "failed to deregister MR\n");
-  //    }
   if (!local_mem_pool.empty()) {
-    //    ibv_dereg_mr(local_mem_pool.at(0));
-    //    std::for_each(local_mem_pool.begin(), local_mem_pool.end(), ibv_dereg_mr);
     for (ibv_mr* p : local_mem_pool) {
       ibv_dereg_mr(p);
       //       local buffer is registered on this machine need deregistering.
@@ -122,29 +105,33 @@ RDMA_Manager::~RDMA_Manager() {
     }
     remote_mem_pool.clear();
   }
-  //  if (res->receive_buf) delete res->receive_buf;
-  //  if (res->send_buf) delete res->send_buf;
-  //  if (res->SST_buf)
-  //    delete res->SST_buf;
   if (!res->cq_map.empty())
     for (auto it = res->cq_map.begin(); it != res->cq_map.end(); it++) {
       if (ibv_destroy_cq(it->second.first)) {
         fprintf(stderr, "failed to destroy CQ\n");
+      }else{
+        delete it->second.first;
       }
       if (it->second.second!= nullptr && ibv_destroy_cq(it->second.second)){
         fprintf(stderr, "failed to destroy CQ\n");
+      }else{
+        delete it->second.second;
       }
     }
   if (!res->qp_map.empty())
     for (auto it = res->qp_map.begin(); it != res->qp_map.end(); it++) {
       if (ibv_destroy_qp(it->second)) {
-        fprintf(stderr, "failed to destroy CQ\n");
+        fprintf(stderr, "failed to destroy QP\n");
+      }else{
+        delete it->second;
       }
-      if (it->second!= nullptr && ibv_destroy_qp(it->second)){
-        fprintf(stderr, "failed to destroy CQ\n");
-      }
-    }
 
+    }
+  if (!res->qp_connection_info.empty()){
+    for(auto it = res->qp_connection_info.begin(); it != res->qp_connection_info.end(); it++){
+      delete it->second;
+    }
+  }
   if (res->pd)
     if (ibv_dealloc_pd(res->pd)) {
       fprintf(stderr, "failed to deallocate PD\n");
@@ -162,6 +149,15 @@ RDMA_Manager::~RDMA_Manager() {
     }
 
   delete res;
+  delete qp_local_write_flush;
+  delete cq_local_write_flush;
+  delete local_write_flush_qp_info;
+  delete qp_local_write_compact;
+  delete cq_local_write_compact;
+  delete local_write_compact_qp_info;
+  delete qp_local_read;
+  delete cq_local_read;
+  delete local_read_qp_info;
 }
 bool RDMA_Manager::poll_reply_buffer(RDMA_Reply* rdma_reply) {
   volatile bool* check_byte = &(rdma_reply->received);
