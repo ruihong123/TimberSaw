@@ -16,6 +16,7 @@ class Memory_Node_Keeper {
  public:
 //  friend class RDMA_Manager;
   Memory_Node_Keeper(bool use_sub_compaction);
+  ~Memory_Node_Keeper();
 //  void Schedule(
 //      void (*background_work_function)(void* background_work_arg),
 //      void* background_work_arg, ThreadPoolType type);

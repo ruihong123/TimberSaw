@@ -37,6 +37,11 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
     Message_handler_pool_.SetBackgroundThreads(2);
   }
+
+  Memory_Node_Keeper::~Memory_Node_Keeper() {
+    delete opts->filter_policy;
+  }
+
 //  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
 //                                             void* background_work_arg,
 //                                             ThreadPoolType type) {
@@ -1388,7 +1393,6 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 
   }
-
 
   }
 
