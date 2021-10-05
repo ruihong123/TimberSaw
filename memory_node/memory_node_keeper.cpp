@@ -921,7 +921,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
     rdma_mg->local_mem_pool.reserve(100);
     {
       std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
-      rdma_mg->Preregister_Memory(0);
+      rdma_mg->Preregister_Memory(64);
     }
     if (rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
                        temp_receive)) /* just send a dummy char back and forth */
