@@ -532,6 +532,7 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string client_ip, int socket_fd) 
   printf("checkpoint2");
 
   fprintf(stdout, "\nLocal LID = 0x%x\n", res->port_attr.lid);
+
   if (sock_sync_data(socket_fd, sizeof(struct registered_qp_config),
       (char*)&local_con_data, (char*)&tmp_con_data) < 0) {
     fprintf(stderr, "failed to exchange connection data between sides\n");
@@ -928,6 +929,11 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
   else
     res->qp_map[id] = qp;
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
+//  uint8_t* p = qp->gid;
+//  fprintf(stdout,
+//          "Remote GID =%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x\n ",
+//          p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10],
+//          p[11], p[12], p[13], p[14], p[15]);
   return qp;
 }
 
