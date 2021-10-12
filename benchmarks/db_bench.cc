@@ -663,7 +663,7 @@ class Benchmark {
       }
 
       if (method != nullptr) {
-        if (name == "readrandom"){
+        if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadWhileWriting){
           TableCache::CleanAll();
         }
         DEBUG("The benchmark start.\n");
