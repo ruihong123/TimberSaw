@@ -240,7 +240,10 @@ DBImpl::~DBImpl() {
 //  }
 #ifdef PROCESSANALYSIS
   if (RDMA_Manager::ReadCount.load() != 0)
-    printf("RDMA read operatoion average time duration: %zu\n", RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load());
+    printf("RDMA read operatoion average time duration: %zu, ReadNuM is%zu, "
+        "total time is %zu\n",
+        RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load(),
+        RDMA_Manager::ReadCount.load(), RDMA_Manager::RDMAReadTimeElapseSum.load());
 #endif
 //  undefine_mutex.Unlock();
 
