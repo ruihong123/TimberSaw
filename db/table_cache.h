@@ -55,6 +55,7 @@ class TableCache {
   Iterator* NewIterator_MemorySide(const ReadOptions& options,
                         std::shared_ptr<RemoteMemTableMetaData> remote_table,
       Table_Memory_Side** tableptr = nullptr);
+#ifdef PROCESSANALYSIS
   static void CleanAll(){
     GetTimeElapseSum = 0;
     GetNum = 0;
@@ -70,6 +71,7 @@ class TableCache {
     cache_hit = 0;
     cache_miss = 0;
   }
+#endif
   // If a seek to internal key "k" in specified file finds an entry,
   // call (*handle_result)(arg, found_key, found_value).
   Status Get(const ReadOptions& options,

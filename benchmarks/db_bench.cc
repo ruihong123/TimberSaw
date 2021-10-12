@@ -663,9 +663,11 @@ class Benchmark {
       }
 
       if (method != nullptr) {
+#ifdef PROCESSANALYSIS
         if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadWhileWriting){
           TableCache::CleanAll();
         }
+#endif
         DEBUG("The benchmark start.\n");
         RunBenchmark(num_threads, name, method);
         DEBUG("Benchmark finished\n");
