@@ -150,9 +150,11 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef PROCESSANALYSIS
     auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  if (n + kBlockTrailerSize <= 8192){
+  if (n + kBlockTrailerSize <= rdma_mg->name_to_size["DataBlock"]){
     RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
     RDMA_Manager::ReadCount.fetch_add(1);
+  }else{
+    assert(false);
   }
 #endif
     //
