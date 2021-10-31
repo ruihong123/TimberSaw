@@ -230,7 +230,7 @@ DBImpl::~DBImpl() {
   printf("DBImpl deallocated\n");
   //TODO: recycle all the
   shutting_down_.store(true);
-  env_->JoinAllThreads(false);
+  env_->JoinAllThreads(true);
   // wait for communicaiton thread to finish
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
