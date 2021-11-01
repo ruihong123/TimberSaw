@@ -300,6 +300,7 @@ class VersionSet {
   // current version.  Will release *mu while actually writing to the file.
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
+  //TODO: Finalize is not required for the comppute node side.
   Status LogAndApply(VersionEdit* edit, size_t remote_subversion_id);
 
   // Recover the last saved descriptor from persistent storage.
@@ -390,10 +391,12 @@ class VersionSet {
     //TODO(ruihong): we may also need a lock for changing reading the compaction score.
     return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
   }
-  bool AllCompactionNotFinished() const {
+  bool AllCompactionNotFinished() {
 
     Version* v = current_;
-    return (v->compaction_score_[0] <= 1) || (v->file_to_compact_ != nullptr);
+    //since the version are apply
+//    Finalize(v);
+    return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
   }
 
   // Add all files listed in any live version to *live.
