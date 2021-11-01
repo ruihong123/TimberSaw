@@ -843,7 +843,7 @@ void DBImpl::CompactMemTable() {
 #endif
 #endif
   //  base->Unref();
-//  assert(edit.GetNewFilesNum()==1);
+  assert(edit.GetNewFilesNum()==1);
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
 //  MaybeScheduleFlushOrCompaction();

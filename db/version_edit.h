@@ -150,7 +150,8 @@ class VersionEdit {
         return;
       }
     }
-    new_files_.emplace_back(level, remote_table);
+    if (remote_table->file_size >0)
+      new_files_.emplace_back(level, remote_table);
     return;
   }
   // Delete the specified "file" from the specified "level".
