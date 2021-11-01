@@ -143,7 +143,7 @@ class DBImpl : public DB {
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
                                 uint32_t* seed);
-
+  void WaitforAllbgtasks() override;
   Status NewDB();
 
   // Recover the descriptor from persistent storage.  May do a significant

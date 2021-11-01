@@ -228,8 +228,10 @@ DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
   printf("DBImpl deallocated\n");
+  WaitforAllbgtasks();
   //TODO: recycle all the
   shutting_down_.store(true);
+
   env_->JoinAllThreads(true);
   // wait for communicaiton thread to finish
   for(int i = 0; i < main_comm_threads.size(); i++){
@@ -280,7 +282,12 @@ DBImpl::~DBImpl() {
            Total_time_elapse.load()/flush_times.load());
 #endif
 }
-
+void DBImpl::WaitforAllbgtasks() {
+  std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+  imm_.Add(mem_);
+  MaybeScheduleFlushOrCompaction();
+  while(versions_->AllCompactionNotFinished() || imm_.AllFlushNotFinished()){}
+}
 Status DBImpl::NewDB() {
   VersionEdit new_db;
   new_db.SetComparatorName(user_comparator()->Name());
@@ -3207,6 +3214,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
 
   v->Unref(0);
 }
+
 
 // Default implementations of convenience methods that subclasses of DB
 // can call if they wish

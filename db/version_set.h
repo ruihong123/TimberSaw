@@ -387,7 +387,13 @@ class VersionSet {
     //TODO(ruihong): make current_ an atomic variable if we do not want to have a lock for this
     // funciton.
     Version* v = current_;
+    //TODO(ruihong): we may also need a lock for changing reading the compaction score.
     return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
+  }
+  bool AllCompactionNotFinished() const {
+
+    Version* v = current_;
+    return (v->compaction_score_[0] <= 1) || (v->file_to_compact_ != nullptr);
   }
 
   // Add all files listed in any live version to *live.

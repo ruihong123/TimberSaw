@@ -781,6 +781,7 @@ class Benchmark {
       delete arg[i].thread;
     }
     delete[] arg;
+    db_->WaitforAllbgtasks();
 //    if (method == &Benchmark::WriteRandom)
 //      sleep(30); // wait for SSTable digestion
   }

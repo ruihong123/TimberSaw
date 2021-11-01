@@ -342,7 +342,9 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
 bool MemTableList::IsFlushPending() const {
   return this->num_flush_not_started_.load() >= config::Immutable_FlushTrigger;
 }
-
+bool MemTableList::AllFlushNotFinished() const {
+  return this->current_memtable_num_.load() >= config::Immutable_FlushTrigger;
+}
 // Returns the memtables that need to be flushed.
 //Pick up a configurable number of memtable, not too much and not too less.2~4 could be better
 void MemTableList::PickMemtablesToFlush(autovector<MemTable*>* mems) {
@@ -591,6 +593,7 @@ void MemTableList::InstallNewVersion() {
     version->Unref();
   }
 }
+
 
 //uint64_t MemTableList::PrecomputeMinLogContainingPrepSection(
 //    const autovector<MemTable*>& memtables_to_flush) {
