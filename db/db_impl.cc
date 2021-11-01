@@ -284,6 +284,7 @@ DBImpl::~DBImpl() {
 }
 void DBImpl::WaitforAllbgtasks() {
   std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+  mem_.load()->NotFullTableflush();
   imm_.Add(mem_);
   MaybeScheduleFlushOrCompaction();
   while(versions_->AllCompactionNotFinished() || imm_.AllFlushNotFinished()){}

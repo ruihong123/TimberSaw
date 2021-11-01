@@ -42,6 +42,7 @@ class MemTable {
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
   std::atomic<bool> able_to_flush = false;
+  bool full_table_flush=true;
   std::shared_ptr<RemoteMemTableMetaData> sstable;
   const KeyComparator comparator;
 #ifdef PROCESSANALYSIS
@@ -60,7 +61,7 @@ class MemTable {
   }
   // Increase reference count.
   void Ref() { refs_.fetch_add(1); }
-
+  void NotFullTableflush(){full_table_flush = false;}
   // Drop reference count.  Delete if no more references exist.
   void Unref() {
     refs_.fetch_sub(1);

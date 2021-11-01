@@ -786,7 +786,7 @@ void MemTableList::InstallNewVersion() {
 void FlushJob::Waitforpendingwriter() {
   size_t counter = 0;
   for (auto iter: mem_vec) {
-    while (!iter->able_to_flush.load()) {
+    while (iter->full_table_flush && !iter->able_to_flush.load()) {
       counter++;
       if (counter == 500) {
 //        printf("signal all the wait threads\n");
