@@ -491,6 +491,7 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
     //tofix(ruihong): too much data copy for the seek here!
     input->Seek(start_internal.Encode());
     // The first key larger or equal to start_internal was covered in the subtask before it.
+    // The range for the subcompactions are (s1,e1] (s2,e2] ... (sn,en]
     input->Next();
   } else {
     input->SeekToFirst();
