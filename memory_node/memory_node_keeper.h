@@ -29,6 +29,7 @@ class Memory_Node_Keeper {
   static void BGWork_Compaction(void* thread_args);
   void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
+  void PersistSSTables(VersionEdit& ve);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
   Status DoCompactionWorkWithSubcompaction(CompactionState* compact,

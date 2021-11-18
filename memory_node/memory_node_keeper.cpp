@@ -183,6 +183,9 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
   delete client_ip;
 
 }
+void Memory_Node_Keeper::PersistSSTables(VersionEdit&) {
+
+}
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
   //  undefine_mutex.AssertHeld();
   if (compact->builder != nullptr) {
@@ -1393,6 +1396,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 
   }
+
 
   }
 

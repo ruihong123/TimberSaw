@@ -165,7 +165,8 @@ class VersionEdit {
   }
   void EncodeTo(std::string* dst) const;
   Status DecodeFrom(const Slice& src, int sstable_type);
-
+  void EncodeToDiskFormat(std::string* dst) const;
+  Status DecodeFromDiskFormat(const Slice& src, int sstable_type);
   std::string DebugString() const;
   int compactlevel(){
     return std::get<0>(*deleted_files_.begin());
