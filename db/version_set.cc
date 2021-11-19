@@ -164,7 +164,7 @@ static Iterator* GetFileIterator(
     void* arg, const ReadOptions& options,
     FileMetaData* remote_table) {
   TableCache* cache = reinterpret_cast<TableCache*>(arg);
-    return cache->NewIterator(options, remote_table);
+    return cache->NewIterator(options, remote_table->number,);
 }
 
 Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,

@@ -19,6 +19,7 @@
 #include "db/version_edit.h"
 #include <atomic>
 #include <map>
+#include <mutex>
 #include <set>
 #include <vector>
 

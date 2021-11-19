@@ -637,7 +637,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   //Mark all memtable as FLUSHPROCESSING.
   job->SetAllMemStateProcessing();
   FileMetaData meta;
-  job->sst = meta;
+
   meta.number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = imm_.MakeInputIterator(job);
@@ -669,10 +669,10 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
               meta.largest);
   }
-
+  job->sst = meta;
   CompactionStats stats;
   stats.micros = env_->NowMicros() - start_micros;
-  stats.bytes_written = meta->file_size;
+  stats.bytes_written = meta.file_size;
   stats_[level].Add(stats);
 //  write_stall_mutex_.AssertNotHeld();
   return s;
@@ -683,17 +683,17 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   //The program should never goes here.
   assert(false);
   const uint64_t start_micros = env_->NowMicros();
-  FileMetaData* meta = std::make_shared<RemoteMemTableMetaData>();
-  meta->number = versions_->NewFileNumber();
+  FileMetaData meta;
+  meta.number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = job->NewIterator();
   Log(options_.info_log, "Level-0 table #%llu: started",
-      (unsigned long long)meta->number);
+      (unsigned long long)meta.number);
 //  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
 //    undefine_mutex.Unlock();
-    s = BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
+    s = BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -706,118 +706,24 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   // Note that if file_size is zero, the file has been deleted and
   // should not be added to the manifest.
   int level = 0;
-  if (s.ok() && meta->file_size > 0) {
-    const Slice min_user_key = meta->smallest.user_key();
-    const Slice max_user_key = meta->largest.user_key();
+  if (s.ok() && meta.file_size > 0) {
+    const Slice min_user_key = meta.smallest.user_key();
+    const Slice max_user_key = meta.largest.user_key();
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
     }
-    edit->AddFile(level, meta);
+    edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
+                  meta.largest);
   }
 
   CompactionStats stats;
   stats.micros = env_->NowMicros() - start_micros;
-  stats.bytes_written = meta->file_size;
+  stats.bytes_written = meta.file_size;
   stats_[level].Add(stats);
 //  write_stall_mutex_.AssertNotHeld();
   return s;
 }
 
-//void DBImpl::CompactMemTable() {
-////  undefine_mutex.AssertHeld();
-//  //TOTHINK What will happen if we remove the mutex in the future?
-//  MemTable* mem = mem_.load();
-//  MemTable* imm = imm_.load();
-//  assert(imm != nullptr);
-//  assert(!imm->CheckFlushInProcess());
-//
-//  // Save the contents of the memtable as a new Table
-//  VersionEdit edit;
-//  Version* base = versions_->current();
-//  // wait for the ongoing writes for 1 millisecond.
-//  size_t counter = 0;
-//  // wait for the immutable to get ready to flush. the signal here is prepare for
-//  // the case that the thread this immutable is under the control of conditional
-//  // variable.
-////-----------------seldom Lock----------------------------
-//  while(!imm->able_to_flush){
-//    counter++;
-//    if (counter==500){
-//      printf("signal all the wait threads\n");
-//      usleep(10);
-//      write_stall_cv.SignalAll();
-//      counter = 0;
-//    }
-//  }
-////---------------Lock free version -----------------------
-////  while(!imm->able_to_flush){
-////
-////    counter++;
-////    if (counter==5000){
-//////      printf("signal all the wait threads\n");
-//////      write_stall_cv.SignalAll();
-////      usleep(10);
-////      counter = 0;
-////    }
-////  }
-//
-//  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
-//  base->Ref();
-//  Status s = WriteLevel0Table(imm, &edit, base);
-//  base->Unref();
-//
-//  if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
-//    s = Status::IOError("Deleting DB during memtable compaction");
-//  }
-//
-//  // Replace immutable memtable with the generated Table
-//  // TODO: use tryinstall flush result here
-//  if (s.ok()) {
-//    edit.SetPrevLogNumber(0);
-//    edit.SetLogNumber(logfile_number_);  // Earlier logs no longer needed
-//    s = versions_->LogAndApply(&edit);
-//  }else{
-//    printf("version apply failed");
-//  }
-////-------------------- seldom Lock version----------------
-//  if (s.ok()) {
-//    // Commit to the new state
-////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-//    imm_mtx.lock();
-//    MemTable* imm = imm_.load();
-//
-//    imm->Unref();
-////    printf("mem %p has been deleted\n", imm);
-////    printf("mem %p has is still alive\n", mem);
-////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
-//    imm_.store(nullptr);
-//    imm_mtx.unlock();
-//
-//    write_stall_cv.SignalAll();
-//    has_imm_.store(false, std::memory_order_release);
-//    // TODO how to remove the obsoleted remote memtable?
-////    RemoveObsoleteFiles();
-//// ----------------Lock-free version below--------------------
-////  if (s.ok()) {
-////    // Commit to the new state
-//////    printf("imm table head node %p has is still alive\n", mem->GetTable()->GetHeadNode()->Next(0));
-//////    undefine_mutex.Lock();
-////    MemTable* imm = imm_.load();
-////
-////    imm->Unref();
-//////    printf("mem %p has been deleted\n", imm);
-//////    printf("mem %p has is still alive\n", mem);
-//////    printf("After mem dereference head node of the imm %p\n", mem->GetTable()->GetHeadNode()->Next(0));
-////    imm_.store(nullptr);
-//////    undefine_mutex.Unlock();
-//////    write_stall_cv.SignalAll();
-////    has_imm_.store(false, std::memory_order_release);
-////    // TODO how to remove the obsoleted remote memtable?
-//////    RemoveObsoleteFiles();
-//  } else {
-//    RecordBackgroundError(s);
-//  }
-//}
 void DBImpl::CompactMemTable() {
 //  undefine_mutex.AssertHeld();
   //TOTHINK What will happen if we remove the mutex in the future?
@@ -1370,7 +1276,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
 }
 Status DBImpl::TryInstallMemtableFlushResults(
     FlushJob* job, VersionSet* vset,
-    FileMetaData*& sstable, VersionEdit* edit) {
+                                              FileMetaData& sstable, VersionEdit* edit) {
   autovector<MemTable*> mems = job->mem_vec;
   assert(mems.size() >0);
 
@@ -1424,7 +1330,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
     if (!m->CheckFlushFinished()) {
       break;
     }
-    assert(m->sstable != nullptr);
+    assert(m->sstable.file_size != 0);
     edit->AddFileIfNotExist(0,m->sstable);
     batch_count++;
   }
@@ -2636,7 +2542,8 @@ DB::~DB() = default;
 
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
-
+  options.env->rdma_mg->Mempool_initialize(std::string("read"), options.block_size);
+  options.env->fs_initialization();
   DBImpl* impl = new DBImpl(options, dbname);
   impl->undefine_mutex.Lock();
   VersionEdit edit;

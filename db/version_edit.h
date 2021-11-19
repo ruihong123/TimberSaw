@@ -69,7 +69,16 @@ class VersionEdit {
     f.largest = largest;
     new_files_.push_back(std::make_pair(level, f));
   }
-
+  void AddFileIfNotExist(int level,
+                         const FileMetaData& remote_table) {
+    for(auto iter : new_files_){
+      if (iter.second.number == remote_table.number){
+        return;
+      }
+    }
+    new_files_.emplace_back(level, remote_table);
+    return;
+  }
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file) {
     deleted_files_.insert(std::make_pair(level, file));

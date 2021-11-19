@@ -1222,6 +1222,15 @@ class PosixLockTable {
   port::Mutex mu_;
   std::set<std::string> locked_files_ GUARDED_BY(mu_);
 };
+
+//template<typename ReturnType, typename ArgsType>
+struct BGItem {
+  //  void* tag = nullptr;
+  std::function<void(void* args)> function;
+  void* args;
+  //  std::function<void()> unschedFunction;
+};
+
 class ThreadPool{
  public:
 
@@ -1715,7 +1724,10 @@ class PosixEnv : public Env {
 
   void Schedule(void (*background_work_function)(void* background_work_arg),
                 void* background_work_arg) override;
-
+  void Schedule(
+      void (*background_work_function)(void* background_work_arg),
+      void* background_work_arg, ThreadPoolType type) override;
+  void JoinAllThreads(bool wait_for_jobs_to_complete) override;
   void StartThread(void (*thread_main)(void* thread_main_arg),
                    void* thread_main_arg) override {
     std::thread new_thread(thread_main, thread_main_arg);
@@ -1764,7 +1776,19 @@ class PosixEnv : public Env {
     ::gettimeofday(&tv, nullptr);
     return static_cast<uint64_t>(tv.tv_sec) * kUsecondsPerSecond + tv.tv_usec;
   }
-
+  void SetBackgroundThreads(int num,  Env::ThreadPoolType type) override{
+    switch (type) {
+      case Env::FlushThreadPool:
+        flushing.SetBackgroundThreads(num);
+        break;
+      case Env::CompactionThreadPool:
+        compaction.SetBackgroundThreads(num);
+        break;
+      case Env::SubcompactionThreadPool:
+        subcompaction.SetBackgroundThreads(num);
+        break;
+    }
+  }
   void SleepForMicroseconds(int micros) override {
     std::this_thread::sleep_for(std::chrono::microseconds(micros));
   }
@@ -1846,11 +1870,11 @@ PosixEnv::PosixEnv()
   //  size_t read_block_size = 8*1024;
   //  size_t write_block_size = 4*1024*1024;
   size_t table_size = 8*1024*1024;
+  // the fix 8 MB table chunk can waste a lot of memory.
   Remote_Bitmap = new std::map<void*, In_Use_Array>;
-  rdma_mg = new RDMA_Manager(config, table_size, 0, Remote_Bitmap);
+  rdma_mg = new RDMA_Manager(config, Remote_Bitmap, table_size ,&db_name);
   rdma_mg->Client_Set_Up_Resources();
 }
-
 void PosixEnv::Schedule(
     void (*background_work_function)(void* background_work_arg),
     void* background_work_arg) {
@@ -1871,7 +1895,28 @@ void PosixEnv::Schedule(
   background_work_queue_.emplace(background_work_function, background_work_arg);
   background_work_mutex_.Unlock();
 }
-
+void PosixEnv::Schedule(
+    void (*background_work_function)(void* background_work_arg),
+    void* background_work_arg, ThreadPoolType type) {
+  switch (type) {
+    case FlushThreadPool:
+      DEBUG_arg("flushing thread pool task queue length %zu\n", flushing.queue_.size());
+      flushing.Schedule(background_work_function, background_work_arg);
+      break;
+    case CompactionThreadPool:
+      DEBUG_arg("compaction thread pool task queue length %zu\n", compaction.queue_.size());
+      compaction.Schedule(background_work_function, background_work_arg);
+      break;
+    case SubcompactionThreadPool:
+      subcompaction.Schedule(background_work_function, background_work_arg);
+      break;
+  }
+}
+void PosixEnv::JoinAllThreads(bool wait_for_jobs_to_complete) {
+  flushing.JoinThreads(wait_for_jobs_to_complete);
+  compaction.JoinThreads(wait_for_jobs_to_complete);
+  subcompaction.JoinThreads(wait_for_jobs_to_complete);
+}
 void PosixEnv::BackgroundThreadMain() {
   while (true) {
     background_work_mutex_.Lock();

@@ -225,7 +225,9 @@ class LEVELDB_EXPORT Env {
   // I.e., the caller may not assume that background work items are
   // serialized.
   virtual void Schedule(void (*function)(void* arg), void* arg) = 0;
+  virtual void Schedule(void (*function)(void* arg), void* arg, ThreadPoolType type) = 0;
 
+  virtual void JoinAllThreads(bool wait_for_jobs_to_complete) = 0;
   // Start a new thread, invoking "function(arg)" within the new thread.
   // When "function(arg)" returns, the thread will be destroyed.
   virtual void StartThread(void (*function)(void* arg), void* arg) = 0;
@@ -245,6 +247,7 @@ class LEVELDB_EXPORT Env {
 
   // Sleep/delay the thread for the prescribed number of micro-seconds.
   virtual void SleepForMicroseconds(int micros) = 0;
+  virtual void SetBackgroundThreads(int num,  Env::ThreadPoolType type) = 0;
 };
 
 // A file abstraction for reading sequentially through a file
