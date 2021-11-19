@@ -636,18 +636,18 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   const uint64_t start_micros = env_->NowMicros();
   //Mark all memtable as FLUSHPROCESSING.
   job->SetAllMemStateProcessing();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  FileMetaData meta;
   job->sst = meta;
-  meta->number = versions_->NewFileNumber();
+  meta.number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = imm_.MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
-      (unsigned long long)meta->number);
+      (unsigned long long)meta.number);
 //  printf("now system start to serializae mem %p\n", mem);
   Status s;
   {
 //    undefine_mutex.Unlock();
-    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -660,13 +660,14 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   // Note that if file_size is zero, the file has been deleted and
   // should not be added to the manifest.
   int level = 0;
-  if (s.ok() && meta->file_size > 0) {
+  if (s.ok() && meta.file_size > 0) {
 //    const Slice min_user_key = meta->smallest.user_key();
 //    const Slice max_user_key = meta->largest.user_key();
 //    if (base != nullptr) {
 //      level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
 //    }
-    edit->AddFile(0, meta);
+  edit->AddFile(level, meta.number, meta.file_size, meta.smallest,
+              meta.largest);
   }
 
   CompactionStats stats;
@@ -682,7 +683,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   //The program should never goes here.
   assert(false);
   const uint64_t start_micros = env_->NowMicros();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+  FileMetaData* meta = std::make_shared<RemoteMemTableMetaData>();
   meta->number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = job->NewIterator();
@@ -1059,7 +1060,7 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else if (!is_manual && c->IsTrivialMove()) {
       // Move file to next level
       assert(c->num_input_files(0) == 1);
-      std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+      FileMetaData* f = c->input(0, 0);
       c->edit()->RemoveFile(c->level(), f->number);
       c->edit()->AddFile(c->level() + 1, f);
       {
@@ -1331,7 +1332,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
-      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+      FileMetaData* meta = std::make_shared<RemoteMemTableMetaData>();
       //TODO make all the metadata written into out
       meta->number = out.number;
       meta->file_size = out.file_size;
@@ -1347,7 +1348,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
     for(auto subcompact : compact->sub_compact_states){
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
         const CompactionOutput& out = subcompact.outputs[i];
-        std::shared_ptr<RemoteMemTableMetaData> meta =
+        FileMetaData* meta =
             std::make_shared<RemoteMemTableMetaData>();
         // TODO make all the metadata written into out
         meta->number = out.number;
@@ -1369,7 +1370,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
 }
 Status DBImpl::TryInstallMemtableFlushResults(
     FlushJob* job, VersionSet* vset,
-    std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit) {
+    FileMetaData*& sstable, VersionEdit* edit) {
   autovector<MemTable*> mems = job->mem_vec;
   assert(mems.size() >0);
 

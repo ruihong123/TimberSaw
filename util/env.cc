@@ -81,7 +81,7 @@ Status WriteStringToFileSync(Env* env, const Slice& data,
 Status ReadFileToString(Env* env, const std::string& fname, std::string* data) {
   data->clear();
   SequentialFile* file;
-  Status s = env->NewSequentialFile(fname, &file);
+  Status s = env->NewSequentialFile_RDMA(fname, &file);
   if (!s.ok()) {
     return s;
   }

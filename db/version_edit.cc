@@ -8,7 +8,7 @@
 #include "util/coding.h"
 
 namespace leveldb {
-std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
+
 // Tag numbers for serialized VersionEdit.  These numbers are written to
 // disk and should not be changed.
 enum Tag {
@@ -73,13 +73,13 @@ void VersionEdit::EncodeTo(std::string* dst) const {
   }
 
   for (size_t i = 0; i < new_files_.size(); i++) {
-    const std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;
+    const FileMetaData& f = new_files_[i].second;
     PutVarint32(dst, kNewFile);
     PutVarint32(dst, new_files_[i].first);  // level
-    PutVarint64(dst, f->number);
-    PutVarint64(dst, f->file_size);
-    PutLengthPrefixedSlice(dst, f->smallest.Encode());
-    PutLengthPrefixedSlice(dst, f->largest.Encode());
+    PutVarint64(dst, f.number);
+    PutVarint64(dst, f.file_size);
+    PutLengthPrefixedSlice(dst, f.smallest.Encode());
+    PutLengthPrefixedSlice(dst, f.largest.Encode());
   }
 }
 
@@ -111,7 +111,7 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
   // Temporary storage for parsing
   int level;
   uint64_t number;
-  std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>();
+  FileMetaData f;
   Slice str;
   InternalKey key;
 
@@ -175,10 +175,10 @@ Status VersionEdit::DecodeFrom(const Slice& src) {
         break;
 
       case kNewFile:
-        if (GetLevel(&input, &level) && GetVarint64(&input, &f->number) &&
-            GetVarint64(&input, &f->file_size) &&
-            GetInternalKey(&input, &f->smallest) &&
-            GetInternalKey(&input, &f->largest)) {
+        if (GetLevel(&input, &level) && GetVarint64(&input, &f.number) &&
+            GetVarint64(&input, &f.file_size) &&
+            GetInternalKey(&input, &f.smallest) &&
+            GetInternalKey(&input, &f.largest)) {
           new_files_.push_back(std::make_pair(level, f));
         } else {
           msg = "new-file entry";
@@ -238,17 +238,17 @@ std::string VersionEdit::DebugString() const {
     AppendNumberTo(&r, deleted_files_kvp.second);
   }
   for (size_t i = 0; i < new_files_.size(); i++) {
-    const std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;
+    const FileMetaData& f = new_files_[i].second;
     r.append("\n  AddFile: ");
     AppendNumberTo(&r, new_files_[i].first);
     r.append(" ");
-    AppendNumberTo(&r, f->number);
+    AppendNumberTo(&r, f.number);
     r.append(" ");
-    AppendNumberTo(&r, f->file_size);
+    AppendNumberTo(&r, f.file_size);
     r.append(" ");
-    r.append(f->smallest.DebugString());
+    r.append(f.smallest.DebugString());
     r.append(" .. ");
-    r.append(f->largest.DebugString());
+    r.append(f.largest.DebugString());
   }
   r.append("\n}\n");
   return r;

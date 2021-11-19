@@ -18,30 +18,19 @@
 #include "leveldb/export.h"
 #include "leveldb/options.h"
 #include "leveldb/status.h"
-#include "leveldb/comparator.h"
-#include "leveldb/env.h"
-#include "leveldb/filter_policy.h"
-#include "leveldb/options.h"
-#include "table/block_builder.h"
-#include "table/filter_block.h"
-#include "table/full_filter_block.h"
-#include "table/format.h"
-#include "util/coding.h"
-#include "util/crc32c.h"
-#include "dumpfile.h"
 
 namespace leveldb {
 
-//class BlockBuilder;
+class BlockBuilder;
 class BlockHandle;
-//class WritableFile;
-enum IO_type {Compact, Flush};
+class WritableFile;
+
 class LEVELDB_EXPORT TableBuilder {
  public:
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder(const Options& options, IO_type type);
+  TableBuilder(const Options& options, WritableFile* file);
 
   TableBuilder(const TableBuilder&) = delete;
   TableBuilder& operator=(const TableBuilder&) = delete;
@@ -62,15 +51,11 @@ class LEVELDB_EXPORT TableBuilder {
   // REQUIRES: Finish(), Abandon() have not been called
   void Add(const Slice& key, const Slice& value);
 
-  // Advanced operation: flush any buffered key/value pairs to remote memory.
+  // Advanced operation: flush any buffered key/value pairs to file.
   // Can be used to ensure that two adjacent entries never live in
   // the same data block.  Most clients should not need to use this method.
   // REQUIRES: Finish(), Abandon() have not been called
-  void FlushData();
-  void FlushDataIndex(size_t msg_size);
-  void FlushFilter(size_t& msg_size);
-  // add element into index block and filters for this data block.
-  void UpdateFunctionBLock();
+  void Flush();
 
   // Return non-ok iff some error has been detected.
   Status status() const;
@@ -93,26 +78,15 @@ class LEVELDB_EXPORT TableBuilder {
   // Size of the file generated so far.  If invoked after a successful
   // Finish() call, returns the size of the final generated file.
   uint64_t FileSize() const;
-  void get_datablocks_map(std::map<int, ibv_mr *>& map);
-  void get_dataindexblocks_map(std::map<int, ibv_mr *>& map);
-  void get_filter_map(std::map<int, ibv_mr *>& map);
-  size_t get_numentries();
+
  private:
   bool ok() const { return status().ok(); }
-  void FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
-                       CompressionType compressiontype);
-  void FinishDataIndexBlock(BlockBuilder* block, BlockHandle* handle,
-                            CompressionType compressiontype,
-                            size_t& block_size);
-  void FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
-                            CompressionType compressiontype,
-                            size_t& block_size);
+  void WriteBlock(BlockBuilder* block, BlockHandle* handle);
   void WriteRawBlock(const Slice& data, CompressionType, BlockHandle* handle);
 
   struct Rep;
   Rep* rep_;
 };
-
 
 }  // namespace leveldb
 

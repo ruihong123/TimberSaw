@@ -32,7 +32,7 @@ class VersionEdit;
 // zero, and no Table file will be produced.
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter,
-                  std::shared_ptr<RemoteMemTableMetaData> meta, IO_type type);
+                  FileMetaData* meta, IO_type type);
 
 }  // namespace leveldb
 

@@ -249,7 +249,7 @@ void TwoLevelFileIterator::InitDataBlock() {
 
     valid_ = false;
   } else {
-    std::shared_ptr<RemoteMemTableMetaData> remote_table = index_iter_.value();
+    FileMetaData* remote_table = index_iter_.value();
     if (valid_ && remote_table == this_remote_table) {
       // data_iter_ is already constructed with this iterator, so
       // no need to change anything

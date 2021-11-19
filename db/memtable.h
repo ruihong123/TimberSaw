@@ -41,7 +41,7 @@ class MemTable {
   // MemTables are reference counted.  The initial reference count
   // is zero and the caller must call Ref() at least once.
   std::atomic<bool> able_to_flush = false;
-  std::shared_ptr<RemoteMemTableMetaData> sstable;
+  FileMetaData* sstable;
   const KeyComparator comparator;
 #ifdef GETANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;

@@ -10,7 +10,7 @@ namespace leveldb {
 
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                   TableCache* table_cache, Iterator* iter,
-                  std::shared_ptr<RemoteMemTableMetaData> meta, IO_type type) {
+                  FileMetaData* meta, IO_type type) {
   Status s;
 //  meta->file_size = 0;
   iter->SeekToFirst();

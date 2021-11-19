@@ -10,50 +10,20 @@
 #include <vector>
 
 #include "db/dbformat.h"
-#include "util/rdma.h"
+
 namespace leveldb {
 
 class VersionSet;
-class RDMA_Manager;
-//TODO; Make a new data structure for remote SST with no file name, just remote chunks
-// Solved
-struct RemoteMemTableMetaData {
-  RemoteMemTableMetaData() : refs(0), allowed_seeks(1 << 30) {}
-  //TOTHINK: the garbage collection of the Remmote table is not triggered!
-  ~RemoteMemTableMetaData() {
-    DEBUG("Destroying RemoteMemtableMetaData\n");
-    if(Remote_blocks_deallocate(remote_data_mrs) &&
-        Remote_blocks_deallocate(remote_dataindex_mrs) &&
-    Remote_blocks_deallocate(remote_filter_mrs)){
-      DEBUG("Remote blocks deleted successfully\n");
-    }else{
-      DEBUG("Remote memory collection failed\n");
-    }
-  }
-  bool Remote_blocks_deallocate(std::map<int, ibv_mr*> map){
-    std::map<int, ibv_mr*>::iterator it;
 
-    for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr)){
-        return false;
-      }
-    }
-    return true;
-  }
-  static std::shared_ptr<RDMA_Manager> rdma_mg;
+struct FileMetaData {
+  FileMetaData() : refs(0), allowed_seeks(1 << 30), file_size(0) {}
+
   int refs;
-  int level;
   int allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
-  std::map<int, ibv_mr*> remote_data_mrs;
-  std::map<int, ibv_mr*> remote_dataindex_mrs;
-  std::map<int, ibv_mr*> remote_filter_mrs;
-  //std::vector<ibv_mr*> remote_data_mrs
   uint64_t file_size;    // File size in bytes
-  size_t num_entries;
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
-  bool UnderCompaction = false;
 };
 
 class VersionEdit {
@@ -90,27 +60,21 @@ class VersionEdit {
   // Add the specified file at the specified number.
   // REQUIRES: This version has not been saved (see VersionSet::SaveTo)
   // REQUIRES: "smallest" and "largest" are smallest and largest keys in file
-  void AddFile(int level,
-               const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
-    new_files_.emplace_back(level, remote_table);
+  void AddFile(int level, uint64_t file, uint64_t file_size,
+               const InternalKey& smallest, const InternalKey& largest) {
+    FileMetaData f;
+    f.number = file;
+    f.file_size = file_size;
+    f.smallest = smallest;
+    f.largest = largest;
+    new_files_.push_back(std::make_pair(level, f));
   }
-  void AddFileIfNotExist(int level,
-               const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
-    for(auto iter : new_files_){
-      if (iter.second == remote_table){
-        return;
-      }
-    }
-    new_files_.emplace_back(level, remote_table);
-    return;
-  }
+
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file) {
     deleted_files_.insert(std::make_pair(level, file));
   }
-  size_t GetNewFilesNum(){
-    return new_files_.size();
-  }
+
   void EncodeTo(std::string* dst) const;
   Status DecodeFrom(const Slice& src);
 
@@ -134,7 +98,7 @@ class VersionEdit {
 
   std::vector<std::pair<int, InternalKey>> compact_pointers_;
   DeletedFileSet deleted_files_;
-  std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>> new_files_;
+  std::vector<std::pair<int, FileMetaData>> new_files_;
 };
 
 }  // namespace leveldb

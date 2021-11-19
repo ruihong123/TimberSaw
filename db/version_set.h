@@ -75,7 +75,7 @@ static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
 // Return files.size() if there is no such file.
 // REQUIRES: "files" contains a sorted list of non-overlapping files.
 int FindFile(const InternalKeyComparator& icmp,
-             const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files, const Slice& key);
+             const std::vector<FileMetaData*>& files, const Slice& key);
 
 // Returns true iff some file in "files" overlaps the user key range
 // [*smallest,*largest].
@@ -85,13 +85,13 @@ int FindFile(const InternalKeyComparator& icmp,
 //           in sorted order.
 bool SomeFileOverlapsRange(const InternalKeyComparator& icmp,
                            bool disjoint_sorted_files,
-                           const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files,
+                           const std::vector<FileMetaData*>& files,
                            const Slice* smallest_user_key,
                            const Slice* largest_user_key);
 class Level_Info{
  public:
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> files;
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> in_progress;
+  std::vector<FileMetaData*> files;
+  std::vector<FileMetaData*> in_progress;
   double compaction_score_;
 
 };
@@ -101,7 +101,7 @@ class Version {
   // return OK.  Else return a non-OK status.  Fills *stats.
   // REQUIRES: lock is not held
   struct GetStats {
-    std::shared_ptr<RemoteMemTableMetaData> seek_file;
+    FileMetaData* seek_file;
     int seek_file_level;
   };
 
@@ -135,7 +135,7 @@ class Version {
       int level,
       const InternalKey* begin,  // nullptr means before all keys
       const InternalKey* end,    // nullptr means after all keys
-      std::vector<std::shared_ptr<RemoteMemTableMetaData>>* inputs);
+      std::vector<FileMetaData*>* inputs);
 
   // Returns true iff some file in the specified level overlaps
   // some part of [*smallest_user_key,*largest_user_key].
@@ -161,7 +161,7 @@ class Version {
   class LevelFileNumIterator : public Iterator {
    public:
     LevelFileNumIterator(const InternalKeyComparator& icmp,
-                         const std::vector<std::shared_ptr<RemoteMemTableMetaData>>* flist)
+                         const std::vector<FileMetaData*>* flist)
         : icmp_(icmp), flist_(flist), index_(flist->size()) {  // Marks as invalid
     }
     bool Valid() const override { return index_ < flist_->size(); }
@@ -194,14 +194,14 @@ class Version {
       EncodeFixed64(value_buf_ + 8, (*flist_)[index_]->file_size);
       return Slice(value_buf_, sizeof(value_buf_));
     }
-    std::shared_ptr<RemoteMemTableMetaData> file_value() const {
+    FileMetaData* file_value() const {
       return (*flist_)[index_];
     }
     Status status() const override { return Status::OK(); }
 
    private:
     const InternalKeyComparator icmp_;
-    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>* const flist_;
+    const std::vector<FileMetaData*>* const flist_;
     uint32_t index_;
 
     // Backing store for value().  Holds the file number and size.
@@ -236,7 +236,7 @@ class Version {
   //
   // REQUIRES: user portion of internal_key == user_key.
   void ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
-                          bool (*func)(void*, int, std::shared_ptr<RemoteMemTableMetaData>));
+                          bool (*func)(void*, int, FileMetaData*));
 
   VersionSet* vset_;  // VersionSet to which this Version belongs
   Version* next_;     // Next version in linked list
@@ -244,11 +244,11 @@ class Version {
   int refs_;          // Number of live refs to this version
 
   // List of files per level
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> levels_[config::kNumLevels];
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> in_progress[config::kNumLevels];
+  std::vector<FileMetaData*> levels_[config::kNumLevels];
+  std::vector<FileMetaData*> in_progress[config::kNumLevels];
 //  double score[config::kNumLevels];
   // Next file to compact based on seek stats.
-  std::shared_ptr<RemoteMemTableMetaData> file_to_compact_;
+  FileMetaData* file_to_compact_;
   int file_to_compact_level_;
 
   // Level that should be compacted next and its compaction score.
@@ -341,7 +341,7 @@ class VersionSet {
   // Return the log file number for the log file that is currently
   // being compacted, or zero if there is no such log file.
   uint64_t PrevLogNumber() const { return prev_log_number_; }
-//  static bool check_compaction_state(std::shared_ptr<RemoteMemTableMetaData> sst);
+//  static bool check_compaction_state(FileMetaData* sst);
   bool PickFileToCompact(int level, Compaction* c);
   // Pick level and mem_vec for a new compaction.
   // Returns nullptr if there is no compaction to be done.
@@ -398,11 +398,11 @@ class VersionSet {
 
   void Finalize(Version* v);
 
-  void GetRange(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs, InternalKey* smallest,
+  void GetRange(const std::vector<FileMetaData*>& inputs, InternalKey* smallest,
                 InternalKey* largest);
 
-  void GetRange2(const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs1,
-                 const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& inputs2,
+  void GetRange2(const std::vector<FileMetaData*>& inputs1,
+                 const std::vector<FileMetaData*>& inputs2,
                  InternalKey* smallest, InternalKey* largest);
 
   void SetupOtherInputs(Compaction* c);
@@ -459,7 +459,7 @@ class Compaction {
   int num_input_files(int which) const { return inputs_[which].size(); }
 
   // Return the ith mem_vec file at "level()+which" ("which" must be 0 or 1).
-  std::shared_ptr<RemoteMemTableMetaData> input(int which, int i) const { return inputs_[which][i]; }
+  FileMetaData* input(int which, int i) const { return inputs_[which][i]; }
 
   // Maximum size of files to build during this compaction.
   uint64_t MaxOutputFileSize() const { return max_output_file_size_; }
@@ -485,7 +485,7 @@ class Compaction {
   void ReleaseInputs();
   void GenSubcompactionBoundaries();
 
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs_[2];  // The two sets of mem_vec
+  std::vector<FileMetaData*> inputs_[2];  // The two sets of mem_vec
   std::vector<Slice>* GetBoundaries();
   std::vector<uint64_t>* GetSizes();
   uint64_t GetFileSizesForLevel(int level);
@@ -504,7 +504,7 @@ class Compaction {
 
   // State used to check for number of overlapping grandparent files
   // (parent == level_ + 1, grandparent == level_ + 2)
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> grandparents_;
+  std::vector<FileMetaData*> grandparents_;
   size_t grandparent_index_;  // Index in grandparent_starts_
   bool seen_key_;             // Some output key has been seen
   int64_t overlapped_bytes_;  // Bytes of overlap between current output

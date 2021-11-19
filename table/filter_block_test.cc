@@ -18,7 +18,7 @@ class TestHashFilter : public FilterPolicy {
  public:
   const char* Name() const override { return "TestHashFilter"; }
 
-  void CreateFilter(const Slice* keys, int n, Slice* dst) const override {
+  void CreateFilter(const Slice* keys, int n, std::string* dst) const override {
     for (int i = 0; i < n; i++) {
       uint32_t h = Hash(keys[i].data(), keys[i].size(), 1);
       PutFixed32(dst, h);

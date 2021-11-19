@@ -18,7 +18,7 @@
 #include "util/coding.h"
 #include "table/merger.h"
 #include "db/table_cache.h"
-
+#include "db/filename.h"
 namespace leveldb {
 
 std::mutex MemTableList::imm_mtx;
@@ -414,7 +414,7 @@ void MemTableList::RollbackMemtableFlush(const autovector<MemTable*>& mems,
 // Status::OK letting a concurrent flush to do actual the recording..
 //Status MemTableList::TryInstallMemtableFlushResults(
 //    FlushJob* job, VersionSet* vset,
-//    std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit) {
+//    FileMetaData*& sstable, VersionEdit* edit) {
 ////  AutoThreadOperationStageUpdater stage_updater(
 ////      ThreadStatus::STAGE_MEMTABLE_INSTALL_FLUSH_RESULTS);
 //  autovector<MemTable*> mems = job->mem_vec;
@@ -806,101 +806,54 @@ FlushJob::FlushJob(std::mutex* imm_mtx,
                    const InternalKeyComparator* cmp)
     : imm_mtx_(imm_mtx), write_stall_cv_(write_stall_cv),
       user_cmp(cmp){}
-Status FlushJob::BuildTable(const std::string& dbname, Env* env,
-                            const Options& options, TableCache* table_cache,
-                            Iterator* iter,
-                            const std::shared_ptr<RemoteMemTableMetaData>& meta,
-                            IO_type type) {
+Status FlushJob::BuildTable(const std::string& dbname, Env* env, const Options& options,
+                            TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
   Status s;
-//  meta->file_size = 0;
+  meta->file_size = 0;
   iter->SeekToFirst();
-#ifndef NDEBUG
-  int Not_drop_counter = 0;
-  int number_of_key = 0;
-#endif
-  ParsedInternalKey ikey;
-  std::string current_user_key;
-  bool has_current_user_key = false;
-  if (iter->Valid()) {
 
-    auto* builder = new TableBuilder(options, type);
+  std::string fname = TableFileName(dbname, meta->number);
+  if (iter->Valid()) {
+    WritableFile* file;
+    s = env->NewWritableFile(fname, &file);
+    if (!s.ok()) {
+      return s;
+    }
+
+    TableBuilder* builder = new TableBuilder(options, file);
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {
       key = iter->key();
-//      assert(key.data()[0] == '0');
-      bool drop = false;
-      if (!ParseInternalKey(key, &ikey)) {
-        // Do not hide error keys
-        current_user_key.clear();
-        has_current_user_key = false;
-        printf("Corrupt key value detected\n");
-        s = Status::IOError("Corrupt key value detected\n");
-        break;
-      } else {
-        if (!has_current_user_key ||
-            user_cmp->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
-          // First occurrence of this user key
-          current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
-          has_current_user_key = true;
-          // this will result in the key not drop, next if will always be false because of the last_sequence_for_key.
-        }else{
-          drop = true;
-        }
-      }
-#ifndef NDEBUG
-      number_of_key++;
-#endif
-      if (!drop){
-#ifndef NDEBUG
-        Not_drop_counter++;
-#endif
-        builder->Add(key, iter->value());
-      }
-
+      builder->Add(key, iter->value());
     }
-
-    if (s.ok()) {
-//      assert(key.data()[0] == '0');
+    if (!key.empty()) {
       meta->largest.DecodeFrom(key);
-    } else{
-      delete builder;
-      return s;
     }
-#ifndef NDEBUG
-    printf("For flush, Total number of key touched is %d, KV left is %d\n", number_of_key,
-           Not_drop_counter);
-#endif
+
     // Finish and check for builder errors
-
     s = builder->Finish();
-    builder->get_datablocks_map(meta->remote_data_mrs);
-    builder->get_dataindexblocks_map(meta->remote_dataindex_mrs);
-    builder->get_filter_map(meta->remote_filter_mrs);
-
-
-    meta->file_size = 0;
-    for(auto iter : meta->remote_data_mrs){
-      meta->file_size += iter.second->length;
+    if (s.ok()) {
+      meta->file_size = builder->FileSize();
+      assert(meta->file_size > 0);
     }
-    meta->num_entries = builder->get_numentries();
-    DEBUG_arg("SSTable size is %lu \n", meta->file_size);
-    assert(builder->FileSize() == meta->file_size);
     delete builder;
-//TOFIX: temporarily disable the verification of index block.
+
+    // Finish and check for file errors
+    if (s.ok()) {
+      s = file->Sync();
+    }
+    if (s.ok()) {
+      s = file->Close();
+    }
+    delete file;
+    file = nullptr;
 
     if (s.ok()) {
       // Verify that the table is usable
-      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
+      Iterator* it = table_cache->NewIterator(ReadOptions(), meta->number,
+                                              meta->file_size);
       s = it->status();
-#ifndef NDEBUG
-      it->SeekToFirst();
-      size_t counter = 0;
-      while(it->Valid()){
-        counter++;
-        it->Next();
-      }
-#endif
       delete it;
     }
   }
@@ -910,11 +863,11 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     s = iter->status();
   }
 
-//  if (s.ok() && !meta->remote_data_mrs.empty()) {
-//    // Keep it
-//  } else {
-//    env->RemoveFile(fname);
-//  }
+  if (s.ok() && meta->file_size > 0) {
+    // Keep it
+  } else {
+    env->RemoveFile(fname);
+  }
   return s;
 }
 }  // namespace ROCKSDB_NAMESPACE

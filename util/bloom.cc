@@ -5,12 +5,11 @@
 #include "leveldb/filter_policy.h"
 
 #include "leveldb/slice.h"
-//#include "util/hash.h"
+#include "util/hash.h"
 
 namespace leveldb {
 
 namespace {
-
 
 class BloomFilterPolicy : public FilterPolicy {
  public:
@@ -23,7 +22,7 @@ class BloomFilterPolicy : public FilterPolicy {
 
   const char* Name() const override { return "leveldb.BuiltinBloomFilter2"; }
 
-  void CreateFilter(const Slice* keys, int n, Slice* dst) const override {
+  void CreateFilter(const Slice* keys, int n, std::string* dst) const override {
     // Compute bloom filter size (in both bits and bytes)
     size_t bits = n * bits_per_key_;
 
@@ -35,11 +34,9 @@ class BloomFilterPolicy : public FilterPolicy {
     bits = bytes * 8;
 
     const size_t init_size = dst->size();
-//    dst->resize(init_size + bytes, 0);
-    dst->Reset(dst->data(), init_size + bytes);
-      // Remember # of probes in filter
-    char* array = const_cast<char*>(dst->data() + init_size);
-    assert(init_size + bytes < 1024*1024*1024); // this size should smaller than 1 write buffer size.
+    dst->resize(init_size + bytes, 0);
+    dst->push_back(static_cast<char>(k_));  // Remember # of probes in filter
+    char* array = &(*dst)[init_size];
     for (int i = 0; i < n; i++) {
       // Use double-hashing to generate a sequence of hash values.
       // See analysis in [Kirsch,Mitzenmacher 2006].
@@ -51,8 +48,6 @@ class BloomFilterPolicy : public FilterPolicy {
         h += delta;
       }
     }
-    const char hash_num = static_cast<char>(k_);
-    dst->append(&hash_num, 1);
   }
 
   bool KeyMayMatch(const Slice& key, const Slice& bloom_filter) const override {

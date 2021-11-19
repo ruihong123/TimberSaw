@@ -212,7 +212,7 @@ class DBImpl : public DB {
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status TryInstallMemtableFlushResults(
       FlushJob* job, VersionSet* vset,
-      std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
+      FileMetaData*& sstable, VersionEdit* edit);
 //  SuperVersion* GetReferencedSuperVersion(DBImpl* db);
   void CleanupSuperVersion(SuperVersion* sv);
   void ReturnAndCleanupSuperVersion(SuperVersion* sv);

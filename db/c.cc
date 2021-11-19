@@ -111,7 +111,7 @@ struct leveldb_filterpolicy_t : public FilterPolicy {
 
   const char* Name() const override { return (*name_)(state_); }
 
-  void CreateFilter(const Slice* keys, int n, Slice* dst) const override {
+  void CreateFilter(const Slice* keys, int n, std::string* dst) const override {
     std::vector<const char*> key_pointers(n);
     std::vector<size_t> key_sizes(n);
     for (int i = 0; i < n; i++) {

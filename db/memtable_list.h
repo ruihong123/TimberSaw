@@ -5,14 +5,14 @@
 //
 #pragma once
 
+#include "db/dbformat.h"
+#include <condition_variable>
 #include <deque>
 #include <limits>
 #include <list>
 #include <set>
 #include <string>
 #include <vector>
-
-#include "db/dbformat.h"
 //#include "db/logs_with_prep_tracker.h"
 #include "db/memtable.h"
 //#include "db/db_impl.h"
@@ -264,7 +264,7 @@ class MemTableList {
   // Status::OK letting a concurrent flush to do the actual the recording.
 //  Status TryInstallMemtableFlushResults(
 //      FlushJob* job, VersionSet* vset,
-//      std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
+//      FileMetaData*& sstable, VersionEdit* edit);
 
   // New memtables are inserted at the front of the list.
   // Takes ownership of the referenced held on *m by the caller of Add().
@@ -422,13 +422,12 @@ class FlushJob {
   autovector<MemTable*> mem_vec;
   std::mutex* imm_mtx_;
   std::condition_variable* write_stall_cv_;
-  std::shared_ptr<RemoteMemTableMetaData> sst;
+  FileMetaData sst;
   const InternalKeyComparator* user_cmp;
   void Waitforpendingwriter();
   void SetAllMemStateProcessing();
   Status BuildTable(const std::string& dbname, Env* env, const Options& options,
-                    TableCache* table_cache, Iterator* iter,
-                    const std::shared_ptr<RemoteMemTableMetaData>& meta, IO_type type);
+                    TableCache* table_cache, Iterator* iter, FileMetaData* meta);
 
 };
 // Installs memtable atomic flush results.

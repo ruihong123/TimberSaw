@@ -9,22 +9,21 @@
 #include <vector>
 
 #include "leveldb/slice.h"
-#include "util/rdma.h"
+
 namespace leveldb {
 
 struct Options;
 
 class BlockBuilder {
  public:
-  explicit BlockBuilder(const Options* options, ibv_mr* mr);
+  explicit BlockBuilder(const Options* options);
 
   BlockBuilder(const BlockBuilder&) = delete;
   BlockBuilder& operator=(const BlockBuilder&) = delete;
 
   // Reset the contents as if the BlockBuilder was just constructed.
   void Reset();
-  // move the buffer locate at a different place
-  void Move_buffer(const char* p);
+
   // REQUIRES: Finish() has not been called since the last call to Reset().
   // REQUIRES: key is larger than any previously added key
   void Add(const Slice& key, const Slice& value);
@@ -39,12 +38,11 @@ class BlockBuilder {
   size_t CurrentSizeEstimate() const;
 
   // Return true iff no entries have been added since the last Reset()
-  bool empty() const { return buffer.empty(); }
-  Slice buffer;              // Destination buffer
+  bool empty() const { return buffer_.empty(); }
+
  private:
   const Options* options_;
-  ibv_mr* local_mr;
-
+  std::string buffer_;              // Destination buffer
   std::vector<uint32_t> restarts_;  // Restart points
   int counter_;                     // Number of entries emitted since restart
   bool finished_;                   // Has Finish() been called?

@@ -93,7 +93,7 @@ void InternalKeyComparator::FindShortSuccessor(std::string* key) const {
 const char* InternalFilterPolicy::Name() const { return user_policy_->Name(); }
 
 void InternalFilterPolicy::CreateFilter(const Slice* keys, int n,
-                                        Slice* dst) const {
+                                        std::string* dst) const {
   // We rely on the fact that the code in table.cc does not mind us
   // adjusting keys[].
   Slice* mkey = const_cast<Slice*>(keys);

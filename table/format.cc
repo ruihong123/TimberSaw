@@ -60,286 +60,82 @@ Status Footer::DecodeFrom(Slice* input) {
   }
   return result;
 }
-void Find_Remote_mr(std::map<int, ibv_mr*>* remote_data_blocks,
-                    const BlockHandle& handle, ibv_mr* remote_mr) {
-  uint64_t  position = handle.offset();
-//  auto iter = remote_data_blocks.begin();
-  auto iter = remote_data_blocks->upper_bound(position);
-  position = position - (iter->first - iter->second->length);
-  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
-//  assert(handle.size() +kBlockTrailerSize <= )
-  *(remote_mr) = *(iter->second);
-//      DEBUG_arg("Block buffer position %lu\n", position);
-  remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
-//  while(iter != remote_data_blocks.end()){
-//    if (position >= iter->second->length){// the missing of the equal, cause the
-//                                          // problem of iterator sometime drop, make the compaction failed
-//      position -= ((iter->second->length));
-//      iter++;
-//    }else{
-//      assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
-//      *(remote_mr) = *(iter->second);
-////      DEBUG_arg("Block buffer position %lu\n", position);
-//      remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
-//      return true;
-//    }
-//  }
-//  return false;
-}
-//TODO: Make the block mr searching and creating outside this function, so that datablock is
-// the same as data index block and filter block.
-Status ReadDataBlock(std::map<int, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
+
+Status ReadBlock(RandomAccessFile* file, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result) {
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
   result->data = Slice();
-//  result->cachable = false;
-//  result->heap_allocated = false;
+  result->cachable = false;
+  result->heap_allocated = false;
+
   // Read the block contents as well as the type/crc footer.
   // See table_builder.cc for the code that built this structure.
-  Status s = Status::OK();
-
-  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
-
   size_t n = static_cast<size_t>(handle.size());
-  assert(n + kBlockTrailerSize <= rdma_mg->name_to_size["DataBlock"]);
-  ibv_mr* contents= nullptr;
-  ibv_mr remote_mr;
-//#ifndef NDEBUG
-//  ibv_wc wc;
-//  int check_poll_number =
-//      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
-//  assert( check_poll_number == 0);
-//#endif
-
-//  if (){
-
-
-    Find_Remote_mr(remote_data_blocks, handle, &remote_mr);
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Find mr time elapse is %zu\n",  duration.count());
-//#endif
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
-    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Local memory allocation time elapse is %zu\n",  duration.count());
-//#endif
-#ifdef GETANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
-    rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize,
-                     "read_local", IBV_SEND_SIGNALED, 1);
-#ifdef GETANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  if (n + kBlockTrailerSize <= 8192){
-    RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
-    RDMA_Manager::ReadCount.fetch_add(1);
+  char* buf = new char[n + kBlockTrailerSize];
+  Slice contents;
+  Status s = file->Read(handle.offset(), n + kBlockTrailerSize, &contents, buf);
+  if (!s.ok()) {
+    delete[] buf;
+    return s;
   }
-#endif
-    //
-//  }else{
-//    s = Status::Corruption("Remote memtable out of buffer");
-//  }
-//#ifndef NDEBUG
-//  usleep(100);
-//  check_poll_number = rdma_mg->try_poll_this_thread_completions(&wc,1);
-//  assert( check_poll_number == 0);
-//#endif
+  if (contents.size() != n + kBlockTrailerSize) {
+    delete[] buf;
+    return Status::Corruption("truncated block read");
+  }
+
   // Check the crc of the type and the block contents
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
+  const char* data = contents.data();  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
     if (actual != crc) {
-//      delete[] buf;
-      DEBUG("Data block Checksum mismatch\n");
-      assert(false);
+      delete[] buf;
       s = Status::Corruption("block checksum mismatch");
       return s;
     }
   }
-//  printf("data[n] is %c\n", data[n]);
+
   switch (data[n]) {
     case kNoCompression:
+      if (data != buf) {
+        // File implementation gave us pointer to some other data.
+        // Use it directly under the assumption that it will be live
+        // while the file is open.
+        delete[] buf;
         result->data = Slice(data, n);
-//        result->heap_allocated = false;
-//        result->cachable = false;  // Do not double-cache
-
-
-      // Ok
-        break;
-//    case kSnappyCompression: {
-//      size_t ulength = 0;
-//      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
-//        rdma_mg->Deallocate_Local_RDMA_Slot(data, "DataBlock")
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      char* ubuf = new char[ulength];
-//      if (!port::Snappy_Uncompress(data, n, ubuf)) {
-//        delete[] buf;
-////        delete[] ubuf;
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      delete[] buf;
-//      result->data = Slice(ubuf, ulength);
-//      result->heap_allocated = true;
-//      result->cachable = true;
-//      break;
-//    }
-    default:
-      assert(data[n] != kNoCompression);
-      assert(false);
-      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
-      DEBUG("Data block illegal compression type\n");
-      return Status::Corruption("bad block type");
-  }
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("CRC check elapse is %zu\n",  duration.count());
-//#endif
-  return Status::OK();
-}
-
-Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
-                          BlockContents* result) {
-  result->data = Slice();
-//  result->cachable = false;
-//  result->heap_allocated = false;
-  // Read the block contents as well as the type/crc footer.
-  // See table_builder.cc for the code that built this structure.
-  Status s = Status::OK();
-  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
-  size_t n = remote_mr->length - kBlockTrailerSize;
-  assert(n>0);
-  assert(n + kBlockTrailerSize < rdma_mg->name_to_size["DataIndexBlock"]);
-  ibv_mr* contents;
-  rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataIndexBlock");
-  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
-
-  // Check the crc of the type and the block contents
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
-  if (options.verify_checksums) {
-    const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
-    const uint32_t actual = crc32c::Value(data, n + 1);
-    if (actual != crc) {
-//      delete[] buf;
-      DEBUG("Index block Checksum mismatch\n");
-      assert(false);
-      s = Status::Corruption("block checksum mismatch");
-      return s;
-    }
-  }
-
-  switch (data[n]) {
-    case kNoCompression:
-      //block content do not contain compression type and check sum
-      result->data = Slice(data, n);
-//      result->heap_allocated = false;
-//      result->cachable = false;  // Do not double-cache
-
+        result->heap_allocated = false;
+        result->cachable = false;  // Do not double-cache
+      } else {
+        result->data = Slice(buf, n);
+        result->heap_allocated = true;
+        result->cachable = true;
+      }
 
       // Ok
       break;
-//    case kSnappyCompression: {
-//      size_t ulength = 0;
-//      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
-//        rdma_mg->Deallocate_Local_RDMA_Slot(data, "DataBlock")
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      char* ubuf = new char[ulength];
-//      if (!port::Snappy_Uncompress(data, n, ubuf)) {
-//        delete[] buf;
-////        delete[] ubuf;
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      delete[] buf;
-//      result->data = Slice(ubuf, ulength);
-//      result->heap_allocated = true;
-//      result->cachable = true;
-//      break;
-//    }
-    default:
-      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
-      DEBUG("index block illegal compression type\n");
-      return Status::Corruption("bad block type");
-  }
-
-  return Status::OK();
-}
-Status ReadFilterBlock(ibv_mr* remote_mr,
-                          const ReadOptions& options, BlockContents* result) {
-  result->data = Slice();
-//  result->cachable = false;
-//  result->heap_allocated = false;
-  // Read the block contents as well as the type/crc footer.
-  // See table_builder.cc for the code that built this structure.
-  Status s = Status::OK();
-  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
-  size_t n = remote_mr->length - kBlockTrailerSize;
-  assert(n + kBlockTrailerSize < rdma_mg->name_to_size["FilterBlock"]);
-  ibv_mr* contents;
-  rdma_mg->Allocate_Local_RDMA_Slot(contents, "FilterBlock");
-  rdma_mg->RDMA_Read(remote_mr, contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
-
-  // Check the crc of the type and the block contents
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
-  if (options.verify_checksums) {
-    const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
-    const uint32_t actual = crc32c::Value(data, n + 1);
-    if (actual != crc) {
-//      delete[] buf;
-      DEBUG("Filter Checksum mismatch\n");
-//      assert(false);
-      s = Status::Corruption("block checksum mismatch");
-      return s;
-    }
-  }
-
-  switch (data[n]) {
-    case kNoCompression:
-      result->data = Slice(data, n);
-//      result->heap_allocated = false;
-//      result->cachable = false;  // Do not double-cache
-
-
-      // Ok
+    case kSnappyCompression: {
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
+        delete[] buf;
+        return Status::Corruption("corrupted compressed block contents");
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(data, n, ubuf)) {
+        delete[] buf;
+        delete[] ubuf;
+        return Status::Corruption("corrupted compressed block contents");
+      }
+      delete[] buf;
+      result->data = Slice(ubuf, ulength);
+      result->heap_allocated = true;
+      result->cachable = true;
       break;
-//    case kSnappyCompression: {
-//      size_t ulength = 0;
-//      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
-//        rdma_mg->Deallocate_Local_RDMA_Slot(data, "DataBlock")
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      char* ubuf = new char[ulength];
-//      if (!port::Snappy_Uncompress(data, n, ubuf)) {
-//        delete[] buf;
-////        delete[] ubuf;
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      delete[] buf;
-//      result->data = Slice(ubuf, ulength);
-//      result->heap_allocated = true;
-//      result->cachable = true;
-//      break;
-//    }
+    }
     default:
-      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), "DataBlock");
-      DEBUG("Filter illegal compression type\n");
+      delete[] buf;
       return Status::Corruption("bad block type");
   }
-  assert(result->data.size() != 0);
+
   return Status::OK();
 }
+
 }  // namespace leveldb

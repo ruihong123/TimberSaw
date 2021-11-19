@@ -91,7 +91,7 @@ class Repairer {
 
  private:
   struct TableInfo {
-    std::shared_ptr<RemoteMemTableMetaData> meta;
+    FileMetaData* meta;
     SequenceNumber max_sequence;
   };
 
@@ -200,7 +200,7 @@ class Repairer {
 
     // Do not record a version edit for this conversion to a Table
     // since ExtractMetaData() will also generate edits.
-    std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>();
+    FileMetaData* meta = std::make_shared<RemoteMemTableMetaData>();
     meta->number = next_file_number_++;
     Iterator* iter = mem->NewIterator();
     status =
@@ -225,7 +225,7 @@ class Repairer {
     }
   }
 
-  Iterator* NewTableIterator(std::shared_ptr<RemoteMemTableMetaData> meta) {
+  Iterator* NewTableIterator(FileMetaData* meta) {
     // Same as compaction iterators: if paranoid_checks are on, turn
     // on checksum verification.
     ReadOptions r;

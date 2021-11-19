@@ -20,10 +20,11 @@ int main()
 //  size_t write_block_size = 4*1024*1024;
 //  size_t read_block_size = 4*1024;
   size_t table_size = 10*1024*1024;
-  leveldb::RDMA_Manager RDMA_manager(config, table_size, 1);
+  Remote_Bitmap = new std::map<void*, leveldb::In_Use_Array>;
+  leveldb::RDMA_Manager RDMA_manager(config, table_size, 1, Remote_Bitmap);
 
   RDMA_manager.Server_to_Client_Communication();
-
+  delete Remote_Bitmap;
 
   return 0;
 }

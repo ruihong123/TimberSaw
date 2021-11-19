@@ -41,7 +41,7 @@ class FileIteratorWrapper {
     assert(Valid());
     return key_;
   }
-  std::shared_ptr<RemoteMemTableMetaData> value() const {
+  FileMetaData* value() const {
     assert(Valid());
     return iter_->file_value();
   }
@@ -98,7 +98,7 @@ class FileIteratorWrapper {
 // Uses a supplied function to convert an index_iter value into
 // an iterator over the contents of the corresponding block.
 typedef Iterator* (*BlockFunction)(void*, const ReadOptions&, const Slice&);
-typedef Iterator* (*FileFunction)(void*, const ReadOptions&, std::shared_ptr<RemoteMemTableMetaData> remote_table);
+typedef Iterator* (*FileFunction)(void*, const ReadOptions&, FileMetaData* remote_table);
 class TwoLevelIterator : public Iterator {
  public:
   TwoLevelIterator(Iterator* index_iter, BlockFunction block_function,
@@ -209,7 +209,7 @@ class TwoLevelFileIterator : public Iterator {
   IteratorWrapper data_iter_;  // May be nullptr
   // If data_iter_ is non-null, then "data_block_handle_" holds the
   // "index_value" passed to block_function_ to create the data_iter_.
-  std::shared_ptr<RemoteMemTableMetaData> this_remote_table;
+  FileMetaData* this_remote_table;
   bool valid_;
 };
 Iterator* NewTwoLevelIterator(
@@ -221,7 +221,7 @@ Iterator* NewTwoLevelIterator(
 Iterator* NewTwoLevelFileIterator(
     Version::LevelFileNumIterator* index_iter,
     Iterator* (*FileFunction)(void* arg, const ReadOptions& options,
-                              std::shared_ptr<RemoteMemTableMetaData>),
+                              FileMetaData*),
     void* arg, const ReadOptions& options);
 }  // namespace leveldb
 
