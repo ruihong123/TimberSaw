@@ -2231,7 +2231,7 @@ void RDMA_Manager::fs_deserilization(
       in_use[j] = bit_temp;
       temp = temp + sizeof(bool);
     }
-    auto* mr_inuse = new ibv_mr{0};
+    auto* mr_inuse = new ibv_mr{};
     mr_deserialization(temp, size, mr_inuse);
     In_Use_Array in_use_array(element_size, chunk_size, mr_inuse, in_use);
     remote_mem_bitmap.insert({p_key, in_use_array});
