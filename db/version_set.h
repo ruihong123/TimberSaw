@@ -150,7 +150,7 @@ class Version {
   int PickLevelForMemTableOutput(const Slice& smallest_user_key,
                                  const Slice& largest_user_key);
 
-  int NumFiles(int level) const { return levels_[level].size(); }
+  int NumFiles(int level) const { return files_[level].size(); }
 
   // Return a human readable string that describes this version's contents.
   std::string DebugString() const;
@@ -245,7 +245,7 @@ class Version {
   int refs_;          // Number of live refs to this version
 
   // List of files per level
-  std::vector<FileMetaData*> levels_[config::kNumLevels];
+  std::vector<FileMetaData*> files_[config::kNumLevels];
   std::vector<FileMetaData*> in_progress[config::kNumLevels];
 //  double score[config::kNumLevels];
   // Next file to compact based on seek stats.

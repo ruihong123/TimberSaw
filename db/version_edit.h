@@ -24,6 +24,7 @@ struct FileMetaData {
   uint64_t file_size;    // File size in bytes
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
+  bool UnderCompaction = false;
 };
 
 class VersionEdit {
@@ -78,6 +79,9 @@ class VersionEdit {
     }
     new_files_.emplace_back(level, remote_table);
     return;
+  }
+  size_t GetNewFilesNum(){
+    return new_files_.size();
   }
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file) {

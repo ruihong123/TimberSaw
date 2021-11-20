@@ -55,7 +55,7 @@ Status PrintLogContents(Env* env, const std::string& fname,
                         void (*func)(uint64_t, Slice, WritableFile*),
                         WritableFile* dst) {
   SequentialFile* file;
-  Status s = env->NewSequentialFile(fname, &file);
+  Status s = env->NewSequentialFile_RDMA(fname, &file);
   if (!s.ok()) {
     return s;
   }
@@ -150,7 +150,7 @@ Status DumpTable(Env* env, const std::string& fname, WritableFile* dst) {
   Table* table = nullptr;
   Status s = env->GetFileSize(fname, &file_size);
   if (s.ok()) {
-    s = env->NewRandomAccessFile(fname, &file);
+    s = env->NewRandomAccessFile_RDMA(fname, &file);
   }
   if (s.ok()) {
     // We use the default comparator, which may or may not match the

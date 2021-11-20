@@ -9,16 +9,20 @@
 namespace leveldb {
 
 Status BuildTable(const std::string& dbname, Env* env, const Options& options,
-                  TableCache* table_cache, Iterator* iter,
-                  FileMetaData* meta, IO_type type) {
+                  TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
   Status s;
-//  meta->file_size = 0;
+  meta->file_size = 0;
   iter->SeekToFirst();
 
   std::string fname = TableFileName(dbname, meta->number);
   if (iter->Valid()) {
+    WritableFile* file;
+    s = env->NewWritableFile(fname, &file);
+    if (!s.ok()) {
+      return s;
+    }
 
-    TableBuilder* builder = new TableBuilder(options, type);
+    TableBuilder* builder = new TableBuilder(options, file);
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {
@@ -30,31 +34,28 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
     }
 
     // Finish and check for builder errors
-
     s = builder->Finish();
-    builder->get_datablocks_map(meta->remote_data_mrs);
-    builder->get_dataindexblocks_map(meta->remote_dataindex_mrs);
-    builder->get_filter_map(meta->remote_filter_mrs);
-
-
-    meta->file_size = 0;
-    for(auto iter : meta->remote_data_mrs){
-      meta->file_size += iter.second->length;
+    if (s.ok()) {
+      meta->file_size = builder->FileSize();
+      assert(meta->file_size > 0);
     }
-    assert(builder->FileSize() == meta->file_size);
     delete builder;
-//TOFIX: temporarily disable the verification of index block.
+
+    // Finish and check for file errors
+    if (s.ok()) {
+      s = file->Sync();
+    }
+    if (s.ok()) {
+      s = file->Close();
+    }
+    delete file;
+    file = nullptr;
 
     if (s.ok()) {
       // Verify that the table is usable
-      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
+      Iterator* it = table_cache->NewIterator(ReadOptions(), meta->number,
+                                              meta->file_size);
       s = it->status();
-#ifndef NDEBUG
-      it->SeekToFirst();
-      while(it->Valid()){
-        it->Next();
-      }
-#endif
       delete it;
     }
   }
@@ -64,7 +65,7 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
     s = iter->status();
   }
 
-  if (s.ok() && !meta->remote_data_mrs.empty()) {
+  if (s.ok() && meta->file_size > 0) {
     // Keep it
   } else {
     env->RemoveFile(fname);

@@ -159,70 +159,70 @@ class TwoLevelIterator : public Iterator {
   bool valid_;
 };
 
-class TwoLevelFileIterator : public Iterator {
- public:
-  TwoLevelFileIterator(Version::LevelFileNumIterator* index_iter, FileFunction file_function,
-                       void* arg, const ReadOptions& options);
-
-  ~TwoLevelFileIterator() override;
-
-  void Seek(const Slice& target) override;
-  void SeekToFirst() override;
-  void SeekToLast() override;
-  void Next() override;
-  void Prev() override;
-
-  bool Valid() const override { return valid_; }
-  Slice key() const override {
-    assert(Valid());
-    return data_iter_.key();
-  }
-  Slice value() const override {
-    assert(Valid());
-    return data_iter_.value();
-  }
-  Status status() const override {
-    // It'd be nice if status() returned a const Status& instead of a Status
-    if (!index_iter_.status().ok()) {
-      return index_iter_.status();
-    } else if (data_iter_.iter() != nullptr && !data_iter_.status().ok()) {
-      return data_iter_.status();
-    } else {
-      return status_;
-    }
-  }
-
- private:
-  void SaveError(const Status& s) {
-    if (status_.ok() && !s.ok()) status_ = s;
-  }
-  void SkipEmptyDataBlocksForward();
-  void SkipEmptyDataBlocksBackward();
-  void SetDataIterator(Iterator* data_iter);
-  void InitDataBlock();
-
-  FileFunction file_function_;
-  void* arg_;
-  const ReadOptions options_;
-  Status status_;
-  FileIteratorWrapper index_iter_;
-  IteratorWrapper data_iter_;  // May be nullptr
-  // If data_iter_ is non-null, then "data_block_handle_" holds the
-  // "index_value" passed to block_function_ to create the data_iter_.
-  FileMetaData* this_remote_table;
-  bool valid_;
-};
+//class TwoLevelFileIterator : public Iterator {
+// public:
+//  TwoLevelFileIterator(Version::LevelFileNumIterator* index_iter, FileFunction file_function,
+//                       void* arg, const ReadOptions& options);
+//
+//  ~TwoLevelFileIterator() override;
+//
+//  void Seek(const Slice& target) override;
+//  void SeekToFirst() override;
+//  void SeekToLast() override;
+//  void Next() override;
+//  void Prev() override;
+//
+//  bool Valid() const override { return valid_; }
+//  Slice key() const override {
+//    assert(Valid());
+//    return data_iter_.key();
+//  }
+//  Slice value() const override {
+//    assert(Valid());
+//    return data_iter_.value();
+//  }
+//  Status status() const override {
+//    // It'd be nice if status() returned a const Status& instead of a Status
+//    if (!index_iter_.status().ok()) {
+//      return index_iter_.status();
+//    } else if (data_iter_.iter() != nullptr && !data_iter_.status().ok()) {
+//      return data_iter_.status();
+//    } else {
+//      return status_;
+//    }
+//  }
+//
+// private:
+//  void SaveError(const Status& s) {
+//    if (status_.ok() && !s.ok()) status_ = s;
+//  }
+//  void SkipEmptyDataBlocksForward();
+//  void SkipEmptyDataBlocksBackward();
+//  void SetDataIterator(Iterator* data_iter);
+//  void InitDataBlock();
+//
+//  FileFunction file_function_;
+//  void* arg_;
+//  const ReadOptions options_;
+//  Status status_;
+//  FileIteratorWrapper index_iter_;
+//  IteratorWrapper data_iter_;  // May be nullptr
+//  // If data_iter_ is non-null, then "data_block_handle_" holds the
+//  // "index_value" passed to block_function_ to create the data_iter_.
+//  FileMetaData* this_remote_table;
+//  bool valid_;
+//};
 Iterator* NewTwoLevelIterator(
     Iterator* index_iter,
     Iterator* (*block_function)(void* arg, const ReadOptions& options,
                                 const Slice& index_value),
     void* arg, const ReadOptions& options);
 
-Iterator* NewTwoLevelFileIterator(
-    Version::LevelFileNumIterator* index_iter,
-    Iterator* (*FileFunction)(void* arg, const ReadOptions& options,
-                              FileMetaData*),
-    void* arg, const ReadOptions& options);
+//Iterator* NewTwoLevelFileIterator(
+//    Version::LevelFileNumIterator* index_iter,
+//    Iterator* (*FileFunction)(void* arg, const ReadOptions& options,
+//                              FileMetaData*),
+//    void* arg, const ReadOptions& options);
 }  // namespace leveldb
 
 #endif  // STORAGE_LEVELDB_TABLE_TWO_LEVEL_ITERATOR_H_

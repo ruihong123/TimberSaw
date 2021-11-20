@@ -48,7 +48,7 @@ class Block {
   bool owned_;               // Block owns data_[]
   bool RDMA_Regiested;
   BlockType type_;
-  std::shared_ptr<RDMA_Manager> rdma_mg_;
+  RDMA_Manager* rdma_mg_;
 };
 // Helper routine: decode the next block entry starting at "p",
 // storing the number of shared key bytes, non_shared key bytes,

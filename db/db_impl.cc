@@ -67,13 +67,18 @@ struct DBImpl::Writer {
   bool done;
   port::CondVar cv;
 };
-struct CompactionOutput {
+//struct CompactionOutput {
+//  uint64_t number;
+//  uint64_t file_size;
+//  InternalKey smallest, largest;
+//  std::map<int, ibv_mr*> remote_data_mrs;
+//  std::map<int, ibv_mr*> remote_dataindex_mrs;
+//  std::map<int, ibv_mr*> remote_filter_mrs;
+//};
+struct Output {
   uint64_t number;
   uint64_t file_size;
   InternalKey smallest, largest;
-  std::map<int, ibv_mr*> remote_data_mrs;
-  std::map<int, ibv_mr*> remote_dataindex_mrs;
-  std::map<int, ibv_mr*> remote_filter_mrs;
 };
 struct DBImpl::SubcompactionState {
   Compaction* const compaction;
@@ -89,10 +94,11 @@ struct DBImpl::SubcompactionState {
 
 
   // State kept for output being generated
-  std::vector<CompactionOutput> outputs;
+  std::vector<Output> outputs;
+  WritableFile* outfile;
   TableBuilder* builder = nullptr;
 
-  CompactionOutput* current_output() {
+  Output* current_output() {
     if (outputs.empty()) {
       // This subcompaction's output could be empty if compaction was aborted
       // before this subcompaction had a chance to generate any output files.
@@ -128,7 +134,7 @@ struct DBImpl::SubcompactionState {
 struct DBImpl::CompactionState {
   // Files produced by compaction
 
-  CompactionOutput* current_output() { return &outputs[outputs.size() - 1]; }
+  Output* current_output() { return &outputs[outputs.size() - 1]; }
 
   explicit CompactionState(Compaction* c)
       : compaction(c),
@@ -146,10 +152,10 @@ struct DBImpl::CompactionState {
   // we can drop all entries for the same key with sequence numbers < S.
   SequenceNumber smallest_snapshot;
 
-  std::vector<CompactionOutput> outputs;
+  std::vector<Output> outputs;
 
   // State kept for output being generated
-//  WritableFile* outfile;
+  WritableFile* outfile;
   TableBuilder* builder;
 
   uint64_t total_bytes;
@@ -532,7 +538,7 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   // Open the log file
   std::string fname = LogFileName(dbname_, log_number);
   SequentialFile* file;
-  Status status = env_->NewSequentialFile(fname, &file);
+  Status status = env_->NewSequentialFile_RDMA(fname, &file);
   if (!status.ok()) {
     MaybeIgnoreError(&status);
     return status;
@@ -968,7 +974,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       assert(c->num_input_files(0) == 1);
       FileMetaData* f = c->input(0, 0);
       c->edit()->RemoveFile(c->level(), f->number);
-      c->edit()->AddFile(c->level() + 1, f);
+      c->edit()->AddFile(c->level() + 1, f->number, f->file_size, f->smallest, f->largest);
       {
         std::unique_lock<std::mutex> l(superversion_mtx);
         c->ReleaseInputs();
@@ -1048,7 +1054,7 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
   }
 //  delete compact->outfile;
   for (size_t i = 0; i < compact->outputs.size(); i++) {
-    const CompactionOutput& out = compact->outputs[i];
+    const Output& out = compact->outputs[i];
 //    pending_outputs_.erase(out.number);
   }
   delete compact;
@@ -1061,7 +1067,7 @@ Status DBImpl::OpenCompactionOutputFile(DBImpl::SubcompactionState* compact) {
 //    undefine_mutex.Lock();
     file_number = versions_->NewFileNumber();
 //    pending_outputs_.insert(file_number);
-    CompactionOutput out;
+    Output out;
     out.number = file_number;
     out.smallest.Clear();
     out.largest.Clear();
@@ -1070,11 +1076,12 @@ Status DBImpl::OpenCompactionOutputFile(DBImpl::SubcompactionState* compact) {
   }
 
   // Make the output file
-//  std::string fname = TableFileName(dbname_, file_number);
-//  Status s = env_->NewWritableFile(fname, &compact->outfile);
-  Status s = Status::OK();
+  // Make the output file
+  std::string fname = TableFileName(dbname_, file_number);
+  Status s = env_->NewWritableFile(fname, &compact->outfile);
+//  Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder(options_, Compact);
+    compact->builder = new TableBuilder(options_, compact->outfile);
   }
   return s;
 }
@@ -1086,7 +1093,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
 //    undefine_mutex.Lock();
     file_number = versions_->NewFileNumber();
 //    pending_outputs_.insert(file_number);
-    CompactionOutput out;
+    Output out;
     out.number = file_number;
     out.smallest.Clear();
     out.largest.Clear();
@@ -1095,11 +1102,11 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   }
 
   // Make the output file
-//  std::string fname = TableFileName(dbname_, file_number);
-//  Status s = env_->NewWritableFile(fname, &compact->outfile);
-  Status s = Status::OK();
+  std::string fname = TableFileName(dbname_, file_number);
+  Status s = env_->NewWritableFile(fname, &compact->outfile);
+//  Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder(options_, Compact);
+    compact->builder = new TableBuilder(options_, compact->outfile);
   }
   return s;
 }
@@ -1123,18 +1130,18 @@ Status DBImpl::FinishCompactionOutputFile(SubcompactionState* compact,
     compact->builder->Abandon();
   }
 
-  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
-  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
-  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
-#ifndef NDEBUG
-  uint64_t file_size = 0;
-  for(auto iter : compact->current_output()->remote_data_mrs){
-    file_size += iter.second->length;
-  }
-#endif
+//  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
+//  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
+//  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
+//#ifndef NDEBUG
+//  uint64_t file_size = 0;
+//  for(auto iter : compact->current_output()->remote_data_mrs){
+//    file_size += iter.second->length;
+//  }
+//#endif
   const uint64_t current_bytes = compact->builder->FileSize();
   compact->current_output()->file_size = current_bytes;
-  assert(file_size == current_bytes);
+//  assert(file_size == current_bytes);
   compact->total_bytes += current_bytes;
   delete compact->builder;
   compact->builder = nullptr;
@@ -1183,18 +1190,18 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
     compact->builder->Abandon();
   }
 
-  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
-  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
-  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
-#ifndef NDEBUG
-  uint64_t file_size = 0;
-  for(auto iter : compact->current_output()->remote_data_mrs){
-    file_size += iter.second->length;
-  }
-#endif
+//  compact->builder->get_datablocks_map(compact->current_output()->remote_data_mrs);
+//  compact->builder->get_dataindexblocks_map(compact->current_output()->remote_dataindex_mrs);
+//  compact->builder->get_filter_map(compact->current_output()->remote_filter_mrs);
+//#ifndef NDEBUG
+//  uint64_t file_size = 0;
+//  for(auto iter : compact->current_output()->remote_data_mrs){
+//    file_size += iter.second->length;
+//  }
+//#endif
   const uint64_t current_bytes = compact->builder->FileSize();
   compact->current_output()->file_size = current_bytes;
-  assert(file_size == current_bytes);
+//  assert(file_size == current_bytes);
   compact->total_bytes += current_bytes;
   delete compact->builder;
   compact->builder = nullptr;
@@ -1237,35 +1244,34 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   const int level = compact->compaction->level();
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
-      const CompactionOutput& out = compact->outputs[i];
-      FileMetaData* meta = std::make_shared<RemoteMemTableMetaData>();
-      //TODO make all the metadata written into out
-      meta->number = out.number;
-      meta->file_size = out.file_size;
-      meta->smallest = out.smallest;
-      meta->largest = out.largest;
-      meta->remote_data_mrs = out.remote_data_mrs;
-      meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
-      meta->remote_filter_mrs = out.remote_filter_mrs;
-      compact->compaction->edit()->AddFile(level + 1, meta);
-      assert(!meta->UnderCompaction);
+      const Output& out = compact->outputs[i];
+//      FileMetaData meta;
+//      //TODO make all the metadata written into out
+//      meta.number = out.number;
+//      meta.file_size = out.file_size;
+//      meta.smallest = out.smallest;
+//      meta.largest = out.largest;
+      compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size,
+                                           out.smallest, out.largest);
+//      assert(!meta.UnderCompaction);
     }
   }else{
     for(auto subcompact : compact->sub_compact_states){
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
-        const CompactionOutput& out = subcompact.outputs[i];
-        FileMetaData* meta =
-            std::make_shared<RemoteMemTableMetaData>();
-        // TODO make all the metadata written into out
-        meta->number = out.number;
-        meta->file_size = out.file_size;
-        meta->smallest = out.smallest;
-        meta->largest = out.largest;
-        meta->remote_data_mrs = out.remote_data_mrs;
-        meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
-        meta->remote_filter_mrs = out.remote_filter_mrs;
-        compact->compaction->edit()->AddFile(level + 1, meta);
-        assert(!meta->UnderCompaction);
+        const Output& out = subcompact.outputs[i];
+//        FileMetaData* meta =
+//            std::make_shared<RemoteMemTableMetaData>();
+//        // TODO make all the metadata written into out
+//        meta->number = out.number;
+//        meta->file_size = out.file_size;
+//        meta->smallest = out.smallest;
+//        meta->largest = out.largest;
+//        meta->remote_data_mrs = out.remote_data_mrs;
+//        meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
+//        meta->remote_filter_mrs = out.remote_filter_mrs;
+        compact->compaction->edit()->AddFile(level + 1, out.number, out.file_size,
+                                             out.smallest, out.largest);
+//        assert(!meta->UnderCompaction);
       }
     }
   }
@@ -1349,7 +1355,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   while (batch_count-- > 0) {
     MemTable* m = current->memlist_.back();
 
-    assert(m->sstable != nullptr);
+    assert(m->sstable.number!=0);
     autovector<MemTable*> dummy_to_delete = autovector<MemTable*>();
     current->Remove(m);
     imm_.UpdateCachedValuesFromMemTableListVersion();

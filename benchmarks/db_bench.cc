@@ -661,14 +661,14 @@ class Benchmark {
         }
       }
 
-      if (method != nullptr) {
-        if (name == "readrandom"){
-          TableCache::CleanAll();
-        }
-        RunBenchmark(num_threads, name, method);
-        printf("Benchmark finished\n");
-
-      }
+//      if (method != nullptr) {
+//        if (name == "readrandom"){
+//          TableCache::CleanAll();
+//        }
+//        RunBenchmark(num_threads, name, method);
+//        printf("Benchmark finished\n");
+//
+//      }
     }
     Validation_Read();
   }
