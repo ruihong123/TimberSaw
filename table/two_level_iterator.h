@@ -152,10 +152,10 @@ class TwoLevelIterator : public Iterator {
   // If data_iter_ is non-null, then "data_block_handle_" holds the
   // "index_value" passed to block_function_ to create the data_iter_.
   std::string data_block_handle_;
-#ifndef NDEBUG
-  std::string last_key;
-  int64_t num_entries=0;
-#endif
+//#ifndef NDEBUG
+//  std::string last_key;
+//  int64_t num_entries=0;
+//#endif
   bool valid_;
 };
 

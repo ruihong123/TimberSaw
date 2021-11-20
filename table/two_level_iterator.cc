@@ -60,15 +60,15 @@ void TwoLevelIterator::Next() {
   assert(Valid());
   data_iter_.Next();
   SkipEmptyDataBlocksForward();
-#ifndef NDEBUG
-  if (Valid()){
-    if (num_entries > 0) {
-      assert(static_cast<Block::Iter*>(data_iter_.iter())->Compare(key(), Slice(last_key)) >= 0);
-    }
-    num_entries++;
-    last_key = key().ToString();
-  }
-#endif
+//#ifndef NDEBUG
+//  if (Valid()){
+//    if (num_entries > 0) {
+//      assert(static_cast<Block::Iter*>(data_iter_.iter())->Compare(key(), Slice(last_key)) >= 0);
+//    }
+//    num_entries++;
+//    last_key = key().ToString();
+//  }
+//#endif
 }
 
 void TwoLevelIterator::Prev() {
