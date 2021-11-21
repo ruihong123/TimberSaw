@@ -853,6 +853,7 @@ class RDMAWritableFile final : public WritableFile {
     //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     //  printf("RDMA Write size: %zu time elapse: %ld\n", data.size(), duration.count());
     //  start = std::chrono::high_resolution_clock::now();
+    sst_meta_head->file_size += data.size();
     if(rdma_mg_->Deallocate_Local_RDMA_Slot(local_mr_pointer->addr,
                                              std::string("write")))
       delete local_mr_pointer;
