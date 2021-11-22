@@ -63,7 +63,7 @@ Status Table::Open(const Options& options, RandomAccessFile* file,
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
-    Block* index_block = new Block(index_block_contents,IndexBlock);
+    Block* index_block = new Block(index_block_contents);
     Rep* rep = new Table::Rep;
     rep->options = options;
     rep->file = file;
@@ -98,7 +98,7 @@ void Table::ReadMeta(const Footer& footer) {
     // Do not propagate errors since meta info is not needed for operation
     return;
   }
-  Block* meta = new Block(contents, FilterBlock);
+  Block* meta = new Block(contents);
 
   Iterator* iter = meta->NewIterator(BytewiseComparator());
   std::string key = "filter.";
@@ -179,7 +179,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       } else {
         s = ReadBlock(table->rep_->file, options, handle, &contents);
         if (s.ok()) {
-          block = new Block(contents, DataBlock);
+          block = new Block(contents);
           if (contents.cachable && options.fill_cache) {
             cache_handle = block_cache->Insert(key, block, block->size(),
                                                &DeleteCachedBlock);
@@ -189,7 +189,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
     } else {
       s = ReadBlock(table->rep_->file, options, handle, &contents);
       if (s.ok()) {
-        block = new Block(contents,DataBlock);
+        block = new Block(contents);
       }
     }
   }
