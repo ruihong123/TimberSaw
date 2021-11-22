@@ -389,14 +389,14 @@ void DBImpl::RemoveObsoleteFiles() {
           // (in case there is a race that allows other incarnations)
           keep = (number >= versions_->ManifestFileNumber());
           break;
-          //        case kTableFile:
-          //          keep = (live.find(number) != live.end());
-          //          break;
-          //        case kTempFile:
-          //          // Any temp files that are currently being written to must
-          //          // be recorded in pending_outputs_, which is inserted into "live"
-          //          keep = (live.find(number) != live.end());
-          //          break;
+        case kTableFile:
+          keep = (live.find(number) != live.end());
+          break;
+        case kTempFile:
+          // Any temp files that are currently being written to must
+          // be recorded in pending_outputs_, which is inserted into "live"
+          keep = (live.find(number) != live.end());
+          break;
         case kCurrentFile:
         case kDBLockFile:
         case kInfoLogFile:
