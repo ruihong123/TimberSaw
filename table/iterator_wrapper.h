@@ -22,9 +22,11 @@ class IteratorWrapper {
 #ifndef NDEBUG
     printf("Delete iter_ when iterator wrapper deallocation, deleted iter_ is %p \n", iter_);
 #endif
-    if (iter_ != nullptr){
+    //Deleting a null pointer has no effect, so it is not necessary to check for
+    //a null pointer before calling delete.
+//    if (iter_ != nullptr){
       delete iter_;
-    }
+//    }
 
   }
   Iterator* iter() const { return iter_; }
