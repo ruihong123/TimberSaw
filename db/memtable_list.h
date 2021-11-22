@@ -427,7 +427,8 @@ class FlushJob {
   void Waitforpendingwriter();
   void SetAllMemStateProcessing();
   Status BuildTable(const std::string& dbname, Env* env, const Options& options,
-                    TableCache* table_cache, Iterator* iter, FileMetaData* meta);
+                    TableCache* table_cache, Iterator* iter, FileMetaData* meta,
+                    std::set<uint64_t>* pending_outputs_, std::mutex* sst_mtx);
 
 };
 // Installs memtable atomic flush results.

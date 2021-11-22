@@ -358,7 +358,7 @@ void DBImpl::MaybeIgnoreError(Status* s) const {
 }
 
 void DBImpl::RemoveObsoleteFiles() {
-  undefine_mutex.AssertHeld();
+//  undefine_mutex.AssertHeld();
 
   if (!bg_error_.ok()) {
     // After a background error, we don't know whether a new version may
@@ -367,8 +367,9 @@ void DBImpl::RemoveObsoleteFiles() {
   }
 
   // Make a set of all of the live files
-//  std::set<uint64_t> live = pending_outputs_;
-//  versions_->AddLiveFiles(&live);
+  std::unique_lock<std::mutex> lck(sstable_recycle_mtx);
+  std::set<uint64_t> live = pending_outputs_;
+  versions_->AddLiveFiles(&live);
 
   std::vector<std::string> filenames;
   env_->GetChildren(dbname_, &filenames);  // Ignoring errors on purpose
@@ -388,14 +389,14 @@ void DBImpl::RemoveObsoleteFiles() {
           // (in case there is a race that allows other incarnations)
           keep = (number >= versions_->ManifestFileNumber());
           break;
-//        case kTableFile:
-//          keep = (live.find(number) != live.end());
-//          break;
-//        case kTempFile:
-//          // Any temp files that are currently being written to must
-//          // be recorded in pending_outputs_, which is inserted into "live"
-//          keep = (live.find(number) != live.end());
-//          break;
+          //        case kTableFile:
+          //          keep = (live.find(number) != live.end());
+          //          break;
+          //        case kTempFile:
+          //          // Any temp files that are currently being written to must
+          //          // be recorded in pending_outputs_, which is inserted into "live"
+          //          keep = (live.find(number) != live.end());
+          //          break;
         case kCurrentFile:
         case kDBLockFile:
         case kInfoLogFile:
@@ -413,6 +414,8 @@ void DBImpl::RemoveObsoleteFiles() {
       }
     }
   }
+
+  lck.unlock();
 
   // While deleting all files unblock other threads. All files being deleted
   // have unique names which will not collide with newly created files and
@@ -653,7 +656,8 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   Status s;
   {
 //    undefine_mutex.Unlock();
-    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, &meta);
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, &meta,
+                    &pending_outputs_, &sstable_recycle_mtx);
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -1013,7 +1017,13 @@ void DBImpl::BackgroundCompaction(void* p) {
         RecordBackgroundError(status);
       }
       CleanupCompaction(compact);
-    RemoveObsoleteFiles();
+      // frequently reclycle will have concurrency overhead to background compaction, so
+      // we make a recyle counter.
+      if (recycle_cnt++==6){
+        RemoveObsoleteFiles();
+        recycle_cnt = 0;
+      }
+
     }
     delete c;
 
@@ -1078,7 +1088,13 @@ Status DBImpl::OpenCompactionOutputFile(DBImpl::SubcompactionState* compact) {
   // Make the output file
   // Make the output file
   std::string fname = TableFileName(dbname_, file_number);
+
+  std::unique_lock<std::mutex> lck(sstable_recycle_mtx);
+  pending_outputs_.insert(file_number);
   Status s = env_->NewWritableFile(fname, &compact->outfile);
+  lck.unlock();
+
+//  lck.unlock();
 //  Status s = Status::OK();
   if (s.ok()) {
     compact->builder = new TableBuilder(options_, compact->outfile);

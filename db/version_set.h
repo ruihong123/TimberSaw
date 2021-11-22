@@ -263,6 +263,7 @@ class Version {
 };
 
 class VersionSet {
+  friend DB;
  public:
   VersionSet(const std::string& dbname, const Options* options,
              TableCache* table_cache, const InternalKeyComparator* cmp,

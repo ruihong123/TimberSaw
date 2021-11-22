@@ -806,8 +806,11 @@ FlushJob::FlushJob(std::mutex* imm_mtx,
                    const InternalKeyComparator* cmp)
     : imm_mtx_(imm_mtx), write_stall_cv_(write_stall_cv),
       user_cmp(cmp){}
-Status FlushJob::BuildTable(const std::string& dbname, Env* env, const Options& options,
-                            TableCache* table_cache, Iterator* iter, FileMetaData* meta) {
+Status FlushJob::BuildTable(const std::string& dbname, Env* env,
+                            const Options& options, TableCache* table_cache,
+                            Iterator* iter, FileMetaData* meta,
+                            std::set<uint64_t>* pending_outputs_,
+                            std::mutex* sst_mtx) {
   Status s;
   meta->file_size = 0;
   iter->SeekToFirst();
@@ -815,6 +818,8 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env, const Options& 
   std::string fname = TableFileName(dbname, meta->number);
   if (iter->Valid()) {
     WritableFile* file;
+    std::unique_lock<std::mutex> lck(*sst_mtx);
+    pending_outputs_->insert(meta->number);
     s = env->NewWritableFile(fname, &file);
     if (!s.ok()) {
       return s;

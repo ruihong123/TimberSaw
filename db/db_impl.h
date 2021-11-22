@@ -78,6 +78,7 @@ struct SuperVersion {
 // The structure for storing argument for thread pool.
 
 class DBImpl : public DB {
+  friend VersionSet;
  public:
   DBImpl(const Options& options, const std::string& dbname);
 
@@ -249,6 +250,8 @@ class DBImpl : public DB {
   std::atomic<bool> shutting_down_;
   std::condition_variable write_stall_cv GUARDED_BY(superversion_mtx);
   std::mutex superversion_mtx;
+  std::mutex sstable_recycle_mtx;
+  int recycle_cnt = 0;
   bool locked = false;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;
@@ -268,7 +271,7 @@ class DBImpl : public DB {
 
   // Set of table files to protect from deletion because they are
   // part of ongoing compactions.
-//  std::set<uint64_t> pending_outputs_;
+  std::set<uint64_t> pending_outputs_;
 
   // Has a background compaction been scheduled or is running?
   bool background_compaction_scheduled_;
