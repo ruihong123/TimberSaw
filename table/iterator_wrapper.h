@@ -22,7 +22,10 @@ class IteratorWrapper {
 #ifndef NDEBUG
     printf("Delete iter_ when iterator wrapper deallocation, deleted iter_ is %p \n", iter_);
 #endif
-    delete iter_;
+    if (iter_ != nullptr){
+      delete iter_;
+    }
+
   }
   Iterator* iter() const { return iter_; }
 
