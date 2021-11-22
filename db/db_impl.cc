@@ -764,7 +764,7 @@ void DBImpl::CompactMemTable() {
 //  base->Unref();
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
-//  MaybeScheduleFlushOrCompaction();
+  MaybeScheduleFlushOrCompaction();
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
   }
@@ -1013,7 +1013,7 @@ void DBImpl::BackgroundCompaction(void* p) {
         RecordBackgroundError(status);
       }
       CleanupCompaction(compact);
-//    RemoveObsoleteFiles();
+    RemoveObsoleteFiles();
     }
     delete c;
 
@@ -2579,7 +2579,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     s = impl->versions_->LogAndApply(&edit);
   }
   if (s.ok()) {
-//    impl->RemoveObsoleteFiles();
+    impl->RemoveObsoleteFiles();
 impl->MaybeScheduleFlushOrCompaction();
   }
   impl->undefine_mutex.Unlock();
