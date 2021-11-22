@@ -247,6 +247,7 @@ Status TableBuilder::Finish() {
     r->status = r->file->Append(footer_encoding);
     if (r->status.ok()) {
       r->offset += footer_encoding.size();
+      r->file->Flush();
     }
   }
   return r->status;
