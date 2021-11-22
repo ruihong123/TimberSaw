@@ -91,6 +91,9 @@ void Table::ReadMeta(const Footer& footer) {
     opt.verify_checksums = true;
   }
   BlockContents contents;
+  //Notice: The read block here is not over RDMA registered buffer so no need for recyle the
+  //RDMA registered buffer. Or we can modified it in Read block to make the buffer RDMA registered.
+  // so that no need for extra data copy!
   if (!ReadBlock(rep_->file, opt, footer.metaindex_handle(), &contents).ok()) {
     // Do not propagate errors since meta info is not needed for operation
     return;

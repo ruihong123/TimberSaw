@@ -50,7 +50,7 @@ Block::~Block() {
 //      printf("Block RDMA registered memory deallocated successfull\n");
       return;
     }
-    DEBUG("Not found in the RDMA mem pool");
+//    DEBUG("Not found in the RDMA mem pool");
   }
 }
 
