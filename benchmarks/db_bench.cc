@@ -552,7 +552,7 @@ class Benchmark {
     Open();
 
     const char* benchmarks = FLAGS_benchmarks;
-//    Validation_Write();
+    Validation_Write();
     while (benchmarks != nullptr) {
       printf("The benchmark start.\n");
       const char* sep = strchr(benchmarks, ',');

@@ -798,46 +798,46 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 
   // Initialize new descriptor log file if necessary by creating
   // a temporary file that contains a snapshot of the current version.
-//  std::string new_manifest_file;
+  std::string new_manifest_file;
   Status s = Status::OK();
-//  if (descriptor_log_ == nullptr) {
-//    // No reason to unlock *mu here since we only hit this path in the
-//    // first call to LogAndApply (when opening the database).
-//    assert(descriptor_file_ == nullptr);
-//    new_manifest_file = DescriptorFileName(dbname_, manifest_file_number_);
-//    edit->SetNextFile(next_file_number_);
-//    s = env_->NewWritableFile(new_manifest_file, &descriptor_file_);
-//    if (s.ok()) {
-//      descriptor_log_ = new log::Writer(descriptor_file_);
-//      s = WriteSnapshot(descriptor_log_);
-//    }
-//  }
+  if (descriptor_log_ == nullptr) {
+    // No reason to unlock *mu here since we only hit this path in the
+    // first call to LogAndApply (when opening the database).
+    assert(descriptor_file_ == nullptr);
+    new_manifest_file = DescriptorFileName(dbname_, manifest_file_number_);
+    edit->SetNextFile(next_file_number_);
+    s = env_->NewWritableFile(new_manifest_file, &descriptor_file_);
+    if (s.ok()) {
+      descriptor_log_ = new log::Writer(descriptor_file_);
+      s = WriteSnapshot(descriptor_log_);
+    }
+  }
 
   // Unlock during expensive MANIFEST log write
-//  {
-//    mu->Unlock();
-//
-//    // Write new record to MANIFEST log
-//    if (s.ok()) {
-//      std::string record;
-//      edit->EncodeTo(&record);
-//      s = descriptor_log_->AddRecord(record);
-//      if (s.ok()) {
-//        s = descriptor_file_->Sync();
-//      }
-//      if (!s.ok()) {
-//        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
-//      }
-//    }
-//
-//    // If we just created a new descriptor file, install it by writing a
-//    // new CURRENT file that points to it.
-//    if (s.ok() && !new_manifest_file.empty()) {
-//      s = SetCurrentFile(env_, dbname_, manifest_file_number_);
-//    }
-//
-//    mu->Lock();
-//  }
+  {
+//    lck->unlock();
+
+    // Write new record to MANIFEST log
+    if (s.ok()) {
+      std::string record;
+      edit->EncodeTo(&record);
+      s = descriptor_log_->AddRecord(record);
+      if (s.ok()) {
+        s = descriptor_file_->Sync();
+      }
+      if (!s.ok()) {
+        Log(options_->info_log, "MANIFEST write: %s\n", s.ToString().c_str());
+      }
+    }
+
+    // If we just created a new descriptor file, install it by writing a
+    // new CURRENT file that points to it.
+    if (s.ok() && !new_manifest_file.empty()) {
+      s = SetCurrentFile(env_, dbname_, manifest_file_number_);
+    }
+
+//    lck->lock();
+  }
 
   // Install the new version
   if (s.ok()) {
@@ -845,13 +845,13 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
   } else {
     delete v;
     printf("installing new version failed");
-//    if (!new_manifest_file.empty()) {
-//      delete descriptor_log_;
-//      delete descriptor_file_;
-//      descriptor_log_ = nullptr;
-//      descriptor_file_ = nullptr;
-//      env_->RemoveFile(new_manifest_file);
-//    }
+    if (!new_manifest_file.empty()) {
+      delete descriptor_log_;
+      delete descriptor_file_;
+      descriptor_log_ = nullptr;
+      descriptor_file_ = nullptr;
+      env_->RemoveFile(new_manifest_file);
+    }
   }
   lck.unlock();
   return s;
