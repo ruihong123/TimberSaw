@@ -1402,15 +1402,19 @@ class PosixEnv : public Env {
 
     // delete remove the flage sucessfully
     SST_Metadata* next_file_meta;
+    bool result;
     while (file_meta->next_ptr != nullptr){
       next_file_meta = file_meta->next_ptr;
-      rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
-
+      result = rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+      if (!result)
+        printf("memory Deallocation not correct!\n");
       delete file_meta->mr;
       delete file_meta;
       file_meta = next_file_meta;
     }
-    rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+    result = rdma_mg->Deallocate_Remote_RDMA_Slot(file_meta);
+    if (!result)
+      printf("memory Deallocation not correct!\n");
     delete file_meta->mr;
     delete file_meta;
     return 1;
