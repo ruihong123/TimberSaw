@@ -1018,11 +1018,11 @@ void DBImpl::BackgroundCompaction(void* p) {
       }
       CleanupCompaction(compact);
       // frequently reclycle will have concurrency overhead to background compaction, so
-      // we make a recyle counter.
-      if (recycle_cnt++==6){
-        RemoveObsoleteFiles();
-        recycle_cnt = 0;
-      }
+      // we make a recyle counter. Modified: the recycle is not frequent at all!
+//      if (recycle_cnt++==6){
+      RemoveObsoleteFiles();
+//        recycle_cnt = 0;
+//      }
 
     }
     delete c;
