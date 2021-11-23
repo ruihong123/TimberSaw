@@ -1684,67 +1684,47 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         sub_compact->builder != nullptr) {
       //TODO: record the largest key as the last ikey, find a more efficient way to record
       // the last key of SSTable.
-      sub_compact->current_output()->largest.SetFrom(ikey);
+//      sub_compact->current_output()->largest.SetFrom(ikey);
       status = FinishCompactionOutputFile(sub_compact, input);
       if (!status.ok()) {
         break;
       }
     }
     // key merged below!!!
-    // Handle key/value, add to state, etc.
     bool drop = false;
     if (!ParseInternalKey(key, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
       has_current_user_key = false;
-//      last_sequence_for_key = kMaxSequenceNumber;
+      last_sequence_for_key = kMaxSequenceNumber;
     } else {
-      if (!has_current_user_key){
-        //TODO: can we avoid the data copy here, can we set two buffers in block and make
-        // the old user key not be garbage collected so that the old Slice can be
-        // directly used here.
-        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
-        has_current_user_key = true;
-      }
-      else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
-          0) {
+      if (!has_current_user_key ||
+          user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
+              0) {
         // First occurrence of this user key
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
-//        has_current_user_key = true;
-//        last_sequence_for_key = kMaxSequenceNumber;
-        // this will result in the key not drop, next if will always be false because of
-        // the last_sequence_for_key.
-      }else{
+        has_current_user_key = true;
+        last_sequence_for_key = kMaxSequenceNumber;
+      }
+
+      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
+        // Hidden by an newer entry for same user key
+        drop = true;  // (A)
+      } else if (ikey.type == kTypeDeletion &&
+                 ikey.sequence <= sub_compact->smallest_snapshot &&
+                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+        // For this user key:
+        // (1) there is no data in higher levels
+        // (2) data in lower levels will have larger sequence numbers
+        // (3) data in layers that are being compacted here and have
+        //     smaller sequence numbers will be dropped in the next
+        //     few iterations of this loop (by rule (A) above).
+        // Therefore this deletion marker is obsolete and can be dropped.
         drop = true;
       }
-//
-//      if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
-        // Hidden by an newer entry for same user key
 
-//        drop = true;  // (A)
-//      }
-//      else if (ikey.type == kTypeDeletion &&
-//                 ikey.sequence <= sub_compact->smallest_snapshot &&
-//                 sub_compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-//        // TOTHINK(0ruihong) :what is this for?
-//        //  Generally delete can only be deleted when there is definitely no file contain the
-//        //  same key in the upper level.
-//        // For this user key:
-//        // (1) there is no data in higher levels
-//        // (2) data in lower levels will have larger sequence numbers
-//        // (3) data in layers that are being compacted here and have
-//        //     smaller sequence numbers will be dropped in the next
-//        //     few iterations of this loop (by rule (A) above).
-//        // Therefore this deletion marker is obsolete and can be dropped.
-//        drop = true;
-//      }
-
-//      last_sequence_for_key = ikey.sequence;
-
+      last_sequence_for_key = ikey.sequence;
     }
-#ifndef NDEBUG
-    number_of_key++;
-#endif
     if (!drop) {
       // Open output file if necessary
       if (sub_compact->builder == nullptr) {
@@ -1756,16 +1736,14 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
       if (sub_compact->builder->NumEntries() == 0) {
         sub_compact->current_output()->smallest.DecodeFrom(key);
       }
-#ifndef NDEBUG
-      Not_drop_counter++;
-#endif
+      sub_compact->current_output()->largest.DecodeFrom(key);
       sub_compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
       if (sub_compact->builder->FileSize() >=
           sub_compact->compaction->MaxOutputFileSize()) {
 //        assert(key.data()[0] == '0');
-        sub_compact->current_output()->largest.DecodeFrom(key);
+//        sub_compact->current_output()->largest.DecodeFrom(key);
         status = FinishCompactionOutputFile(sub_compact, input);
         if (!status.ok()) {
           break;
@@ -1798,7 +1776,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
   if (status.ok() && sub_compact->builder != nullptr) {
 //    assert(key.data()[0] == '0');
 
-    sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
+//    sub_compact->current_output()->largest.DecodeFrom(key);// The SSTable for subcompaction range will be (start, end]
     status = FinishCompactionOutputFile(sub_compact, input);
   }
   if (status.ok()) {
@@ -1883,27 +1861,24 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
 
         drop = true;  // (A)
       }
-//      else if (ikey.type == kTypeDeletion &&
-//                 ikey.sequence <= compact->smallest_snapshot &&
-//                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
-//        // TOTHINK(0ruihong) :what is this for?
-//        //  Generally delete can only be deleted when there is definitely no file contain the
-//        //  same key in the upper level.
-//        // For this user key:
-//        // (1) there is no data in higher levels
-//        // (2) data in lower levels will have larger sequence numbers
-//        // (3) data in layers that are being compacted here and have
-//        //     smaller sequence numbers will be dropped in the next
-//        //     few iterations of this loop (by rule (A) above).
-//        // Therefore this deletion marker is obsolete and can be dropped.
-//        drop = true;
-//      }
+      else if (ikey.type == kTypeDeletion &&
+                 ikey.sequence <= compact->smallest_snapshot &&
+                 compact->compaction->IsBaseLevelForKey(ikey.user_key)) {
+        // TOTHINK(0ruihong) :what is this for?
+        //  Generally delete can only be deleted when there is definitely no file contain the
+        //  same key in the upper level.
+        // For this user key:
+        // (1) there is no data in higher levels
+        // (2) data in lower levels will have larger sequence numbers
+        // (3) data in layers that are being compacted here and have
+        //     smaller sequence numbers will be dropped in the next
+        //     few iterations of this loop (by rule (A) above).
+        // Therefore this deletion marker is obsolete and can be dropped.
+        drop = true;
+      }
 
       last_sequence_for_key = ikey.sequence;
     }
-#ifndef NDEBUG
-    number_of_key++;
-#endif
     if (!drop) {
       // Open output file if necessary
       if (compact->builder == nullptr) {
@@ -1915,16 +1890,14 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       if (compact->builder->NumEntries() == 0) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
-#ifndef NDEBUG
-      Not_drop_counter++;
-#endif
+      compact->current_output()->largest.DecodeFrom(key);
       compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
 //        assert(key.data()[0] == '0');
-        compact->current_output()->largest.DecodeFrom(key);
+//        compact->current_output()->largest.DecodeFrom(key);
         status = FinishCompactionOutputFile(compact, input);
         if (!status.ok()) {
           break;
@@ -1951,7 +1924,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   }
   if (status.ok() && compact->builder != nullptr) {
 //    assert(key.data()[0] == '0');
-    compact->current_output()->largest.DecodeFrom(key);
+//    compact->current_output()->largest.DecodeFrom(key);
     status = FinishCompactionOutputFile(compact, input);
   }
   if (status.ok()) {

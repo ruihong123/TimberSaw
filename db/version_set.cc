@@ -643,7 +643,7 @@ class VersionSet::Builder {
       v->files_[level].reserve(base_files.size() + added_files->size());
       //TOTHINK: how could this make sure the order in level 0.
       // Answer: they are not organized by order, instead the organized by key,
-      // but whensearcg level 0 the reader will order the table be filenumber and then
+      // but when search level 0 the reader will order the table be filenumber and then
       // iterate in the order of file number.
       // All the levels are oganized by key smallest key order
 #ifndef NDEBUG
