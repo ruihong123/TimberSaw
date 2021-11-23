@@ -1692,6 +1692,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
     }
     // key merged below!!!
     bool drop = false;
+    number_of_key++;
     if (!ParseInternalKey(key, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
@@ -1709,6 +1710,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
 
       if (last_sequence_for_key <= sub_compact->smallest_snapshot) {
         // Hidden by an newer entry for same user key
+
         drop = true;  // (A)
       } else if (ikey.type == kTypeDeletion &&
                  ikey.sequence <= sub_compact->smallest_snapshot &&
@@ -1737,6 +1739,7 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         sub_compact->current_output()->smallest.DecodeFrom(key);
       }
       sub_compact->current_output()->largest.DecodeFrom(key);
+      Not_drop_counter++;
       sub_compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
@@ -1839,6 +1842,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
+    number_of_key++;
     if (!ParseInternalKey(key, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
@@ -1891,6 +1895,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
       compact->current_output()->largest.DecodeFrom(key);
+      Not_drop_counter++;
       compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
