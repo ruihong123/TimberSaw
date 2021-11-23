@@ -718,8 +718,11 @@ class RDMAWritableFile final : public WritableFile {
 
  private:
   Status FlushBuffer() {
-    Status status = FlushBuffer_Inner(pos_);
-    pos_ = 0;
+    Status status = Status::OK();
+    if (pos_ > 0){
+      status = FlushBuffer_Inner(pos_);
+      pos_ = 0;
+    }
     return status;
   }
 
