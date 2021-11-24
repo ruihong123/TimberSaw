@@ -421,6 +421,9 @@ void DBImpl::RemoveObsoleteFiles() {
   // have unique names which will not collide with newly created files and
   // are therefore safe to delete while allowing other threads to proceed.
 //  undefine_mutex.Unlock();
+#ifndef NDEBUG
+  std::cout << "deleted files number is "<< files_to_delete.size() << std::endl;
+#endif
   for (const std::string& filename : files_to_delete) {
     Status s = env_->RemoveFile(dbname_ + "/" + filename);
     if (!s.ok()){
