@@ -422,6 +422,9 @@ void DBImpl::RemoveObsoleteFiles() {
   // are therefore safe to delete while allowing other threads to proceed.
 //  undefine_mutex.Unlock();
 #ifndef NDEBUG
+  if (files_to_delete.size()==0){
+    printf("breakpoint");
+  }
   std::cout << "deleted files number is "<< files_to_delete.size() << std::endl;
 #endif
   for (const std::string& filename : files_to_delete) {
@@ -1023,11 +1026,12 @@ void DBImpl::BackgroundCompaction(void* p) {
       if (!status.ok()) {
         RecordBackgroundError(status);
       }
+      RemoveObsoleteFiles();
       CleanupCompaction(compact);
       // frequently reclycle will have concurrency overhead to background compaction, so
       // we make a recyle counter. Modified: the recycle is not frequent at all!
 //      if (recycle_cnt++==6){
-      RemoveObsoleteFiles();
+
 //        recycle_cnt = 0;
 //      }
 
