@@ -180,7 +180,7 @@ class DBImpl : public DB {
                         VersionEdit* edit, SequenceNumber* max_sequence)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
-  Status WriteLevel0Table(FlushJob* job, VersionEdit* edit)
+  Status WriteLevel0Table(FlushJob* job, VersionEdit* edit, uint64_t* file_num)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status WriteLevel0Table(MemTable* job, VersionEdit* edit, Version* base)
   EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);

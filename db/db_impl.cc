@@ -650,7 +650,8 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   return status;
 }
 
-Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
+Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit,
+                                uint64_t* file_num) {
 //  undefine_mutex.AssertHeld();
   const uint64_t start_micros = env_->NowMicros();
   //Mark all memtable as FLUSHPROCESSING.
@@ -658,6 +659,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   FileMetaData meta;
 
   meta.number = versions_->NewFileNumber();
+  *file_num = meta.number;
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = imm_.MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
@@ -771,13 +773,15 @@ void DBImpl::CompactMemTable() {
 //  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
 //  base->Ref();
   auto start = std::chrono::high_resolution_clock::now();
-  Status s = WriteLevel0Table(&f_job, &edit);
+  uint64_t file_num;
+  Status s = WriteLevel0Table(&f_job, &edit, &file_num);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
 //  base->Unref();
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
+  pending_outputs_.erase(file_num);
   MaybeScheduleFlushOrCompaction();
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
@@ -1074,10 +1078,22 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
 //    assert(compact->outfile == nullptr);
   }
 //  delete compact->outfile;
-  for (size_t i = 0; i < compact->outputs.size(); i++) {
-    const Output& out = compact->outputs[i];
-//    pending_outputs_.erase(out.number);
+  if (compact->sub_compact_states.size() == 0){
+    assert(compact->outputs.size() > 0);
+    for (size_t i = 0; i < compact->outputs.size(); i++) {
+
+      const Output& out = compact->outputs[i];
+      pending_outputs_.erase(out.number);
+    }
+  }else{
+    for(auto subcompact : compact->sub_compact_states) {
+      for (size_t i = 0; i < subcompact.outputs.size(); i++) {
+        const Output& out = subcompact.outputs[i];
+        pending_outputs_.erase(out.number);
+      }
+    }
   }
+
   delete compact;
 }
 Status DBImpl::OpenCompactionOutputFile(DBImpl::SubcompactionState* compact) {
