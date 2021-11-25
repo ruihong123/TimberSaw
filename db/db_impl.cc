@@ -1719,7 +1719,9 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
     }
     // key merged below!!!
     bool drop = false;
+#ifndef NDEBUG
     number_of_key++;
+#endif
     if (!ParseInternalKey(key, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
@@ -1766,7 +1768,9 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
         sub_compact->current_output()->smallest.DecodeFrom(key);
       }
       sub_compact->current_output()->largest.DecodeFrom(key);
+#ifndef NDEBUG
       Not_drop_counter++;
+#endif
       sub_compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
@@ -1869,7 +1873,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
+#ifndef NDEBUG
     number_of_key++;
+#endif
     if (!ParseInternalKey(key, &ikey)) {
       // Do not hide error keys
       current_user_key.clear();
@@ -1922,7 +1928,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
         compact->current_output()->smallest.DecodeFrom(key);
       }
       compact->current_output()->largest.DecodeFrom(key);
+#ifndef NDEBUG
       Not_drop_counter++;
+#endif
       compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
