@@ -781,7 +781,9 @@ void DBImpl::CompactMemTable() {
 //  base->Unref();
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
+  std::unique_lock<std::mutex> lck(sstable_recycle_mtx);
   pending_outputs_.erase(file_num);
+  lck.unlock();
   MaybeScheduleFlushOrCompaction();
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
@@ -1083,14 +1085,18 @@ void DBImpl::CleanupCompaction(CompactionState* compact) {
     for (size_t i = 0; i < compact->outputs.size(); i++) {
 
       const Output& out = compact->outputs[i];
+      std::unique_lock<std::mutex> lck(sstable_recycle_mtx);
       pending_outputs_.erase(out.number);
+      lck.unlock();
     }
   }else{
     for(auto subcompact : compact->sub_compact_states) {
+      std::unique_lock<std::mutex> lck(sstable_recycle_mtx);
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
         const Output& out = subcompact.outputs[i];
         pending_outputs_.erase(out.number);
       }
+      lck.unlock();
     }
   }
 
