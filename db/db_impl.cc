@@ -1146,7 +1146,10 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
 
   // Make the output file
   std::string fname = TableFileName(dbname_, file_number);
+  std::unique_lock<std::mutex> lck(sstable_recycle_mtx);
+  pending_outputs_.insert(file_number);
   Status s = env_->NewWritableFile(fname, &compact->outfile);
+  lck.unlock();
 //  Status s = Status::OK();
   if (s.ok()) {
     compact->builder = new TableBuilder(options_, compact->outfile);
