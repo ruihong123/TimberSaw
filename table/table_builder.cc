@@ -401,14 +401,45 @@ void TableBuilder::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle*
   block_size = block_contents->size();
 //  block->Reset();
 }
-//TODO make flushing flush the data to the remote memory flushing to remote memory
+#ifndef ASYNCRDMAWRITE
 void TableBuilder::FlushData(){
   Rep* r = rep_;
   size_t msg_size = r->offset - r->offset_last_flushed;
   ibv_mr* remote_mr;
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
-  //TOTHINK: check the logic below.
+  rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 1);
+
+
+  remote_mr->length = msg_size;
+
+  if(r->remote_data_mrs.empty()){
+    r->remote_data_mrs.insert({r->offset, remote_mr});
+  }else{
+#ifndef NDEBUG
+    for (auto iter : r->remote_data_mrs) {
+      assert(remote_mr->addr != iter.second->addr);
+
+    }
+#endif
+    r->remote_data_mrs.insert({r->offset, remote_mr});
+  }
+
+  r->offset_last_flushed = r->offset;
+
+  r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr[0]->addr)));
+
+}
+#endif
+//TODO make flushing flush the data to the remote memory flushing to remote memory
+#ifdef ASYNCRDMAWRITE
+void TableBuilder::FlushData(){
+  Rep* r = rep_;
+  size_t msg_size = r->offset - r->offset_last_flushed;
+  ibv_mr* remote_mr;
+  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
+  rdma_mg->Allocate_Remote_RDMA_Slot(remote_mr);
+  //TOTHINK: Use link list to maintain the local buffer.
   // I was thinking that the start represent the oldest outgoing buffer, while the
   // end is the latest buffer. When polling a result, the start index will moving forward
   // and the start index will be changed to 0 when meeting the end of this index.
@@ -498,6 +529,7 @@ void TableBuilder::FlushData(){
 //  assert(r->data_inuse_start!= r->data_inuse_end);
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
+#endif
 void TableBuilder::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr;
@@ -597,7 +629,8 @@ Status TableBuilder::Finish() {
     FlushDataIndex(msg_size);
   }
 //  DEBUG_arg("for a sst the remote data chunks number %zu\n", r->remote_data_mrs.size());
-  //TODO: the polling number here sometime is not correct.
+
+#ifdef ASYNCRDMAWRITE
   int num_of_poll = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
                     r->data_inuse_end - r->data_inuse_start + 1:
                     (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
@@ -616,19 +649,7 @@ Status TableBuilder::Finish() {
           wc, 1, r->type_string_);
   assert( check_poll_number == 0);
 #endif
-//  printf("A table finsihed flushing\n");
-//  // Write footer
-//  if (ok()) {
-//    Footer footer;
-//    footer.set_metaindex_handle(metaindex_block_handle);
-//    footer.set_index_handle(index_block_handle);
-//    std::string footer_encoding;
-//    footer.EncodeTo(&footer_encoding);
-//    r->status = r->file->Append(footer_encoding);
-//    if (r->status.ok()) {
-//      r->offset += footer_encoding.size();
-//    }
-//  }
+#endif
   return r->status;
 }
 
