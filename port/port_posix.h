@@ -90,7 +90,7 @@
 #define DEBUG(x) printf(x)
 #endif
 //#define TIMEPRINT
-
+#define NOWRITEQUEUE
 //#define GETANALYSIS
 //#define BLOOMANALYSIS
 #include "port/thread_annotations.h"

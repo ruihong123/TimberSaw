@@ -186,6 +186,7 @@ class DBImpl : public DB {
   EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
+  Status MakeRoomForWrite(bool force);
   WriteBatch* BuildBatchGroup(Writer** last_writer)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
 
