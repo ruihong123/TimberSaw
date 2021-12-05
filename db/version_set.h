@@ -396,7 +396,7 @@ class VersionSet {
     Version* v = current_;
     //since the version are apply
 //    Finalize(v);
-    return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
+    return (v->compaction_score_[0] >= 1) || (v->file_to_compact_.get() != nullptr);
   }
 
   // Add all files listed in any live version to *live.
