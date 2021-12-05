@@ -389,7 +389,7 @@ class VersionSet {
     // funciton.
     Version* v = current_;
     //TODO(ruihong): we may also need a lock for changing reading the compaction score.
-    return (v->compaction_score_[0] >= 1) || (v->file_to_compact_ != nullptr);
+    return (v->compaction_score_[0] >= 1) || (v->file_to_compact_.get() != nullptr);
   }
   bool AllCompactionNotFinished() {
 
