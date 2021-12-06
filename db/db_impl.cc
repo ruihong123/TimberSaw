@@ -288,11 +288,11 @@ void DBImpl::WaitforAllbgtasks() {
   imm_.Add(mem_);
   lck.unlock();
   MaybeScheduleFlushOrCompaction();
-  bool version_ready = false;
-  bool immutable_list_ready = false;
-  while( version_ready && immutable_list_ready){
-    version_ready = !versions_->AllCompactionNotFinished();
-    immutable_list_ready = !imm_.AllFlushNotFinished();
+  bool version_not_ready = false;
+  bool immutable_list_not_ready = false;
+  while( version_not_ready || immutable_list_not_ready){
+    version_not_ready = versions_->AllCompactionNotFinished();
+    immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
 }
 Status DBImpl::NewDB() {
