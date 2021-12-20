@@ -50,144 +50,144 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
   void Memory_Node_Keeper::SetBackgroundThreads(int num, ThreadPoolType type) {
     Compactor_pool_.SetBackgroundThreads(num);
   }
-  void Memory_Node_Keeper::MaybeScheduleCompaction(std::string& client_ip) {
-    if (versions_->NeedsCompaction()) {
-      //    background_compaction_scheduled_ = true;
-      printf("Need a compaction.\n");
-      void* function_args = new std::string(client_ip);
-      BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-      if (Compactor_pool_.queue_len_.load()>256){
-        //If there has already be enough compaction scheduled, then drop this one
-        printf("queue length has been too long %d elements in the queue\n", Compactor_pool_.queue_len_.load());
-        return;
-      }
-      Compactor_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
-      printf("Schedule a Compaction !\n");
-    }
-  }
-  void Memory_Node_Keeper::BGWork_Compaction(void* thread_arg) {
-    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
-    ((Memory_Node_Keeper*)p->db)->BackgroundCompaction(p->func_args);
-    delete static_cast<BGThreadMetadata*>(thread_arg);
-  }
+//  void Memory_Node_Keeper::MaybeScheduleCompaction(std::string& client_ip) {
+//    if (versions_->NeedsCompaction()) {
+//      //    background_compaction_scheduled_ = true;
+//      printf("Need a compaction.\n");
+//      void* function_args = new std::string(client_ip);
+//      BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+//      if (Compactor_pool_.queue_len_.load()>256){
+//        //If there has already be enough compaction scheduled, then drop this one
+//        printf("queue length has been too long %d elements in the queue\n", Compactor_pool_.queue_len_.load());
+//        return;
+//      }
+//      Compactor_pool_.Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args));
+//      printf("Schedule a Compaction !\n");
+//    }
+//  }
+//  void Memory_Node_Keeper::BGWork_Compaction(void* thread_arg) {
+//    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+//    ((Memory_Node_Keeper*)p->db)->BackgroundCompaction(p->func_args);
+//    delete static_cast<BGThreadMetadata*>(thread_arg);
+//  }
   void Memory_Node_Keeper::RPC_Compaction(void* thread_arg) {
     BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
     ((Memory_Node_Keeper*)p->db)->sst_compaction_handler(p->func_args);
     delete static_cast<BGThreadMetadata*>(thread_arg);
   }
-  void Memory_Node_Keeper::BackgroundCompaction(void* p) {
-  //  write_stall_mutex_.AssertNotHeld();
-  std::string* client_ip = static_cast<std::string*>(p);
-  if (versions_->NeedsCompaction()) {
-    Compaction* c;
-//    bool is_manual = (manual_compaction_ != nullptr);
-//    InternalKey manual_end;
-//    if (is_manual) {
-//      ManualCompaction* m = manual_compaction_;
-//      c = versions_->CompactRange(m->level, m->begin, m->end);
-//      m->done = (c == nullptr);
-//      if (c != nullptr) {
-//        manual_end = c->input(0, c->num_input_files(0) - 1)->largest;
+//  void Memory_Node_Keeper::BackgroundCompaction(void* p) {
+//  //  write_stall_mutex_.AssertNotHeld();
+//  std::string* client_ip = static_cast<std::string*>(p);
+//  if (versions_->NeedsCompaction()) {
+//    Compaction* c;
+////    bool is_manual = (manual_compaction_ != nullptr);
+////    InternalKey manual_end;
+////    if (is_manual) {
+////      ManualCompaction* m = manual_compaction_;
+////      c = versions_->CompactRange(m->level, m->begin, m->end);
+////      m->done = (c == nullptr);
+////      if (c != nullptr) {
+////        manual_end = c->input(0, c->num_input_files(0) - 1)->largest;
+////      }
+////      Log(options_.info_log,
+////          "Manual compaction at level-%d from %s .. %s; will stop at %s\n",
+////          m->level, (m->begin ? m->begin->DebugString().c_str() : "(begin)"),
+////          (m->end ? m->end->DebugString().c_str() : "(end)"),
+////          (m->done ? "(end)" : manual_end.DebugString().c_str()));
+////    } else {
+//      c = versions_->PickCompaction();
+//      //if there is no task to pick up, just return.
+//      if (c== nullptr){
+//        DEBUG("compaction task executed but not found doable task.\n");
+//        delete c;
+//        return;
 //      }
-//      Log(options_.info_log,
-//          "Manual compaction at level-%d from %s .. %s; will stop at %s\n",
-//          m->level, (m->begin ? m->begin->DebugString().c_str() : "(begin)"),
-//          (m->end ? m->end->DebugString().c_str() : "(end)"),
-//          (m->done ? "(end)" : manual_end.DebugString().c_str()));
+//
+////    }
+//    //    write_stall_mutex_.AssertNotHeld();
+//    Status status;
+//    if (c == nullptr) {
+//      // Nothing to do
+//    } else if (c->IsTrivialMove()) {
+//      // Move file to next level
+//      assert(c->num_input_files(0) == 1);
+//      std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+//      c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
+//      c->edit()->AddFile(c->level() + 1, f);
+//      f->level = f->level +1;
+//      {
+////        std::unique_lock<std::mutex> l(versions_mtx);// TODO(ruihong): remove all the superversion mutex usage.
+//        c->ReleaseInputs();
+//        {
+//          std::unique_lock<std::mutex> lck(versionset_mtx);
+//          status = versions_->LogAndApply(c->edit(), 0);
+//          versions_->Pin_Version_For_Compute();
+//          Edit_sync_to_remote(c->edit(), *client_ip, &lck);
+//        }
+////        InstallSuperVersion();
+//      }
+//
+//      DEBUG("Trival compaction\n");
 //    } else {
-      c = versions_->PickCompaction();
-      //if there is no task to pick up, just return.
-      if (c== nullptr){
-        DEBUG("compaction task executed but not found doable task.\n");
-        delete c;
-        return;
-      }
-
-//    }
-    //    write_stall_mutex_.AssertNotHeld();
-    Status status;
-    if (c == nullptr) {
-      // Nothing to do
-    } else if (c->IsTrivialMove()) {
-      // Move file to next level
-      assert(c->num_input_files(0) == 1);
-      std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
-      c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
-      c->edit()->AddFile(c->level() + 1, f);
-      f->level = f->level +1;
-      {
-//        std::unique_lock<std::mutex> l(versions_mtx);// TODO(ruihong): remove all the superversion mutex usage.
-        c->ReleaseInputs();
-        {
-          std::unique_lock<std::mutex> lck(versionset_mtx);
-          status = versions_->LogAndApply(c->edit(), 0);
-          versions_->Pin_Version_For_Compute();
-          Edit_sync_to_remote(c->edit(), *client_ip, &lck);
-        }
-//        InstallSuperVersion();
-      }
-
-      DEBUG("Trival compaction\n");
-    } else {
-      CompactionState* compact = new CompactionState(c);
-#ifndef NDEBUG
-      if (c->level() >= 1){
-        printf("Compaction level > 1");
-      }
-#endif
-      auto start = std::chrono::high_resolution_clock::now();
-      //      write_stall_mutex_.AssertNotHeld();
-      // Only when there is enough input level files and output level files will the subcompaction triggered
-      if (usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
-        status = DoCompactionWorkWithSubcompaction(compact, *client_ip);
-//        status = DoCompactionWork(compact, *client_ip);
-      }else{
-        status = DoCompactionWork(compact, *client_ip);
-      }
-
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//      CompactionState* compact = new CompactionState(c);
 //#ifndef NDEBUG
-      printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
-             duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+//      if (c->level() >= 1){
+//        printf("Compaction level > 1");
+//      }
 //#endif
-      DEBUG("Non-trivalcompaction!\n");
-      std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
-      if (!status.ok()) {
-        std::cerr << "compaction failed" << std::endl;
-//        RecordBackgroundError(status);
-      }
-      CleanupCompaction(compact);
-      //    RemoveObsoleteFiles();
-    }
-    delete c;
-
-//    if (status.ok()) {
-//      // Done
-//    } else if (shutting_down_.load(std::memory_order_acquire)) {
-//      // Ignore compaction errors found during shutting down
-//    } else {
-//      Log(options_.info_log, "Compaction error: %s", status.ToString().c_str());
-//    }
-
-//    if (is_manual) {
-//      ManualCompaction* m = manual_compaction_;
+//      auto start = std::chrono::high_resolution_clock::now();
+//      //      write_stall_mutex_.AssertNotHeld();
+//      // Only when there is enough input level files and output level files will the subcompaction triggered
+//      if (usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+//        status = DoCompactionWorkWithSubcompaction(compact, *client_ip);
+////        status = DoCompactionWork(compact, *client_ip);
+//      }else{
+//        status = DoCompactionWork(compact, *client_ip);
+//      }
+//
+//      auto stop = std::chrono::high_resolution_clock::now();
+//      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+////#ifndef NDEBUG
+//      printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
+//             duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+////#endif
+//      DEBUG("Non-trivalcompaction!\n");
+//      std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
 //      if (!status.ok()) {
-//        m->done = true;
+//        std::cerr << "compaction failed" << std::endl;
+////        RecordBackgroundError(status);
 //      }
-//      if (!m->done) {
-//        // We only compacted part of the requested range.  Update *m
-//        // to the range that is left to be compacted.
-//        m->tmp_storage = manual_end;
-//        m->begin = &m->tmp_storage;
-//      }
-//      manual_compaction_ = nullptr;
+//      CleanupCompaction(compact);
+//      //    RemoveObsoleteFiles();
 //    }
-  }
-  MaybeScheduleCompaction(*client_ip);
-  delete client_ip;
-
-}
+//    delete c;
+//
+////    if (status.ok()) {
+////      // Done
+////    } else if (shutting_down_.load(std::memory_order_acquire)) {
+////      // Ignore compaction errors found during shutting down
+////    } else {
+////      Log(options_.info_log, "Compaction error: %s", status.ToString().c_str());
+////    }
+//
+////    if (is_manual) {
+////      ManualCompaction* m = manual_compaction_;
+////      if (!status.ok()) {
+////        m->done = true;
+////      }
+////      if (!m->done) {
+////        // We only compacted part of the requested range.  Update *m
+////        // to the range that is left to be compacted.
+////        m->tmp_storage = manual_end;
+////        m->begin = &m->tmp_storage;
+////      }
+////      manual_compaction_ = nullptr;
+////    }
+//  }
+////  MaybeScheduleCompaction(*client_ip);
+//  delete client_ip;
+//
+//}
 void Memory_Node_Keeper::PersistSSTables(VersionEdit&) {
 
 }
@@ -1239,7 +1239,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   std::unique_lock<std::mutex> lck(versionset_mtx);
   versions_->LogAndApply(&version_edit, 0);
   lck.unlock();
-  MaybeScheduleCompaction(client_ip);
+//  MaybeScheduleCompaction(client_ip);
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");

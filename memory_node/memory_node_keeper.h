@@ -29,10 +29,10 @@ class Memory_Node_Keeper {
   // this function is for the server.
   void Server_to_Client_Communication();
   void SetBackgroundThreads(int num,  ThreadPoolType type);
-  void MaybeScheduleCompaction(std::string& client_ip);
-  static void BGWork_Compaction(void* thread_args);
+//  void MaybeScheduleCompaction(std::string& client_ip);
+//  static void BGWork_Compaction(void* thread_args);
   static void RPC_Compaction(void* thread_args);
-  void BackgroundCompaction(void* p);
+//  void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
   void PersistSSTables(VersionEdit& ve);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
