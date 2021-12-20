@@ -25,6 +25,7 @@ struct BGThreadMetadata {
   void* db;
   void* func_args;
 };
+
 class ThreadPool{
  public:
   std::vector<port::Thread> bgthreads_;

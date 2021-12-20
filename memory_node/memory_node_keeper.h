@@ -12,6 +12,10 @@
 #include "db/version_set.h"
 
 namespace TimberSaw {
+struct Arg_for_handler{
+  RDMA_Request* request;
+  std::string client_ip;
+};
 class Memory_Node_Keeper {
  public:
 //  friend class RDMA_Manager;
@@ -27,6 +31,7 @@ class Memory_Node_Keeper {
   void SetBackgroundThreads(int num,  ThreadPoolType type);
   void MaybeScheduleCompaction(std::string& client_ip);
   static void BGWork_Compaction(void* thread_args);
+  static void RPC_Compaction(void* thread_args);
   void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
   void PersistSSTables(VersionEdit& ve);
@@ -57,16 +62,18 @@ class Memory_Node_Keeper {
                                   std::string& client_ip);
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
-  void create_mr_handler(RDMA_Request request, std::string& client_ip);
-  void create_qp_handler(RDMA_Request request, std::string& client_ip);
+  void create_mr_handler(RDMA_Request* request, std::string& client_ip);
+  void create_qp_handler(RDMA_Request* request, std::string& client_ip);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
-  void install_version_edit_handler(RDMA_Request request, std::string& client_ip);
-  void qp_reset_handler(RDMA_Request request, std::string& client_ip,
+  void install_version_edit_handler(RDMA_Request* request, std::string& client_ip);
+  void sst_compaction_handler(void* arg);
+
+  void qp_reset_handler(RDMA_Request* request, std::string& client_ip,
                         int socket_fd);
-  void sync_option_handler(RDMA_Request request, std::string& client_ip);
-  void version_unpin_handler(RDMA_Request request, std::string& client_ip);
+  void sync_option_handler(RDMA_Request* request, std::string& client_ip);
+  void version_unpin_handler(RDMA_Request* request, std::string& client_ip);
   void Edit_sync_to_remote(VersionEdit* edit, std::string& client_ip,
                            std::unique_lock<std::mutex>* version_mtx);
 };

@@ -70,6 +70,11 @@ versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_compar
     ((Memory_Node_Keeper*)p->db)->BackgroundCompaction(p->func_args);
     delete static_cast<BGThreadMetadata*>(thread_arg);
   }
+  void Memory_Node_Keeper::RPC_Compaction(void* thread_arg) {
+    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+    ((Memory_Node_Keeper*)p->db)->sst_compaction_handler(p->func_args);
+    delete static_cast<BGThreadMetadata*>(thread_arg);
+  }
   void Memory_Node_Keeper::BackgroundCompaction(void* p) {
   //  write_stall_mutex_.AssertNotHeld();
   std::string* client_ip = static_cast<std::string*>(p);
@@ -370,6 +375,7 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 Status Memory_Node_Keeper::DoCompactionWorkWithSubcompaction(
     CompactionState* compact, std::string& client_ip) {
   Compaction* c = compact->compaction;
+  // TODO need to check the snapeshot in the compute node. Or modify the logic in get()
   c->GenSubcompactionBoundaries();
   auto boundaries = c->GetBoundaries();
   auto sizes = c->GetSizes();
@@ -943,7 +949,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
     //    printf("The main qp not create correctly");
     // Computing node and share memory connection succeed.
     // Now is the communication through rdma.
-    RDMA_Request receive_msg_buf;
+
 
     //  receive_msg_buf = (computing_to_memory_msg*)recv_buff;
     //  receive_msg_buf->command = ntohl(receive_msg_buf->command);
@@ -954,32 +960,40 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
     int buffer_counter = 0;
     while (true) {
       rdma_mg->poll_completion(wc, 1, client_ip, false);
-      memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+      RDMA_Request* receive_msg_buf = new RDMA_Request();
+      *receive_msg_buf = *(RDMA_Request*)recv_mr[buffer_counter].addr;
+//      memcpy(receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
 
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
-      if (receive_msg_buf.command == create_mr_) {
+      if (receive_msg_buf->command == create_mr_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
 
         create_mr_handler(receive_msg_buf, client_ip);
 //        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
-      } else if (receive_msg_buf.command == create_qp_) {
+      } else if (receive_msg_buf->command == create_qp_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         create_qp_handler(receive_msg_buf, client_ip);
         //        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
-      } else if (receive_msg_buf.command == install_version_edit) {
+      } else if (receive_msg_buf->command == install_version_edit) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         install_version_edit_handler(receive_msg_buf, client_ip);
+      } else if (receive_msg_buf->command == near_data_compaction) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
+        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
+        Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction, thread_pool_args);
+        sst_compaction_handler(nullptr);
 //TODO: add a handle function for the option value
-      } else if (receive_msg_buf.command == version_unpin_) {
+      } else if (receive_msg_buf->command == version_unpin_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         version_unpin_handler(receive_msg_buf, client_ip);
-      } else if (receive_msg_buf.command == sync_option) {
+      } else if (receive_msg_buf->command == sync_option) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         sync_option_handler(receive_msg_buf, client_ip);
-      } else if (receive_msg_buf.command == qp_reset_) {
+      } else if (receive_msg_buf->command == qp_reset_) {
         //THis should not be called because the recevei mr will be reset and the buffer
         // counter will be reset as 0
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
@@ -1094,7 +1108,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::JoinAllThreads(bool wait_for_jobs_to_complete) {
     Compactor_pool_.JoinThreads(wait_for_jobs_to_complete);
   }
-  void Memory_Node_Keeper::create_mr_handler(RDMA_Request request,
+  void Memory_Node_Keeper::create_mr_handler(RDMA_Request* request,
                                              std::string& client_ip) {
     DEBUG("Create new mr\n");
 //  std::cout << "create memory region command receive for" << client_ip
@@ -1108,11 +1122,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   char* buff;
   {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
-    assert(request.content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
-      if (!rdma_mg->Local_Memory_Register(&buff, &mr, request.content.mem_size,
+    assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
+      if (!rdma_mg->Local_Memory_Register(&buff, &mr, request->content.mem_size,
                                           std::string())) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
-                static_cast<unsigned>(request.content.mem_size));
+                static_cast<unsigned>(request->content.mem_size));
       }
 //      printf("Now the Remote memory regularated by compute node is %zu GB",
 //             rdma_mg->local_mem_pool.size());
@@ -1121,29 +1135,30 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.mr = *mr;
   send_pointer->received = true;
 
-  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  delete request;
   }
-  void Memory_Node_Keeper::create_qp_handler(RDMA_Request request,
+  void Memory_Node_Keeper::create_qp_handler(RDMA_Request* request,
                                              std::string& client_ip) {
     int rc;
     DEBUG("Create new qp\n");
-  assert(request.reply_buffer != nullptr);
-  assert(request.rkey != 0);
+  assert(request->reply_buffer != nullptr);
+  assert(request->rkey != 0);
   char gid_str[17];
   memset(gid_str, 0, 17);
-  memcpy(gid_str, request.content.qp_config.gid, 16);
+  memcpy(gid_str, request->content.qp_config.gid, 16);
   std::string new_qp_id =
       std::string(gid_str) +
-      std::to_string(request.content.qp_config.lid) +
-      std::to_string(request.content.qp_config.qp_num);
+      std::to_string(request->content.qp_config.lid) +
+      std::to_string(request->content.qp_config.qp_num);
   std::cout << "create query pair command receive for" << client_ip
   << std::endl;
   fprintf(stdout, "Remote QP number=0x%x\n",
-          request.content.qp_config.qp_num);
+          request->content.qp_config.qp_num);
   fprintf(stdout, "Remote LID = 0x%x\n",
-          request.content.qp_config.lid);
+          request->content.qp_config.lid);
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
@@ -1164,7 +1179,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.qp_config.lid = rdma_mg->res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &(rdma_mg->res->my_gid), 16);
   send_pointer->received = true;
-  registered_qp_config* remote_con_data = new registered_qp_config(request.content.qp_config);
+  registered_qp_config* remote_con_data = new registered_qp_config(request->content.qp_config);
   std::shared_lock<std::shared_mutex> l1(rdma_mg->qp_cq_map_mutex);
   if (new_qp_id == "read_local" )
     rdma_mg->local_read_qp_info->Reset(remote_con_data);
@@ -1176,12 +1191,13 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->res->qp_connection_info.insert({new_qp_id,remote_con_data});
   rdma_mg->connect_qp(qp, new_qp_id);
 
-  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  delete request;
   }
-  void Memory_Node_Keeper::install_version_edit_handler(RDMA_Request request,
-                                                        std::string& client_ip) {
+  void Memory_Node_Keeper::install_version_edit_handler(
+      RDMA_Request* request, std::string& client_ip) {
   printf("install version\n");
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
@@ -1191,16 +1207,16 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
   send_pointer->reply_buffer = edit_recv_mr.addr;
   send_pointer->rkey = edit_recv_mr.rkey;
-  assert(request.content.ive.buffer_size < edit_recv_mr.length);
+  assert(request->content.ive.buffer_size < edit_recv_mr.length);
   send_pointer->received = true;
   //TODO: how to check whether the version edit message is ready, we need to know the size of the
   // version edit in the first REQUEST from compute node.
-  volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+  volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size;
   memset((void*)polling_byte, 0, 1);
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
   size_t counter = 0;
   while (*(unsigned char*)polling_byte == 0){
@@ -1218,7 +1234,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   }
   VersionEdit version_edit;
   version_edit.DecodeFrom(
-      Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 1);
+      Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
   std::unique_lock<std::mutex> lck(versionset_mtx);
   versions_->LogAndApply(&version_edit, 0);
@@ -1227,8 +1243,70 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+  delete request;
   }
-  void Memory_Node_Keeper::qp_reset_handler(RDMA_Request request,
+  void Memory_Node_Keeper::sst_compaction_handler(void* arg) {
+    RDMA_Request* request = ((Arg_for_handler*) arg)->request;
+    std::string client_ip = ((Arg_for_handler*) arg)->client_ip;
+    printf("near data compaction\n");
+    ibv_mr send_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+//    send_pointer->content. = {};
+    ibv_mr edit_recv_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+    send_pointer->reply_buffer = edit_recv_mr.addr;
+    send_pointer->rkey = edit_recv_mr.rkey;
+    assert(request->content.ive.buffer_size < edit_recv_mr.length);
+    send_pointer->received = true;
+    //TODO: how to check whether the version edit message is ready, we need to know the size of the
+    // version edit in the first REQUEST from compute node.
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size;
+    memset((void*)polling_byte, 0, 1);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
+    rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+    size_t counter = 0;
+    while (*(unsigned char*)polling_byte == 0){
+      _mm_clflush(polling_byte);
+      asm volatile ("sfence\n" : : );
+      asm volatile ("lfence\n" : : );
+      asm volatile ("mfence\n" : : );
+      if (counter == 1000){
+        std::fprintf(stderr, "Polling install version handler\r");
+        std::fflush(stderr);
+        counter = 0;
+      }
+
+      counter++;
+    }
+    Status status;
+    Compaction c(opts.get());
+    c.DecodeFrom(
+        Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size));
+    // the slice size is larger than the real size by 1 byte.
+    DEBUG_arg("Compaction decoded, new file number is %d", c.num_input_files(0) + c.num_input_files(1));
+    CompactionState* compact = new CompactionState(&c);
+    if (usesubcompaction && c.num_input_files(0)>=4 && c.num_input_files(1)>1){
+      status = DoCompactionWorkWithSubcompaction(compact, client_ip);
+      //        status = DoCompactionWork(compact, *client_ip);
+    }else{
+      status = DoCompactionWork(compact, client_ip);
+    }
+
+    //TODO:Send back the new created sstables and wait for another reply.
+
+//    MaybeScheduleCompaction(client_ip);
+
+    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+    rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+    delete request;
+    delete (Arg_for_handler*) arg;
+  }
+
+  void Memory_Node_Keeper::qp_reset_handler(RDMA_Request* request,
                                             std::string& client_ip,
                                             int socket_fd) {
     ibv_mr send_mr;
@@ -1251,9 +1329,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
     rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
                             temp_receive);
+    delete request;
 //    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   }
-  void Memory_Node_Keeper::sync_option_handler(RDMA_Request request,
+  void Memory_Node_Keeper::sync_option_handler(RDMA_Request* request,
                                                std::string& client_ip) {
     DEBUG("SYNC option \n");
     ibv_mr send_mr;
@@ -1264,16 +1343,16 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
     send_pointer->reply_buffer = edit_recv_mr.addr;
     send_pointer->rkey = edit_recv_mr.rkey;
-    assert(request.content.ive.buffer_size < edit_recv_mr.length);
+    assert(request->content.ive.buffer_size < edit_recv_mr.length);
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size;
     memset((void*)polling_byte, 0, 1);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+    rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
 
     while (*(unsigned char*)polling_byte == 0){
@@ -1290,11 +1369,13 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     opts->comparator = &internal_comparator_;
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
     printf("Option sync finished\n");
+    delete request;
   }
-  void Memory_Node_Keeper::version_unpin_handler(RDMA_Request request,
+  void Memory_Node_Keeper::version_unpin_handler(RDMA_Request* request,
                                                  std::string& client_ip) {
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    versions_->Unpin_Version_For_Compute(request.content.unpinned_version_id);
+    versions_->Unpin_Version_For_Compute(request->content.unpinned_version_id);
+    delete request;
   }
   void Memory_Node_Keeper::Edit_sync_to_remote(
       VersionEdit* edit, std::string& client_ip,

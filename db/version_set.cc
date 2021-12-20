@@ -1850,6 +1850,7 @@ Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
 
 Compaction::Compaction(const Options* options, int level)
     : level_(level),
+      opt_ptr(options),
       max_output_file_size_(MaxFileSizeForLevel(options, level)),
       input_version_(nullptr),
       grandparent_index_(0),
@@ -1860,6 +1861,16 @@ Compaction::Compaction(const Options* options, int level)
   }
 }
 
+Compaction::Compaction(const Options* options)
+    : opt_ptr(options),
+      input_version_(nullptr),
+      grandparent_index_(0),
+      seen_key_(false),
+      overlapped_bytes_(0) {
+  for (int i = 0; i < config::kNumLevels; i++) {
+    level_ptrs_[i] = 0;
+  }
+}
 Compaction::~Compaction() {
   if (input_version_ != nullptr) {
     input_version_->Unref(0);
@@ -1886,6 +1897,48 @@ void Compaction::AddInputDeletions(VersionEdit* edit) {
   }
 }
 
+void Compaction::DecodeFrom(const Slice& src){
+  Slice input = src;
+  uint16_t level = 0;
+  GetFixed16(&input, &level);
+  uint32_t first_level_len = 0;
+  GetFixed32(&input, &first_level_len);
+  for (size_t i = 0; i < first_level_len; i++) {
+    std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(1);
+    f->DecodeFrom(input);
+  }
+  uint32_t second_level_len = 0;
+  GetFixed32(&input, &second_level_len);
+  for (size_t i = 0; i < second_level_len; i++) {
+    std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(1);
+    f->DecodeFrom(input);
+  }
+  max_output_file_size_ = MaxFileSizeForLevel(opt_ptr, level);
+}
+void Compaction::EncodeTo(std::string* dst){
+  uint16_t level = level_;
+//  dst->append(reinterpret_cast<const char*>(&level), sizeof(char));
+  PutFixed16(dst,level);
+  uint32_t first_level_len = inputs_[0].size();
+  PutFixed32(dst, first_level_len);
+  for (size_t i = 0; i < first_level_len; i++) {
+    const std::shared_ptr<RemoteMemTableMetaData> f = inputs_[0][i];
+//    PutVarint32(dst, kNewFile);
+//    PutVarint32(dst, new_files_[i].first);  // level
+    f->EncodeTo(dst);
+
+  }
+
+  uint32_t second_level_len = inputs_[1].size();
+  PutFixed32(dst, second_level_len);
+  for (size_t i = 0; i < second_level_len; i++) {
+    const std::shared_ptr<RemoteMemTableMetaData> f = inputs_[1][i];
+    //    PutVarint32(dst, kNewFile);
+    //    PutVarint32(dst, new_files_[i].first);  // level
+    f->EncodeTo(dst);
+
+  }
+}
 bool Compaction::IsBaseLevelForKey(const Slice& user_key) {
   // Maybe use binary search to find right entry instead of linear search?
   const Comparator* user_cmp = input_version_->vset_->icmp_.user_comparator();

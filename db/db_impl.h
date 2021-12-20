@@ -207,6 +207,7 @@ class DBImpl : public DB {
   bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
   void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
+  void NearDataCompaction(Compaction* c);
 //  void Communication_To_Home_Node();
   void Edit_sync_to_remote(VersionEdit* edit,
                            std::unique_lock<std::mutex>* version_mtx);

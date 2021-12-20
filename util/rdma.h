@@ -85,10 +85,15 @@ struct install_versionedit {
   uint64_t file_number;
   uint8_t node_id;
 } __attribute__((packed));
+struct sst_compaction {
+  size_t buffer_size;
+
+} __attribute__((packed));
 enum RDMA_Command_Type {
   invalid_command_,
   create_qp_,
   create_mr_,
+  near_data_compaction,
   install_version_edit,
   version_unpin_,
   sync_option,
@@ -111,6 +116,7 @@ union RDMA_Request_Content {
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
   install_versionedit ive;
+  sst_compaction sstCompact;
   size_t unpinned_version_id;
 };
 union RDMA_Reply_Content {

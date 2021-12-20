@@ -962,13 +962,13 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
     env_->Schedule(BGWork_Flush, static_cast<void*>(thread_pool_args), type);
     DEBUG("Schedule a flushing !\n");
   }
-//  if (versions_->NeedsCompaction()) {
-////    background_compaction_scheduled_ = true;
-//    void* function_args = nullptr;
-//    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-//    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
-//    DEBUG("Schedule a Compaction !\n");
-//  }
+  if (versions_->NeedsCompaction()) {
+//    background_compaction_scheduled_ = true;
+    void* function_args = nullptr;
+    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
+    DEBUG("Schedule a Compaction !\n");
+  }
 }
 
 void DBImpl::BGWork_Flush(void* thread_arg) {
@@ -1083,7 +1083,9 @@ void DBImpl::BackgroundCompaction(void* p) {
           static_cast<unsigned long long>(f->file_size),
           status.ToString().c_str(), versions_->LevelSummary(&tmp));
       DEBUG("Trival compaction\n");
-    } else {
+    } else if (options_.near_data_compaction) {
+
+    }else{
       CompactionState* compact = new CompactionState(c);
 
       auto start = std::chrono::high_resolution_clock::now();
@@ -1588,6 +1590,62 @@ void DBImpl::InstallSuperVersion() {
       old_superversion->Cleanup();
     }
   }
+}
+void DBImpl::NearDataCompaction(Compaction* c) {
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // register the memory block from the remote memory
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_ve = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  std::string serilized_c;
+  c->EncodeTo(&serilized_c);
+  assert(serilized_c.size() <= send_mr_ve.length);
+  memcpy(send_mr_ve.addr, serilized_c.c_str(), serilized_c.size());
+  memset((char*)send_mr_ve.addr + serilized_c.size(), 1, 1);
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = near_data_compaction;
+  send_pointer->content.sstCompact.buffer_size = serilized_c.size();
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+    exit(0);
+  }
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side.
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+                      &send_mr_ve, serilized_c.size() + 1, "main", IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
 }
 //void DBImpl::Communication_To_Home_Node() {
 //  ibv_wc wc[3] = {};
@@ -2546,7 +2604,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   } else {
     snapshot = versions_->LastSequence();
   }
-
+  //TODO: we should move the get version before the fetching of snapshot.
   auto sv = GetThreadLocalSuperVersion();
 
   MemTable* mem = sv->mem;
@@ -2615,6 +2673,7 @@ void DBImpl::RecordReadSample(Slice key) {
 }
 
 const Snapshot* DBImpl::GetSnapshot() {
+  //TODO: get snapshot need to get the superversion before the sequential number
   MutexLock l(&undefine_mutex);
   return snapshots_.New(versions_->LastSequence());
 }

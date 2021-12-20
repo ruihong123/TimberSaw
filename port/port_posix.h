@@ -90,7 +90,7 @@
 #define DEBUG(x) printf(x)
 #endif
 //#define TIMEPRINT
-
+#define WITHMEMORYVERSIONSET
 #define PROCESSANALYSIS
 #define R_SIZE 512
 

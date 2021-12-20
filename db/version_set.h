@@ -504,7 +504,8 @@ class Compaction {
 
   // Add all mem_vec to this compaction as delete operations to *edit.
   void AddInputDeletions(VersionEdit* edit);
-
+  void DecodeFrom(const Slice& src);
+  void EncodeTo(std::string* dst);
   // Returns true if the information we have available guarantees that
   // the compaction is producing data in "level+1" for which no data exists
   // in levels greater than "level+1".
@@ -523,13 +524,15 @@ class Compaction {
   std::vector<Slice>* GetBoundaries();
   std::vector<uint64_t>* GetSizes();
   uint64_t GetFileSizesForLevel(int level);
+  Compaction(const Options* options);
+
  private:
   friend class Version;
   friend class VersionSet;
 
   Compaction(const Options* options, int level);
-
   int level_;
+  const Options* opt_ptr;
   uint64_t max_output_file_size_;
   Version* input_version_;
   VersionEdit edit_;
