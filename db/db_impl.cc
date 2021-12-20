@@ -1026,7 +1026,7 @@ void DBImpl::BackgroundFlush(void* p) {
 }
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
-  assert(false);
+//  assert(false);
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {
@@ -1084,7 +1084,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           status.ToString().c_str(), versions_->LevelSummary(&tmp));
       DEBUG("Trival compaction\n");
     } else if (options_.near_data_compaction) {
-
+      NearDataCompaction(c);
     }else{
       CompactionState* compact = new CompactionState(c);
 
