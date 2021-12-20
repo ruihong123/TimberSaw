@@ -985,7 +985,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction, thread_pool_args);
-        sst_compaction_handler(nullptr);
+//        sst_compaction_handler(nullptr);
 //TODO: add a handle function for the option value
       } else if (receive_msg_buf->command == version_unpin_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
