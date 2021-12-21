@@ -1645,6 +1645,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
                       &send_mr_ve, serilized_c.size() + 1, "main", IBV_SEND_SIGNALED,1);
+
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");

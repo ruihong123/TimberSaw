@@ -111,7 +111,7 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   GetFixed32(&src, &handle_temp);
 //  GetFixed32(&src, &lkey_temp);
 //  GetFixed32(&src, &rkey_temp);
-  assert(remote_data_chunk_num < 1000);
+  assert(remote_data_chunk_num < 1000 && remote_data_chunk_num>0);
   for(auto i = 0; i< remote_data_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.
     ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
