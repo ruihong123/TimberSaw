@@ -504,7 +504,7 @@ class Compaction {
 
   // Add all mem_vec to this compaction as delete operations to *edit.
   void AddInputDeletions(VersionEdit* edit);
-  void DecodeFrom(const Slice& src);
+  void DecodeFrom(const Slice& src, int side);
   void EncodeTo(std::string* dst);
   // Returns true if the information we have available guarantees that
   // the compaction is producing data in "level+1" for which no data exists

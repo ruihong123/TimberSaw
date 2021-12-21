@@ -1897,21 +1897,21 @@ void Compaction::AddInputDeletions(VersionEdit* edit) {
   }
 }
 
-void Compaction::DecodeFrom(const Slice& src){
+void Compaction::DecodeFrom(const Slice& src, int side) {
   Slice input = src;
   uint16_t level = 0;
   GetFixed16(&input, &level);
   uint32_t first_level_len = 0;
   GetFixed32(&input, &first_level_len);
   for (size_t i = 0; i < first_level_len; i++) {
-    std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(1);
+    std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(side);
     f->DecodeFrom(input);
     inputs_[0][i] = f;
   }
   uint32_t second_level_len = 0;
   GetFixed32(&input, &second_level_len);
   for (size_t i = 0; i < second_level_len; i++) {
-    std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(1);
+    std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(side);
     f->DecodeFrom(input);
     inputs_[1][i] = f;
   }

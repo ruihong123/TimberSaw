@@ -1605,7 +1605,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   std::string serilized_c;
   c->EncodeTo(&serilized_c);
   Compaction cn(&options_);
-  cn.DecodeFrom(Slice(serilized_c));
+  cn.DecodeFrom(Slice(serilized_c), 0);
   assert(serilized_c.size() <= send_mr_ve.length);
   memcpy(send_mr_ve.addr, serilized_c.c_str(), serilized_c.size());
   memset((char*)send_mr_ve.addr + serilized_c.size(), 1, 1);

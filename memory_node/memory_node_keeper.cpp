@@ -1285,7 +1285,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     Status status;
     Compaction c(opts.get());
     c.DecodeFrom(
-        Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size));
+        Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
     // the slice size is larger than the real size by 1 byte.
     DEBUG_arg("Compaction decoded, new file number is %d", c.num_input_files(0) + c.num_input_files(1));
     CompactionState* compact = new CompactionState(&c);
