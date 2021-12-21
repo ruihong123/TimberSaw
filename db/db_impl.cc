@@ -1637,6 +1637,13 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     printf("receive structure size is %lu", sizeof(RDMA_Reply));
     exit(0);
   }
+#ifndef NDEBUG
+  else{
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+  }
+#endif
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
   // which means the polling result may not belongs to this thread, but it does not
   // matter in our case because we do not care when will the message arrive at the other side.
