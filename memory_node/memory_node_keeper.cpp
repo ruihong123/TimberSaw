@@ -889,7 +889,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
   versions_->Pin_Version_For_Compute();
 
-  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
+//  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
 
   return s;
 }
@@ -1257,11 +1257,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
     send_pointer->reply_buffer = edit_recv_mr.addr;
     send_pointer->rkey = edit_recv_mr.rkey;
-    assert(request->content.ive.buffer_size < edit_recv_mr.length);
+    assert(request->content.sstCompact.buffer_size < edit_recv_mr.length);
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size;
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.sstCompact.buffer_size;
     memset((void*)polling_byte, 0, 1);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
@@ -1275,7 +1275,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
       if (counter == 1000){
-        std::fprintf(stderr, "Polling install version handler\r");
+        std::fprintf(stderr, "Polling Remote Compaction handler\r");
         std::fflush(stderr);
         counter = 0;
       }
