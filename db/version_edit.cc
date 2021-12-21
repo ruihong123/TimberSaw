@@ -71,6 +71,9 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
 //  size_t
 }
 Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
+#ifndef NDEBUG
+  Slice debug_src = src;
+#endif
   Status s = Status::OK();
   if (this_machine_type == 0)
     rdma_mg = Env::Default()->rdma_mg;
@@ -121,6 +124,7 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     GetFixed32(&src, &mr->lkey);
     GetFixed32(&src, &mr->rkey);
     remote_data_mrs.insert({offset, mr});
+    assert(debug_src.data() - src.data() <=16384);
   }
   for(auto i = 0; i< remote_dataindex_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.

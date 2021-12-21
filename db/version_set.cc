@@ -1906,12 +1906,14 @@ void Compaction::DecodeFrom(const Slice& src){
   for (size_t i = 0; i < first_level_len; i++) {
     std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(1);
     f->DecodeFrom(input);
+    inputs_[0][i] = f;
   }
   uint32_t second_level_len = 0;
   GetFixed32(&input, &second_level_len);
   for (size_t i = 0; i < second_level_len; i++) {
     std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(1);
     f->DecodeFrom(input);
+    inputs_[1][i] = f;
   }
   max_output_file_size_ = MaxFileSizeForLevel(opt_ptr, level);
 }
