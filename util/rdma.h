@@ -137,7 +137,7 @@ struct RDMA_Reply {
   RDMA_Reply_Content content;
   void* reply_buffer;
   uint32_t rkey;
-  bool received;
+  volatile bool received;
 } __attribute__((packed));
 // Structure for the file handle in RDMA file system. it could be a link list
 // for large files
