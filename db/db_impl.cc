@@ -2218,16 +2218,19 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
     //We do not need to check whether the output file have too much overlap with level n + 2.
     // If there is a lot of overlap subcompaction can be triggered.
     //sub_compact->compaction->ShouldStopBefore(key) &&
-    if (
-        sub_compact->builder != nullptr) {
-      //TODO: record the largest key as the last ikey, find a more efficient way to record
-      // the last key of SSTable.
-      sub_compact->current_output()->largest.SetFrom(ikey);
-      status = FinishCompactionOutputFile(sub_compact, input);
-      if (!status.ok()) {
-        break;
-      }
-    }
+//    if (
+//        sub_compact->builder != nullptr) {
+//
+//      sub_compact->current_output()->largest.SetFrom(ikey);
+//      status = FinishCompactionOutputFile(sub_compact, input);
+//      if (!status.ok()) {
+//        break;
+//      }
+//    }
+
+    //TODO: record the largest key as the last ikey, find a more efficient way to record
+    // the last key of SSTable.
+
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
@@ -2383,12 +2386,12 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     //We do not need to check whether the output file have too much overlap with level n + 2.
     // If there is a lot of overlap subcompaction can be triggered.
     //compact->compaction->ShouldStopBefore(key) &&
-    if (compact->builder != nullptr) {
-      status = FinishCompactionOutputFile(compact, input);
-      if (!status.ok()) {
-        break;
-      }
-    }
+//    if (compact->builder != nullptr) {
+//      status = FinishCompactionOutputFile(compact, input);
+//      if (!status.ok()) {
+//        break;
+//      }
+//    }
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;

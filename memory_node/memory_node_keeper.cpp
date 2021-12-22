@@ -250,12 +250,12 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
     //We do not need to check whether the output file have too much overlap with level n + 2.
     // If there is a lot of overlap subcompaction can be triggered.
     //compact->compaction->ShouldStopBefore(key) &&
-    if (compact->builder != nullptr) {
-      status = FinishCompactionOutputFile(compact, input);
-      if (!status.ok()) {
-        break;
-      }
-    }
+//    if (compact->builder != nullptr) {
+//      status = FinishCompactionOutputFile(compact, input);
+//      if (!status.ok()) {
+//        break;
+//      }
+//    }
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
@@ -534,16 +534,18 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
     //We do not need to check whether the output file have too much overlap with level n + 2.
     // If there is a lot of overlap subcompaction can be triggered.
     //compact->compaction->ShouldStopBefore(key) &&
-    if (sub_compact->builder != nullptr) {
-      //TODO: record the largest key as the last ikey, find a more efficient way to record
-      // the last key of SSTable.
-      sub_compact->current_output()->largest.SetFrom(ikey);
-      status = FinishCompactionOutputFile(sub_compact, input);
-      if (!status.ok()) {
-        DEBUG("Should stop status not OK\n");
-        break;
-      }
-    }
+//    if (sub_compact->builder != nullptr) {
+//
+//      sub_compact->current_output()->largest.SetFrom(ikey);
+//      status = FinishCompactionOutputFile(sub_compact, input);
+//      if (!status.ok()) {
+//        DEBUG("Should stop status not OK\n");
+//        break;
+//      }
+//    }
+    //TODO: record the largest key as the last ikey, find a more efficient way to record
+    // the last key of SSTable.
+
     // key merged below!!!
     // Handle key/value, add to state, etc.
     bool drop = false;
@@ -981,7 +983,9 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == install_version_edit) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        install_version_edit_handler(receive_msg_buf, client_ip);
+        //TODO: implement a durable bg thread and make a shadow verison set if possible.
+
+        //        install_version_edit_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf->command == near_data_compaction) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
