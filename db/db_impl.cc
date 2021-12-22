@@ -1085,6 +1085,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       DEBUG("Trival compaction\n");
     } else if (options_.near_data_compaction) {
       NearDataCompaction(c);
+      return;
     }else{
       CompactionState* compact = new CompactionState(c);
 
