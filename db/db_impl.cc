@@ -2215,8 +2215,10 @@ void DBImpl::ProcessKeyValueCompaction(SubcompactionState* sub_compact){
     key = input->key();
 
 //    assert(key.data()[0] == '0');
-    //Check whether the output file have too much overlap with level n + 2
-    if (sub_compact->compaction->ShouldStopBefore(key) &&
+    //We do not need to check whether the output file have too much overlap with level n + 2.
+    // If there is a lot of overlap subcompaction can be triggered.
+    //sub_compact->compaction->ShouldStopBefore(key) &&
+    if (
         sub_compact->builder != nullptr) {
       //TODO: record the largest key as the last ikey, find a more efficient way to record
       // the last key of SSTable.
@@ -2378,9 +2380,10 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
     key = input->key();
 //    assert(key.data()[0] == '0');
-    //Check whether the output file have too much overlap with level n + 2
-    if (compact->compaction->ShouldStopBefore(key) &&
-        compact->builder != nullptr) {
+    //We do not need to check whether the output file have too much overlap with level n + 2.
+    // If there is a lot of overlap subcompaction can be triggered.
+    //compact->compaction->ShouldStopBefore(key) &&
+    if (compact->builder != nullptr) {
       status = FinishCompactionOutputFile(compact, input);
       if (!status.ok()) {
         break;

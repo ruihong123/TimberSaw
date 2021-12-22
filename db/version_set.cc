@@ -1961,7 +1961,7 @@ bool Compaction::IsBaseLevelForKey(const Slice& user_key) {
   }
   return true;
 }
-
+//Note do not use it if it is a near data compaction.
 bool Compaction::ShouldStopBefore(const Slice& internal_key) {
   const VersionSet* vset = input_version_->vset_;
   // Scan to find earliest grandparent file that contains key.

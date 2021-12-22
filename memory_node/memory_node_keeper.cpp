@@ -247,9 +247,10 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
   while (input->Valid()) {
     key = input->key();
     //    assert(key.data()[0] == '0');
-    //Check whether the output file have too much overlap with level n + 2
-    if (compact->compaction->ShouldStopBefore(key) &&
-    compact->builder != nullptr) {
+    //We do not need to check whether the output file have too much overlap with level n + 2.
+    // If there is a lot of overlap subcompaction can be triggered.
+    //compact->compaction->ShouldStopBefore(key) &&
+    if (compact->builder != nullptr) {
       status = FinishCompactionOutputFile(compact, input);
       if (!status.ok()) {
         break;
@@ -530,9 +531,10 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
     }
 #endif
     //    assert(key.data()[0] == '0');
-    //Check whether the output file have too much overlap with level n + 2
-    if (sub_compact->compaction->ShouldStopBefore(key) &&
-    sub_compact->builder != nullptr) {
+    //We do not need to check whether the output file have too much overlap with level n + 2.
+    // If there is a lot of overlap subcompaction can be triggered.
+    //compact->compaction->ShouldStopBefore(key) &&
+    if (sub_compact->builder != nullptr) {
       //TODO: record the largest key as the last ikey, find a more efficient way to record
       // the last key of SSTable.
       sub_compact->current_output()->largest.SetFrom(ikey);
