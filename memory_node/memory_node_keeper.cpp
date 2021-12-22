@@ -985,7 +985,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         //TODO: implement a durable bg thread and make a shadow verison set if possible.
 
-        //        install_version_edit_handler(receive_msg_buf, client_ip);
+        install_version_edit_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf->command == near_data_compaction) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
