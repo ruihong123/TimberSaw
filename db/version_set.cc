@@ -1228,19 +1228,19 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
   return scratch->buffer;
 }
 //must have lock outside.
-void VersionSet::Pin_Version_For_Compute(){
-  //Version id 0 is ommitted.
-  version_id++;
-  DEBUG_arg("Version id is %lu", version_id);
-  memory_version_pinner.insert({version_id, current_});
-  current_->Ref(5);
-}
-// must have lock outside
-bool VersionSet::Unpin_Version_For_Compute(size_t version_id) {
-  memory_version_pinner.at(version_id)->Unref(5);
-  memory_version_pinner.erase(version_id);
-  return true;
-}
+//void VersionSet::Pin_Version_For_Compute(){
+//  //Version id 0 is ommitted.
+//  version_id++;
+//  DEBUG_arg("Version id is %lu", version_id);
+//  memory_version_pinner.insert({version_id, current_});
+//  current_->Ref(5);
+//}
+//// must have lock outside
+//bool VersionSet::Unpin_Version_For_Compute(size_t version_id) {
+//  memory_version_pinner.at(version_id)->Unref(5);
+//  memory_version_pinner.erase(version_id);
+//  return true;
+//}
 uint64_t VersionSet::ApproximateOffsetOf(Version* v, const InternalKey& ikey) {
   uint64_t result = 0;
   for (int level = 0; level < config::kNumLevels; level++) {
@@ -1897,7 +1897,7 @@ void Compaction::AddInputDeletions(VersionEdit* edit) {
   }
 }
 
-void Compaction::DecodeFrom(const Slice& src, int side) {
+void Compaction::DecodeFrom(const Slice src, int side) {
   Slice input = src;
   uint16_t level = 0;
   GetFixed16(&input, &level);

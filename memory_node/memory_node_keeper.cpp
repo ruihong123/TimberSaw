@@ -357,11 +357,11 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
 //  undefine_mutex.Lock();
 //  stats_[compact->compaction->level() + 1].Add(stats);
 
-  if (status.ok()) {
-//    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
-    status = InstallCompactionResults(compact, client_ip);
-//    InstallSuperVersion();
-  }
+//  if (status.ok()) {
+////    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
+//    status = InstallCompactionResults(compact, client_ip);
+////    InstallSuperVersion();
+//  }
 //  undefine_mutex.Unlock();
 //  if (!status.ok()) {
 //    RecordBackgroundError(status);
@@ -460,12 +460,12 @@ Status Memory_Node_Keeper::DoCompactionWorkWithSubcompaction(
   // TODO: we can remove this lock.
 
 
-  Status status;
-  {
-//    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
-    status = InstallCompactionResults(compact, client_ip);
-//    InstallSuperVersion();
-  }
+  Status status = Status::OK();
+//  {
+////    std::unique_lock<std::mutex> l(superversion_mtx, std::defer_lock);
+//    status = InstallCompactionResults(compact, client_ip);
+////    InstallSuperVersion();
+//  }
 
 
 //  if (!status.ok()) {
@@ -890,10 +890,84 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
 //  lck_p->lock();
   compact->compaction->ReleaseInputs();
   std::unique_lock<std::mutex> lck(versionset_mtx);
-  Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
-  versions_->Pin_Version_For_Compute();
 
-//  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
+  Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
+//  versions_->Pin_Version_For_Compute();
+
+  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
+
+  return s;
+}
+
+Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
+    CompactionState* compact) {
+  //  Log(options_.info_log, "Compacted %d@%d + %d@%d files => %lld bytes",
+  //      compact->compaction->num_input_files(0), compact->compaction->level(),
+  //      compact->compaction->num_input_files(1), compact->compaction->level() + 1,
+  //      static_cast<long long>(compact->total_bytes));
+
+  // Add compaction outputs
+  compact->compaction->AddInputDeletions(compact->compaction->edit());
+  const int level = compact->compaction->level();
+  if (compact->sub_compact_states.size() == 0){
+    for (size_t i = 0; i < compact->outputs.size(); i++) {
+      const CompactionOutput& out = compact->outputs[i];
+      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(1);
+      //TODO make all the metadata written into out
+//      meta->number = out.number;
+      meta->file_size = out.file_size;
+      meta->level = level+1;
+      meta->smallest = out.smallest;
+      assert(!out.largest.Encode().ToString().empty());
+      meta->largest = out.largest;
+      meta->remote_data_mrs = out.remote_data_mrs;
+      meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
+      meta->remote_filter_mrs = out.remote_filter_mrs;
+      compact->compaction->edit()->AddFile(level + 1, meta);
+      assert(!meta->UnderCompaction);
+#ifndef NDEBUG
+
+      // Verify that the table is usable
+      Iterator* it = versions_->table_cache_->NewIterator_MemorySide(ReadOptions(), meta);
+      //        s = it->status();
+
+      it->SeekToFirst();
+      while(it->Valid()){
+        it->Next();
+      }
+      printf("Table %p Read successfully after compaction\n", meta.get());
+      delete it;
+#endif
+    }
+  }else{
+    for(auto subcompact : compact->sub_compact_states){
+      for (size_t i = 0; i < subcompact.outputs.size(); i++) {
+        const CompactionOutput& out = subcompact.outputs[i];
+        std::shared_ptr<RemoteMemTableMetaData> meta =
+            std::make_shared<RemoteMemTableMetaData>(1);
+        // TODO make all the metadata written into out
+//        meta->number = out.number;
+        meta->file_size = out.file_size;
+        meta->level = level+1;
+        meta->smallest = out.smallest;
+        meta->largest = out.largest;
+        meta->remote_data_mrs = out.remote_data_mrs;
+        meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
+        meta->remote_filter_mrs = out.remote_filter_mrs;
+        compact->compaction->edit()->AddFile(level + 1, meta);
+        assert(!meta->UnderCompaction);
+      }
+    }
+  }
+  assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
+  Status s = Status::OK();
+  //  lck_p->lock();
+//  compact->compaction->ReleaseInputs();
+//  std::unique_lock<std::mutex> lck(versionset_mtx);
+//  Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
+  //  versions_->Pin_Version_For_Compute();
+
+  //  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
 
   return s;
 }
@@ -1255,26 +1329,40 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     RDMA_Request* request = ((Arg_for_handler*) arg)->request;
     std::string client_ip = ((Arg_for_handler*) arg)->client_ip;
     printf("near data compaction\n");
+    void* remote_prt = request->reply_buffer;
+    void* remote_large_prt = request->reply_buffer_large;
+    uint32_t remote_rkey = request->rkey;
+    uint32_t remote_large_rkey = request->rkey_large;
+    unsigned int imm_num = request->imm_num;
     ibv_mr send_mr;
+    ibv_mr recv_mr;
+    ibv_mr large_recv_mr;
+    ibv_mr large_send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+    rdma_mg->Allocate_Local_RDMA_Slot(recv_mr, "message");
+    rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, "version_edit");
+    rdma_mg->Allocate_Local_RDMA_Slot(large_send_mr, "version_edit");
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 //    send_pointer->content. = {};
-    ibv_mr edit_recv_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
-    send_pointer->reply_buffer = edit_recv_mr.addr;
-    send_pointer->rkey = edit_recv_mr.rkey;
-    assert(request->content.sstCompact.buffer_size < edit_recv_mr.length);
+    // set up the communication buffer information.
+    send_pointer->reply_buffer = recv_mr.addr;
+    send_pointer->rkey = recv_mr.rkey;
+    send_pointer->reply_buffer_large = large_recv_mr.addr;
+    send_pointer->rkey_large = large_recv_mr.rkey;
+
+    assert(request->content.sstCompact.buffer_size < large_recv_mr.length);
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.sstCompact.buffer_size;
+    volatile char* polling_byte = (char*)large_recv_mr.addr + request->content.sstCompact.buffer_size;
     memset((void*)polling_byte, 0, 1);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+    rdma_mg->RDMA_Write(remote_prt, remote_rkey,
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
     size_t counter = 0;
+    // polling the finishing bit for compaction task transmission.
     while (*(unsigned char*)polling_byte == 0){
       _mm_clflush(polling_byte);
       asm volatile ("sfence\n" : : );
@@ -1290,8 +1378,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     }
     Status status;
     Compaction c(opts.get());
+    //Decode compaction
     c.DecodeFrom(
-        Slice((char*)edit_recv_mr.addr, request->content.sstCompact.buffer_size), 1);
+        Slice((char*)large_recv_mr.addr, request->content.sstCompact.buffer_size), 1);
+    // Note need to check whether the code below is correct.
+//    void* remote_large_recv_ptr =  *(void**)new_pos.data();
+//    uint32_t remote_large_recv_rkey = *(uint32_t*)(new_pos.data() + sizeof(void*));
     // the slice size is larger than the real size by 1 byte.
     DEBUG_arg("Compaction decoded, new file number is %d", c.num_input_files(0) + c.num_input_files(1));
     CompactionState* compact = new CompactionState(&c);
@@ -1301,14 +1393,53 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     }else{
       status = DoCompactionWork(compact, client_ip);
     }
+    InstallCompactionResultsToComputePreparation(compact);
+        //TODO:Send back the new created sstables and wait for another reply.
+    std::string serilized_ve;
+    compact->compaction->edit()->EncodeTo(&serilized_ve);
+    *(uint32_t*)large_send_mr.addr = serilized_ve.size();
+//    memset((char*)large_send_mr.addr, 1, 1);
+    memcpy((char*)large_send_mr.addr + sizeof(uint32_t), serilized_ve.c_str(), serilized_ve.size());
 
-    //TODO:Send back the new created sstables and wait for another reply.
+    // Prepare the receive buffer for the version edit duribility and the file numbers.
+    volatile char* polling_byte_2 = (char*)large_recv_mr.addr + sizeof(uint64_t);
+    memset((void*)polling_byte_2, 0, 1);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
 
-//    MaybeScheduleCompaction(client_ip);
+    // write back the verison edit by the RDMA with immediate
+    rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
+                             &large_send_mr, serilized_ve.size() + 1, "main",
+                             IBV_SEND_SIGNALED, 1, imm_num);
+
+    counter = 0;
+    // polling the finishing bit for the file number transmission.
+    while (*(unsigned char*)polling_byte_2 == 0){
+      _mm_clflush(polling_byte_2);
+      asm volatile ("sfence\n" : : );
+      asm volatile ("lfence\n" : : );
+      asm volatile ("mfence\n" : : );
+      if (counter == 1000){
+        std::fprintf(stderr, "Polling file number return handler\r");
+        std::fflush(stderr);
+        counter = 0;
+      }
+
+      counter++;
+    }
+    uint64_t file_number_start = *(uint64_t*)large_recv_mr.addr;
+    compact->compaction->edit()->SetFileNumbers(file_number_start);
+    //TODO: implement durability.
+
 
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-    rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+    rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
+    rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, "version_edit");
+    rdma_mg->Deallocate_Local_RDMA_Slot(large_send_mr.addr, "version_edit");
+
     delete request;
+    delete compact;
     delete (Arg_for_handler*) arg;
   }
 
@@ -1380,7 +1511,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::version_unpin_handler(RDMA_Request* request,
                                                  std::string& client_ip) {
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    versions_->Unpin_Version_For_Compute(request->content.unpinned_version_id);
+//    versions_->Unpin_Version_For_Compute(request->content.unpinned_version_id);
     delete request;
   }
   void Memory_Node_Keeper::Edit_sync_to_remote(

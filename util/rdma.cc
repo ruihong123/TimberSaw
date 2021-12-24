@@ -1496,6 +1496,91 @@ int RDMA_Manager::RDMA_Write(void* addr, uint32_t rkey, ibv_mr* local_mr, size_t
     return rc;
 }
 
+int RDMA_Manager::RDMA_Write_Imme(void* addr, uint32_t rkey, ibv_mr* local_mr,
+                                  size_t msg_size, std::string q_id,
+                                  size_t send_flag, int poll_num,
+                                  unsigned int imme) {
+  //  auto start = std::chrono::high_resolution_clock::now();
+  struct ibv_send_wr sr;
+  struct ibv_sge sge;
+  struct ibv_send_wr* bad_wr = NULL;
+  int rc;
+  /* prepare the scatter/gather entry */
+  memset(&sge, 0, sizeof(sge));
+  sge.addr = (uintptr_t)local_mr->addr;
+  sge.length = msg_size;
+  sge.lkey = local_mr->lkey;
+  /* prepare the send work request */
+  memset(&sr, 0, sizeof(sr));
+  sr.next = NULL;
+  sr.wr_id = 0;
+  sr.sg_list = &sge;
+  sr.num_sge = 1;
+  sr.imm_data = imme;
+  sr.opcode = IBV_WR_RDMA_WRITE_WITH_IMM;
+  if (send_flag != 0) sr.send_flags = send_flag;
+  sr.wr.rdma.remote_addr = (uint64_t)addr;
+  sr.wr.rdma.rkey = rkey;
+  /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+  //*(start) = std::chrono::steady_clock::now();
+  // start = std::chrono::steady_clock::now();
+  //  auto stop = std::chrono::high_resolution_clock::now();
+  //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA Write send preparation size: %zu elapse: %ld\n", msg_size, duration.count()); start = std::chrono::high_resolution_clock::now();
+
+  if (q_id == "read_local"){
+    assert(false);// Never comes to here
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_read->Get());
+    if (qp == NULL) {
+      Remote_Query_Pair_Connection(q_id);
+      qp = static_cast<ibv_qp*>(qp_local_read->Get());
+    }
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+  }else if (q_id == "write_local_flush"){
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+    if (qp == NULL) {
+      Remote_Query_Pair_Connection(q_id);
+      qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+    }
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+  }else if (q_id == "write_local_compact"){
+    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+    if (qp == NULL) {
+      Remote_Query_Pair_Connection(q_id);
+      qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+    }
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+  } else {
+    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+    rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
+    l.unlock();
+  }
+
+  //  start = std::chrono::high_resolution_clock::now();
+  if (rc) fprintf(stderr, "failed to post SR, return is %d\n", rc);
+  //  else
+  //  {
+  //      fprintf(stdout, "RDMA Write Request was posted, OPCODE is %d\n", sr.opcode);
+  //  }
+  if (poll_num != 0) {
+    ibv_wc* wc = new ibv_wc[poll_num]();
+    //  auto start = std::chrono::high_resolution_clock::now();
+    //  while(std::chrono::high_resolution_clock::now()-start < std::chrono::nanoseconds(msg_size+200000));
+    // wait until the job complete.
+    rc = poll_completion(wc, poll_num, q_id, true);
+    if (rc != 0) {
+      std::cout << "RDMA Write Failed" << std::endl;
+      std::cout << "q id is" << q_id << std::endl;
+      fprintf(stdout, "QP number=0x%x\n", res->qp_map[q_id]->qp_num);
+    }else{
+      DEBUG("RDMA write successfully\n");
+    }
+    delete[] wc;
+  }
+  //  stop = std::chrono::high_resolution_clock::now();
+  //  duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA Write post send and poll size: %zu elapse: %ld\n", msg_size, duration.count());
+  return rc;
+}
+
 // int RDMA_Manager::post_atomic(int opcode)
 //{
 //  struct ibv_send_wr sr;

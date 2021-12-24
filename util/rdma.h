@@ -129,6 +129,9 @@ struct RDMA_Request {
   RDMA_Request_Content content;
   void* reply_buffer;
   uint32_t rkey;
+  void* reply_buffer_large;
+  uint32_t rkey_large;
+  unsigned int imm_num; // 0 for Compaction threads signal, 1 for Flushing threads signal.
 //  Options opt;
 } __attribute__((packed));
 
@@ -137,6 +140,8 @@ struct RDMA_Reply {
   RDMA_Reply_Content content;
   void* reply_buffer;
   uint32_t rkey;
+  void* reply_buffer_large;
+  uint32_t rkey_large;
   volatile bool received;
 } __attribute__((packed));
 // Structure for the file handle in RDMA file system. it could be a link list
@@ -338,6 +343,9 @@ class RDMA_Manager {
                  std::string q_id, size_t send_flag, int poll_num);
   int RDMA_Write(void* addr, uint32_t rkey, ibv_mr* local_mr, size_t msg_size,
                  std::string q_id, size_t send_flag, int poll_num);
+  int RDMA_Write_Imme(void* addr, uint32_t rkey, ibv_mr* local_mr,
+                      size_t msg_size, std::string q_id, size_t send_flag,
+                      int poll_num, unsigned int imme);
   // the coder need to figure out whether the queue pair has two seperated queue,
   // if not, only send_cq==true is a valid option.
   // For a thread-local queue pair, the send_cq does not matter.

@@ -413,8 +413,8 @@ class VersionSet {
     char buffer[100];
   };
   const char* LevelSummary(LevelSummaryStorage* scratch) const;
-  void Pin_Version_For_Compute();
-  bool Unpin_Version_For_Compute(size_t version_id);
+//  void Pin_Version_For_Compute();
+//  bool Unpin_Version_For_Compute(size_t version_id);
   size_t version_id = 0;
   TableCache* const table_cache_;
 
@@ -470,7 +470,7 @@ class VersionSet {
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_index_[config::kNumLevels];
-  std::map<size_t, Version*> memory_version_pinner;
+//  std::map<size_t, Version*> memory_version_pinner;
 
 };
 
@@ -504,7 +504,7 @@ class Compaction {
 
   // Add all mem_vec to this compaction as delete operations to *edit.
   void AddInputDeletions(VersionEdit* edit);
-  void DecodeFrom(const Slice& src, int side);
+  void DecodeFrom(const Slice src, int side);
   void EncodeTo(std::string* dst);
   // Returns true if the information we have available guarantees that
   // the compaction is producing data in "level+1" for which no data exists

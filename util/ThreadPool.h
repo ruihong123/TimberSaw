@@ -28,11 +28,14 @@ struct BGThreadMetadata {
 
 class ThreadPool{
  public:
+//  ThreadPool(std::mutex* mtx, std::condition_variable* signal);
   std::vector<port::Thread> bgthreads_;
   std::deque<BGItem> queue_;
   ThreadPoolType Type_;
   std::mutex mu_;
   std::condition_variable bgsignal_;
+  std::mutex RDMA_notify_mtx;
+  std::condition_variable RDMA_signal;
   int total_threads_limit_;
   std::atomic_uint queue_len_ = 0;
   bool exit_all_threads_ = false;

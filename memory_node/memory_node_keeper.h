@@ -60,6 +60,7 @@ class Memory_Node_Keeper {
 
   Status InstallCompactionResults(CompactionState* compact,
                                   std::string& client_ip);
+  Status InstallCompactionResultsToComputePreparation(CompactionState* compact);
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
   void create_mr_handler(RDMA_Request* request, std::string& client_ip);

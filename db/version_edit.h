@@ -124,6 +124,11 @@ class VersionEdit {
     has_last_sequence_ = true;
     last_sequence_ = seq;
   }
+  void SetFileNumbers(uint64_t file_number_start){
+    for (auto pair : new_files_) {
+      pair.second->number = ++file_number_start;
+    }
+  }
   bool IsTrival(){
     return deleted_files_.size() == 1;
   }

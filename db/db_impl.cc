@@ -1598,11 +1598,12 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   // register the memory block from the remote memory
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
-  ibv_mr send_mr_ve = {};
+  ibv_mr send_mr_c = {};
+  ibv_mr recv_mr_c = {};
   ibv_mr receive_mr = {};
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
-
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_c, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(recv_mr_c, "version_edit");
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
   std::string serilized_c;
   c->EncodeTo(&serilized_c);
@@ -1610,14 +1611,21 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 //  {Compaction cn(&options_);
 //  cn.DecodeFrom(Slice(serilized_c), 0);
 //  assert(cn.num_input_files(1)<100);}
-  assert(serilized_c.size() <= send_mr_ve.length);
-  memcpy(send_mr_ve.addr, serilized_c.c_str(), serilized_c.size());
-  memset((char*)send_mr_ve.addr + serilized_c.size(), 1, 1);
+  assert(serilized_c.size() <= send_mr_c.length);
+  memcpy(send_mr_c.addr, serilized_c.c_str(), serilized_c.size());
+  memset((char*)send_mr_c.addr + serilized_c.size(), 1, 1);
+//  *(void**)((char*)send_mr_c.addr + serilized_c.size()) = recv_mr_c.addr;
+//  *(uint32_t*)((char*)send_mr_c.addr + serilized_c.size() + sizeof(receive_mr.addr))\
+//      = recv_mr_c.rkey;
+//  memset((char*)send_mr_c.addr + serilized_c.size() + \
+//             sizeof(receive_mr.addr) + sizeof(receive_mr.rkey), 1, 1);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = near_data_compaction;
-  send_pointer->content.sstCompact.buffer_size = serilized_c.size();
+  send_pointer->content.sstCompact.buffer_size = serilized_c.size() + 1;
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
+  send_pointer->reply_buffer_large = recv_mr_c.addr;
+  send_pointer->rkey_large = recv_mr_c.rkey;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
@@ -1648,18 +1656,54 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     printf("receive structure size is %lu", sizeof(RDMA_Reply));
   }
 #endif
-  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
-  // which means the polling result may not belongs to this thread, but it does not
-  // matter in our case because we do not care when will the message arrive at the other side.
+  void* remote_prt = receive_pointer->reply_buffer;
+  void* remote_large_prt = receive_pointer->reply_buffer_large;
+  uint32_t remote_rkey = receive_pointer->rkey;
+  uint32_t remote_large_rkey = receive_pointer->rkey_large;
+  // only poll the firt byte of the buffer, because the thread will be waked up by
+  // RDMA immediate, which can make sure all the data transfer has been finished.
+  volatile uint32_t * polling_size_2 = (uint32_t*)recv_mr_c.addr;
+  *polling_size_2 = 0;
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
-                      &send_mr_ve, serilized_c.size() + 1, "main", IBV_SEND_SIGNALED,1);
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side
+  rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
+                      &send_mr_c, serilized_c.size() + 1,
+                      "main", IBV_SEND_SIGNALED,1);
+  size_t counter = 0;
+  // polling the finishing bit for the file number transmission.
 
+  while (*(uint32_t*)polling_size_2 == 0){
+    //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
+    // if an RDMA with correponding immediate is received.
+    _mm_clflush(polling_size_2);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
+    if (counter == 1000){
+      std::fprintf(stderr, "Polling file number return handler\r");
+      std::fflush(stderr);
+      counter = 0;
+    }
+
+    counter++;
+  }
+  VersionEdit edit;
+  edit.DecodeFrom((char*)recv_mr_c.addr+ sizeof(uint32_t), *(uint32_t*)polling_size_2);
+  {
+    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+    // TODO: remove the version id argument because we no longer need it.
+  versions_->LogAndApply(edit, ?);
+  }
+  c->ReleaseInputs();
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_c.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+
 }
 //void DBImpl::Communication_To_Home_Node() {
 //  ibv_wc wc[3] = {};
@@ -1884,6 +1928,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr send_mr_ve = {};
+
   ibv_mr receive_mr = {};
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
@@ -1893,13 +1938,15 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   edit->EncodeTo(&serilized_ve);
   assert(serilized_ve.size() <= send_mr_ve.length);
   memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
+
   memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
 
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = install_version_edit;
-  send_pointer->content.ive.buffer_size = serilized_ve.size();
+  send_pointer->content.ive.buffer_size = serilized_ve.size() + 1;
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
+  send_pointer->imm_num = 0;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
@@ -1932,6 +1979,12 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
                       &send_mr_ve, serilized_ve.size() + 1, "main", IBV_SEND_SIGNALED,1);
+  //TODO: implement a wait function for the received bit. THe problem is when to
+  // reset the buffer to zero (we may need different buffer for the compaction reply)
+  // and how to make sure that the reply will wake up this waiting thread. The
+  // signal may comes befoer the thread go to sleep.
+  //
+
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");

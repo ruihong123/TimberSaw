@@ -16,6 +16,8 @@ namespace TimberSaw {
 //}
 RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
     : this_machine_type(side), allowed_seeks(1 << 30) {
+  //Tothink: Is this_machine_type the same as rdma_mg->node_id?
+  //
   if (side ==0){
     rdma_mg = Env::Default()->rdma_mg;
     creator_node_id = rdma_mg->node_id;
