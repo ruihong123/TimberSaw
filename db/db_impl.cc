@@ -284,13 +284,23 @@ DBImpl::~DBImpl() {
 }
 void DBImpl::WaitforAllbgtasks() {
   std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-  mem_.load()->NotFullTableflush();
-  imm_.Add(mem_);
+  MemTable* mem = mem_.load();
+  //Use an iterator to check whether the current memtable is empty, if it is not
+  // flush it before exit.
+  Iterator* iter = mem->NewIterator();
+  iter->SeekToFirst();
+  if(iter->Valid()){
+    mem->NotFullTableflush();
+    imm_.Add(mem);
+    MaybeScheduleFlushOrCompaction();
+  }
+
   lck.unlock();
-  MaybeScheduleFlushOrCompaction();
+
   bool version_not_ready = false;
   bool immutable_list_not_ready = false;
   while( version_not_ready || immutable_list_not_ready){
+    //TODO: we can implement a wait here.
     version_not_ready = versions_->AllCompactionNotFinished();
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
