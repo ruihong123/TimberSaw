@@ -300,7 +300,7 @@ class VersionSet {
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
   //TODO: Finalize is not required for the comppute node side.
-  Status LogAndApply(VersionEdit* edit);
+  Status LogAndApply(VersionEdit* edit, std::unique_lock<std::mutex>* lck_vs);
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool* save_manifest);

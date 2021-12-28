@@ -890,9 +890,9 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
 //  lck_p->lock();
   compact->compaction->ReleaseInputs();
-  std::unique_lock<std::mutex> lck(versionset_mtx);
+  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
 
-  Status s = versions_->LogAndApply(compact->compaction->edit());
+  Status s = versions_->LogAndApply(compact->compaction->edit(), &lck);
 //  versions_->Pin_Version_For_Compute();
 
   Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
@@ -1317,8 +1317,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   version_edit.DecodeFrom(
       Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
-  std::unique_lock<std::mutex> lck(versionset_mtx);
-  versions_->LogAndApply(&version_edit);
+  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
+  versions_->LogAndApply(&version_edit, &lck);
   lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
 

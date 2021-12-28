@@ -834,7 +834,8 @@ void VersionSet::AppendVersion(Version* v) {
   v->next_->prev_ = v;
 }
 
-Status VersionSet::LogAndApply(VersionEdit* edit) {
+Status VersionSet::LogAndApply(VersionEdit* edit,
+                               std::unique_lock<std::mutex>* lck_vs) {
 //  if (edit->has_log_number_) {
 //    assert(edit->log_number_ >= log_number_);
 //    assert(edit->log_number_ < next_file_number_.load());
@@ -932,11 +933,14 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 
   // Install the new version
   if (s.ok()) {
-    std::unique_lock<std::mutex> lck(*version_set_mtx);
+//    std::unique_lock<std::mutex> lck(*version_set_mtx);
+    lck_vs->lock();
     AppendVersion(v);
   } else {
     delete v;
+
     printf("installing new version failed");
+    exit(0);
 //    if (!new_manifest_file.empty()) {
 //      delete descriptor_log_;
 //      delete descriptor_file_;
