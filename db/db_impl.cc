@@ -1981,7 +1981,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   version_mtx->unlock();
   ibv_wc wc[2] = {};
   if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
-    fprintf(stderr, "failed to poll send for remote memory register\n");
+    fprintf(stderr, "failed to poll send for edit version edit sync\n");
     return;
   }
   asm volatile ("sfence\n" : : );
