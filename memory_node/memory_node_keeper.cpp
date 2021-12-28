@@ -1292,11 +1292,15 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->received = true;
   //TODO: how to check whether the version edit message is ready, we need to know the size of the
   // version edit in the first REQUEST from compute node.
-  volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size;
+  volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size - 1;
   memset((void*)polling_byte, 0, 1);
+
+
 #ifndef NDEBUG
   memset((char*)edit_recv_mr.addr, 0, 100);
 #endif
+
+
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
@@ -1491,7 +1495,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size;
+
+    // we need buffer_size - 1 to poll the last byte of the buffer.
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size - 1;
     memset((void*)polling_byte, 0, 1);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );

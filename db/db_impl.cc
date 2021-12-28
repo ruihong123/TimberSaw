@@ -1746,7 +1746,7 @@ void DBImpl::sync_option_to_remote() {
   memset((char*)send_mr_ve.addr + sizeof(options_), 1, 1);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = sync_option;
-  send_pointer->content.ive.buffer_size = sizeof(options_);
+  send_pointer->content.ive.buffer_size = sizeof(options_) + 1;
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
 
