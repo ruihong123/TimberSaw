@@ -682,7 +682,8 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
   uint64_t file_number;
   {
     //    undefine_mutex.Lock();
-    file_number = versions_->NewFileNumber();
+    //No need to allocate the file number here.
+//    file_number = versions_->NewFileNumber();
     //    pending_outputs_.insert(file_number);
     CompactionOutput out;
     out.number = file_number;
@@ -891,7 +892,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   compact->compaction->ReleaseInputs();
   std::unique_lock<std::mutex> lck(versionset_mtx);
 
-  Status s = versions_->LogAndApply(compact->compaction->edit(), 0);
+  Status s = versions_->LogAndApply(compact->compaction->edit());
 //  versions_->Pin_Version_For_Compute();
 
   Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
@@ -1317,7 +1318,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
   std::unique_lock<std::mutex> lck(versionset_mtx);
-  versions_->LogAndApply(&version_edit, 0);
+  versions_->LogAndApply(&version_edit);
   lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
 
@@ -1368,7 +1369,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
-      if (counter == 1000){
+      if (counter == 10000){
         std::fprintf(stderr, "Polling Remote Compaction handler\r");
         std::fflush(stderr);
         counter = 0;
@@ -1402,17 +1403,19 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     memcpy((char*)large_send_mr.addr + sizeof(uint32_t), serilized_ve.c_str(), serilized_ve.size());
 
     // Prepare the receive buffer for the version edit duribility and the file numbers.
-    volatile char* polling_byte_2 = (char*)large_recv_mr.addr + sizeof(uint64_t);
+    volatile char* polling_byte_2 = (char*)recv_mr.addr + sizeof(uint64_t);
     memset((void*)polling_byte_2, 0, 1);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
 
     // write back the verison edit by the RDMA with immediate
-    rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
+//    rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
+//                             &large_send_mr, serilized_ve.size() + 1, "main",
+//                             IBV_SEND_SIGNALED, 1, imm_num);
+    rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
                              &large_send_mr, serilized_ve.size() + 1, "main",
-                             IBV_SEND_SIGNALED, 1, imm_num);
-
+                             IBV_SEND_SIGNALED, 1);
     counter = 0;
     // polling the finishing bit for the file number transmission.
     while (*(unsigned char*)polling_byte_2 == 0){
@@ -1420,7 +1423,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
-      if (counter == 1000){
+      if (counter == 10000){
         std::fprintf(stderr, "Polling file number return handler\r");
         std::fflush(stderr);
         counter = 0;
@@ -1428,7 +1431,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
       counter++;
     }
-    uint64_t file_number_start = *(uint64_t*)large_recv_mr.addr;
+    uint64_t file_number_start = *(uint64_t*)recv_mr.addr;
     compact->compaction->edit()->SetFileNumbers(file_number_start);
     //TODO: implement durability.
 

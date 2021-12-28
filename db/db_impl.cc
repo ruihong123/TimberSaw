@@ -1070,7 +1070,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       {
         std::unique_lock<std::mutex> l(superversion_memlist_mtx);
         c->ReleaseInputs();
-        status = versions_->LogAndApply(c->edit(), 0);
+        status = versions_->LogAndApply(c->edit());
         InstallSuperVersion();
       }
 
@@ -1375,7 +1375,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
   lck_p->lock();
   compact->compaction->ReleaseInputs();
-  return versions_->LogAndApply(compact->compaction->edit(), 0);
+  return versions_->LogAndApply(compact->compaction->edit());
 }
 Status DBImpl::TryInstallMemtableFlushResults(
     FlushJob* job, VersionSet* vset,
@@ -1465,7 +1465,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   // First apply locally then apply remotely.
   {
     std::unique_lock<std::mutex> lck(versionset_mtx);
-    s = vset->LogAndApply(edit, 0);
+    s = vset->LogAndApply(edit);
     Edit_sync_to_remote(edit, &lck);
   }
 
@@ -1692,12 +1692,19 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     counter++;
   }
   VersionEdit edit;
-  edit.DecodeFrom((char*)recv_mr_c.addr+ sizeof(uint32_t), *(uint32_t*)polling_size_2);
+  edit.DecodeFrom((char*)recv_mr_c.addr+ sizeof(uint32_t), 0);
+  size_t new_file_size = edit.GetNewFilesNum();
+  uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
+  edit.SetFileNumbers(file_number_end);
   {
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
     // TODO: remove the version id argument because we no longer need it.
-  versions_->LogAndApply(edit, ?);
+    versions_->LogAndApply(&edit);
   }
+
+  rdma_mg->RDMA_Write(remote_prt, remote_rkey,
+                           &send_mr, sizeof(uint32_t) + 1, "main",
+                           IBV_SEND_SIGNALED, 1);
   c->ReleaseInputs();
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_c.addr,"version_edit");
@@ -2012,7 +2019,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
       std::unique_lock<std::mutex> l(superversion_memlist_mtx);
       {
         std::unique_lock<std::mutex> l1(versionset_mtx);
-        versions_->LogAndApply(&edit, request.content.ive.version_id);
+        versions_->LogAndApply(&edit);
       }
 
 
@@ -2075,7 +2082,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
 //    printf("Marker 2\n");
     std::unique_lock<std::mutex> lck1(versionset_mtx);
-    versions_->LogAndApply(&version_edit, request.content.ive.version_id);
+    versions_->LogAndApply(&version_edit);
     lck1.unlock();
 #ifndef NDEBUG
     printf("version edit decoded level is %d file number is %zu\n", version_edit.compactlevel(), version_edit.GetNewFilesNum());
@@ -3401,7 +3408,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
     edit.SetLogNumber(impl->logfile_number_);
     std::unique_lock<std::mutex> lck(impl->versionset_mtx);
-    s = impl->versions_->LogAndApply(&edit, 0);
+    s = impl->versions_->LogAndApply(&edit);
   }
   if (s.ok()) {
 //    impl->RemoveObsoleteFiles();

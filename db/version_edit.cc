@@ -17,10 +17,11 @@ namespace TimberSaw {
 RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
     : this_machine_type(side), allowed_seeks(1 << 30) {
   //Tothink: Is this_machine_type the same as rdma_mg->node_id?
-  //
+  // Node_id is unique for every node, while the this_machine_type only distinguish
+  // the compute node from the memory node.
   if (side ==0){
     rdma_mg = Env::Default()->rdma_mg;
-    creator_node_id = rdma_mg->node_id;
+    creator_node_id = rdma_mg->node_id; // rdma_mg->node_id = side
   }else{
     rdma_mg = Memory_Node_Keeper::rdma_mg;
     creator_node_id = rdma_mg->node_id;
@@ -311,8 +312,8 @@ static bool GetLevel(Slice* input, int* level) {
     return false;
   }
 }
-
-Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
+// this machine type: 0 means compute node, 1 means memory node.
+Status VersionEdit::DecodeFrom(const Slice& src, int this_machine_type) {
   Clear();
   Slice input = src;
   const char* msg = nullptr;
@@ -391,7 +392,7 @@ Status VersionEdit::DecodeFrom(const Slice& src, int sstable_type) {
 
       case kNewFile:
         if (GetLevel(&input, &level)) {
-          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(sstable_type);
+          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(this_machine_type);
           f->DecodeFrom(input);
 //          assert(level == 0);
           new_files_.push_back(std::make_pair(level, f));

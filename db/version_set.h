@@ -95,17 +95,17 @@ class Level_Info{
   double compaction_score_;
 
 };
-class Subversion{
- public:
-  explicit Subversion(size_t version_id, std::shared_ptr<RDMA_Manager> rdma_mg);
-
-
-  ~Subversion();
-
- private:
-  size_t version_id_;
-  std::shared_ptr<RDMA_Manager> rdma_mg_;
-};
+//class Subversion{
+// public:
+//  explicit Subversion(size_t version_id, std::shared_ptr<RDMA_Manager> rdma_mg);
+//
+//
+//  ~Subversion();
+//
+// private:
+//  size_t version_id_;
+//  std::shared_ptr<RDMA_Manager> rdma_mg_;
+//};
 class Version {
  public:
 //  Version(const std::shared_ptr<Subversion>& sub_version);
@@ -116,7 +116,7 @@ class Version {
     std::shared_ptr<RemoteMemTableMetaData> seek_file;
     int seek_file_level;
   };
-  std::shared_ptr<Subversion> subversion;
+//  std::shared_ptr<Subversion> subversion;
 
   // Append to *iters a sequence of iterators that will
   // yield the contents of this Version when merged together.
@@ -229,9 +229,8 @@ class Version {
 
 
 
-  explicit Version(VersionSet* vset, std::shared_ptr<Subversion> sub_version)
-      : subversion(std::move(sub_version)),
-        vset_(vset),
+  explicit Version(VersionSet* vset)
+      : vset_(vset),
         next_(this),
         prev_(this),
         refs_(0),
@@ -301,7 +300,7 @@ class VersionSet {
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
   //TODO: Finalize is not required for the comppute node side.
-  Status LogAndApply(VersionEdit* edit, size_t remote_subversion_id);
+  Status LogAndApply(VersionEdit* edit);
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool* save_manifest);
@@ -314,7 +313,7 @@ class VersionSet {
 
   // Allocate and return a new file number
   uint64_t NewFileNumber() { return next_file_number_.fetch_add(1); }
-
+  uint64_t NewFileNumberBatch(size_t size) { return next_file_number_.fetch_add(size); }
   // Arrange to reuse "file_number" unless a newer file number has
   // already been allocated.
   // REQUIRES: "file_number" was returned by a call to NewFileNumber().

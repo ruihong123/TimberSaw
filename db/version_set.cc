@@ -181,25 +181,25 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
       new LevelFileNumIterator(vset_->icmp_, &levels_[level]), &GetFileIterator,
       vset_->table_cache_, options);
 }
-Subversion::Subversion(size_t version_id,
-                       std::shared_ptr<RDMA_Manager> rdma_mg) : version_id_(version_id), rdma_mg_(rdma_mg){}
-Subversion::~Subversion(){
-  RDMA_Request* send_pointer;
-  ibv_mr send_mr = {};
-
-  rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
-
-  send_pointer = (RDMA_Request*)send_mr.addr;
-  send_pointer->command = version_unpin_;
-  send_pointer->content.unpinned_version_id = version_id_;
-  rdma_mg_->post_send<RDMA_Request>(&send_mr, std::string("main"));
-  ibv_wc wc[2] = {};
-  if (rdma_mg_->poll_completion(wc, 1, std::string("main"),true)){
-    fprintf(stderr, "failed to poll send for remote memory register\n");
-    exit(0);
-  }
-  rdma_mg_->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-}
+//Subversion::Subversion(size_t version_id,
+//                       std::shared_ptr<RDMA_Manager> rdma_mg) : version_id_(version_id), rdma_mg_(rdma_mg){}
+//Subversion::~Subversion(){
+//  RDMA_Request* send_pointer;
+//  ibv_mr send_mr = {};
+//
+//  rdma_mg_->Allocate_Local_RDMA_Slot(send_mr, "message");
+//
+//  send_pointer = (RDMA_Request*)send_mr.addr;
+//  send_pointer->command = version_unpin_;
+//  send_pointer->content.unpinned_version_id = version_id_;
+//  rdma_mg_->post_send<RDMA_Request>(&send_mr, std::string("main"));
+//  ibv_wc wc[2] = {};
+//  if (rdma_mg_->poll_completion(wc, 1, std::string("main"),true)){
+//    fprintf(stderr, "failed to poll send for remote memory register\n");
+//    exit(0);
+//  }
+//  rdma_mg_->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+//}
 //Version::Version(const std::shared_ptr<Subversion>& sub_version)
 //    : subversion(sub_version) {}
 void Version::AddIterators(const ReadOptions& options,
@@ -794,10 +794,10 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       prev_log_number_(0),
       descriptor_file_(nullptr),
       descriptor_log_(nullptr),
-      dummy_versions_(this, std::shared_ptr<Subversion>()),
+      dummy_versions_(this),
       current_(nullptr),
       version_set_mtx(mtx){
-  AppendVersion(new Version(this, std::shared_ptr<Subversion>()));
+  AppendVersion(new Version(this));
 
 }
 
@@ -834,7 +834,7 @@ void VersionSet::AppendVersion(Version* v) {
   v->next_->prev_ = v;
 }
 
-Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_subversion_id) {
+Status VersionSet::LogAndApply(VersionEdit* edit) {
 //  if (edit->has_log_number_) {
 //    assert(edit->log_number_ >= log_number_);
 //    assert(edit->log_number_ < next_file_number_.load());
@@ -849,32 +849,33 @@ Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_subversion_id) {
 //  edit->SetNextFile(next_file_number_.load());
   edit->SetLastSequence(last_sequence_);
   Version* v;
+  v = new Version(this);
   //Build an empty version.
-  if (remote_subversion_id == 0){
-    v = new Version(this, current_->subversion);
-#ifndef NDEBUG
-    printf("sub version for the new version is %p", current_->subversion.get());
-//    if (current_->subversion.get() != nullptr){
-////      printf("version id for this subversion is %lu", current_->subversion);
+//  if (remote_subversion_id == 0){
+//    v = new Version(this);
+//#ifndef NDEBUG
+//    printf("sub version for the new version is %p", current_->subversion.get());
+////    if (current_->subversion.get() != nullptr){
+//////      printf("version id for this subversion is %lu", current_->subversion);
+////    }
+//#endif
+//  }else{
+//    //TODO: how to let the function know whether it is memory node or compute node.
+//    assert(Env::Default() != nullptr);
+//    std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(
+//        remote_subversion_id, Env::Default()->rdma_mg);
+//    v = new Version(this);
+//#ifndef NDEBUG
+//    printf("sub version for the new version is %p", v->subversion.get());
+//    if (v->subversion.get() != nullptr){
+//      printf("version id for this subversion is %lu", remote_subversion_id);
 //    }
-#endif
-  }else{
-    //TODO: how to let the function know whether it is memory node or compute node.
-    assert(Env::Default() != nullptr);
-    std::shared_ptr<Subversion> subverison = std::make_shared<Subversion>(
-        remote_subversion_id, Env::Default()->rdma_mg);
-    v = new Version(this, subverison);
-#ifndef NDEBUG
-    printf("sub version for the new version is %p", v->subversion.get());
-    if (v->subversion.get() != nullptr){
-      printf("version id for this subversion is %lu", remote_subversion_id);
-    }
-#endif
-  }
+//#endif
+//  }
 
 
 //  std::unique_lock<std::mutex> lck(sv_mtx);
-//  std::unique_lock<std::mutex> lck(version_set_mtx);
+
   {
     // Decide what table to keep what to discard.
     Builder builder(this, current_);
@@ -931,6 +932,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit, size_t remote_subversion_id) {
 
   // Install the new version
   if (s.ok()) {
+    std::unique_lock<std::mutex> lck(*version_set_mtx);
     AppendVersion(v);
   } else {
     delete v;
@@ -1054,7 +1056,7 @@ Status VersionSet::Recover(bool* save_manifest) {
   }
 
   if (s.ok()) {
-    Version* v = new Version(this, current_->subversion);
+    Version* v = new Version(this);
     builder.SaveTo(v);
     // Install recovered version
     Finalize(v);
@@ -1601,7 +1603,11 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
+
+  //TODO: may be we can create a verion for current_, and only use a read lock
+  // when fetch the current from the list.
   std::unique_lock<std::mutex> lck(*version_set_mtx);
+
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
     level_score = current_->CompactionScore(i);

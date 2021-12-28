@@ -124,9 +124,9 @@ class VersionEdit {
     has_last_sequence_ = true;
     last_sequence_ = seq;
   }
-  void SetFileNumbers(uint64_t file_number_start){
+  void SetFileNumbers(uint64_t file_number_end){
     for (auto pair : new_files_) {
-      pair.second->number = ++file_number_start;
+      pair.second->number = file_number_end--;
     }
   }
   bool IsTrival(){
@@ -169,7 +169,7 @@ class VersionEdit {
     return new_files_.size();
   }
   void EncodeTo(std::string* dst) const;
-  Status DecodeFrom(const Slice& src, int sstable_type);
+  Status DecodeFrom(const Slice& src, int this_machine_type);
   void EncodeToDiskFormat(std::string* dst) const;
   Status DecodeFromDiskFormat(const Slice& src, int sstable_type);
   std::string DebugString() const;
