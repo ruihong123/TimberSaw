@@ -1713,6 +1713,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
     // TODO: remove the version id argument because we no longer need it.
     std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
+    assert(edit.GetNewFilesNum() > 0);
     versions_->LogAndApply(&edit, &lck_vs);
     lck_vs.unlock();
     InstallSuperVersion();
