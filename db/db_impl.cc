@@ -1741,7 +1741,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     counter++;
   }
   VersionEdit edit;
-  edit.DecodeFrom((char*)recv_mr_c.addr+ sizeof(uint32_t), 0);
+  edit.DecodeFrom((char*)recv_mr_c.addr, 0);
   size_t new_file_size = edit.GetNewFilesNum();
   uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
   edit.SetFileNumbers(file_number_end);
