@@ -1708,7 +1708,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
     if (counter == 1000){
-      std::fprintf(stderr, "Polling file number return handler\r");
+      std::fprintf(stderr, "Polling version edit size handler\r");
       std::fflush(stderr);
       counter = 0;
     }
@@ -1733,7 +1733,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
     if (counter == 1000){
-      std::fprintf(stderr, "Polling file number return handler\r");
+      std::fprintf(stderr, "Polling version edit handler\r");
       std::fflush(stderr);
       counter = 0;
     }
