@@ -875,7 +875,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
 //  }
 
 
-//  std::unique_lock<std::mutex> lck(sv_mtx);
+  lck_vs->lock();
 
   {
     // Decide what table to keep what to discard.
@@ -934,7 +934,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
   // Install the new version
   if (s.ok()) {
 //    std::unique_lock<std::mutex> lck(*version_set_mtx);
-    lck_vs->lock();
+
     AppendVersion(v);
   } else {
     delete v;
