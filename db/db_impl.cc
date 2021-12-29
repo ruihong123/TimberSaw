@@ -1718,14 +1718,14 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   size_t buffer_size = *(uint64_t*)polling_size_1;
 
   // the polling byte is the last byte in the buffer.
-  volatile uint32_t * polling_size_2 = (uint32_t*)recv_mr_c.addr + buffer_size - 1;
+  volatile unsigned char* polling_size_2 = (unsigned char*)recv_mr_c.addr + buffer_size - 1;
   *polling_size_2 = 0;
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   // polling the finishing bit for the file number transmission.
   counter = 0;
-  while (*(uint32_t*)polling_size_2 == 0){
+  while (*(unsigned char*)polling_size_2 == 0){
     //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
     // if an RDMA with correponding immediate is received.
     _mm_clflush(polling_size_2);
