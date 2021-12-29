@@ -1683,8 +1683,11 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 
-  // only poll the firt byte of the buffer, because the thread will be waked up by
-  // RDMA immediate, which can make sure all the data transfer has been finished.
+  // TODO: Clear the large receive buffer before it receive the buffer size, this can be optimized
+  //  to only clear the corresponding byte. Besides, if the compaction finished extremely fast,
+  // There could be a race in the receive buffer clear and RDMA write. We place the memset
+  // here to remove the memset from the critical path of the remove compaction.
+  memset((char*)recv_mr_c.addr, 0, recv_mr_c.length);
 
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
   // which means the polling result may not belongs to this thread, but it does not
@@ -1693,11 +1696,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
                       &send_mr_c, serilized_c.size() + 1,
                       "main", IBV_SEND_SIGNALED,1);
 
-  // TODO: Clear the large receive buffer before it receive the buffer size, this can be optimized
-  //  to only clear the corresponding byte. Besides, if the compaction finished extremely fast,
-  // There could be a race in the receive buffer clear and RDMA write. We place the memset
-  // here to remove the memset from the critical path of the remove compaction.
-  memset((char*)recv_mr_c.addr, 0, recv_mr_c.length);
+
+
 
   size_t counter = 0;
   while (*(uint64_t*)polling_size_1 == 0){

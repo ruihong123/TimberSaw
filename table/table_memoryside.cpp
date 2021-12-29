@@ -34,7 +34,8 @@ struct Table_Memory_Side::Rep {
   const Options& options;
   Status status;
   // weak_ptr because if there is cached value in the table cache then the obsoleted SST
-  // will never be garbage collected.
+  // will never be garbage collected. The other choice is to call evict when garbage collect this
+  // remote table.
   std::weak_ptr<RemoteMemTableMetaData> remote_table;
   //  uint64_t cache_id;
   FullFilterBlockReader* filter;
