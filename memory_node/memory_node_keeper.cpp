@@ -1394,6 +1394,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         //TODO:Send back the new created sstables and wait for another reply.
     std::string serilized_ve;
     compact->compaction->edit()->EncodeTo(&serilized_ve);
+#ifndef NDEBUG
+    VersionEdit edit;
+    edit.DecodeFrom((char*)serilized_ve.c_str(), 1);
+    assert(edit.GetNewFilesNum() > 0 );
+#endif
 //    *(uint32_t*)large_send_mr.addr = serilized_ve.size();
 //    memset((char*)large_send_mr.addr, 1, 1);
     memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
