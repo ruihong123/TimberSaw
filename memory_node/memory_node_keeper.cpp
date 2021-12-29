@@ -213,7 +213,7 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
   int64_t imm_micros = 0;  // Micros spent doing imm_ compactions
 
 
-  assert(versions_->NumLevelFiles(compact->compaction->level()) > 0);
+//  assert(versions_->NumLevelFiles(compact->compaction->level()) > 0);
   assert(compact->builder == nullptr);
   //  assert(compact->outfile == nullptr);
 //  if (snapshots_.empty()) {
