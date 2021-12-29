@@ -1284,9 +1284,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   memset((void*)polling_byte, 0, 1);
 
 
-#ifndef NDEBUG
-  memset((char*)edit_recv_mr.addr, 0, 100);
-#endif
+//#ifndef NDEBUG
+//  memset((char*)edit_recv_mr.addr, 0, 100);
+//#endif
 
 
   asm volatile ("sfence\n" : : );
@@ -1313,9 +1313,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   version_edit.DecodeFrom(
       Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
-  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
-  versions_->LogAndApply(&version_edit, &lck);
-  lck.unlock();
+//  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
+//  versions_->LogAndApply(&version_edit, &lck);
+//  lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
@@ -1394,11 +1394,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         //TODO:Send back the new created sstables and wait for another reply.
     std::string serilized_ve;
     compact->compaction->edit()->EncodeTo(&serilized_ve);
-#ifndef NDEBUG
-    VersionEdit edit;
-    edit.DecodeFrom((char*)serilized_ve.c_str(), 1);
-    assert(edit.GetNewFilesNum() > 0 );
-#endif
+//#ifndef NDEBUG
+//    VersionEdit edit;
+//    edit.DecodeFrom((char*)serilized_ve.c_str(), 1);
+//    assert(edit.GetNewFilesNum() > 0 );
+//#endif
 //    *(uint32_t*)large_send_mr.addr = serilized_ve.size();
 //    memset((char*)large_send_mr.addr, 1, 1);
     memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
