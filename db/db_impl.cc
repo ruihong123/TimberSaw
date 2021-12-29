@@ -1715,7 +1715,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
     counter++;
   }
-  size_t buffer_size = *(uint64_t*)polling_size_1;
+  size_t buffer_size = *(size_t*)polling_size_1;
 
   // the polling byte is the last byte in the buffer.
   volatile unsigned char* polling_size_2 = (unsigned char*)recv_mr_c.addr + buffer_size - 1;
