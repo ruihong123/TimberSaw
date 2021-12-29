@@ -1740,6 +1740,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
     counter++;
   }
+  _mm_clflush(polling_size_2);
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
   assert(*(unsigned char*)recv_mr_c.addr != 0);
   VersionEdit edit;
   edit.DecodeFrom((char*)recv_mr_c.addr, 0);
