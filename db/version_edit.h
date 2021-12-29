@@ -148,6 +148,9 @@ class VersionEdit {
                const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
     new_files_.emplace_back(level, remote_table);
   }
+  std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>>* GetNewFiles(){
+    return &new_files_;
+  }
   void AddFileIfNotExist(int level,
                const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
     for(auto iter : new_files_){

@@ -926,19 +926,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
       meta->remote_filter_mrs = out.remote_filter_mrs;
       compact->compaction->edit()->AddFile(level + 1, meta);
       assert(!meta->UnderCompaction);
-#ifndef NDEBUG
 
-      // Verify that the table is usable
-      Iterator* it = versions_->table_cache_->NewIterator_MemorySide(ReadOptions(), meta);
-      //        s = it->status();
-
-      it->SeekToFirst();
-      while(it->Valid()){
-        it->Next();
-      }
-      printf("Table %p Read successfully after compaction\n", meta.get());
-      delete it;
-#endif
     }
   }else{
     for(auto subcompact : compact->sub_compact_states){
@@ -1449,7 +1437,20 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     assert(file_number_start>0);
     compact->compaction->edit()->SetFileNumbers(file_number_start);
     //TODO: implement durability.
+#ifndef NDEBUG
+    for(auto pair : *compact->compaction->edit()->GetNewFiles()){
+      // Verify that the table is usable
+      Iterator* it = versions_->table_cache_->NewIterator_MemorySide(ReadOptions(), pair.second);
+      //        s = it->status();
 
+      it->SeekToFirst();
+      while(it->Valid()){
+        it->Next();
+      }
+      printf("Table %p Read successfully after compaction\n", pair.second.get());
+      delete it;
+    }
+#endif
 
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
     rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
