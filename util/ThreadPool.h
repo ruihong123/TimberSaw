@@ -34,8 +34,8 @@ class ThreadPool{
   ThreadPoolType Type_;
   std::mutex mu_;
   std::condition_variable bgsignal_;
-  std::mutex RDMA_notify_mtx;
-  std::condition_variable RDMA_signal;
+//  std::mutex RDMA_notify_mtx;
+//  std::condition_variable RDMA_signal;
   int total_threads_limit_;
   std::atomic_uint queue_len_ = 0;
   bool exit_all_threads_ = false;

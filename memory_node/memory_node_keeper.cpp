@@ -1406,10 +1406,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         //TODO:Send back the new created sstables and wait for another reply.
     std::string serilized_ve;
     compact->compaction->edit()->EncodeTo(&serilized_ve);
-    *(uint32_t*)large_send_mr.addr = serilized_ve.size();
+//    *(uint32_t*)large_send_mr.addr = serilized_ve.size();
 //    memset((char*)large_send_mr.addr, 1, 1);
-    memcpy((char*)large_send_mr.addr + sizeof(uint32_t), serilized_ve.c_str(), serilized_ve.size());
+    memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
+    memset((char*)large_send_mr.addr + serilized_ve.size(), 1, 1);
 
+    *(size_t*)send_mr.addr = serilized_ve.size() + 1;
     // Prepare the receive buffer for the version edit duribility and the file numbers.
     volatile char* polling_byte_2 = (char*)recv_mr.addr + sizeof(uint64_t);
     memset((void*)polling_byte_2, 0, 1);
@@ -1421,6 +1423,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
 //                             &large_send_mr, serilized_ve.size() + 1, "main",
 //                             IBV_SEND_SIGNALED, 1, imm_num);
+
+    rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
+                        &send_mr, serilized_ve.size() + sizeof(uint32_t), client_ip,
+                        IBV_SEND_SIGNALED, 1);
     rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
                              &large_send_mr, serilized_ve.size() + sizeof(uint32_t), client_ip,
                              IBV_SEND_SIGNALED, 1);

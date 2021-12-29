@@ -1673,22 +1673,58 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   void* remote_large_prt = receive_pointer->reply_buffer_large;
   uint32_t remote_rkey = receive_pointer->rkey;
   uint32_t remote_large_rkey = receive_pointer->rkey_large;
-  // only poll the firt byte of the buffer, because the thread will be waked up by
-  // RDMA immediate, which can make sure all the data transfer has been finished.
-  volatile uint32_t * polling_size_2 = (uint32_t*)recv_mr_c.addr;
-  *polling_size_2 = 0;
+
+
+
+
+  volatile uint64_t * polling_size_1 = (uint64_t*)receive_mr.addr;
+  *polling_size_1 = 0;
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
+
+  // only poll the firt byte of the buffer, because the thread will be waked up by
+  // RDMA immediate, which can make sure all the data transfer has been finished.
+
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
   // which means the polling result may not belongs to this thread, but it does not
   // matter in our case because we do not care when will the message arrive at the other side
   rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
                       &send_mr_c, serilized_c.size() + 1,
                       "main", IBV_SEND_SIGNALED,1);
-  size_t counter = 0;
-  // polling the finishing bit for the file number transmission.
 
+  // TODO: Clear the large receive buffer before it receive the buffer size, this can be optimized
+  //  to only clear the corresponding byte. Besides, if the compaction finished extremely fast,
+  // There could be a race in the receive buffer clear and RDMA write. We place the memset
+  // here to remove the memset from the critical path of the remove compaction.
+  memset((char*)recv_mr_c.addr, 0, recv_mr_c.length);
+
+  size_t counter = 0;
+  while (*(uint64_t*)polling_size_1 == 0){
+    //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
+    // if an RDMA with correponding immediate is received.
+    _mm_clflush(polling_size_1);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
+    if (counter == 1000){
+      std::fprintf(stderr, "Polling file number return handler\r");
+      std::fflush(stderr);
+      counter = 0;
+    }
+
+    counter++;
+  }
+  size_t buffer_size = *(uint64_t*)polling_size_1;
+
+  // the polling byte is the last byte in the buffer.
+  volatile uint32_t * polling_size_2 = (uint32_t*)recv_mr_c.addr + buffer_size - 1;
+  *polling_size_2 = 0;
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  // polling the finishing bit for the file number transmission.
+  counter = 0;
   while (*(uint32_t*)polling_size_2 == 0){
     //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
     // if an RDMA with correponding immediate is received.
