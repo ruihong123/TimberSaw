@@ -1740,6 +1740,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
     counter++;
   }
+  assert(*(unsigned char*)recv_mr_c.addr != 0);
   VersionEdit edit;
   edit.DecodeFrom((char*)recv_mr_c.addr, 0);
   size_t new_file_size = edit.GetNewFilesNum();
