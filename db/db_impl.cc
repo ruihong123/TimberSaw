@@ -1717,9 +1717,11 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     lck_vs.unlock();
     InstallSuperVersion();
   }
-
+  uint64_t * file_number_end_send_ptr = static_cast<uint64_t *>(send_mr.addr);
+  *file_number_end_send_ptr = file_number_end;
+  memset((char*)send_mr.addr + sizeof(uint64_t), 1, 1);
   rdma_mg->RDMA_Write(remote_prt, remote_rkey,
-                           &send_mr, sizeof(uint32_t) + 1, "main",
+                           &send_mr, sizeof(uint64_t) + 1, "main",
                            IBV_SEND_SIGNALED, 1);
   c->ReleaseInputs();
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
