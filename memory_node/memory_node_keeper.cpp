@@ -1446,6 +1446,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       counter++;
     }
     uint64_t file_number_start = *(uint64_t*)recv_mr.addr;
+    assert(file_number_start>0);
     compact->compaction->edit()->SetFileNumbers(file_number_start);
     //TODO: implement durability.
 

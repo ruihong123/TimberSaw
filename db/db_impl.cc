@@ -1755,7 +1755,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     lck_vs.unlock();
     InstallSuperVersion();
   }
-  uint64_t * file_number_end_send_ptr = static_cast<uint64_t *>(send_mr.addr);
+  uint64_t* file_number_end_send_ptr = static_cast<uint64_t*>(send_mr.addr);
   *file_number_end_send_ptr = file_number_end;
   memset((char*)send_mr.addr + sizeof(uint64_t), 1, 1);
   rdma_mg->RDMA_Write(remote_prt, remote_rkey,
