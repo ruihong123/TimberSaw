@@ -148,6 +148,7 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
       //      tf->remote_table = Remote_memtable_meta;
       tf->table_memory = table;
       assert(table->rep_ != nullptr);
+      assert(static_cast<RemoteMemTableMetaData*>(table->Get_rdma())->number != 0);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
     }
   }
