@@ -1743,13 +1743,14 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   VersionEdit edit;
   edit.DecodeFrom((char*)recv_mr_c.addr, 0);
   size_t new_file_size = edit.GetNewFilesNum();
+  assert(new_file_size > 0);
   uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
   edit.SetFileNumbers(file_number_end);
   {
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
     // TODO: remove the version id argument because we no longer need it.
     std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
-    assert(edit.GetNewFilesNum() > 0);
+
     versions_->LogAndApply(&edit, &lck_vs);
     lck_vs.unlock();
     InstallSuperVersion();
