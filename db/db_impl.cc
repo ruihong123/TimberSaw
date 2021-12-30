@@ -1456,7 +1456,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   }
   //TODO: seperate the logic of find out what file to
 
-  DEBUG("try install inner loop\n");
+  DEBUG_arg("Batch count is %zu\n", batch_count);
   // we will be changing the version in the next code path,
   // so we better create a new one, since versions are immutable
 
