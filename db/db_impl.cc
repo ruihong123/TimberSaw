@@ -1753,8 +1753,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   size_t new_file_size = edit.GetNewFilesNum();
   assert(new_file_size > 0);
   uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
-  DEBUG_arg("Edit new file end is %lu, ", file_number_end);
-  DEBUG_arg("Edit new file number is %lu, ", new_file_size);
+  DEBUG_arg("Edit new file end is %lu \n", file_number_end);
+  DEBUG_arg("Edit new file number is %lu\n", new_file_size);
   edit.SetFileNumbers(file_number_end);
   {
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
