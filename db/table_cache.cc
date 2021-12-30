@@ -198,7 +198,10 @@ Iterator* TableCache::NewIterator_MemorySide(
   }
 
   Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
-  assert(p == table->Get_rdma());
+  // The pointer of p will be different from what stored in the cache because the p is a new
+  // created Remote memory metadata from the serialized buffer. so no need for the
+  // assert below
+//  assert(p == table->Get_rdma());
   Iterator* result = table->NewIterator(options);
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
