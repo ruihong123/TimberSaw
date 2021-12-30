@@ -147,9 +147,10 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
       SSTable* tf = new SSTable;
       //      tf->file = file;
       //      tf->remote_table = Remote_memtable_meta;
+      assert(table->Get_remote_table_ptr() != nullptr);
       tf->table_memory = table;
       assert(table->rep_ != nullptr);
-      assert(static_cast<RemoteMemTableMetaData*>(table->Get_rdma())->number != 0);
+      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
     }
   }
@@ -200,8 +201,8 @@ Iterator* TableCache::NewIterator_MemorySide(
   Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
   // The pointer of p will be different from what stored in the cache because the p is a new
   // created Remote memory metadata from the serialized buffer. so no need for the
-  // assert below
-//  assert(p == table->Get_rdma());
+  // assert of p == table->Get_rdma()
+  assert(table->Get_remote_table_ptr()!= nullptr);
   Iterator* result = table->NewIterator(options);
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {

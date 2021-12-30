@@ -321,7 +321,7 @@ uint64_t Table_Memory_Side::ApproximateOffsetOf(const Slice& key) const {
   delete index_iter;
   return result;
 }
-void* Table_Memory_Side::Get_rdma() {
+void* Table_Memory_Side::Get_remote_table_ptr() {
     return static_cast<void*>(rep_->remote_table.lock().get());
 }
 }

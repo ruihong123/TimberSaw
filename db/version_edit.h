@@ -41,7 +41,8 @@ struct RemoteMemTableMetaData {
         DEBUG("Remote memory collection not found\n");
         assert(false);
       }
-    }else if(this_machine_type == 1 && creator_node_id == 1){
+    }// only auto matically garbage collect the RDMA block for the compute node.
+    else if(this_machine_type == 1 && creator_node_id == 1){
       //TODO: memory collection for the remote memory.
       if(Local_blocks_deallocate(remote_data_mrs) &&
       Local_blocks_deallocate(remote_dataindex_mrs) &&
@@ -69,9 +70,9 @@ struct RemoteMemTableMetaData {
     std::map<uint32_t , ibv_mr*>::iterator it;
 
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer")){
-        return false;
-      }
+//      if(!rdma_mg->Deallocate_Local_RDMA_Slot(it->second->addr, "FlushBuffer")){
+//        return false;
+//      }
       delete it->second;
     }
     return true;

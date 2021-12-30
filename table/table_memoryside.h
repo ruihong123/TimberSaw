@@ -70,7 +70,7 @@ class TimberSaw_EXPORT Table_Memory_Side {
   //
   //  void ReadMeta(const Footer& footer);
   void ReadFilter();
-  void* Get_rdma();
+  void* Get_remote_table_ptr();
   Rep* const rep_;
   //  static std::atomic<int> table
 };
