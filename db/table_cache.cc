@@ -134,7 +134,8 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
     DEBUG("FindTable_MemorySide\n");
     if (s.ok()) {
       s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
-      DEBUG_arg("Remote_memtable_meta is %p", Remote_memtable_meta.get());
+      DEBUG_arg("file number inserted to the cache is %lu", Remote_memtable_meta.get()->number);
+      DEBUG_arg("Remote_memtable_meta pointer is %p", Remote_memtable_meta.get());
     }
     //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
     if (!s.ok()) {
