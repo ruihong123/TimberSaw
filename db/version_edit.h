@@ -126,7 +126,7 @@ class VersionEdit {
   }
   void SetFileNumbers(uint64_t file_number_end){
     for (auto pair : new_files_) {
-      pair.second->number = file_number_end--;
+      pair.second->number = file_number_end++;
     }
   }
   bool IsTrival(){
