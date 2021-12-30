@@ -116,8 +116,8 @@ void Table_Memory_Side::ReadFilter() {
     opt.verify_checksums = true;
   }
   BlockContents block;
-  char* data = (char*) rep_->remote_table.lock()->remote_filter_mrs.begin()->second->addr;
-  size_t size = rep_->remote_table.lock()->remote_filter_mrs.begin()->second->length;
+  char* data = (char*) rep_->remote_table->remote_filter_mrs.begin()->second->addr;
+  size_t size = rep_->remote_table->remote_filter_mrs.begin()->second->length;
   size_t n = size - kBlockTrailerSize;
 
   //  ReadOptions opt;
@@ -141,7 +141,7 @@ void Table_Memory_Side::ReadFilter() {
   //    rep_->filter_data = block.data.data();  // Will need to delete later
   //  }
   rep_->filter = new FullFilterBlockReader(
-      block.data, rep_->remote_table.lock()->rdma_mg, Memory);
+      block.data, rep_->remote_table->rdma_mg, Memory);
 }
 
 Table_Memory_Side::~Table_Memory_Side() { delete rep_; }
@@ -165,7 +165,7 @@ Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
   if (s.ok()) {
     BlockContents contents;
     //The function below is correct, because the handle content the block without crc.
-    Find_Remote_mr(&table->rep_->remote_table.lock()->remote_data_mrs, handle, contents.data);
+    Find_Remote_mr(&table->rep_->remote_table->remote_data_mrs, handle, contents.data);
     block = new Block(contents, Block_On_Memory_Side);
   }
 
@@ -321,6 +321,6 @@ uint64_t Table_Memory_Side::ApproximateOffsetOf(const Slice& key) const {
   return result;
 }
 void* Table_Memory_Side::Get_remote_table_ptr() {
-    return static_cast<void*>(rep_->remote_table.lock().get());
+    return static_cast<void*>(rep_->remote_table.get());
 }
 }
