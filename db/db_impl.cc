@@ -1478,6 +1478,8 @@ Status DBImpl::TryInstallMemtableFlushResults(
   // First apply locally then apply remotely.
   {
     std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
+    DEBUG_arg("file number for this flush : %lu ", (*edit->GetNewFiles())[0].second->number);
+
     s = vset->LogAndApply(edit, &lck);
     Edit_sync_to_remote(edit, &lck);
   }
