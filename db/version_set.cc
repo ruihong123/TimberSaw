@@ -848,6 +848,11 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
 //  }
 //
 //  edit->SetNextFile(next_file_number_.load());
+#ifndef NDEBUG
+  for (int i = 0; i < edit->GetNewFilesNum(); ++i) {
+    printf("file number for this flush : %lu ", (*edit->GetNewFiles())[i].second->number);
+  }
+#endif
   edit->SetLastSequence(last_sequence_);
   Version* v;
   v = new Version(this);
