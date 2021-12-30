@@ -637,7 +637,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
-  DEBUG_arg("new file number for flushing is %lu", meta->number);
+  DEBUG_arg("new file number for flushing is %lu\n", meta->number);
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = imm_.MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
