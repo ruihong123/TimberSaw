@@ -172,7 +172,7 @@ class VersionEdit {
     return new_files_.size();
   }
   void EncodeTo(std::string* dst) const;
-  Status DecodeFrom(const Slice& src, int this_machine_type);
+  Status DecodeFrom(const Slice src, int this_machine_type);
   void EncodeToDiskFormat(std::string* dst) const;
   Status DecodeFromDiskFormat(const Slice& src, int sstable_type);
   std::string DebugString() const;

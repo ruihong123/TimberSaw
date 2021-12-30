@@ -313,7 +313,7 @@ static bool GetLevel(Slice* input, int* level) {
   }
 }
 // this machine type: 0 means compute node, 1 means memory node.
-Status VersionEdit::DecodeFrom(const Slice& src, int this_machine_type) {
+Status VersionEdit::DecodeFrom(const Slice src, int this_machine_type) {
   Clear();
   Slice input = src;
   const char* msg = nullptr;
