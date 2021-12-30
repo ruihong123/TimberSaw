@@ -637,6 +637,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
+  DEBUG_arg("new file number for flushing is %lu", meta->number);
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = imm_.MakeInputIterator(job);
   Log(options_.info_log, "Level-0 table #%llu: started",
@@ -1752,6 +1753,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   size_t new_file_size = edit.GetNewFilesNum();
   assert(new_file_size > 0);
   uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
+  DEBUG_arg("Edit new file end is %lu, ", file_number_end);
+  DEBUG_arg("Edit new file number is %lu, ", new_file_size);
   edit.SetFileNumbers(file_number_end);
   {
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
