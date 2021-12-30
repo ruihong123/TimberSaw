@@ -11,8 +11,9 @@
 namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): internal_comparator_(BytewiseComparator()), opts(std::make_shared<Options>(true)),
-usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
-versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx)){
+usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files))
+,versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx))
+{
     struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
@@ -1439,9 +1440,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
       counter++;
     }
-    uint64_t file_number_start = *(uint64_t*)recv_mr.addr;
-    assert(file_number_start>0);
-    compact->compaction->edit()->SetFileNumbers(file_number_start);
+    uint64_t file_number_end = *(uint64_t*)recv_mr.addr;
+    assert(file_number_end >0);
+    compact->compaction->edit()->SetFileNumbers(file_number_end);
+    DEBUG_arg("file number end %lu", file_number_end);
     //TODO: implement durability.
 #ifndef NDEBUG
     for(auto pair : *compact->compaction->edit()->GetNewFiles()){
@@ -1567,7 +1569,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->content.ive.level = level;
     send_pointer->content.ive.file_number = file_number;
     send_pointer->content.ive.node_id = node_id;
-    send_pointer->content.ive.version_id = versions_->version_id;
+//    send_pointer->content.ive.version_id = versions_->version_id;
     rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
     version_mtx->unlock();
     ibv_wc wc[2] = {};
