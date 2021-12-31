@@ -126,8 +126,10 @@ class MemTable {
     assert(flush_state_ == FLUSH_PROCESSING);
     SetFlushState(FLUSH_FINISHED);
   }
-  uint64_t Getlargest_seq_supposed() const{
-    return largest_seq_supposed;
+  uint64_t Getlargest_seq() const{
+    // in case that there is a unfull table flush, the largest seq will be different
+    // from the one supposed
+    return largest_seq_supposed - MEMTABLE_SEQ_SIZE + seq_count;
   }
   uint64_t GetFirstseq() const{
     return first_seq;

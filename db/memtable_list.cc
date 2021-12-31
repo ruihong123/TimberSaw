@@ -197,7 +197,7 @@ void MemTableListVersion::AddIteratorsToVector(
 }
 MemTable* MemTableListVersion::PickMemtablesSeqBelong(size_t seq) {
   for(auto iter : memlist_){
-    if (seq >= iter->GetFirstseq() && seq <= iter->Getlargest_seq_supposed()) {
+    if (seq >= iter->GetFirstseq() && seq <= iter->Getlargest_seq()) {
       return iter;
     }
   }
