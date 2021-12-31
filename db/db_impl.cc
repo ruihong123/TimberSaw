@@ -1715,7 +1715,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   // There could be a race in the receive buffer clear and RDMA write. We place the memset
   // here to remove the memset from the critical path of the remove compaction.
   memset((char*)recv_mr_c.addr, 0, recv_mr_c.length);
-
+  _mm_clflush(polling_size_1);
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
   // which means the polling result may not belongs to this thread, but it does not
   // matter in our case because we do not care when will the message arrive at the other side
