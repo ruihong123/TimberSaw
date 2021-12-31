@@ -66,9 +66,16 @@ class MemTable {
   void Unref() {
     refs_.fetch_sub(1);
     assert(refs_ >= 0);
+#ifndef NDEBUG
+    if (full_table_flush){
+      assert(seq_count.load() == MEMTABLE_SEQ_SIZE);
+    }
+
+#endif
+
     if (refs_ <= 0) {
       // TODO: THis assertion may changed in the future
-      assert(seq_count.load() == MEMTABLE_SEQ_SIZE);
+
       delete this;
     }
   }
