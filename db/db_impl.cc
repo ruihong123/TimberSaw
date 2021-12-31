@@ -294,7 +294,7 @@ void DBImpl::WaitforAllbgtasks() {
   if(iter->Valid()){
     mem->NotFullTableflush();
     MemTable* temp_mem = new MemTable(internal_comparator_);
-
+    // Get the real largest seq because it is not a full table flush
     uint64_t last_mem_seq = mem->Getlargest_seq();
     temp_mem->SetFirstSeq(last_mem_seq+1);
     // starting from this sequenctial number, the data should write to the new memtable
@@ -3069,7 +3069,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
           seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
         MemTable* temp_mem = new MemTable(internal_comparator_);
-        uint64_t last_mem_seq = mem_r->Getlargest_seq();
+        uint64_t last_mem_seq = mem_r->Getlargest_seq_supposed();
         //The memtable seq barrier is (  ];
         temp_mem->SetFirstSeq(last_mem_seq+1);
         // starting from this sequenctial number, the data should write the the new memtable
