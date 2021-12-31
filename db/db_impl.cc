@@ -294,6 +294,7 @@ void DBImpl::WaitforAllbgtasks() {
   if(iter->Valid()){
     mem->NotFullTableflush();
     MemTable* temp_mem = new MemTable(internal_comparator_);
+    DEBUG_arg("Not full flushed table first seq number is %lu", mem->GetFirstseq());
     // Get the real largest seq because it is not a full table flush
     uint64_t last_mem_seq = mem->Getlargest_seq();
     temp_mem->SetFirstSeq(last_mem_seq+1);
