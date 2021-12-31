@@ -1097,6 +1097,8 @@ void DBImpl::BackgroundCompaction(void* p) {
           status.ToString().c_str(), versions_->LevelSummary(&tmp));
       DEBUG("Trival compaction\n");
     } else if (options_.near_data_compaction) {
+      DEBUG_arg("Compaction decoded, the first input file number is %lu \n", c->inputs_[0][0]->number);
+      DEBUG_arg("Compaction decoded, input file level is %d \n", c->level());
       NearDataCompaction(c);
       MaybeScheduleFlushOrCompaction();
       return;
