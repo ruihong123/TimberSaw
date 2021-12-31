@@ -1916,6 +1916,7 @@ void Compaction::DecodeFrom(const Slice src, int side) {
   Slice input = src;
   uint16_t level = 0;
   GetFixed16(&input, &level);
+  level_ = level;
   uint32_t first_level_len = 0;
   GetFixed32(&input, &first_level_len);
   for (size_t i = 0; i < first_level_len; i++) {
