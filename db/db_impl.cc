@@ -294,6 +294,7 @@ void DBImpl::WaitforAllbgtasks() {
   if(iter->Valid()){
     mem->NotFullTableflush();
     MemTable* temp_mem = new MemTable(internal_comparator_);
+
     uint64_t last_mem_seq = mem->Getlargest_seq();
     temp_mem->SetFirstSeq(last_mem_seq+1);
     // starting from this sequenctial number, the data should write to the new memtable
@@ -3021,7 +3022,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   // get the table
   bool delayed = false;
   //TODO(RUIHONG): Avoid lock twice when swithing the memtable.
-  while(seq_num > mem_r->Getlargest_seq()){
+  while(seq_num > mem_r->Getlargest_seq_supposed()){
     //before switch the table we need to check whether there is enough room
     // for a new table.
 
@@ -3038,7 +3039,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       Log(options_.info_log, "Current memtable full; waiting...\n");
       mem_r = mem_.load();
       while ((imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger || versions_->NumLevelFiles(0) >=
-             config::kL0_StopWritesTrigger) && seq_num > mem_r->Getlargest_seq()) {
+             config::kL0_StopWritesTrigger) && seq_num > mem_r->Getlargest_seq_supposed()) {
         assert(seq_num > mem_r->GetFirstseq());
 //        std::cout << "Writer is going to wait current immutable number " << (imm_.current_memtable_num()) << " Level 0 file number "
 //                  << (versions_->NumLevelFiles(0)) <<std::endl;
@@ -3065,7 +3066,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       //After aquire the lock check the status again
       if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
           versions_->NumLevelFiles(0) <= config::kL0_StopWritesTrigger &&
-          seq_num > mem_r->Getlargest_seq()){
+          seq_num > mem_r->Getlargest_seq_supposed()){
         assert(versions_->PrevLogNumber() == 0);
         MemTable* temp_mem = new MemTable(internal_comparator_);
         uint64_t last_mem_seq = mem_r->Getlargest_seq();
@@ -3105,7 +3106,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
   }
   //if not which table should this writer need to write?
   while(true){
-    if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq()){
+    if (seq_num >= mem_r->GetFirstseq() && seq_num <= mem_r->Getlargest_seq_supposed()){
       return s;
     }else {
       // get the snapshot for imm then check it so that this memtable pointer is guarantee
@@ -3140,7 +3141,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 ////      undefine_mutex.Lock();
 ////      Log(options_.info_log, "Current memtable full; waiting...\n");
 ////      mem_r = mem_.load();
-////      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq()) {
+////      while (imm_.load() != nullptr && seq_num > mem_r->Getlargest_seq_supposed()) {
 //        assert(seq_num > mem_r->GetFirstseq());
 ////        usleep(1);
 //        counter++;
