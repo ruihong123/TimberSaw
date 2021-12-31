@@ -32,7 +32,7 @@ struct RemoteMemTableMetaData {
 #endif
     assert(this_machine_type ==0 || this_machine_type == 1);
     assert(creator_node_id == 0 || creator_node_id == 1);
-    if (this_machine_type == 0 && creator_node_id == 0){
+    if (this_machine_type == 0 && creator_node_id == rdma_mg->node_id){
       if(Remote_blocks_deallocate(remote_data_mrs) &&
       Remote_blocks_deallocate(remote_dataindex_mrs) &&
       Remote_blocks_deallocate(remote_filter_mrs)){
@@ -51,6 +51,19 @@ struct RemoteMemTableMetaData {
       }else{
         DEBUG("Local memory collection not found\n");
         assert(false);
+      }
+    }else{
+      for (auto it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++){
+
+        delete it->second;
+      }
+      for (auto it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++){
+
+        delete it->second;
+      }
+      for (auto it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++){
+
+        delete it->second;
       }
     }
 

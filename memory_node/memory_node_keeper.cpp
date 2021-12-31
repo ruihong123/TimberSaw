@@ -1384,7 +1384,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    void* remote_large_recv_ptr =  *(void**)new_pos.data();
 //    uint32_t remote_large_recv_rkey = *(uint32_t*)(new_pos.data() + sizeof(void*));
     // the slice size is larger than the real size by 1 byte.
-    DEBUG_arg("Compaction decoded, new file number is %d", c.num_input_files(0) + c.num_input_files(1));
+    DEBUG_arg("Compaction decoded, input file number is %d \n", c.num_input_files(0) + c.num_input_files(1));
+    DEBUG_arg("Compaction decoded, input file level is %d \n", c.level());
     CompactionState* compact = new CompactionState(&c);
     if (usesubcompaction && c.num_input_files(0)>=4 && c.num_input_files(1)>1){
       status = DoCompactionWorkWithSubcompaction(compact, client_ip);
