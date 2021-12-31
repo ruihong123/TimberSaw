@@ -2984,7 +2984,7 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //      // when all the outgoing write on this table have finished and flush to storage
 //      status = WriteBatchInternal::InsertInto(updates, imm_);
 //    }
-    assert(sequence <= mem->Getlargest_seq() && sequence >= mem->GetFirstseq());
+    assert(sequence <= mem->Getlargest_seq_supposed() && sequence >= mem->GetFirstseq());
     status = WriteBatchInternal::InsertInto(updates, mem);
     mem->increase_seq_count(kv_num);
   }else{

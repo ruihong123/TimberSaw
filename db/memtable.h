@@ -131,6 +131,11 @@ class MemTable {
     // from the one supposed
     return largest_seq_supposed - MEMTABLE_SEQ_SIZE + seq_count;
   }
+  uint64_t Getlargest_seq_supposed() const{
+    // in case that there is a unfull table flush, the largest seq will be different
+    // from the one supposed
+    return largest_seq_supposed;
+  }
   uint64_t GetFirstseq() const{
     return first_seq;
   }
