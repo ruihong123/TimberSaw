@@ -221,6 +221,10 @@ class DBImpl : public DB {
 
   // Constant after construction
   Env* const env_;
+  std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;
+  unsigned int imm_temp = 1;
+  std::mutex mtx_temp;
+  std::condition_variable cv_temp;
   const InternalKeyComparator internal_comparator_;
   const InternalFilterPolicy internal_filter_policy_;
   Options options_;  // options_.comparator == &internal_comparator_

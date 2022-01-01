@@ -1666,6 +1666,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   send_pointer->rkey = receive_mr.rkey;
   send_pointer->reply_buffer_large = recv_mr_c.addr;
   send_pointer->rkey_large = recv_mr_c.rkey;
+  //Todo: modify this.
+  send_pointer->imm_num = imm_temp;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
@@ -1730,21 +1732,24 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
 
   size_t counter = 0;
+  std::unique_lock<std::mutex> lck(mtx_temp);
   while (*(uint64_t*)polling_size_1 == 0){
+    cv_temp.wait(lck);
     //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
     // if an RDMA with correponding immediate is received.
     _mm_clflush(polling_size_1);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    if (counter == 1000){
-      std::fprintf(stderr, "Polling version edit size handler\r");
-      std::fflush(stderr);
-      counter = 0;
-    }
-
-    counter++;
+//    if (counter == 1000){
+//      std::fprintf(stderr, "Polling version edit size handler\r");
+//      std::fflush(stderr);
+//      counter = 0;
+//    }
+//
+//    counter++;
   }
+  lck.unlock();
   size_t buffer_size = *(size_t*)polling_size_1;
 
   // THe polling byte is determined after we receive the buffer size, so we
@@ -1990,9 +1995,24 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     write_stall_cv.notify_all();
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
-      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
+//      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
+//
+//      }
+        rdma_mg->poll_completion(wc, 1, q_id, false);
+        if(wc[0].wc_flags | IBV_WC_WITH_IMM){
+          wc[0].imm_data;// use this to find the correct condition variable.
+          cv_temp.notify_all();
+          // increase the buffer index
+          if (buffer_counter== R_SIZE-1 ){
+            buffer_counter = 0;
+          } else{
+            buffer_counter++;
+          }
+          continue;
+        }
         memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
-//        printf("Buffer counter %d has been used!\n", buffer_counter);
+        //        printf("Buffer counter %d has been used!\n", buffer_counter);
+
         // copy the pointer of receive buf to a new place because
         // it is the same with send buff pointer.
         if (receive_msg_buf.command == install_version_edit) {
@@ -2009,7 +2029,6 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         } else{
           buffer_counter++;
         }
-      }
 
     }
 
@@ -2091,7 +2110,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
   auto end = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  DEBUG_arg("Sync version edit time elapse: %ld us \n", duration.count());
+  printf("Sync version edit time elapse: %ld us \n", duration.count());
 
 }
 void DBImpl::install_version_edit_handler(RDMA_Request request,

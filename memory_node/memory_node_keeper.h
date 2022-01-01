@@ -46,6 +46,10 @@ class Memory_Node_Keeper {
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
   static std::shared_ptr<RDMA_Manager> rdma_mg;
  private:
+  std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;
+  unsigned int imm_temp = 1;
+  std::mutex mtx_temp;
+  std::condition_variable cv_temp;
   std::shared_ptr<Options> opts;
   const InternalKeyComparator internal_comparator_;
 //  const InternalFilterPolicy internal_filter_policy_;

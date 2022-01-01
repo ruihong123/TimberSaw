@@ -1027,7 +1027,19 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     // TODO: implement a heart beat mechanism.
     int buffer_counter = 0;
     while (true) {
+      //TODO: change the polling here to a notification.
       rdma_mg->poll_completion(wc, 1, client_ip, false);
+      if(wc[0].wc_flags | IBV_WC_WITH_IMM){
+        wc[0].imm_data;// use this to find the correct condition variable.
+        cv_temp.notify_all();
+        // increase the buffer index
+        if (buffer_counter== R_SIZE-1 ){
+          buffer_counter = 0;
+        } else{
+          buffer_counter++;
+        }
+        continue;
+      }
       RDMA_Request* receive_msg_buf = new RDMA_Request();
       *receive_msg_buf = *(RDMA_Request*)recv_mr[buffer_counter].addr;
 //      memcpy(receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
@@ -1421,19 +1433,22 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("mfence\n" : : );
 
     // write back the verison edit by the RDMA with immediate
-//    rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
-//                             &large_send_mr, serilized_ve.size() + 1, "main",
-//                             IBV_SEND_SIGNALED, 1, imm_num);
-
-    rdma_mg->RDMA_Write(remote_prt, remote_rkey,
+    rdma_mg->RDMA_Write_Imme(remote_prt, remote_rkey,
                         &send_mr, sizeof(size_t), client_ip,
-                        IBV_SEND_SIGNALED, 1);
+                        IBV_SEND_SIGNALED, 1, imm_num);
+
+//    rdma_mg->RDMA_Write(remote_prt, remote_rkey,
+//                        &send_mr, sizeof(size_t), client_ip,
+//                        IBV_SEND_SIGNALED, 1);
     _mm_clflush(polling_byte_2);
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
+//    rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
+//                             &large_send_mr, serilized_ve.size() + 1, client_ip,
+//                             IBV_SEND_SIGNALED, 1, imm_num);
     rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
-                             &large_send_mr, serilized_ve.size() + 2, client_ip,
+                             &large_send_mr, serilized_ve.size() + 1, client_ip,
                              IBV_SEND_SIGNALED, 1);
     counter = 0;
     // polling the finishing bit for the file number transmission.

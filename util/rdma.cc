@@ -2008,6 +2008,8 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   }
   return rc;
 }
+
+
 int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
                                                    int num_entries,
                                                    std::string q_id,
