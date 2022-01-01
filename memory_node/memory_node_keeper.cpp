@@ -1407,9 +1407,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 #ifndef NDEBUG
     memset((char*)large_send_mr.addr, 0, large_send_mr.length);
 #endif
-    memset((char*)large_send_mr.addr + serilized_ve.size(), 1, 1);
-    memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
 
+    memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
+    memset((char*)large_send_mr.addr + serilized_ve.size(), 1, 1);
+    _mm_clflush((char*)large_send_mr.addr + serilized_ve.size());
 
     *(size_t*)send_mr.addr = serilized_ve.size() + 1;
     // Prepare the receive buffer for the version edit duribility and the file numbers.
