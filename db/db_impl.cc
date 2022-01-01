@@ -230,9 +230,10 @@ DBImpl::~DBImpl() {
   printf("DBImpl deallocated\n");
   WaitforAllbgtasks();
   //TODO: recycle all the
-  shutting_down_.store(true);
+
 
   env_->JoinAllThreads(true);
+  shutting_down_.store(true);
   // wait for communicaiton thread to finish
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
@@ -320,9 +321,13 @@ void DBImpl::WaitforAllbgtasks() {
 
   bool version_not_ready = false;
   bool immutable_list_not_ready = false;
+  // Note there could be ongoing compaction thread unfinished, even if the two
+  // conditions are both false.
   while( version_not_ready || immutable_list_not_ready){
     //TODO: we can implement a wait here.
+
     version_not_ready = versions_->AllCompactionNotFinished();
+
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
 }
