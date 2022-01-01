@@ -1404,6 +1404,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //#endif
 //    *(uint32_t*)large_send_mr.addr = serilized_ve.size();
 //    memset((char*)large_send_mr.addr, 1, 1);
+#ifndef NDEBUG
+    memset((char*)large_send_mr.addr, 0, large_send_mr.length);
+#endif
     memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
     memset((char*)large_send_mr.addr + serilized_ve.size(), 1, 1);
 
