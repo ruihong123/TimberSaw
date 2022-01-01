@@ -1763,7 +1763,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
     if (counter == 1000){
-      std::fprintf(stderr, "Polling version edit handler\r");
+      std::fprintf(stderr, "Polling version edit handler in near data compaction\r");
       std::fflush(stderr);
       counter = 0;
     }
