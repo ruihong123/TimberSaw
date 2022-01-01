@@ -1774,7 +1774,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  assert(*(unsigned char*)recv_mr_c.addr == 6);
+//  assert(*(unsigned char*)recv_mr_c.addr == 6);
   VersionEdit edit;
   edit.DecodeFrom(Slice((char*)recv_mr_c.addr, buffer_size), 0);
   size_t new_file_size = edit.GetNewFilesNum();

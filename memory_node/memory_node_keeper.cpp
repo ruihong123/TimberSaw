@@ -1428,7 +1428,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
-                             &large_send_mr, serilized_ve.size() + 1, client_ip,
+                             &large_send_mr, serilized_ve.size() + 2, client_ip,
                              IBV_SEND_SIGNALED, 1);
     counter = 0;
     // polling the finishing bit for the file number transmission.
