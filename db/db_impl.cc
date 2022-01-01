@@ -1995,10 +1995,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     write_stall_cv.notify_all();
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
-//      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
-//
-//      }
-        rdma_mg->poll_completion(wc, 1, q_id, false);
+      // we can only use try_poll... rather than poll_com.. because we need to
+      // make sure the shutting down signal can work.
+      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
           cv_temp.notify_all();
@@ -2029,6 +2028,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         } else{
           buffer_counter++;
         }
+      }
+//        rdma_mg->poll_completion(wc, 1, q_id, false);
+
 
     }
 
