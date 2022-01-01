@@ -1420,10 +1420,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     memset((char*)large_send_mr.addr, 0, large_send_mr.length);
 #endif
 
+
     memcpy((char*)large_send_mr.addr, serilized_ve.c_str(), serilized_ve.size());
     memset((char*)large_send_mr.addr + serilized_ve.size(), 1, 1);
     _mm_clflush((char*)large_send_mr.addr + serilized_ve.size());
-
+    assert(serilized_ve.size() + 1 < large_send_mr.length);
     *(size_t*)send_mr.addr = serilized_ve.size() + 1;
     // Prepare the receive buffer for the version edit duribility and the file numbers.
     volatile char* polling_byte_2 = (char*)recv_mr.addr + sizeof(uint64_t);
