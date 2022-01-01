@@ -2062,6 +2062,8 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
 
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
   std::string serilized_ve;
+  // Check this buffer reservation.
+  serilized_ve.reserve(10000);
   edit->EncodeTo(&serilized_ve);
   assert(serilized_ve.size() <= send_mr_ve.length);
   memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
