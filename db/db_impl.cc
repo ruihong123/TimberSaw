@@ -1712,8 +1712,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
   // TODO: Clear the large receive buffer before it receive the buffer size, this can be optimized
   //  to only clear the corresponding byte. Besides, if the compaction finished extremely fast,
-  // There could be a race in the receive buffer clear and RDMA write. We place the memset
-  // here to remove the memset from the critical path of the remove compaction.
+  // THe polling byte is determined after we receive the buffer size, so we
+  // set all the buffer bytes as '\0'
   memset((char*)recv_mr_c.addr, 0, recv_mr_c.length);
   _mm_clflush(polling_size_1);
   asm volatile ("sfence\n" : : );
@@ -1747,9 +1747,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   }
   size_t buffer_size = *(size_t*)polling_size_1;
 
-  // the polling byte is the last byte in the buffer.
+  // THe polling byte is determined after we receive the buffer size, so we
+  // set all the buffer bytes as '\0'
   volatile unsigned char* polling_size_2 = (unsigned char*)recv_mr_c.addr + buffer_size - 1;
-  *polling_size_2 = 0;
+//  *polling_size_2 = 0;
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
