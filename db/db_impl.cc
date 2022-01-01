@@ -1999,7 +1999,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 //
 //      }
         rdma_mg->poll_completion(wc, 1, q_id, false);
-        if(wc[0].wc_flags | IBV_WC_WITH_IMM){
+        if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
           cv_temp.notify_all();
           // increase the buffer index

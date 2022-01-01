@@ -1029,7 +1029,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     while (true) {
       //TODO: change the polling here to a notification.
       rdma_mg->poll_completion(wc, 1, client_ip, false);
-      if(wc[0].wc_flags | IBV_WC_WITH_IMM){
+      if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         cv_temp.notify_all();
         // increase the buffer index
