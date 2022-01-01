@@ -1421,7 +1421,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //                             IBV_SEND_SIGNALED, 1, imm_num);
 
     rdma_mg->RDMA_Write(remote_prt, remote_rkey,
-                        &send_mr, sizeof(uint64_t), client_ip,
+                        &send_mr, sizeof(size_t), client_ip,
                         IBV_SEND_SIGNALED, 1);
     _mm_clflush(polling_byte_2);
     asm volatile ("sfence\n" : : );
