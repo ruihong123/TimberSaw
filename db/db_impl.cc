@@ -2049,7 +2049,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
                                  std::unique_lock<std::mutex>* version_mtx) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   // register the memory block from the remote memory
   RDMA_Request* send_pointer;
@@ -2061,19 +2061,19 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
 
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
-  auto end = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse part 1 allocation: %ld us \n", duration.count());
-  start = std::chrono::high_resolution_clock::now();
+//  auto end = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//  printf("Sync version edit time elapse part 1 allocation: %ld us \n", duration.count());
+//  start = std::chrono::high_resolution_clock::now();
   std::string serilized_ve;
   // Check this buffer reservation.
   serilized_ve.reserve(10000);
   edit->EncodeTo(&serilized_ve);
   assert(serilized_ve.size() <= send_mr_ve.length);
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse: %ld us part 2 serialization\n", duration.count());
-  start = std::chrono::high_resolution_clock::now();
+//  end = std::chrono::high_resolution_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//  printf("Sync version edit time elapse: %ld us part 2 serialization\n", duration.count());
+//  start = std::chrono::high_resolution_clock::now();
   memcpy(send_mr_ve.addr, serilized_ve.c_str(), serilized_ve.size());
 
   memset((char*)send_mr_ve.addr + serilized_ve.size(), 1, 1);
@@ -2092,10 +2092,10 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse: %ld us part 3 memcopy and WR post\n", duration.count());
-  start = std::chrono::high_resolution_clock::now();
+//  end = std::chrono::high_resolution_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//  printf("Sync version edit time elapse: %ld us part 3 memcopy and WR post\n", duration.count());
+//  start = std::chrono::high_resolution_clock::now();
   version_mtx->unlock();
 
   ibv_wc wc[2] = {};
@@ -2103,10 +2103,10 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
     fprintf(stderr, "failed to poll send for edit version edit sync\n");
     return;
   }
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse: %ld us part 4 mutex unlock\n", duration.count());
-  start = std::chrono::high_resolution_clock::now();
+//  end = std::chrono::high_resolution_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//  printf("Sync version edit time elapse: %ld us part 4 mutex unlock\n", duration.count());
+//  start = std::chrono::high_resolution_clock::now();
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
@@ -2117,9 +2117,9 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
     printf("receive structure size is %lu", sizeof(RDMA_Reply));
     exit(0);
   }
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse: %ld us part 5 receive the reply\n", duration.count());
+//  end = std::chrono::high_resolution_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//  printf("Sync version edit time elapse: %ld us part 5 receive the reply\n", duration.count());
 
   //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
   // which means the polling result may not belongs to this thread, but it does not
@@ -2134,13 +2134,13 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   // and how to make sure that the reply will wake up this waiting thread. The
   // signal may comes befoer the thread go to sleep.
   //
-  start = std::chrono::high_resolution_clock::now();
+//  start = std::chrono::high_resolution_clock::now();
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
-  end = std::chrono::high_resolution_clock::now();
-  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-  printf("Sync version edit time elapse: %ld us part 6 Deallocation \n", duration.count());
+//  end = std::chrono::high_resolution_clock::now();
+//  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+//  printf("Sync version edit time elapse: %ld us part 6 Deallocation \n", duration.count());
 
 }
 void DBImpl::install_version_edit_handler(RDMA_Request request,
