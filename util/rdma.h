@@ -2,7 +2,7 @@
 #define RDMA_H
 
 
-
+#define DEALLOC_BUFF_SIZE 1152 * sizeof(uint64_t)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -95,6 +95,7 @@ enum RDMA_Command_Type {
   create_mr_,
   near_data_compaction,
   install_version_edit,
+  SSTable_gc,
   version_unpin_,
   sync_option,
   qp_reset_,
@@ -108,6 +109,10 @@ struct fs_sync_command {
   int data_size;
   file_type type;
 };
+struct sst_gc {
+  size_t buffer_size;
+//  file_type type;
+};
 //TODO (ruihong): add the reply message address to avoid request&response conflict for the same queue pair.
 // In other word, the threads will not need to figure out whether this message is a reply or response,
 // when receive a message from the main queue pair.
@@ -116,6 +121,7 @@ union RDMA_Request_Content {
   registered_qp_config qp_config;
   fs_sync_command fs_sync_cmd;
   install_versionedit ive;
+  sst_gc gc;
   sst_compaction sstCompact;
   size_t unpinned_version_id;
 };
@@ -328,7 +334,10 @@ class RDMA_Manager {
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
       std::string pool_name);  // register the memory on the local side
-
+  // bulk deallocation preparation.
+  bool Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size);
+  // The RPC to bulk deallocation.
+  void Memory_Deallocation_RPC();
   bool Preregister_Memory(int gb_number); //Pre register the memroy do not allocate bit map
   // Remote Memory registering will call RDMA send and receive to the remote memory it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size);
@@ -351,6 +360,7 @@ class RDMA_Manager {
   // For a thread-local queue pair, the send_cq does not matter.
   int poll_completion(ibv_wc* wc_p, int num_entries, std::string q_id,
                       bool send_cq);
+  void BatchGarbageCollection(uint64_t* ptr, size_t size);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                   std::string buffer_type);
   bool Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type);
@@ -422,6 +432,11 @@ class RDMA_Manager {
   uint8_t node_id;
   std::unordered_map<std::string, ibv_mr*> comm_thread_recv_mrs;
   std::unordered_map<std::string, int> comm_thread_buffer;
+  uint64_t deallocation_buffer[DEALLOC_BUFF_SIZE];
+  ibv_mr* dealloc_mr;
+  size_t top = 0;
+  std::mutex dealloc_mtx;
+  std::condition_variable dealloc_cv;
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;

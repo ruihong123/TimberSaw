@@ -32,40 +32,44 @@ struct RemoteMemTableMetaData {
 #endif
     assert(this_machine_type ==0 || this_machine_type == 1);
     assert(creator_node_id == 0 || creator_node_id == 1);
-    if (this_machine_type == 0 && creator_node_id == rdma_mg->node_id){
-      if(Remote_blocks_deallocate(remote_data_mrs) &&
-      Remote_blocks_deallocate(remote_dataindex_mrs) &&
-      Remote_blocks_deallocate(remote_filter_mrs)){
-        DEBUG("Remote blocks deleted successfully\n");
+    if (this_machine_type == 0){
+      if (creator_node_id == rdma_mg->node_id){
+        if(Remote_blocks_deallocate(remote_data_mrs) &&
+            Remote_blocks_deallocate(remote_dataindex_mrs) &&
+            Remote_blocks_deallocate(remote_filter_mrs)){
+          DEBUG("Remote blocks deleted successfully\n");
+        }else{
+          DEBUG("Remote memory collection not found\n");
+          assert(false);
+        }
       }else{
-        DEBUG("Remote memory collection not found\n");
-        assert(false);
+        Prepare_Batch_Deallocate();
       }
-    }// only auto matically garbage collect the RDMA block for the compute node.
-    else if(this_machine_type == 1 && creator_node_id == 1){
-      //TODO: memory collection for the remote memory.
-      if(Local_blocks_deallocate(remote_data_mrs) &&
-      Local_blocks_deallocate(remote_dataindex_mrs) &&
-      Local_blocks_deallocate(remote_filter_mrs)){
-        DEBUG("Local blocks deleted successfully\n");
-      }else{
-        DEBUG("Local memory collection not found\n");
-        assert(false);
-      }
-    }else{
-      for (auto it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++){
 
+    } else if (this_machine_type == 1){
+      for (auto it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++){
         delete it->second;
       }
       for (auto it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++){
-
         delete it->second;
       }
       for (auto it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++){
-
         delete it->second;
       }
     }
+
+//    else if(this_machine_type == 1 && creator_node_id == rdma_mg->node_id){
+//      //TODO: memory collection for the remote memory.
+//      if(Local_blocks_deallocate(remote_data_mrs) &&
+//      Local_blocks_deallocate(remote_dataindex_mrs) &&
+//      Local_blocks_deallocate(remote_filter_mrs)){
+//        DEBUG("Local blocks deleted successfully\n");
+//      }else{
+//        DEBUG("Local memory collection not found\n");
+//        assert(false);
+//      }
+//    }
+
 
   }
   bool Remote_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
@@ -77,6 +81,35 @@ struct RemoteMemTableMetaData {
       }
       delete it->second;
     }
+    return true;
+  }
+  bool Prepare_Batch_Deallocate(){
+    std::map<uint32_t , ibv_mr*>::iterator it;
+    uint64_t* ptr;
+    size_t chunk_num = remote_data_mrs.size() + remote_dataindex_mrs.size()
+                       + remote_filter_mrs.size();
+    bool RPC = rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num);
+    size_t index = 0;
+    for (it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++) {
+      ptr[index] = (uint64_t)it->second->addr;
+      index++;
+      delete it->second;
+    }
+    for (it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++) {
+      ptr[index] = (uint64_t)it->second->addr;
+      index++;
+      delete it->second;
+    }
+    for (it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++) {
+      ptr[index] = (uint64_t)it->second->addr;
+      index++;
+      delete it->second;
+    }
+    assert(index == chunk_num);
+    if (RPC){
+      rdma_mg->Memory_Deallocation_RPC();
+    }
+
     return true;
   }
   bool Local_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
@@ -100,6 +133,7 @@ struct RemoteMemTableMetaData {
   uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
   uint8_t creator_node_id;// The node id who create this SSTable.
+  // The uint32_t is the offset within the file.
   std::map<uint32_t , ibv_mr*> remote_data_mrs;
   std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;

@@ -32,6 +32,8 @@ class Memory_Node_Keeper {
 //  void MaybeScheduleCompaction(std::string& client_ip);
 //  static void BGWork_Compaction(void* thread_args);
   static void RPC_Compaction(void* thread_args);
+  static void RPC_Garbage_Collection(void* thread_args);
+
 //  void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
   void PersistSSTables(VersionEdit& ve);
@@ -73,6 +75,8 @@ class Memory_Node_Keeper {
     return internal_comparator_.user_comparator();
   }
   void install_version_edit_handler(RDMA_Request* request, std::string& client_ip);
+  void sst_garbage_collection(void* arg);
+
   void sst_compaction_handler(void* arg);
 
   void qp_reset_handler(RDMA_Request* request, std::string& client_ip,

@@ -76,6 +76,13 @@ usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *
     ((Memory_Node_Keeper*)p->db)->sst_compaction_handler(p->func_args);
     delete static_cast<BGThreadMetadata*>(thread_arg);
   }
+  void Memory_Node_Keeper::RPC_Garbage_Collection(void* thread_arg) {
+    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+    ((Memory_Node_Keeper*)p->db)->sst_garbage_collection(p->func_args);
+    delete static_cast<BGThreadMetadata*>(thread_arg);
+  }
+
+
 //  void Memory_Node_Keeper::BackgroundCompaction(void* p) {
 //  //  write_stall_mutex_.AssertNotHeld();
 //  std::string* client_ip = static_cast<std::string*>(p);
@@ -1068,6 +1075,11 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction, thread_pool_args);
 //        sst_compaction_handler(nullptr);
+      } else if (receive_msg_buf->command == SSTable_gc) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
+        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
+        Message_handler_pool_.Schedule(&Memory_Node_Keeper::RPC_Garbage_Collection, thread_pool_args);
 //TODO: add a handle function for the option value
       } else if (receive_msg_buf->command == version_unpin_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
@@ -1336,6 +1348,66 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
   delete request;
   }
+  void Memory_Node_Keeper::sst_garbage_collection(void* arg) {
+      RDMA_Request* request = ((Arg_for_handler*)arg)->request;
+      std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
+      printf("near data compaction\n");
+
+      void* remote_prt = request->reply_buffer;
+      uint32_t remote_rkey = request->rkey;
+      unsigned int imm_num = request->imm_num;
+      ibv_mr send_mr;
+//      ibv_mr recv_mr;
+      ibv_mr large_recv_mr;
+//      ibv_mr large_send_mr;
+      rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+//      rdma_mg->Allocate_Local_RDMA_Slot(recv_mr, "message");
+      rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, "version_edit");
+//      rdma_mg->Allocate_Local_RDMA_Slot(large_send_mr, "version_edit");
+      RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+      //    send_pointer->content. = {};
+      // set up the communication buffer information.
+//      send_pointer->reply_buffer = recv_mr.addr;
+//      send_pointer->rkey = recv_mr.rkey;
+      send_pointer->reply_buffer_large = large_recv_mr.addr;
+      send_pointer->rkey_large = large_recv_mr.rkey;
+
+      assert(request->content.gc.buffer_size < large_recv_mr.length);
+      send_pointer->received = true;
+      //TODO: how to check whether the version edit message is ready, we need to know the size of the
+      // version edit in the first REQUEST from compute node.
+      volatile uint64_t * polling_byte = (uint64_t*)((char*)large_recv_mr.addr + request->content.gc.buffer_size - sizeof(uint64_t));
+      *polling_byte = 0;
+      asm volatile ("sfence\n" : : );
+      asm volatile ("lfence\n" : : );
+      asm volatile ("mfence\n" : : );
+      rdma_mg->RDMA_Write(remote_prt, remote_rkey,
+                          &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+      size_t counter = 0;
+      // polling the finishing bit for compaction task transmission.
+      while (*polling_byte == 0){
+        _mm_clflush(polling_byte);
+        asm volatile ("sfence\n" : : );
+        asm volatile ("lfence\n" : : );
+        asm volatile ("mfence\n" : : );
+        if (counter == 10000){
+          std::fprintf(stderr, "Polling Remote Compaction handler\r");
+          std::fflush(stderr);
+          counter = 0;
+        }
+
+        counter++;
+      }
+      assert(request->content.gc.buffer_size%sizeof(uint64_t) == 0);
+      rdma_mg->BatchGarbageCollection((uint64_t*)large_recv_mr.addr, request->content.gc.buffer_size);
+      rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+//      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
+      rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, "version_edit");
+//      rdma_mg->Deallocate_Local_RDMA_Slot(large_send_mr.addr, "version_edit");
+      delete request;
+      delete (Arg_for_handler*)arg;
+  }
+
   void Memory_Node_Keeper::sst_compaction_handler(void* arg) {
     RDMA_Request* request = ((Arg_for_handler*) arg)->request;
     std::string client_ip = ((Arg_for_handler*) arg)->client_ip;
@@ -1670,7 +1742,6 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 
   }
-
 
   }
 

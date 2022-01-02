@@ -2067,7 +2067,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
 //  start = std::chrono::high_resolution_clock::now();
   std::string serilized_ve;
   // Check this buffer reservation.
-  serilized_ve.reserve(10000);
+//  serilized_ve.reserve(10000);
   edit->EncodeTo(&serilized_ve);
   assert(serilized_ve.size() <= send_mr_ve.length);
 //  end = std::chrono::high_resolution_clock::now();

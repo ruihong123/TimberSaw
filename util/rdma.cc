@@ -71,6 +71,10 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
   //Initialize a message memory pool
   Mempool_initialize(std::string("message"), std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
   Mempool_initialize(std::string("version_edit"), 1024*1024);
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  //  auto start = std::chrono::high_resolution_clock::now();
+  dealloc_mr = ibv_reg_mr(res->pd, deallocation_buffer, DEALLOC_BUFF_SIZE, mr_flags);
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -616,6 +620,83 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 
   return true;
 };
+bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size) {
+  std::unique_lock<std::mutex> lck(dealloc_mtx);
+//  memcpy(deallocation_buffer + top * sizeof(uint64_t), ptr, size);
+  while(top >= DEALLOC_BUFF_SIZE/ sizeof(uint64_t) - 128){
+    dealloc_cv.wait(lck);
+  }
+  *ptr = deallocation_buffer + top;
+  top = top + size;
+  if (top >= DEALLOC_BUFF_SIZE/ sizeof(uint64_t) - 128)
+    return true;
+  else
+    return false;
+
+}
+void RDMA_Manager::Memory_Deallocation_RPC() {
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+//  ibv_mr send_mr_ve = {};
+
+  ibv_mr receive_mr = {};
+  Allocate_Local_RDMA_Slot(send_mr, "message");
+//  Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+  Allocate_Local_RDMA_Slot(receive_mr, "message");
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = SSTable_gc;
+  send_pointer->content.gc.buffer_size = top * sizeof(uint64_t);
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  send_pointer->imm_num = 0;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  post_send<RDMA_Request>(&send_mr, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (poll_completion(wc, 1, std::string("main"),true)){
+    fprintf(stderr, "failed to poll send for edit version edit sync\n");
+    return;
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  if(!poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+    exit(0);
+  }
+  //  end = std::chrono::high_resolution_clock::now();
+  //  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+  //  printf("Sync version edit time elapse: %ld us part 5 receive the reply\n", duration.count());
+
+  //Note: here multiple threads will RDMA_Write the "main" qp at the same time,
+  // which means the polling result may not belongs to this thread, but it does not
+  // matter in our case because we do not care when will the message arrive at the other side.
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
+                      dealloc_mr, top* sizeof(uint64_t), "main", IBV_SEND_SIGNALED,1);
+  //TODO: implement a wait function for the received bit. THe problem is when to
+  // reset the buffer to zero (we may need different buffer for the compaction reply)
+  // and how to make sure that the reply will wake up this waiting thread. The
+  // signal may comes befoer the thread go to sleep.
+  //
+  //  start = std::chrono::high_resolution_clock::now();
+  Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  // Notify all the other deallocation threads that the buffer has been cleared.
+  std::unique_lock<std::mutex> lck(dealloc_mtx);
+  top = 0;
+  dealloc_cv.notify_all();
+}
 bool RDMA_Manager::Preregister_Memory(int gb_number) {
   int mr_flags = 0;
   size_t size = 1024*1024*1024;
@@ -2374,6 +2455,12 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
     return;
   }
 }
+void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
+  for (int i = 0; i < size/ sizeof(uint64_t); ++i) {
+    Deallocate_Local_RDMA_Slot((void*)ptr[i], "FlushBuffer");
+  }
+}
+
 // Remeber to delete the mr because it was created be new, otherwise memory leak.
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                               std::string buffer_type) {
