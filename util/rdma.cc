@@ -71,10 +71,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
   //Initialize a message memory pool
   Mempool_initialize(std::string("message"), std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
   Mempool_initialize(std::string("version_edit"), 1024*1024);
-  int mr_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
-  //  auto start = std::chrono::high_resolution_clock::now();
-  dealloc_mr = ibv_reg_mr(res->pd, deallocation_buffer, DEALLOC_BUFF_SIZE, mr_flags);
+
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -870,7 +867,14 @@ int RDMA_Manager::resources_create() {
   //          fprintf(stderr, "Local memory registering failed\n");
   //
   //        }
+  int mr_flags =
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+  //  auto start = std::chrono::high_resolution_clock::now();
+  dealloc_mr = ibv_reg_mr(res->pd, deallocation_buffer, DEALLOC_BUFF_SIZE, mr_flags);
+  if (dealloc_mr == nullptr){
+    fprintf(stdout, "dealloc_mr registration failed\n");
 
+  }
   fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
   rc = ibv_query_device(res->ib_ctx, &(res->device_attr));
   std::cout << "maximum query pair number is" << res->device_attr.max_qp
