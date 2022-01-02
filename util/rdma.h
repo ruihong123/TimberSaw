@@ -2,7 +2,7 @@
 #define RDMA_H
 
 
-#define DEALLOC_BUFF_SIZE 1152 * sizeof(uint64_t)
+#define DEALLOC_BUFF_SIZE (1024 + 128) * sizeof(uint64_t)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -432,7 +432,7 @@ class RDMA_Manager {
   uint8_t node_id;
   std::unordered_map<std::string, ibv_mr*> comm_thread_recv_mrs;
   std::unordered_map<std::string, int> comm_thread_buffer;
-  uint64_t deallocation_buffer[DEALLOC_BUFF_SIZE];
+  uint64_t deallocation_buffer[DEALLOC_BUFF_SIZE/ sizeof(uint64_t)];
   ibv_mr* dealloc_mr;
   size_t top = 0;
   std::mutex dealloc_mtx;

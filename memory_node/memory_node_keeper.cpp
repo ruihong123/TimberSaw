@@ -1351,7 +1351,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::sst_garbage_collection(void* arg) {
       RDMA_Request* request = ((Arg_for_handler*)arg)->request;
       std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
-      printf("near data compaction\n");
+      printf("Garbage collection\n");
 
       void* remote_prt = request->reply_buffer;
       uint32_t remote_rkey = request->rkey;

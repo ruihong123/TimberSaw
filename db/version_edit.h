@@ -27,13 +27,14 @@ struct RemoteMemTableMetaData {
   ~RemoteMemTableMetaData() {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
     // home node to deference. Or the remote dereference is conducted in the granularity of version.
-#ifndef NDEBUG
-    printf("Destroying RemoteMemtableMetaData, Table number is %lu, creator node id is %d \n", number, creator_node_id);
-#endif
+
     assert(this_machine_type ==0 || this_machine_type == 1);
     assert(creator_node_id == 0 || creator_node_id == 1);
     if (this_machine_type == 0){
       if (creator_node_id == rdma_mg->node_id){
+#ifndef NDEBUG
+        printf("Destroying RemoteMemtableMetaData locally on compute node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
+#endif
         if(Remote_blocks_deallocate(remote_data_mrs) &&
             Remote_blocks_deallocate(remote_dataindex_mrs) &&
             Remote_blocks_deallocate(remote_filter_mrs)){
@@ -43,6 +44,9 @@ struct RemoteMemTableMetaData {
           assert(false);
         }
       }else{
+#ifndef NDEBUG
+        printf("chunks will be garbage collected on the memory node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
+#endif
         Prepare_Batch_Deallocate();
       }
 
