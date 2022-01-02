@@ -693,7 +693,9 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
 //      level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
 //    }
     meta->level = 0;
-    edit->AddFile(0, meta);
+    //No need to add file here, we will add to the version edit in Try install flush
+    // result
+//    edit->AddFile(0, meta);
     assert(edit->GetNewFilesNum()==1);
   }
 
