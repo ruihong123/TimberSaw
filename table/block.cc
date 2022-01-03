@@ -71,7 +71,7 @@ Iterator* Block::NewIterator(const Comparator* comparator) {
     return NewErrorIterator(Status::Corruption("bad block contents"));
   }
   const uint32_t num_restarts = NumRestarts();
-  assert(num_restarts<= 64*1024*1024);
+  assert(num_restarts <= 64*1024*1024);
   if (num_restarts == 0) {
     return NewEmptyIterator();
   } else {

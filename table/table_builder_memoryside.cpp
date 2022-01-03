@@ -47,6 +47,9 @@ struct TableBuilder_Memoryside::Rep {
     //    delete temp_filter_mr;
     data_block = new BlockBuilder(&options, local_data_mr);
     index_block = new BlockBuilder(&index_block_options, local_index_mr);
+#ifndef NDEBUG
+    printf("Sucessfully allocate an block %p", local_index_mr->addr);
+#endif
     if (type_ == IO_type::Compact){
       type_string_ = "write_local_compact";
     }else if(type_ == IO_type::Flush){
