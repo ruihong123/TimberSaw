@@ -29,6 +29,7 @@ Block::Block(const BlockContents& contents, BlockType type)
       assert(false);
       size_ = 0;
     } else {
+      printf("Block size for %p is %zu", data_, size_);
       restart_offset_ = size_ - (1 + NumRestarts()) * sizeof(uint32_t);
     }
   }
