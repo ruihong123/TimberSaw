@@ -43,6 +43,9 @@ BlockBuilder::BlockBuilder(const Options* options, ibv_mr* mr)
       restarts_(), counter_(0), finished_(false) {
   assert(options->block_restart_interval >= 1);
   restarts_.push_back(0);  // First restart point is at offset 0
+#ifndef NDEBUG
+  printf("Sucessfully allocate an block %p", mr->addr);
+#endif
 }
 
 void BlockBuilder::Reset_Forward() {
