@@ -26,6 +26,7 @@ Block::Block(const BlockContents& contents, BlockType type)
     size_t max_restarts_allowed = (size_ - sizeof(uint32_t)) / sizeof(uint32_t);
     if (NumRestarts() > max_restarts_allowed) {
       // The size is too small for NumRestarts()
+      assert(false);
       size_ = 0;
     } else {
       restart_offset_ = size_ - (1 + NumRestarts()) * sizeof(uint32_t);
