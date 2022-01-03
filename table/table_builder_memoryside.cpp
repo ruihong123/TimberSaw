@@ -431,6 +431,7 @@ void TableBuilder_Memoryside::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
 //  std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   r->local_index_mr->length = msg_size;
+  assert(r->local_index_mr!= nullptr);
   r->local_dataindex_mrs.insert({r->offset, r->local_index_mr});
 
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
