@@ -44,10 +44,11 @@ struct RemoteMemTableMetaData {
           assert(false);
         }
       }else{
-//#ifndef NDEBUG
-//        printf("chunks will be garbage collected on the memory node, Table number is %lu, "
-//            "creator node id is %d index block pointer is %p\n", number, creator_node_id, remote_dataindex_mrs[0]->addr);
-//#endif
+#ifndef NDEBUG
+        printf("chunks will be garbage collected on the memory node, Table number is %lu, "
+            "creator node id is %d index block pointer is %p\n", number, creator_node_id, remote_dataindex_mrs.begin()->second->addr);
+#endif
+//        assert(remote_dataindex_mrs.size() == 1);
         Prepare_Batch_Deallocate();
       }
 
@@ -91,7 +92,7 @@ struct RemoteMemTableMetaData {
   bool Prepare_Batch_Deallocate(){
     std::map<uint32_t , ibv_mr*>::iterator it;
     uint64_t* ptr;
-    assert(remote_dataindex_mrs.size() == 1);
+//    assert(remote_dataindex_mrs.size() == 1);
     size_t chunk_num = remote_data_mrs.size() + remote_dataindex_mrs.size()
                        + remote_filter_mrs.size();
     bool RPC = rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num);
