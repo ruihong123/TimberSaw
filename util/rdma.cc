@@ -2462,6 +2462,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
   for (int i = 0; i < size/ sizeof(uint64_t); ++i) {
     bool result = Deallocate_Local_RDMA_Slot((void*)ptr[i], "FlushBuffer");
+
+    printf("Sucessfully delete a SSTable %p", ptr[i]);
     assert(result);
   }
 }
