@@ -522,7 +522,7 @@ void TableBuilder_ComputeSide::FlushDataIndex(size_t msg_size) {
   rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
-    r->remote_dataindex_mrs.insert({0, remote_mr});
+    r->remote_dataindex_mrs.insert({1, remote_mr});
   }else{
     r->remote_dataindex_mrs.insert({r->remote_dataindex_mrs.rbegin()->first+1, remote_mr});
   }
@@ -540,7 +540,7 @@ void TableBuilder_ComputeSide::FlushFilter(size_t& msg_size) {
   rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){
-    r->remote_filter_mrs.insert({0, remote_mr});
+    r->remote_filter_mrs.insert({1, remote_mr});
   }else{
     r->remote_filter_mrs.insert({r->remote_filter_mrs.rbegin()->first+1, remote_mr});
   }
