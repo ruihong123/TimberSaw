@@ -143,6 +143,7 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
     GetFixed32(&src, &mr->lkey);
     GetFixed32(&src, &mr->rkey);
     assert(mr!= nullptr);
+    assert(offset != 0);
     remote_dataindex_mrs.insert({offset, mr});
   }
   assert(!remote_dataindex_mrs.empty());
