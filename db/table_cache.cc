@@ -150,7 +150,7 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
       assert(table->Get_remote_table_ptr() != nullptr);
       tf->table_memory = table;
       assert(table->rep_ != nullptr);
-      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
+//      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
     }
   }
