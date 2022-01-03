@@ -696,7 +696,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
     //No need to add file here, we will add to the version edit in Try install flush
     // result
 //    edit->AddFile(0, meta);
-    assert(edit->GetNewFilesNum()==1);
+//    assert(edit->GetNewFilesNum()==1);
   }
 
   CompactionStats stats;
@@ -741,7 +741,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
     if (base != nullptr) {
       level = base->PickLevelForMemTableOutput(min_user_key, max_user_key);
     }
-    edit->AddFile(level, meta);
+//    edit->AddFile(level, meta);
   }
 
   CompactionStats stats;
