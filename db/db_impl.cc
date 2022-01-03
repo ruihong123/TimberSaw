@@ -1127,8 +1127,8 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else if (options_.near_data_compaction) {
 
       NearDataCompaction(c);
-      MaybeScheduleFlushOrCompaction();
-      return;
+//      MaybeScheduleFlushOrCompaction();
+//      return;
     }else{
       CompactionState* compact = new CompactionState(c);
 
@@ -1418,7 +1418,9 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   lck_sv->lock();
   compact->compaction->ReleaseInputs();
   std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
-  return versions_->LogAndApply(compact->compaction->edit(), &lck_vs);
+  Status s = versions_->LogAndApply(compact->compaction->edit(), &lck_vs);
+  write_stall_cv.notify_all();
+  return s;
 }
 Status DBImpl::TryInstallMemtableFlushResults(
     FlushJob* job, VersionSet* vset,
@@ -1802,7 +1804,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
 
     versions_->LogAndApply(&edit, &lck_vs);
+
     lck_vs.unlock();
+    write_stall_cv.notify_all();
     InstallSuperVersion();
   }
   uint64_t* file_number_end_send_ptr = static_cast<uint64_t*>(send_mr.addr);
@@ -1816,6 +1820,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_c.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+
 
 }
 //void DBImpl::Communication_To_Home_Node() {
@@ -2727,7 +2732,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   VersionSet::LevelSummaryStorage tmp;
   Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
   // NOtifying all the waiting threads.
-  write_stall_cv.notify_all();
+
   return status;
 }
 
