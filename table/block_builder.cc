@@ -67,7 +67,7 @@ Slice BlockBuilder::Finish() {
     PutFixed32(&buffer, restarts_[i]);
   }
 //  assert(restarts_.size() > 1);
-  assert(restarts_.size() == 1);
+  assert(restarts_.size() < 200000);
   PutFixed32(&buffer, restarts_.size());
   finished_ = true;
   return Slice(buffer);
