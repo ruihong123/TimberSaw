@@ -1506,20 +1506,20 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("mfence\n" : : );
     //The validation below should happen before the real edit send back to the compute node
     // because there is no reference for this test, the sstables can be garbage collected.
-#ifndef NDEBUG
-    for(auto pair : *compact->compaction->edit()->GetNewFiles()){
-      // Verify that the table is usable
-      Iterator* it = versions_->table_cache_->NewIterator_MemorySide(ReadOptions(), pair.second);
-      //        s = it->status();
-
-      it->SeekToFirst();
-      while(it->Valid()){
-        it->Next();
-      }
-      printf("Table %p Read successfully after compaction\n", pair.second.get());
-      delete it;
-    }
-#endif
+//#ifndef NDEBUG
+//    for(auto pair : *compact->compaction->edit()->GetNewFiles()){
+//      // Verify that the table is usable
+//      Iterator* it = versions_->table_cache_->NewIterator_MemorySide(ReadOptions(), pair.second);
+//      //        s = it->status();
+//
+//      it->SeekToFirst();
+//      while(it->Valid()){
+//        it->Next();
+//      }
+//      printf("Table %p Read successfully after compaction\n", pair.second.get());
+//      delete it;
+//    }
+//#endif
     // write back the verison edit by the RDMA with immediate
     rdma_mg->RDMA_Write_Imme(remote_prt, remote_rkey,
                         &send_mr, sizeof(size_t), client_ip,
