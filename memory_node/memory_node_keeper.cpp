@@ -1121,6 +1121,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     if (rc) {
       fprintf(stderr, "could not get gid for port %d, index %d\n",
               rdma_mg->rdma_config.ib_port, rdma_mg->rdma_config.gid_idx);
+
       return;
     }
   } else
@@ -1318,7 +1319,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
-                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1); //IBV_SEND_INLINE
 
   size_t counter = 0;
   while (*(unsigned char*)polling_byte == 0){

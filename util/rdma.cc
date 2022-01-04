@@ -877,6 +877,7 @@ int RDMA_Manager::resources_create() {
   }
   fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
   rc = ibv_query_device(res->ib_ctx, &(res->device_attr));
+  std::cout << "maximum outstanding wr number is"  << res->device_attr.max_qp_wr <<std::endl;
   std::cout << "maximum query pair number is" << res->device_attr.max_qp
             << std::endl;
   std::cout << "maximum completion queue number is" << res->device_attr.max_cq
