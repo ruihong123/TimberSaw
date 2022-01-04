@@ -586,6 +586,10 @@ class VersionSet::Builder {
   VersionSet* vset_;
   Version* base_;
   LevelState levels_[config::kNumLevels];
+#ifndef NDEBUG
+  int number_deleted = 0;
+#endif
+
 
  public:
   // Initialize a builder with the files from *base and other info from *vset
@@ -746,8 +750,14 @@ class VersionSet::Builder {
         ret = levels_[level].deleted_files.equal_range(f->number);
     bool file_number_deleted = false;
     for (std::multimap<uint64_t, uint8_t>::iterator it=ret.first; it!=ret.second; ++it){
-      if (it->second == f->creator_node_id)
+      if (it->second == f->creator_node_id){
         file_number_deleted = true;
+#ifndef NDEBUG
+        number_deleted++;
+#endif
+      }
+
+
     }
 
     if (file_number_deleted) {
@@ -758,6 +768,8 @@ class VersionSet::Builder {
     } else {
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* files = &v->levels_[level];
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* in_progresses = &v->in_progress[level];
+      assert(vset_->icmp_.Compare((*files)[files->size() - 1]->smallest,
+                                  f->smallest) != 0);//in case there is edit installed twice.
       if (level > 0 && !files->empty()) {
         // Must not overlap
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
