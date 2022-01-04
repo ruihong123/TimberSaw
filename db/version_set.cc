@@ -649,6 +649,7 @@ class VersionSet::Builder {
       const int level = edit->new_files_[i].first;
 
       std::shared_ptr<RemoteMemTableMetaData> f = edit->new_files_[i].second;
+      assert(level == f->level);
       assert(f.get()!= nullptr);
 //      f->refs = 1;
 
