@@ -1806,8 +1806,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     versions_->LogAndApply(&edit, &lck_vs);
 
     lck_vs.unlock();
-    write_stall_cv.notify_all();
+
     InstallSuperVersion();
+    write_stall_cv.notify_all();
   }
   uint64_t* file_number_end_send_ptr = static_cast<uint64_t*>(send_mr.addr);
   *file_number_end_send_ptr = file_number_end;
@@ -2012,7 +2013,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
+          std::unique_lock<std::mutex> lck(mtx_temp);
           cv_temp.notify_all();
+          lck.unlock();
           // increase the buffer index
           if (buffer_counter== R_SIZE-1 ){
             buffer_counter = 0;
