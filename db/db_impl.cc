@@ -1792,6 +1792,13 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 //  assert(*(unsigned char*)recv_mr_c.addr == 6);
   VersionEdit edit;
   edit.DecodeFrom(Slice((char*)recv_mr_c.addr, buffer_size), 0);
+#ifndef NDEBUG
+  auto edit_files_vec = edit.GetNewFiles();
+  for (auto iter : *edit_files_vec) {
+//    assert(iter.second->creator_node_id == rdma_mg->node_id);
+    assert(iter.second->creator_node_id == 1);
+  }
+#endif
   size_t new_file_size = edit.GetNewFilesNum();
   assert(new_file_size > 0);
   uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);

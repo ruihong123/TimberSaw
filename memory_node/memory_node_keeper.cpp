@@ -918,6 +918,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
   // Add compaction outputs
   compact->compaction->AddInputDeletions(compact->compaction->edit());
   const int level = compact->compaction->level();
+  assert(level>= 0);
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
