@@ -1481,6 +1481,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     InstallCompactionResultsToComputePreparation(compact);
         //TODO:Send back the new created sstables and wait for another reply.
     std::string serilized_ve;
+    auto edit_files_vec = compact->compaction->edit()->GetNewFiles();
+    for (auto iter : *edit_files_vec) {
+      assert(iter.second->creator_node_id == rdma_mg->node_id);
+      assert(iter.second->creator_node_id == 1);
+    }
     compact->compaction->edit()->EncodeTo(&serilized_ve);
 //#ifndef NDEBUG
 //    VersionEdit edit;

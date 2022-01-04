@@ -728,11 +728,7 @@ class VersionSet::Builder {
       }
 
 #ifndef NDEBUG
-      int deleted_file_num_supposed = 0;
-      for (int level = 0; level < config::kNumLevels; level++) {
-        deleted_file_num_supposed += levels_[level].deleted_files.size();
-      }
-      assert(number_deleted == deleted_file_num_supposed);
+
       // Make sure there is no overlap in levels > 0
       if (level > 0) {
         for (uint32_t i = 1; i < v->levels_[level].size(); i++) {
@@ -748,6 +744,13 @@ class VersionSet::Builder {
       }
 #endif
     }
+#ifndef NDEBUG
+    int deleted_file_num_supposed = 0;
+    for (int level = 0; level < config::kNumLevels; level++) {
+      deleted_file_num_supposed += levels_[level].deleted_files.size();
+    }
+    assert(number_deleted == deleted_file_num_supposed);
+#endif
   }
 
   void MaybeAddFile(Version* v, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
