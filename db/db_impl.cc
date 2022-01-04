@@ -1786,6 +1786,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   imm_data = 0;
   assert(*((unsigned char*)recv_mr_c.addr + buffer_size - 1) == 1);
   lck.unlock();
+  assert(imm_data == 0);
 //  _mm_clflush(polling_size_2);
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
@@ -2028,6 +2029,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
           byte_len = wc[0].byte_len;
           cv_temp.notify_all();
           lck.unlock();
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
           // increase the buffer index
           if (buffer_counter== R_SIZE-1 ){
             buffer_counter = 0;
