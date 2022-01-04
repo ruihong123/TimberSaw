@@ -221,11 +221,11 @@ class VersionEdit {
   void RemoveFile(int level, uint64_t file, uint8_t node_id) {
     //TODO(ruihong): remove this.
     assert(node_id < 2);
-#ifndef NDEBUG
-    if(level > 0){
-      assert(node_id!= 0);
-    }
-#endif
+//#ifndef NDEBUG
+//    if(level > 0){
+//      assert(node_id!= 0);
+//    }
+//#endif
     deleted_files_.insert(std::make_tuple(level, file, node_id));
   }
   size_t GetNewFilesNum(){
