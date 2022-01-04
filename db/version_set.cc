@@ -773,8 +773,8 @@ class VersionSet::Builder {
     } else {
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* files = &v->levels_[level];
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* in_progresses = &v->in_progress[level];
-      assert(vset_->icmp_.Compare((*files)[files->size() - 1]->smallest,
-                                  f->smallest) != 0);//in case there is edit installed twice.
+
+
       if (level > 0 && !files->empty()) {
         // Must not overlap
         assert(vset_->icmp_.Compare((*files)[files->size() - 1]->largest,
@@ -785,6 +785,10 @@ class VersionSet::Builder {
         for(const auto& existed_f : *files){
           assert(existed_f->number!= f->number );
         }
+      }
+      if (!files->empty()){
+        assert(vset_->icmp_.Compare((*files)[files->size() - 1]->smallest,
+                                    f->smallest) != 0);//in case there is edit installed twice.
       }
 #endif
 //      f->refs++;
