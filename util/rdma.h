@@ -137,7 +137,7 @@ struct RDMA_Request {
   uint32_t rkey;
   void* reply_buffer_large;
   uint32_t rkey_large;
-  unsigned int imm_num; // 0 for Compaction threads signal, 1 for Flushing threads signal.
+  uint32_t imm_num; // 0 for Compaction threads signal, 1 for Flushing threads signal.
 //  Options opt;
 } __attribute__((packed));
 
