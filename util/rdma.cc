@@ -1612,24 +1612,24 @@ int RDMA_Manager::RDMA_Write_Imme(void* addr, uint32_t rkey, ibv_mr* local_mr,
   // start = std::chrono::steady_clock::now();
   //  auto stop = std::chrono::high_resolution_clock::now();
   //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); printf("RDMA Write send preparation size: %zu elapse: %ld\n", msg_size, duration.count()); start = std::chrono::high_resolution_clock::now();
-
+  ibv_qp* qp;
   if (q_id == "read_local"){
     assert(false);// Never comes to here
-    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_read->Get());
+    qp = static_cast<ibv_qp*>(qp_local_read->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(q_id);
       qp = static_cast<ibv_qp*>(qp_local_read->Get());
     }
     rc = ibv_post_send(qp, &sr, &bad_wr);
   }else if (q_id == "write_local_flush"){
-    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
+    qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(q_id);
       qp = static_cast<ibv_qp*>(qp_local_write_flush->Get());
     }
     rc = ibv_post_send(qp, &sr, &bad_wr);
   }else if (q_id == "write_local_compact"){
-    ibv_qp* qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
+    qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(q_id);
       qp = static_cast<ibv_qp*>(qp_local_write_compact->Get());
@@ -1637,7 +1637,8 @@ int RDMA_Manager::RDMA_Write_Imme(void* addr, uint32_t rkey, ibv_mr* local_mr,
     rc = ibv_post_send(qp, &sr, &bad_wr);
   } else {
     std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
-    rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
+    qp = res->qp_map.at(q_id);
+    rc = ibv_post_send(qp, &sr, &bad_wr);
     l.unlock();
   }
   assert(rc == 0);
@@ -2346,7 +2347,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
     // begginning.
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
     if (Remote_Mem_Bitmap->empty()) {
-      Remote_Memory_Register(1 * 1024 * 1024 * 1024);
+      Remote_Memory_Register(512 * 1024 * 1024);
       //      fs_meta_save();
     }
     mem_write_lock.unlock();
