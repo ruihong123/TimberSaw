@@ -1040,6 +1040,8 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         cv_temp.notify_all();
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+
         // increase the buffer index
         if (buffer_counter== R_SIZE-1 ){
           buffer_counter = 0;
