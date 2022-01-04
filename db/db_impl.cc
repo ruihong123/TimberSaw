@@ -2013,7 +2013,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
           std::unique_lock<std::mutex> lck(mtx_temp);
-          assert(imm_data = 0);
+          assert(imm_data == 0);
           assert(byte_len == 0);
           imm_data = wc[0].imm_data;
           byte_len = wc[0].byte_len;

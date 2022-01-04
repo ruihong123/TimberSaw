@@ -225,8 +225,8 @@ class DBImpl : public DB {
 //  unsigned int imm_temp = 1;
   std::mutex mtx_temp;
   std::atomic<uint32_t> imm_gen;
-  uint32_t imm_data;
-  uint32_t byte_len;
+  uint32_t imm_data = 0;
+  uint32_t byte_len = 0;
   std::condition_variable cv_temp;
   const InternalKeyComparator internal_comparator_;
   const InternalFilterPolicy internal_filter_policy_;
