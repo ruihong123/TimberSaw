@@ -62,8 +62,9 @@ class Memory_Node_Keeper {
   ThreadPool Message_handler_pool_;
   std::mutex versionset_mtx;
   VersionSet* versions_;
-
-
+#ifndef NDEBUG
+  std::atomic<size_t> debug_counter = 0;
+#endif
   Status InstallCompactionResults(CompactionState* compact,
                                   std::string& client_ip);
   Status InstallCompactionResultsToComputePreparation(CompactionState* compact);

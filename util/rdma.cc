@@ -1185,7 +1185,7 @@ int RDMA_Manager::modify_qp_to_init(struct ibv_qp* qp) {
   attr.port_num = rdma_config.ib_port;
   attr.pkey_index = 0;
   attr.qp_access_flags =
-      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+      IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE |IBV_ACCESS_REMOTE_ATOMIC;
   flags = IBV_QP_STATE | IBV_QP_PKEY_INDEX | IBV_QP_PORT | IBV_QP_ACCESS_FLAGS;
   rc = ibv_modify_qp(qp, &attr, flags);
   if (rc) fprintf(stderr, "failed to modify QP state to INIT\n");
