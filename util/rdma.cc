@@ -1299,7 +1299,7 @@ int RDMA_Manager::modify_qp_to_rts(struct ibv_qp* qp) {
 ******************************************************************************/
 int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data,
                                  char* remote_data) {
-  int rc;
+  int rc = 0;
   int read_bytes = 0;
   int total_read_bytes = 0;
   rc = write(sock, local_data, xfer_size);
