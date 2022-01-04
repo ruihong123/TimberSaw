@@ -1640,7 +1640,7 @@ int RDMA_Manager::RDMA_Write_Imme(void* addr, uint32_t rkey, ibv_mr* local_mr,
     rc = ibv_post_send(res->qp_map.at(q_id), &sr, &bad_wr);
     l.unlock();
   }
-
+  assert(rc == 0);
   //  start = std::chrono::high_resolution_clock::now();
   if (rc) fprintf(stderr, "failed to post SR, return is %d\n", rc);
   //  else
