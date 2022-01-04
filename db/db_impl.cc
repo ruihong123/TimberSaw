@@ -1676,7 +1676,12 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   send_pointer->reply_buffer_large = recv_mr_c.addr;
   send_pointer->rkey_large = recv_mr_c.rkey;
   //Todo: modify this.
-  send_pointer->imm_num = imm_temp;
+  uint32_t imm_num = imm_gen.fetch_add(1);
+  // avoid imm_num == 0
+  if (imm_num == 0){
+    imm_num = imm_gen.fetch_add(1);
+  }
+  send_pointer->imm_num = imm_num;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
@@ -1715,18 +1720,19 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
 
 
-  volatile uint64_t * polling_size_1 = (uint64_t*)receive_mr.addr;
-  *polling_size_1 = 0;
-  asm volatile ("sfence\n" : : );
-  asm volatile ("lfence\n" : : );
-  asm volatile ("mfence\n" : : );
+//  volatile uint64_t * polling_size_1 = (uint64_t*)receive_mr.addr;
+//  *polling_size_1 = 0;
+//  asm volatile ("sfence\n" : : );
+//  asm volatile ("lfence\n" : : );
+//  asm volatile ("mfence\n" : : );
 
   // TODO: Clear the large receive buffer before it receive the buffer size, this can be optimized
   //  to only clear the corresponding byte. Besides, if the compaction finished extremely fast,
   // THe polling byte is determined after we receive the buffer size, so we
   // set all the buffer bytes as '\0'
+  //TODO: delete the line below.
   memset((char*)recv_mr_c.addr, 0, recv_mr_c.length);
-  _mm_clflush(polling_size_1);
+//  _mm_clflush(polling_size_1);
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
@@ -1740,52 +1746,45 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
 
 
-  size_t counter = 0;
-  std::unique_lock<std::mutex> lck(mtx_temp);
-  while (*(uint64_t*)polling_size_1 == 0){
-    cv_temp.wait(lck);
-    //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
-    // if an RDMA with correponding immediate is received.
-    _mm_clflush(polling_size_1);
-    asm volatile ("sfence\n" : : );
-    asm volatile ("lfence\n" : : );
-    asm volatile ("mfence\n" : : );
-//    if (counter == 1000){
-//      std::fprintf(stderr, "Polling version edit size handler\r");
-//      std::fflush(stderr);
-//      counter = 0;
-//    }
+//  size_t counter = 0;
 //
-//    counter++;
-  }
-  lck.unlock();
-  size_t buffer_size = *(size_t*)polling_size_1;
+//  while (*(uint64_t*)polling_size_1 == 0){
+//
+//    //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
+//    // if an RDMA with correponding immediate is received.
+//    _mm_clflush(polling_size_1);
+//    asm volatile ("sfence\n" : : );
+//    asm volatile ("lfence\n" : : );
+//    asm volatile ("mfence\n" : : );
+////    if (counter == 1000){
+////      std::fprintf(stderr, "Polling version edit size handler\r");
+////      std::fflush(stderr);
+////      counter = 0;
+////    }
+////
+////    counter++;
+//  }
+//
+//  size_t buffer_size = *(size_t*)polling_size_1;
 
   // THe polling byte is determined after we receive the buffer size, so we
   // set all the buffer bytes as '\0'
-  volatile unsigned char* polling_size_2 = (unsigned char*)recv_mr_c.addr + buffer_size - 1;
+//  volatile unsigned char* polling_size_2 = (unsigned char*)recv_mr_c.addr + buffer_size - 1;
 //  *polling_size_2 = 0;
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   // polling the finishing bit for the file number transmission.
-  counter = 0;
-  while (*(unsigned char*)polling_size_2 == 0){
-    //TODO: implement compaction pool waiting here, wait up it from the RPC handling thread
-    // if an RDMA with correponding immediate is received.
-    _mm_clflush(polling_size_2);
-    asm volatile ("sfence\n" : : );
-    asm volatile ("lfence\n" : : );
-    asm volatile ("mfence\n" : : );
-    if (counter == 1000){
-      std::fprintf(stderr, "Polling version edit handler in near data compaction\r");
-      std::fflush(stderr);
-      counter = 0;
-    }
-
-    counter++;
+  size_t counter = 0;
+  std::unique_lock<std::mutex> lck(mtx_temp);
+  while (imm_num != imm_data){
+    cv_temp.wait(lck);
   }
-  _mm_clflush(polling_size_2);
+  size_t buffer_size = byte_len;
+  byte_len = 0;
+  imm_data = 0;
+  lck.unlock();
+//  _mm_clflush(polling_size_2);
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
@@ -2014,6 +2013,10 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
           std::unique_lock<std::mutex> lck(mtx_temp);
+          assert(imm_data = 0);
+          assert(byte_len == 0);
+          imm_data = wc[0].imm_data;
+          byte_len = wc[0].byte_len;
           cv_temp.notify_all();
           lck.unlock();
           // increase the buffer index
