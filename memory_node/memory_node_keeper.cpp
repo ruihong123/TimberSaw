@@ -196,9 +196,11 @@ usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *
 //  delete client_ip;
 //
 //}
-void Memory_Node_Keeper::PersistSSTables(VersionEdit&) {
-
-}
+  void Memory_Node_Keeper::PersistSSTables(VersionEdit* edit) {
+    for (auto iter : *edit->GetNewFiles()) {
+//      env_->NewWritableFile
+    }
+  }
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
   //  undefine_mutex.AssertHeld();
   if (compact->builder != nullptr) {
