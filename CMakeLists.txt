@@ -76,7 +76,7 @@ else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL") #set ggdb flag here.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL -ggdb") #set ggdb flag here.
 
 
 
@@ -123,7 +123,7 @@ endif(BUILD_SHARED_LIBS)
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(TimberSaw table/table_builder.cpp)
+add_library(TimberSaw table/table_builder.cpp util/env_posix.h)
 target_sources(TimberSaw
   PRIVATE
     "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
