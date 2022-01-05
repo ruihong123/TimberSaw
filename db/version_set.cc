@@ -1682,9 +1682,7 @@ Compaction* VersionSet::PickCompaction() {
     Finalize(current_);
     if (c->inputs_[1].size() == 1){
       printf("mark here, first level file number is %lu\n", c->inputs_[1][0]->number);
-
     }
-
     return c;
   }else{
     delete c;
