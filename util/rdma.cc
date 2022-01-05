@@ -2347,7 +2347,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
     // begginning.
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
     if (Remote_Mem_Bitmap->empty()) {
-      Remote_Memory_Register(512 * 1024 * 1024);
+      Remote_Memory_Register(1 * 1024 * 1024 * 1024);
       //      fs_meta_save();
     }
     mem_write_lock.unlock();
