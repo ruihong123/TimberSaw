@@ -294,6 +294,8 @@ class VersionSet {
   static std::atomic<uint64_t> GetNum;
 
 #endif
+  void Persistency_pin(VersionEdit* edit);
+  void Persistency_unpin(uint64_t* array, size_t size);
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new
   // current version.  Will release *mu while actually writing to the file.
@@ -301,6 +303,7 @@ class VersionSet {
   // REQUIRES: no other thread concurrently calls LogAndApply()
   //TODO: Finalize is not required for the comppute node side.
   Status LogAndApply(VersionEdit* edit, std::unique_lock<std::mutex>* lck_vs);
+
 
   // Recover the last saved descriptor from persistent storage.
   Status Recover(bool* save_manifest);
@@ -453,7 +456,8 @@ class VersionSet {
   std::atomic<uint64_t> last_sequence_;
   uint64_t log_number_;
   uint64_t prev_log_number_;  // 0 or backing store for memtable being compacted
-
+  std::map<uint64_t, std::shared_ptr<RemoteMemTableMetaData>> persistent_pinner_;
+  std::mutex pinner_mtx;
   // Opened lazily
   WritableFile* descriptor_file_;
   log::Writer* descriptor_log_;

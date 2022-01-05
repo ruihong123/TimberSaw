@@ -858,7 +858,19 @@ void VersionSet::AppendVersion(Version* v) {
   v->prev_->next_ = v;
   v->next_->prev_ = v;
 }
+void VersionSet::Persistency_pin(VersionEdit* edit) {
+  std::unique_lock<std::mutex> lck(pinner_mtx);
+  for(auto iter : *edit->GetNewFiles()){
+    persistent_pinner_.insert({iter.second->number, iter.second});
+  }
 
+}
+void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
+  std::unique_lock<std::mutex> lck(pinner_mtx);
+  for (int i = 0; i < size; ++i) {
+    persistent_pinner_.erase(array[i]);
+  }
+}
 Status VersionSet::LogAndApply(VersionEdit* edit,
                                std::unique_lock<std::mutex>* lck_vs) {
 //  if (edit->has_log_number_) {
