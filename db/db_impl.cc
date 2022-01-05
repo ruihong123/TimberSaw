@@ -2029,7 +2029,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
           byte_len = wc[0].byte_len;
           cv_temp.notify_all();
           lck.unlock();
-          while (imm_data != 0 || byte_len != 0 ){}
+          while (imm_data != 0 || byte_len != 0 ){
+            cv_temp.notify_one();
+          }
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
           // increase the buffer index
           if (buffer_counter== R_SIZE-1 ){
