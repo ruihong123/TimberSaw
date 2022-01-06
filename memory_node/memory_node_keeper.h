@@ -7,7 +7,9 @@
 
 
 #include <queue>
+//#include <fcntl.h>
 #include "util/rdma.h"
+#include "util/env_posix.h"
 #include "util/ThreadPool.h"
 #include "db/version_set.h"
 
@@ -46,6 +48,89 @@ class Memory_Node_Keeper {
   Status FinishCompactionOutputFile(SubcompactionState* compact,
                                     Iterator* input);
   Status FinishCompactionOutputFile(CompactionState* compact, Iterator* input);
+  Status GetFileSize(const std::string& filename, uint64_t* size) {
+    struct ::stat file_stat;
+    if (::stat(filename.c_str(), &file_stat) != 0) {
+      *size = 0;
+      return PosixError(filename, errno);
+    }
+    *size = file_stat.st_size;
+    return Status::OK();
+  }
+  Status NewSequentialFile(const std::string& filename,
+                           SequentialFile** result)  {
+    int fd = ::open(filename.c_str(), O_RDONLY | kOpenBaseFlags);
+    if (fd < 0) {
+      *result = nullptr;
+      return PosixError(filename, errno);
+    }
+
+    *result = new PosixSequentialFile(filename, fd);
+    return Status::OK();
+  }
+
+  Status NewRandomAccessFile(const std::string& filename,
+                             RandomAccessFile** result)  {
+    *result = nullptr;
+    int fd = ::open(filename.c_str(), O_RDONLY | kOpenBaseFlags);
+    if (fd < 0) {
+      return PosixError(filename, errno);
+    }
+
+    if (!mmap_limiter_.Acquire()) {
+      *result = new PosixRandomAccessFile(filename, fd, &fd_limiter_);
+      return Status::OK();
+    }
+
+    uint64_t file_size;
+    Status status = GetFileSize(filename, &file_size);
+    if (status.ok()) {
+      void* mmap_base =
+          ::mmap(/*addr=*/nullptr, file_size, PROT_READ, MAP_SHARED, fd, 0);
+      if (mmap_base != MAP_FAILED) {
+        *result = new PosixMmapReadableFile(filename,
+                                            reinterpret_cast<char*>(mmap_base),
+                                            file_size, &mmap_limiter_);
+      } else {
+        status = PosixError(filename, errno);
+      }
+    }
+    ::close(fd);
+    if (!status.ok()) {
+      mmap_limiter_.Release();
+    }
+    return status;
+  }
+
+  Status NewWritableFile(const std::string& filename,
+                         WritableFile** result) {
+    int fd = ::open(filename.c_str(),
+                    O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
+    if (fd < 0) {
+      *result = nullptr;
+      return PosixError(filename, errno);
+    }
+
+    *result = new PosixWritableFile(filename, fd);
+    return Status::OK();
+  }
+
+  Status NewAppendableFile(const std::string& filename,
+                           WritableFile** result)  {
+    int fd = ::open(filename.c_str(),
+                    O_APPEND | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
+    if (fd < 0) {
+      *result = nullptr;
+      return PosixError(filename, errno);
+    }
+
+    *result = new PosixWritableFile(filename, fd);
+    return Status::OK();
+  }
+
+  bool FileExists(const std::string& filename)  {
+    return ::access(filename.c_str(), F_OK) == 0;
+  }
   static std::shared_ptr<RDMA_Manager> rdma_mg;
  private:
   std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;
@@ -55,6 +140,10 @@ class Memory_Node_Keeper {
   std::shared_ptr<Options> opts;
   const InternalKeyComparator internal_comparator_;
 //  const InternalFilterPolicy internal_filter_policy_;
+
+  PosixLockTable locks_;  // Thread-safe.
+  Limiter mmap_limiter_;  // Thread-safe.
+  Limiter fd_limiter_;    // Thread-safe.
   bool usesubcompaction;
   TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;

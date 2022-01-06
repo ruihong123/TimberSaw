@@ -2,7 +2,7 @@
 // Created by ruihong on 7/29/21.
 //
 #include "memory_node/memory_node_keeper.h"
-
+#include "db/filename.h"
 #include "db/table_cache.h"
 #include <list>
 
@@ -13,6 +13,7 @@ std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA
 TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): internal_comparator_(BytewiseComparator()), opts(std::make_shared<Options>(true)),
 usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files))
 ,versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx))
+,mmap_limiter_(MaxMmaps()), fd_limiter_(MaxOpenFiles())
 {
     struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
@@ -198,7 +199,43 @@ usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *
 //}
   void Memory_Node_Keeper::PersistSSTables(VersionEdit* edit) {
     for (auto iter : *edit->GetNewFiles()) {
-//      env_->NewWritableFile()
+
+      std::string fname = TableFileName(".", iter.second->number);
+      WritableFile * f;
+//      std::vector<uint32_t> chunk_barriers;
+      size_t barrier_size = iter.second->remote_data_mrs.size() +
+                            iter.second->remote_dataindex_mrs.size() +
+                            iter.second->remote_filter_mrs.size();
+      uint32_t* barrier_arr = new uint32_t[barrier_size];
+      Status s = NewWritableFile(fname, &f);
+      size_t offset = 0;
+      size_t chunk_index = 0;
+      for(auto chunk : iter.second->remote_data_mrs){
+        offset +=chunk.second->length;
+        barrier_arr[chunk_index] = offset;
+        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+        chunk_index++;
+
+      }
+
+      for(auto chunk : iter.second->remote_dataindex_mrs){
+        offset +=chunk.second->length;
+        barrier_arr[chunk_index] = offset;
+        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+        chunk_index++;
+      }
+      for(auto chunk : iter.second->remote_filter_mrs){
+        offset +=chunk.second->length;
+        barrier_arr[chunk_index] = offset;
+        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+        chunk_index++;
+      }
+      f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
+      f->Flush();
+      f->Sync();
+      f->Close();
+
+
     }
   }
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {

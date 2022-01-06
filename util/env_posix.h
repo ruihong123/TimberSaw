@@ -4,14 +4,38 @@
 
 #ifndef TIMBERSAW_ENV_POSIX_H
 #define TIMBERSAW_ENV_POSIX_H
-
+#include <dirent.h>
+#include <fcntl.h>
+#include <pthread.h>
+#include <sys/mman.h>
+#include <sys/resource.h>
+#include <sys/stat.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <unistd.h>
 #include "TimberSaw/env.h"
 #include "TimberSaw/slice.h"
 #include "TimberSaw/status.h"
 #include "TimberSaw/options.h"
+#include "util/posix_logger.h"
+#include <atomic>
+#include <cerrno>
+#include <cstddef>
+#include <cstdint>
+#include <cstdio>
+#include <cstdlib>
+#include <cstring>
+#include <limits>
+#include <queue>
+#include <set>
+#include <string>
+#include <thread>
+#include <type_traits>
+#include <utility>
+
 namespace TimberSaw {
 
-namespace {
+
 
 // Set by EnvPosixTestHelper::SetReadOnlyMMapLimit() and MaxOpenFiles().
 int g_open_read_only_file_limit = -1;
@@ -772,6 +796,6 @@ int MaxOpenFiles() {
   return g_open_read_only_file_limit;
 }
 
-}  // namespace
+
 }
 #endif  // TIMBERSAW_ENV_POSIX_H
