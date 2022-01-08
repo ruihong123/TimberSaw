@@ -311,7 +311,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
 
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = persist_unpin_;
-  send_pointer->content.su.buffer_size = index*sizeof(uint64_t) + 1;
+  send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;
 
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
@@ -345,7 +345,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
                       &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");

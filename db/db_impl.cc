@@ -2281,12 +2281,12 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
 //  send_pointer->content.ive = {};
   ibv_mr file_number_recv_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(file_number_recv_mr, "version_edit");
-  send_pointer->reply_buffer = file_number_recv_mr.addr;
-  send_pointer->rkey = file_number_recv_mr.rkey;
+  send_pointer->reply_buffer_large = file_number_recv_mr.addr;
+  send_pointer->rkey_large = file_number_recv_mr.rkey;
   send_pointer->received = true;
   //TODO: how to check whether the version edit message is ready, we need to know the size of the
   // version edit in the first REQUEST from compute node.
-  volatile char* polling_byte = (char*)file_number_recv_mr.addr + request.content.ive.buffer_size - 1;
+  volatile char* polling_byte = (char*)file_number_recv_mr.addr + request.content.psu.buffer_size - 1;
   memset((void*)polling_byte, 0, 1);
   for (int i = 0; i < 100; ++i) {
     if(*polling_byte != 0){
@@ -2299,7 +2299,6 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
                       &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
-  DEBUG_arg("install non-trival version, version id is %lu\n", request.content.ive.version_id);
   size_t counter = 0;
   while (*(unsigned char*)polling_byte != 1){
     _mm_clflush(polling_byte);
@@ -2314,8 +2313,8 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   uint64_t* arr_ptr = (uint64_t*)file_number_recv_mr.addr;
-  uint32_t size = (request.content.ive.buffer_size - 1)/sizeof(uint64_t);
-  assert((request.content.ive.buffer_size - 1)%sizeof(uint64_t) == 0);
+  uint32_t size = (request.content.psu.buffer_size - 1)/sizeof(uint64_t);
+  assert((request.content.psu.buffer_size - 1)%sizeof(uint64_t) == 0);
   versions_->Persistency_unpin(arr_ptr, size);
 }
 #endif
