@@ -1113,7 +1113,7 @@ void DBImpl::BackgroundCompaction(void* p) {
         c->ReleaseInputs();
         status = versions_->LogAndApply(c->edit(), &l_vs);
         Edit_sync_to_remote(c->edit(),&l_vs);
-        l_vs.unlock();
+//        l_vs.unlock();
         InstallSuperVersion();
       }
 
@@ -2129,6 +2129,14 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
 //  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 //  printf("Sync version edit time elapse: %ld us part 3 memcopy and WR post\n", duration.count());
 //  start = std::chrono::high_resolution_clock::now();
+
+  //TODO: we need to lock the whole version edit process. The memory server need to have
+  // a reply to let the compute node release the lock to make sure that the compute and
+  // memory node has the same sequence of version edit.
+  // The difference sequence of version edit may trigger big problem (system crash), if
+  // the new version edit delete a file which has not been installed by the old edit yet,
+  // because the old version edit is lagged because of RDMA or cpu schedule.
+  // For now it is ok.
   version_mtx->unlock();
 
   ibv_wc wc[2] = {};
