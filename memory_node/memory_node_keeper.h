@@ -153,7 +153,7 @@ class Memory_Node_Keeper {
   // Opened lazily
   WritableFile* descriptor_file;
   log::Writer* descriptor_log;
-  uint64_t manifest_file_number_ = 0;
+  uint64_t manifest_file_number_ = 1;
   bool usesubcompaction;
   TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;
