@@ -869,6 +869,7 @@ void VersionSet::Persistency_pin(VersionEdit* edit) {
 void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
   std::unique_lock<std::mutex> lck(pinner_mtx);
   for (int i = 0; i < size; ++i) {
+    assert(persistent_pinner_.find(array[i]) != persistent_pinner_.end());
     persistent_pinner_.erase(array[i]);
   }
 }
