@@ -127,7 +127,7 @@ union RDMA_Request_Content {
   install_versionedit ive;
   sst_gc gc;
   sst_compaction sstCompact;
-  sst_unpin su;
+  sst_unpin psu;
   size_t unpinned_version_id;
 };
 union RDMA_Reply_Content {

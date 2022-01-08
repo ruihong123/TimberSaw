@@ -1112,6 +1112,7 @@ void DBImpl::BackgroundCompaction(void* p) {
         std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
         c->ReleaseInputs();
         status = versions_->LogAndApply(c->edit(), &l_vs);
+        Edit_sync_to_remote(c->edit(),&l_vs);
         l_vs.unlock();
         InstallSuperVersion();
       }
