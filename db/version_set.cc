@@ -817,8 +817,8 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       last_sequence_(0),
       log_number_(0),
       prev_log_number_(0),
-      descriptor_file_(nullptr),
-      descriptor_log_(nullptr),
+      descriptor_file(nullptr),
+      descriptor_log(nullptr),
       dummy_versions_(this),
       current_(nullptr),
       version_set_mtx(mtx){
@@ -829,8 +829,8 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
 VersionSet::~VersionSet() {
   current_->Unref(0);
   assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
-  delete descriptor_log_;
-  delete descriptor_file_;
+  delete descriptor_log;
+  delete descriptor_file;
 #ifdef PROCESSANALYSIS
   if (VersionSet::GetNum.load() >0)
     printf("LSM Version GET time statistics is %zu, %zu, %zu\n",
@@ -858,6 +858,7 @@ void VersionSet::AppendVersion(Version* v) {
   v->prev_->next_ = v;
   v->next_->prev_ = v;
 }
+#ifdef WITHPERSISTENCE
 void VersionSet::Persistency_pin(VersionEdit* edit) {
   std::unique_lock<std::mutex> lck(pinner_mtx);
   for(auto iter : *edit->GetNewFiles()){
@@ -871,6 +872,7 @@ void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
     persistent_pinner_.erase(array[i]);
   }
 }
+#endif
 Status VersionSet::LogAndApply(VersionEdit* edit,
                                std::unique_lock<std::mutex>* lck_vs) {
 //  if (edit->has_log_number_) {
@@ -890,9 +892,13 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
     printf("file number for this flush or compaction version edit installation : %lu \n", (*edit->GetNewFiles())[i].second->number);
   }
 #endif
+
   edit->SetLastSequence(last_sequence_);
   Version* v;
   v = new Version(this);
+#ifdef WITHPERSISTENCE
+  Persistency_pin(edit);
+#endif
   //Build an empty version.
 //  if (remote_subversion_id == 0){
 //    v = new Version(this);
@@ -980,7 +986,6 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
     AppendVersion(v);
   } else {
     delete v;
-
     printf("installing new version failed");
     exit(0);
 //    if (!new_manifest_file.empty()) {
@@ -1144,17 +1149,17 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
     return false;
   }
 
-  assert(descriptor_file_ == nullptr);
-  assert(descriptor_log_ == nullptr);
-  Status r = env_->NewAppendableFile(dscname, &descriptor_file_);
+  assert(descriptor_file == nullptr);
+  assert(descriptor_log == nullptr);
+  Status r = env_->NewAppendableFile(dscname, &descriptor_file);
   if (!r.ok()) {
     Log(options_->info_log, "Reuse MANIFEST: %s\n", r.ToString().c_str());
-    assert(descriptor_file_ == nullptr);
+    assert(descriptor_file == nullptr);
     return false;
   }
 
   Log(options_->info_log, "Reusing MANIFEST %s\n", dscname.c_str());
-  descriptor_log_ = new log::Writer(descriptor_file_, manifest_size);
+  descriptor_log = new log::Writer(descriptor_file, manifest_size);
   manifest_file_number_ = manifest_number;
   return true;
 }

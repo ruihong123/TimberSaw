@@ -91,6 +91,7 @@
 #endif
 //#define TIMEPRINT
 #define WITHMEMORYVERSIONSET
+#define WITHPERSISTENCE
 #define PROCESSANALYSIS
 #define R_SIZE 512
 

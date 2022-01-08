@@ -85,6 +85,9 @@ struct install_versionedit {
   uint64_t file_number;
   uint8_t node_id;
 } __attribute__((packed));
+struct sst_unpin {
+  size_t buffer_size;
+} __attribute__((packed));
 struct sst_compaction {
   size_t buffer_size;
 
@@ -99,6 +102,7 @@ enum RDMA_Command_Type {
   version_unpin_,
   sync_option,
   qp_reset_,
+  persist_unpin_,
   save_fs_serialized_data,
   retrieve_fs_serialized_data,
   save_log_serialized_data,
@@ -123,6 +127,7 @@ union RDMA_Request_Content {
   install_versionedit ive;
   sst_gc gc;
   sst_compaction sstCompact;
+  sst_unpin su;
   size_t unpinned_version_id;
 };
 union RDMA_Reply_Content {

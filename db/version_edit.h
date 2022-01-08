@@ -241,7 +241,7 @@ class VersionEdit {
   }
  private:
   friend class VersionSet;
-
+  // level, file number, node_id
   typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
 
   std::string comparator_;

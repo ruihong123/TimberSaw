@@ -279,21 +279,24 @@ void VersionEdit::EncodeToDiskFormat(std::string* dst) const {
     PutLengthPrefixedSlice(dst, compact_pointers_[i].second.Encode());
   }
 
-//  for (const auto& deleted_file_kvp : deleted_files_) {
-//    PutVarint32(dst, kDeletedFile);
-//    PutVarint32(dst, deleted_file_kvp.first);   // level
-//    PutVarint64(dst, deleted_file_kvp.second);  // file number
-//  }
-//
-//  for (size_t i = 0; i < new_files_.size(); i++) {
-//    const FileMetaData& f = new_files_[i].second;
-//    PutVarint32(dst, kNewFile);
-//    PutVarint32(dst, new_files_[i].first);  // level
-//    PutVarint64(dst, f.number);
-//    PutVarint64(dst, f.file_size);
-//    PutLengthPrefixedSlice(dst, f.smallest.Encode());
-//    PutLengthPrefixedSlice(dst, f.largest.Encode());
-//  }
+  for (const auto& deleted_file_kvp : deleted_files_) {
+    PutVarint32(dst, kDeletedFile);
+    PutVarint32(dst, std::get<0>(deleted_file_kvp));   // level
+    PutVarint64(dst, std::get<1>(deleted_file_kvp));  // file number
+    PutVarint64(dst, std::get<2>(deleted_file_kvp));  // creator node id
+  }
+
+  for (size_t i = 0; i < new_files_.size(); i++) {
+    std::shared_ptr<RemoteMemTableMetaData> f = new_files_[i].second;
+    PutVarint32(dst, kNewFile);
+    PutVarint32(dst, new_files_[i].first);  // level
+    PutVarint64(dst, f->number);
+    dst->append(reinterpret_cast<const char*>(&f->creator_node_id), sizeof(f->creator_node_id));
+
+    PutVarint64(dst, f->file_size);
+    PutLengthPrefixedSlice(dst, f->smallest.Encode());
+    PutLengthPrefixedSlice(dst, f->largest.Encode());
+  }
 }
 
 static bool GetInternalKey(Slice* input, InternalKey* dst) {

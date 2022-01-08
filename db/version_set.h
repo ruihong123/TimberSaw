@@ -294,8 +294,10 @@ class VersionSet {
   static std::atomic<uint64_t> GetNum;
 
 #endif
+#ifdef WITHPERSISTENCE
   void Persistency_pin(VersionEdit* edit);
   void Persistency_unpin(uint64_t* array, size_t size);
+#endif
   // Apply *edit to the current version to form a new descriptor that
   // is both saved to persistent state and installed as the new
   // current version.  Will release *mu while actually writing to the file.
@@ -419,7 +421,9 @@ class VersionSet {
 //  bool Unpin_Version_For_Compute(size_t version_id);
   size_t version_id = 0;
   TableCache* const table_cache_;
-
+  // Opened lazily
+  WritableFile* descriptor_file;
+  log::Writer* descriptor_log;
  private:
   class Builder;
 
@@ -458,9 +462,7 @@ class VersionSet {
   uint64_t prev_log_number_;  // 0 or backing store for memtable being compacted
   std::map<uint64_t, std::shared_ptr<RemoteMemTableMetaData>> persistent_pinner_;
   std::mutex pinner_mtx;
-  // Opened lazily
-  WritableFile* descriptor_file_;
-  log::Writer* descriptor_log_;
+
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
   //TODO: make current_ an atomic variable.
 //  std::atomic<Version*> current_;        // == dummy_versions_.prev_

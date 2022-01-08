@@ -10,10 +10,17 @@
 
 namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
-TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction): internal_comparator_(BytewiseComparator()), opts(std::make_shared<Options>(true)),
-usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *opts, opts->max_open_files))
-,versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx))
-,mmap_limiter_(MaxMmaps()), fd_limiter_(MaxOpenFiles())
+TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
+    :
+      internal_comparator_(BytewiseComparator()),
+      opts(std::make_shared<Options>(true)),
+      usesubcompaction(use_sub_compaction),
+      table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
+      versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx)),
+      descriptor_file(nullptr),
+      descriptor_log(nullptr),
+      mmap_limiter_(MaxMmaps()),
+      fd_limiter_(MaxOpenFiles())
 {
     struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
@@ -38,10 +45,17 @@ usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *
 //    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
     Message_handler_pool_.SetBackgroundThreads(2);
+    Persistency_bg_pool_.SetBackgroundThreads(1);
   }
 
   Memory_Node_Keeper::~Memory_Node_Keeper() {
     delete opts->filter_policy;
+    if (descriptor_log != nullptr){
+      delete descriptor_log;
+    }
+    if (descriptor_file != nullptr){
+      delete descriptor_file;
+    }
   }
 
 //  void TimberSaw::Memory_Node_Keeper::Schedule(void (*background_work_function)(void*),
@@ -72,15 +86,20 @@ usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *
 //    ((Memory_Node_Keeper*)p->db)->BackgroundCompaction(p->func_args);
 //    delete static_cast<BGThreadMetadata*>(thread_arg);
 //  }
-  void Memory_Node_Keeper::RPC_Compaction(void* thread_arg) {
-    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+  void Memory_Node_Keeper::RPC_Compaction_Dispatch(void* thread_args) {
+    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_args);
     ((Memory_Node_Keeper*)p->db)->sst_compaction_handler(p->func_args);
-    delete static_cast<BGThreadMetadata*>(thread_arg);
+    delete static_cast<BGThreadMetadata*>(thread_args);
   }
-  void Memory_Node_Keeper::RPC_Garbage_Collection(void* thread_arg) {
-    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
+  void Memory_Node_Keeper::RPC_Garbage_Collection_Dispatch(void* thread_args) {
+    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_args);
     ((Memory_Node_Keeper*)p->db)->sst_garbage_collection(p->func_args);
-    delete static_cast<BGThreadMetadata*>(thread_arg);
+    delete static_cast<BGThreadMetadata*>(thread_args);
+  }
+  void Memory_Node_Keeper::Persistence_Dispatch(void* thread_args) {
+    BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_args);
+    ((Memory_Node_Keeper*)p->db)->PersistSSTables(p->func_args);
+    delete static_cast<BGThreadMetadata*>(thread_args);
   }
 
 
@@ -197,47 +216,142 @@ usesubcompaction(use_sub_compaction), table_cache_(new TableCache("home_node", *
 //  delete client_ip;
 //
 //}
-  void Memory_Node_Keeper::PersistSSTables(VersionEdit* edit) {
-    for (auto iter : *edit->GetNewFiles()) {
+void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
-      std::string fname = TableFileName(".", iter.second->number);
-      WritableFile * f;
+  VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
+  std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
+  for (auto iter : *edit->GetNewFiles()) {
+
+    std::string fname = TableFileName(".", iter.second->number);
+    WritableFile * f;
 //      std::vector<uint32_t> chunk_barriers;
-      size_t barrier_size = iter.second->remote_data_mrs.size() +
-                            iter.second->remote_dataindex_mrs.size() +
-                            iter.second->remote_filter_mrs.size();
-      uint32_t* barrier_arr = new uint32_t[barrier_size];
-      Status s = NewWritableFile(fname, &f);
-      size_t offset = 0;
-      size_t chunk_index = 0;
-      for(auto chunk : iter.second->remote_data_mrs){
-        offset +=chunk.second->length;
-        barrier_arr[chunk_index] = offset;
-        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-        chunk_index++;
-
-      }
-
-      for(auto chunk : iter.second->remote_dataindex_mrs){
-        offset +=chunk.second->length;
-        barrier_arr[chunk_index] = offset;
-        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-        chunk_index++;
-      }
-      for(auto chunk : iter.second->remote_filter_mrs){
-        offset +=chunk.second->length;
-        barrier_arr[chunk_index] = offset;
-        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-        chunk_index++;
-      }
-      f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
-      f->Flush();
-      f->Sync();
-      f->Close();
-
+    uint32_t barrier_size = iter.second->remote_data_mrs.size() +
+                          iter.second->remote_dataindex_mrs.size() +
+                          iter.second->remote_filter_mrs.size();
+    uint32_t* barrier_arr = new uint32_t[barrier_size];
+    Status s = NewWritableFile(fname, &f);
+    uint32_t offset = 0;
+    uint32_t chunk_index = 0;
+    for(auto chunk : iter.second->remote_data_mrs){
+      offset +=chunk.second->length;
+      barrier_arr[chunk_index] = offset;
+      f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+      chunk_index++;
 
     }
+
+    for(auto chunk : iter.second->remote_dataindex_mrs){
+      offset +=chunk.second->length;
+      barrier_arr[chunk_index] = offset;
+      f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+      chunk_index++;
+    }
+    for(auto chunk : iter.second->remote_filter_mrs){
+      offset +=chunk.second->length;
+      barrier_arr[chunk_index] = offset;
+      f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+      chunk_index++;
+    }
+    f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
+
+    f->Append(Slice((char*)&barrier_size, sizeof(uint32_t)));
+    f->Flush();
+    f->Sync();
+    f->Close();
+    delete[] barrier_arr;
+
   }
+  // Initialize new descriptor log file if necessary by creating
+  // a temporary file that contains a snapshot of the current version.
+  std::string new_manifest_file;
+  Status s;
+  if (descriptor_log == nullptr) {
+    // No reason to unlock *mu here since we only hit this path in the
+    // first call to LogAndApply (when opening the database).
+    assert(descriptor_file == nullptr);
+    new_manifest_file = DescriptorFileName(".", manifest_file_number_);
+//      edit->SetNextFile(next_file_number_);
+    s = NewWritableFile(new_manifest_file, &descriptor_file);
+    if (s.ok()) {
+      descriptor_log = new log::Writer(descriptor_file);
+//        s = WriteSnapshot(descriptor_log);
+    }
+  }
+  // Write new record to MANIFEST log
+  if (s.ok()) {
+    std::string record;
+    edit->EncodeToDiskFormat(&record);
+    s = descriptor_log->AddRecord(record);
+    if (s.ok()) {
+      s = descriptor_file->Sync();
+    }
+
+  }
+  UnpinSSTables_RPC(edit, client_ip);
+  delete edit;
+}
+void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
+                                          std::string& client_ip) {
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_large = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_large, "version_edit");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
+  uint32_t index = 0;
+  for(auto iter : *edit->GetNewFiles()){
+    arr_ptr[index] = iter.second->number;
+    index++;
+  }
+  memset((char*)send_mr_large.addr + index*sizeof(uint64_t), 1, 1);
+
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = persist_unpin_;
+  send_pointer->content.su.buffer_size = index*sizeof(uint64_t) + 1;
+
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+  //TODO: Think of a better way to avoid deadlock and guarantee the same
+  // sequence of verision edit between compute node and memory server.
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+    printf("version id is %lu", versions_->version_id);
+    exit(0);
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+                      &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+}
+
+
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
   //  undefine_mutex.AssertHeld();
   if (compact->builder != nullptr) {
@@ -1115,13 +1229,14 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
-        Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction, thread_pool_args);
+        Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
       } else if (receive_msg_buf->command == SSTable_gc) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
-        Message_handler_pool_.Schedule(&Memory_Node_Keeper::RPC_Garbage_Collection, thread_pool_args);
+        Message_handler_pool_.Schedule(
+            &Memory_Node_Keeper::RPC_Garbage_Collection_Dispatch, thread_pool_args);
 //TODO: add a handle function for the option value
       } else if (receive_msg_buf->command == version_unpin_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
@@ -1377,13 +1492,19 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
     counter++;
   }
-  VersionEdit version_edit;
-  version_edit.DecodeFrom(
+  // Will delete the version edit in the background threads.
+  VersionEdit* version_edit = new VersionEdit();
+  version_edit->DecodeFrom(
       Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
-  assert(version_edit.GetNewFilesNum() > 0);
-  DEBUG_arg("Version edit decoded, new file number is %zu", version_edit.GetNewFilesNum());
+  assert(version_edit->GetNewFilesNum() > 0);
+  DEBUG_arg("Version edit decoded, new file number is %zu", version_edit->GetNewFilesNum());
   std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
-  versions_->LogAndApply(&version_edit, &lck);
+  versions_->LogAndApply(version_edit, &lck);
+#ifdef WITHPERSISTENCE
+  Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit=version_edit,.client_ip = client_ip};
+  BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+  Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+#endif
   lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
 
@@ -1596,7 +1717,13 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     assert(file_number_end >0);
     compact->compaction->edit()->SetFileNumbers(file_number_end);
     DEBUG_arg("file number end %lu", file_number_end);
-    //TODO: implement durability.
+#ifdef WITHPERSISTENCE
+    VersionEdit* edit = new VersionEdit();
+    *edit = *compact->compaction->edit();
+    Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit=edit,.client_ip = client_ip};
+    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+    Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+#endif
     //The validation below should happen before the real edit send back to the compute node
     // because there is no reference for this test, the sstables can be garbage collected.
     //#ifndef NDEBUG
@@ -1748,7 +1875,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer = (RDMA_Request*)send_mr.addr;
     send_pointer->command = install_version_edit;
     send_pointer->content.ive.trival = false;
-    send_pointer->content.ive.buffer_size = serilized_ve.size();
+    send_pointer->content.ive.buffer_size = serilized_ve.size() + 1;
     send_pointer->content.ive.version_id = versions_->version_id;
     send_pointer->content.ive.check_byte = check_byte;
     send_pointer->reply_buffer = receive_mr.addr;
@@ -1797,6 +1924,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 
   }
+
 
   }
 

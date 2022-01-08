@@ -218,7 +218,9 @@ class DBImpl : public DB {
   void remote_qp_reset(std::string& q_id);
   void client_message_polling_and_handling_thread(std::string q_id);
   void install_version_edit_handler(RDMA_Request request, std::string client_ip);
-
+#ifdef WITHPERSISTENCE
+  void persistence_unpin_handler(RDMA_Request request, std::string client_ip);
+#endif
   // Constant after construction
   Env* const env_;
   std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;

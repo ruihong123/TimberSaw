@@ -2050,6 +2050,11 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
           ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
           install_version_edit_handler(receive_msg_buf, q_id);
+#ifdef WITHPERSISTENCE
+        } else if(receive_msg_buf.command == persist_unpin_) {
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          persistence_unpin_handler(receive_msg_buf, q_id);
+#endif
         } else {
           printf("corrupt message from client.");
           break;
@@ -2214,7 +2219,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size;
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size - 1;
     memset((void*)polling_byte, 0, 1);
     for (int i = 0; i < 100; ++i) {
       if(*polling_byte != 0){
@@ -2266,6 +2271,54 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
   }
 
 }
+#ifdef WITHPERSISTENCE
+void DBImpl::persistence_unpin_handler(RDMA_Request request,
+                                          std::string client_ip) {
+  auto rdma_mg = env_->rdma_mg;
+  ibv_mr send_mr;
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+//  send_pointer->content.ive = {};
+  ibv_mr file_number_recv_mr;
+  rdma_mg->Allocate_Local_RDMA_Slot(file_number_recv_mr, "version_edit");
+  send_pointer->reply_buffer = file_number_recv_mr.addr;
+  send_pointer->rkey = file_number_recv_mr.rkey;
+  send_pointer->received = true;
+  //TODO: how to check whether the version edit message is ready, we need to know the size of the
+  // version edit in the first REQUEST from compute node.
+  volatile char* polling_byte = (char*)file_number_recv_mr.addr + request.content.ive.buffer_size - 1;
+  memset((void*)polling_byte, 0, 1);
+  for (int i = 0; i < 100; ++i) {
+    if(*polling_byte != 0){
+      printf("polling byte error");
+      assert(false);
+    }
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+                      &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
+  DEBUG_arg("install non-trival version, version id is %lu\n", request.content.ive.version_id);
+  size_t counter = 0;
+  while (*(unsigned char*)polling_byte != 1){
+    _mm_clflush(polling_byte);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
+    std::fprintf(stderr, "Polling install version handler\r");
+    std::fflush(stderr);
+    counter++;
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  uint64_t* arr_ptr = (uint64_t*)file_number_recv_mr.addr;
+  uint32_t size = (request.content.ive.buffer_size - 1)/sizeof(uint64_t);
+  assert((request.content.ive.buffer_size - 1)%sizeof(uint64_t) == 0);
+  versions_->Persistency_unpin(arr_ptr, size);
+}
+#endif
 void DBImpl::ResetThreadLocalSuperVersions() {
   autovector<void*> sv_ptrs;
   // If there the default pointer for local_sv_ s are nullptr

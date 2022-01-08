@@ -11,11 +11,16 @@
 #include "util/rdma.h"
 #include "util/env_posix.h"
 #include "util/ThreadPool.h"
+#include "db/log_writer.h"
 #include "db/version_set.h"
 
 namespace TimberSaw {
 struct Arg_for_handler{
   RDMA_Request* request;
+  std::string client_ip;
+};
+struct Arg_for_persistent{
+  VersionEdit* edit;
   std::string client_ip;
 };
 class Memory_Node_Keeper {
@@ -33,12 +38,13 @@ class Memory_Node_Keeper {
   void SetBackgroundThreads(int num,  ThreadPoolType type);
 //  void MaybeScheduleCompaction(std::string& client_ip);
 //  static void BGWork_Compaction(void* thread_args);
-  static void RPC_Compaction(void* thread_args);
-  static void RPC_Garbage_Collection(void* thread_args);
-
+  static void RPC_Compaction_Dispatch(void* thread_args);
+  static void RPC_Garbage_Collection_Dispatch(void* thread_args);
+  static void Persistence_Dispatch(void* thread_args);
 //  void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
-  void PersistSSTables(VersionEdit* edit);
+  void PersistSSTables(void* arg);
+  void UnpinSSTables_RPC(VersionEdit* edit, std::string& client_ip);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
   Status DoCompactionWorkWithSubcompaction(CompactionState* compact,
@@ -144,11 +150,16 @@ class Memory_Node_Keeper {
   PosixLockTable locks_;  // Thread-safe.
   Limiter mmap_limiter_;  // Thread-safe.
   Limiter fd_limiter_;    // Thread-safe.
+  // Opened lazily
+  WritableFile* descriptor_file;
+  log::Writer* descriptor_log;
+  uint64_t manifest_file_number_ = 0;
   bool usesubcompaction;
   TableCache* const table_cache_;
   std::vector<std::thread> main_comm_threads;
   ThreadPool Compactor_pool_;
   ThreadPool Message_handler_pool_;
+  ThreadPool Persistency_bg_pool_;
   std::mutex versionset_mtx;
   VersionSet* versions_;
 #ifndef NDEBUG

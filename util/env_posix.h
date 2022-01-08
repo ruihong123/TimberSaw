@@ -38,24 +38,24 @@ namespace TimberSaw {
 
 
 // Set by EnvPosixTestHelper::SetReadOnlyMMapLimit() and MaxOpenFiles().
-int g_open_read_only_file_limit = -1;
+static int g_open_read_only_file_limit = -1;
 
 // Up to 1000 mmap regions for 64-bit binaries; none for 32-bit.
-constexpr const int kDefaultMmapLimit = (sizeof(void*) >= 8) ? 1000 : 0;
+static constexpr const int kDefaultMmapLimit = (sizeof(void*) >= 8) ? 1000 : 0;
 
 // Can be set using EnvPosixTestHelper::SetReadOnlyMMapLimit().
-int g_mmap_limit = kDefaultMmapLimit;
+static int g_mmap_limit = kDefaultMmapLimit;
 
 // Common flags defined for all posix open operations
 #if defined(HAVE_O_CLOEXEC)
 constexpr const int kOpenBaseFlags = O_CLOEXEC;
 #else
-constexpr const int kOpenBaseFlags = 0;
+static constexpr const int kOpenBaseFlags = 0;
 #endif  // defined(HAVE_O_CLOEXEC)
 
-constexpr const size_t kWritableFileBufferSize = 65536;
+static constexpr const size_t kWritableFileBufferSize = 65536;
 
-Status PosixError(const std::string& context, int error_number) {
+static Status PosixError(const std::string& context, int error_number) {
   if (error_number == ENOENT) {
     return Status::NotFound(context, std::strerror(error_number));
   } else {
@@ -101,7 +101,7 @@ class Limiter {
 
 
 
-int LockOrUnlock(int fd, bool lock) {
+static int LockOrUnlock(int fd, bool lock) {
   errno = 0;
   struct ::flock file_lock_info;
   std::memset(&file_lock_info, 0, sizeof(file_lock_info));
@@ -776,10 +776,10 @@ class PosixEnv : public Env {
 };
 
 // Return the maximum number of concurrent mmaps.
-int MaxMmaps() { return g_mmap_limit; }
+static int MaxMmaps() { return g_mmap_limit; }
 
 // Return the maximum number of read-only files to keep open.
-int MaxOpenFiles() {
+static int MaxOpenFiles() {
   if (g_open_read_only_file_limit >= 0) {
     return g_open_read_only_file_limit;
   }
