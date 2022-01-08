@@ -221,7 +221,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
   VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
   for (auto iter : *edit->GetNewFiles()) {
-
+    DEBUG_arg("Persist SSTable %lu", iter.second->number);
     std::string fname = TableFileName(".", iter.second->number);
     WritableFile * f;
 //      std::vector<uint32_t> chunk_barriers;
