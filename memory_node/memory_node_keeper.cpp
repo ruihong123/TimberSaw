@@ -220,47 +220,50 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
   VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
-  for (auto iter : *edit->GetNewFiles()) {
-    DEBUG_arg("Persist SSTable %lu", iter.second->number);
-    std::string fname = TableFileName(".", iter.second->number);
-    WritableFile * f;
-//      std::vector<uint32_t> chunk_barriers;
-    uint32_t barrier_size = iter.second->remote_data_mrs.size() +
-                          iter.second->remote_dataindex_mrs.size() +
-                          iter.second->remote_filter_mrs.size();
-    uint32_t* barrier_arr = new uint32_t[barrier_size];
-    Status s = NewWritableFile(fname, &f);
-    uint32_t offset = 0;
-    uint32_t chunk_index = 0;
-    for(auto chunk : iter.second->remote_data_mrs){
-      offset +=chunk.second->length;
-      barrier_arr[chunk_index] = offset;
-      f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-      chunk_index++;
+  if (!edit->IsTrival()){
+    for (auto iter : *edit->GetNewFiles()) {
+      DEBUG_arg("Persist SSTable %lu", iter.second->number);
+      std::string fname = TableFileName(".", iter.second->number);
+      WritableFile * f;
+      //      std::vector<uint32_t> chunk_barriers;
+      uint32_t barrier_size = iter.second->remote_data_mrs.size() +
+                              iter.second->remote_dataindex_mrs.size() +
+                              iter.second->remote_filter_mrs.size();
+      uint32_t* barrier_arr = new uint32_t[barrier_size];
+      Status s = NewWritableFile(fname, &f);
+      uint32_t offset = 0;
+      uint32_t chunk_index = 0;
+      for(auto chunk : iter.second->remote_data_mrs){
+        offset +=chunk.second->length;
+        barrier_arr[chunk_index] = offset;
+        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+        chunk_index++;
+
+      }
+
+      for(auto chunk : iter.second->remote_dataindex_mrs){
+        offset +=chunk.second->length;
+        barrier_arr[chunk_index] = offset;
+        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+        chunk_index++;
+      }
+      for(auto chunk : iter.second->remote_filter_mrs){
+        offset +=chunk.second->length;
+        barrier_arr[chunk_index] = offset;
+        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+        chunk_index++;
+      }
+      f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
+
+      f->Append(Slice((char*)&barrier_size, sizeof(uint32_t)));
+      f->Flush();
+      f->Sync();
+      f->Close();
+      delete[] barrier_arr;
 
     }
-
-    for(auto chunk : iter.second->remote_dataindex_mrs){
-      offset +=chunk.second->length;
-      barrier_arr[chunk_index] = offset;
-      f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-      chunk_index++;
-    }
-    for(auto chunk : iter.second->remote_filter_mrs){
-      offset +=chunk.second->length;
-      barrier_arr[chunk_index] = offset;
-      f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-      chunk_index++;
-    }
-    f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
-
-    f->Append(Slice((char*)&barrier_size, sizeof(uint32_t)));
-    f->Flush();
-    f->Sync();
-    f->Close();
-    delete[] barrier_arr;
-
   }
+
   // Initialize new descriptor log file if necessary by creating
   // a temporary file that contains a snapshot of the current version.
   std::string new_manifest_file;
