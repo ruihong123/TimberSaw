@@ -14,10 +14,10 @@ namespace TimberSaw {
 struct TableBuilder_ComputeSide::Rep {
   Rep(const Options& opt, IO_type type)
   : options(opt),
-  type_(type),
   index_block_options(opt),
-  offset(0),
+  type_(type),
   offset_last_flushed(0),
+  offset(0),
 
   num_entries(0),
   closed(false),

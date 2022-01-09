@@ -43,7 +43,7 @@ class ThreadPool{
   void WakeUpAllThreads() { bgsignal_.notify_all();
   }
   void BGThread() {
-    bool low_io_priority = false;
+//    bool low_io_priority = false;
     while (true) {
       // Wait until there is an item that is ready to run
       std::unique_lock<std::mutex> lock(mu_);

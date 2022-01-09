@@ -11,7 +11,6 @@ namespace TimberSaw {
 
 namespace {
 
-
 class BloomFilterPolicy : public FilterPolicy {
  public:
   explicit BloomFilterPolicy(int bits_per_key) : bits_per_key_(bits_per_key) {

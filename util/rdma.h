@@ -214,7 +214,7 @@ class In_Use_Array {
     }
     return -1;  // Not find the empty memory chunk.
   }
-  bool deallocate_memory_slot(int index) {
+  bool deallocate_memory_slot(size_t index) {
     bool temp = true;
     assert(in_use_[index] == true);
     assert(index < element_size_);
