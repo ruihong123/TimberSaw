@@ -1506,7 +1506,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   assert(version_edit->GetNewFilesNum() > 0);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit->GetNewFilesNum());
   std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
-  versions_->LogAndApply(version_edit, &lck);
+//  versions_->LogAndApply(version_edit, &lck);
 #ifdef WITHPERSISTENCE
   Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit=version_edit,.client_ip = client_ip};
   BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
