@@ -274,6 +274,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     assert(descriptor_file == nullptr);
     new_manifest_file = DescriptorFileName(".", manifest_file_number_);
 //      edit->SetNextFile(next_file_number_);
+
     s = NewWritableFile(new_manifest_file, &descriptor_file);
     if (s.ok()) {
       descriptor_log = new log::Writer(descriptor_file);
@@ -290,7 +291,10 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     }
 
   }
-  UnpinSSTables_RPC(edit, client_ip);
+  if (!edit->IsTrival()){
+    UnpinSSTables_RPC(edit, client_ip);
+  }
+
   delete edit;
 }
 void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
