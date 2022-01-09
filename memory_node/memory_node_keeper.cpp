@@ -1505,14 +1505,14 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
   assert(version_edit->GetNewFilesNum() > 0);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit->GetNewFilesNum());
-  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
+//  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
 //  versions_->LogAndApply(version_edit, &lck);
 #ifdef WITHPERSISTENCE
   Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit=version_edit,.client_ip = client_ip};
   BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
   Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
 #endif
-  lck.unlock();
+//  lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
 
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
