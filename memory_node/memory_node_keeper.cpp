@@ -940,7 +940,7 @@ Status Memory_Node_Keeper::FinishCompactionOutputFile(CompactionState* compact,
   assert(compact->builder != nullptr);
 
   const uint64_t output_number = compact->current_output()->number;
-  assert(output_number != 0);
+//  assert(output_number != 0);
 
   // Check for iterator errors
   Status s = input->status();
