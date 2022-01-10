@@ -411,11 +411,11 @@ bool Version::RecordReadSample(Slice internal_key) {
 }
 
 void Version::Ref(int mark) {
-#ifndef NDEBUG
-  if (std::find(ref_mark_collection.begin(), ref_mark_collection.end(), mark) != ref_mark_collection.end())
-    printf("mark in the ref\n");
-#endif
-  ref_mark_collection.push_back(mark);
+//#ifndef NDEBUG
+//  if (std::find(ref_mark_collection.begin(), ref_mark_collection.end(), mark) != ref_mark_collection.end())
+//    printf("mark in the ref\n");
+//#endif
+//  ref_mark_collection.push_back(mark);
 
   ++refs_;
 }
@@ -423,13 +423,13 @@ void Version::Ref(int mark) {
 void Version::Unref(int mark) {
   assert(this != &vset_->dummy_versions_);
   assert(refs_ >= 1);
-  unref_mark_collection.push_back(mark);
+//  unref_mark_collection.push_back(mark);
   --refs_;
   if (refs_ == 0) {
     DEBUG("Version get garbage collected\n");
-#ifndef NDEBUG
-    vset_->version_remain--;
-#endif
+//#ifndef NDEBUG
+//    vset_->version_remain--;
+//#endif
 //    if (Env::Default()->rdma_mg->node_id == 0){
 //
 //    }
