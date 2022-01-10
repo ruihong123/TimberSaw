@@ -488,6 +488,8 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
     }else{
       //if this is a trival edit, the delted file will not triger its unpin.
       if (!edit->IsTrival()){
+        if(std::get<1>(iter) == 4)
+          printf("here");
         merged_file_numbers.push_back(std::get<1>(iter));
         if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
           ready_to_upin_merged_file = true;
