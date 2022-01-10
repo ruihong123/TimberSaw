@@ -45,7 +45,7 @@ class Memory_Node_Keeper {
   void CleanupCompaction(CompactionState* compact);
   void PersistSSTables(void* arg);
   void PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr);
-  void UnpinSSTables_RPC(VersionEdit* edit, std::string& client_ip);
+  void UnpinSSTables_RPC(VersionEdit_Merger* edit_merger, std::string& client_ip);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
   Status DoCompactionWorkWithSubcompaction(CompactionState* compact,
@@ -163,6 +163,7 @@ class Memory_Node_Keeper {
   ThreadPool Persistency_bg_pool_;
   std::mutex versionset_mtx;
   VersionSet* versions_;
+  VersionEdit_Merger ve_merger;
 #ifndef NDEBUG
   std::atomic<size_t> debug_counter = 0;
 #endif

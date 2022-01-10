@@ -220,12 +220,16 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
   VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
-  int thread_number = edit->GetNewFilesNum();
+  if(!ve_merger.merge_one_edit(edit)){
+    return;
+  }
 
-  if (!edit->IsTrival()){
+  int thread_number = ve_merger.GetNewFilesNum();
+
+  if (!ve_merger.IsTrival()){
     std::thread* threads = new std::thread[thread_number];
     int i = 0;
-    for (auto iter : *edit->GetNewFiles()) {
+    for (auto iter : *ve_merger.GetNewFiles()) {
       threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
       i++;
     }
@@ -255,15 +259,15 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
   // Write new record to MANIFEST log
   if (s.ok()) {
     std::string record;
-    edit->EncodeToDiskFormat(&record);
+    ve_merger.EncodeToDiskFormat(&record);
     s = descriptor_log->AddRecord(record);
     if (s.ok()) {
       s = descriptor_file->Sync();
     }
 
   }
-  if (!edit->IsTrival()){
-    UnpinSSTables_RPC(edit, client_ip);
+  if (!ve_merger.IsTrival()){
+    UnpinSSTables_RPC(&ve_merger, client_ip);
   }
 
   delete edit;
@@ -309,7 +313,7 @@ void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> 
   delete[] barrier_arr;
 }
 
-void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
+void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
                                           std::string& client_ip) {
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
@@ -322,7 +326,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
-  for(auto iter : *edit->GetNewFiles()){
+  for(auto iter : *edit_merger->GetNewFiles()){
     arr_ptr[index] = iter.second->number;
     index++;
   }

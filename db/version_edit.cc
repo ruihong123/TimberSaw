@@ -480,4 +480,41 @@ std::string VersionEdit::DebugString() const {
   return r;
 }
 
+bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
+  for (auto iter : *edit->GetNewFiles()) {
+    new_files.insert({iter.second->number, iter.second});
+  }
+  for (auto iter : *edit->GetDeletedFiles()){
+    if (new_files.erase(std::get<1>(iter)) == 0)
+      deleted_files.insert(iter);
+  }
+  ve_counter++;
+  if (ve_counter >= EDIT_MERGER_COUNT){
+    ve_counter = 0;
+    return true;
+  }else{
+    return false;
+  }
+}
+void VersionEdit_Merger::EncodeToDiskFormat(std::string* dst) const {
+  for (const auto& deleted_file_kvp : deleted_files) {
+    PutVarint32(dst, kDeletedFile);
+    PutVarint32(dst, std::get<0>(deleted_file_kvp));   // level
+    PutVarint64(dst, std::get<1>(deleted_file_kvp));  // file number
+    PutVarint64(dst, std::get<2>(deleted_file_kvp));  // creator node id
+  }
+
+  for (auto iter : new_files) {
+    std::shared_ptr<RemoteMemTableMetaData> f = iter.second;
+    PutVarint32(dst, kNewFile);
+    PutVarint32(dst, f->level);  // level
+    PutVarint64(dst, f->number);
+    dst->append(reinterpret_cast<const char*>(&f->creator_node_id), sizeof(f->creator_node_id));
+
+    PutVarint64(dst, f->file_size);
+    PutLengthPrefixedSlice(dst, f->smallest.Encode());
+    PutLengthPrefixedSlice(dst, f->largest.Encode());
+  }
+}
+
 }  // namespace TimberSaw

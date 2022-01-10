@@ -4,7 +4,7 @@
 
 #ifndef STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 #define STORAGE_TimberSaw_DB_VERSION_EDIT_H_
-
+#define EDIT_MERGER_COUNT 32
 #include <set>
 #include <utility>
 #include <vector>
@@ -23,7 +23,7 @@ struct RemoteMemTableMetaData {
 // this_machine_type 0 means compute node, 1 means memory node
 // creater_node_id  0 means compute node, 1 means memory node
   RemoteMemTableMetaData(int side);
-  //TOTHINK: the garbage collection of the Remmote table is not triggered!
+  //TOTHINK: the garbage collection of the Remote table is not triggered!
   ~RemoteMemTableMetaData() {
     //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
     // home node to deference. Or the remote dereference is conducted in the granularity of version.
@@ -154,6 +154,7 @@ struct RemoteMemTableMetaData {
 
 class VersionEdit {
  public:
+  typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
   VersionEdit() { Clear(); }
   ~VersionEdit() = default;
 
@@ -206,6 +207,9 @@ class VersionEdit {
   std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>>* GetNewFiles(){
     return &new_files_;
   }
+  DeletedFileSet* GetDeletedFiles(){
+    return &deleted_files_;
+  }
   void AddFileIfNotExist(int level,
                const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
     for(auto iter : new_files_){
@@ -242,7 +246,7 @@ class VersionEdit {
  private:
   friend class VersionSet;
   // level, file number, node_id
-  typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
+
 
   std::string comparator_;
   uint64_t log_number_;
@@ -259,7 +263,28 @@ class VersionEdit {
   DeletedFileSet deleted_files_;
   std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>> new_files_;
 };
+class VersionEdit_Merger{
+ public:
+  typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
+  DeletedFileSet deleted_files;
+  int ve_counter;
+  std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>> new_files;
+  bool merge_one_edit(VersionEdit* edit);
+  bool IsTrival(){
+    return deleted_files.size() == 1;
+  }
+  std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>>* GetNewFiles(){
+    return &new_files;
+  }
 
+  DeletedFileSet* GetDeletedFiles(){
+    return &deleted_files;
+  }
+  size_t GetNewFilesNum(){
+    return new_files.size();
+  }
+  void EncodeToDiskFormat(std::string* dst) const;
+};
 }  // namespace TimberSaw
 
 #endif  // STORAGE_TimberSaw_DB_VERSION_EDIT_H_

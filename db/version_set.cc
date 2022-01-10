@@ -808,18 +808,18 @@ class VersionSet::Builder {
 VersionSet::VersionSet(const std::string& dbname, const Options* options,
                        TableCache* table_cache, const InternalKeyComparator* cmp,
                        std::mutex* mtx)
-    : env_(options->env),
+    : table_cache_(table_cache),
+      descriptor_file(nullptr),
+      descriptor_log(nullptr),
+      env_(options->env),
       dbname_(dbname),
       options_(options),
-      table_cache_(table_cache),
-      icmp_(*cmp),
+      icmp_(*cmp),  // Filled by Recover()
       next_file_number_(2),
-      manifest_file_number_(0),  // Filled by Recover()
+      manifest_file_number_(0),
       last_sequence_(0),
       log_number_(0),
       prev_log_number_(0),
-      descriptor_file(nullptr),
-      descriptor_log(nullptr),
       dummy_versions_(this),
       current_(nullptr),
       version_set_mtx(mtx){
