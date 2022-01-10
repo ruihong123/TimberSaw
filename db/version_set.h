@@ -60,7 +60,8 @@ struct Saver {
 static void SaveValue(void* arg, const Slice& ikey, const Slice& v) {
   Saver* s = reinterpret_cast<Saver*>(arg);
   ParsedInternalKey parsed_key;
-  if (!ParseInternalKey(ikey, &parsed_key)) {//TOTHINK: may be the parse internal key is too slow?
+  if (!ParseInternalKey(ikey, &parsed_key)) {
+    //TOTHINK: may be the parse internal key is too slow?
     s->state = kCorrupt;
   } else {
     if (s->ucmp->Compare(parsed_key.user_key, s->user_key) == 0) {// if found mark as kFound
