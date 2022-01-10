@@ -3580,7 +3580,7 @@ void DBImpl::GetApproximateSizes(const Range* range, int n, uint64_t* sizes) {
   // TODO(opt): better implementation
   MutexLock l(&undefine_mutex);
   Version* v = versions_->current();
-  v->Ref(0);
+//  v->Ref(0);
 
   for (int i = 0; i < n; i++) {
     // Convert user_key into a corresponding internal key.

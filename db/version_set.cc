@@ -606,12 +606,12 @@ class VersionSet::Builder {
   ~Builder() {
     for (int level = 0; level < config::kNumLevels; level++) {
       const FileSet* added = levels_[level].added_files;
-      std::vector<std::shared_ptr<RemoteMemTableMetaData>> to_unref;
-      to_unref.reserve(added->size());
-      for (FileSet::const_iterator it = added->begin(); it != added->end();
-           ++it) {
-        to_unref.push_back(*it);
-      }
+//      std::vector<std::shared_ptr<RemoteMemTableMetaData>> to_unref;
+//      to_unref.reserve(added->size());
+//      for (FileSet::const_iterator it = added->begin(); it != added->end();
+//           ++it) {
+//        to_unref.push_back(*it);
+//      }
       delete added;
 //      for (uint32_t i = 0; i < to_unref.size(); i++) {
 //        std::shared_ptr<RemoteMemTableMetaData> f = to_unref[i];
