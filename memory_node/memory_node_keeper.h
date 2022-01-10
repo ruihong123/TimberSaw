@@ -44,6 +44,7 @@ class Memory_Node_Keeper {
 //  void BackgroundCompaction(void* p);
   void CleanupCompaction(CompactionState* compact);
   void PersistSSTables(void* arg);
+  void PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr);
   void UnpinSSTables_RPC(VersionEdit* edit, std::string& client_ip);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);

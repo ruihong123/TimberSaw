@@ -220,48 +220,19 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
   VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
+  int thread_number = edit->GetNewFilesNum();
+
   if (!edit->IsTrival()){
+    std::thread* threads = new std::thread[thread_number];
+    int i = 0;
     for (auto iter : *edit->GetNewFiles()) {
-      DEBUG_arg("Persist SSTable %lu", iter.second->number);
-      std::string fname = TableFileName(".", iter.second->number);
-      WritableFile * f;
-      //      std::vector<uint32_t> chunk_barriers;
-      uint32_t barrier_size = iter.second->remote_data_mrs.size() +
-                              iter.second->remote_dataindex_mrs.size() +
-                              iter.second->remote_filter_mrs.size();
-      uint32_t* barrier_arr = new uint32_t[barrier_size];
-      Status s = NewWritableFile(fname, &f);
-      uint32_t offset = 0;
-      uint32_t chunk_index = 0;
-      for(auto chunk : iter.second->remote_data_mrs){
-        offset +=chunk.second->length;
-        barrier_arr[chunk_index] = offset;
-        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-        chunk_index++;
-
-      }
-
-      for(auto chunk : iter.second->remote_dataindex_mrs){
-        offset +=chunk.second->length;
-        barrier_arr[chunk_index] = offset;
-        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-        chunk_index++;
-      }
-      for(auto chunk : iter.second->remote_filter_mrs){
-        offset +=chunk.second->length;
-        barrier_arr[chunk_index] = offset;
-        f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
-        chunk_index++;
-      }
-      f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
-
-      f->Append(Slice((char*)&barrier_size, sizeof(uint32_t)));
-      f->Flush();
-      f->Sync();
-      f->Close();
-      delete[] barrier_arr;
-
+      threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
+      i++;
     }
+    for (int i = 0; i < thread_number; ++i) {
+      threads[i].join();
+    }
+    delete[] threads;
   }
 
   // Initialize new descriptor log file if necessary by creating
@@ -297,6 +268,47 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
   delete edit;
 }
+void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr) {
+  DEBUG_arg("Persist SSTable %lu", sstable_ptr->number);
+  std::string fname = TableFileName(".", sstable_ptr->number);
+  WritableFile * f;
+  //      std::vector<uint32_t> chunk_barriers;
+  uint32_t barrier_size = sstable_ptr->remote_data_mrs.size() +
+                          sstable_ptr->remote_dataindex_mrs.size() +
+                          sstable_ptr->remote_filter_mrs.size();
+  uint32_t* barrier_arr = new uint32_t[barrier_size];
+  Status s = NewWritableFile(fname, &f);
+  uint32_t offset = 0;
+  uint32_t chunk_index = 0;
+  for(auto chunk : sstable_ptr->remote_data_mrs){
+    offset +=chunk.second->length;
+    barrier_arr[chunk_index] = offset;
+    f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+    chunk_index++;
+
+  }
+
+  for(auto chunk : sstable_ptr->remote_dataindex_mrs){
+    offset +=chunk.second->length;
+    barrier_arr[chunk_index] = offset;
+    f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+    chunk_index++;
+  }
+  for(auto chunk : sstable_ptr->remote_filter_mrs){
+    offset +=chunk.second->length;
+    barrier_arr[chunk_index] = offset;
+    f->Append(Slice((char*)chunk.second->addr, chunk.second->length));
+    chunk_index++;
+  }
+  f->Append(Slice((char*)barrier_arr, barrier_size* sizeof(uint32_t)));
+
+  f->Append(Slice((char*)&barrier_size, sizeof(uint32_t)));
+  f->Flush();
+  f->Sync();
+  f->Close();
+  delete[] barrier_arr;
+}
+
 void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit* edit,
                                           std::string& client_ip) {
   RDMA_Request* send_pointer;
@@ -1931,7 +1943,6 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
 
   }
-
 
   }
 
