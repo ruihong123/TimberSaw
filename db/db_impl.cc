@@ -1814,7 +1814,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
 
     versions_->LogAndApply(&edit, &lck_vs);
-
+    c->ReleaseInputs();
     lck_vs.unlock();
 
     InstallSuperVersion();
@@ -1826,7 +1826,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   rdma_mg->RDMA_Write(remote_prt, remote_rkey,
                            &send_mr, sizeof(uint64_t) + 1, "main",
                            IBV_SEND_SIGNALED, 1);
-  c->ReleaseInputs();
+
+
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_c.addr,"version_edit");
   rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,"version_edit");
