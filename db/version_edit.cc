@@ -482,11 +482,17 @@ std::string VersionEdit::DebugString() const {
 
 bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
   for (auto iter : *edit->GetNewFiles()) {
-    new_files.insert({iter.second->number, iter.second});
+    new_files_.insert({iter.second->number, iter.second});
   }
   for (auto iter : *edit->GetDeletedFiles()){
-    if (new_files.erase(std::get<1>(iter)) == 0)
-      deleted_files.insert(iter);
+    if (new_files_.erase(std::get<1>(iter)) == 0) {
+      deleted_files_.insert(iter);
+    }else{
+      merged_file_numbers.push_back(std::get<1>(iter));
+      if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
+        ready_to_upin_merged_file = true;
+      }
+    }
   }
   ve_counter++;
   if (ve_counter >= EDIT_MERGER_COUNT){
@@ -497,14 +503,14 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
   }
 }
 void VersionEdit_Merger::EncodeToDiskFormat(std::string* dst) const {
-  for (const auto& deleted_file_kvp : deleted_files) {
+  for (const auto& deleted_file_kvp : deleted_files_) {
     PutVarint32(dst, kDeletedFile);
     PutVarint32(dst, std::get<0>(deleted_file_kvp));   // level
     PutVarint64(dst, std::get<1>(deleted_file_kvp));  // file number
     PutVarint64(dst, std::get<2>(deleted_file_kvp));  // creator node id
   }
 
-  for (auto iter : new_files) {
+  for (auto iter : new_files_) {
     std::shared_ptr<RemoteMemTableMetaData> f = iter.second;
     PutVarint32(dst, kNewFile);
     PutVarint32(dst, f->level);  // level

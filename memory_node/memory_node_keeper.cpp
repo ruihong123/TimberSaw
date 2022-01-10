@@ -221,55 +221,74 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
   VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
   if(!ve_merger.merge_one_edit(edit)){
+    // NOt digusting enough edit, directly get the next edit.
+
+    // unpin the sstables merged during the edit merge
+    if (ve_merger.ready_to_upin_merged_file){
+      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+      ve_merger.ready_to_upin_merged_file = false;
+      ve_merger.merged_file_numbers.clear();
+    }
     return;
-  }
+  }else{
 
-  int thread_number = ve_merger.GetNewFilesNum();
-
-  if (!ve_merger.IsTrival()){
-    std::thread* threads = new std::thread[thread_number];
-    int i = 0;
-    for (auto iter : *ve_merger.GetNewFiles()) {
-      threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
-      i++;
+    // unpin the sstables merged during the edit merge
+    if (ve_merger.ready_to_upin_merged_file){
+      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+      ve_merger.ready_to_upin_merged_file = false;
+      ve_merger.merged_file_numbers.clear();
     }
-    for (int i = 0; i < thread_number; ++i) {
-      threads[i].join();
+
+    // The version edit merger has merge enough edits, lets make those files durable.
+
+    int thread_number = ve_merger.GetNewFilesNum();
+
+    if (!ve_merger.IsTrival()){
+      std::thread* threads = new std::thread[thread_number];
+      int i = 0;
+      for (auto iter : *ve_merger.GetNewFiles()) {
+        threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
+        i++;
+      }
+      for (int i = 0; i < thread_number; ++i) {
+        threads[i].join();
+      }
+      delete[] threads;
     }
-    delete[] threads;
-  }
 
-  // Initialize new descriptor log file if necessary by creating
-  // a temporary file that contains a snapshot of the current version.
-  std::string new_manifest_file;
-  Status s;
-  if (descriptor_log == nullptr) {
-    // No reason to unlock *mu here since we only hit this path in the
-    // first call to LogAndApply (when opening the database).
-    assert(descriptor_file == nullptr);
-    new_manifest_file = DescriptorFileName(".", manifest_file_number_);
-//      edit->SetNextFile(next_file_number_);
+    // Initialize new descriptor log file if necessary by creating
+    // a temporary file that contains a snapshot of the current version.
+    std::string new_manifest_file;
+    Status s;
+    if (descriptor_log == nullptr) {
+      // No reason to unlock *mu here since we only hit this path in the
+      // first call to LogAndApply (when opening the database).
+      assert(descriptor_file == nullptr);
+      new_manifest_file = DescriptorFileName(".", manifest_file_number_);
+      //      edit->SetNextFile(next_file_number_);
 
-    s = NewWritableFile(new_manifest_file, &descriptor_file);
+      s = NewWritableFile(new_manifest_file, &descriptor_file);
+      if (s.ok()) {
+        descriptor_log = new log::Writer(descriptor_file);
+        //        s = WriteSnapshot(descriptor_log);
+      }
+    }
+    // Write new record to MANIFEST log
     if (s.ok()) {
-      descriptor_log = new log::Writer(descriptor_file);
-//        s = WriteSnapshot(descriptor_log);
+      std::string record;
+      ve_merger.EncodeToDiskFormat(&record);
+      s = descriptor_log->AddRecord(record);
+      if (s.ok()) {
+        s = descriptor_file->Sync();
+      }
+
     }
-  }
-  // Write new record to MANIFEST log
-  if (s.ok()) {
-    std::string record;
-    ve_merger.EncodeToDiskFormat(&record);
-    s = descriptor_log->AddRecord(record);
-    if (s.ok()) {
-      s = descriptor_file->Sync();
+    if (!ve_merger.IsTrival()){
+      UnpinSSTables_RPC(&ve_merger, client_ip);
     }
 
-  }
-  if (!ve_merger.IsTrival()){
-    UnpinSSTables_RPC(&ve_merger, client_ip);
-  }
 
+  }
   delete edit;
 }
 void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr) {
@@ -374,7 +393,66 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
 }
 
+void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_number,
+                                           std::string& client_ip) {
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr send_mr_large = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_large, "version_edit");
 
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
+  uint32_t index = 0;
+  for(auto iter : *merged_file_number){
+    arr_ptr[index] = iter;
+    index++;
+  }
+  memset((char*)send_mr_large.addr + index*sizeof(uint64_t), 1, 1);
+
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = persist_unpin_;
+  send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;
+
+  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->rkey = receive_mr.rkey;
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+  *receive_pointer = {};
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+  //TODO: Think of a better way to avoid deadlock and guarantee the same
+  // sequence of verision edit between compute node and memory server.
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return;
+  }
+
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
+  {
+    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Received is %d", receive_pointer->received);
+    printf("receive structure size is %lu", sizeof(RDMA_Reply));
+    printf("version id is %lu", versions_->version_id);
+    exit(0);
+  }
+  asm volatile ("sfence\n" : : );
+  asm volatile ("lfence\n" : : );
+  asm volatile ("mfence\n" : : );
+  rdma_mg->RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
+                      &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,"version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+}
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
   //  undefine_mutex.AssertHeld();
   if (compact->builder != nullptr) {

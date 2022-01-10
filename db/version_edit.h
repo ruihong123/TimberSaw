@@ -5,6 +5,7 @@
 #ifndef STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 #define STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 #define EDIT_MERGER_COUNT 32
+#define UNPIN_GRANULARITY 5
 #include <set>
 #include <utility>
 #include <vector>
@@ -263,27 +264,32 @@ class VersionEdit {
   DeletedFileSet deleted_files_;
   std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>> new_files_;
 };
-class VersionEdit_Merger{
+class VersionEdit_Merger {
  public:
   typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
-  DeletedFileSet deleted_files;
-  int ve_counter;
-  std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>> new_files;
+
   bool merge_one_edit(VersionEdit* edit);
   bool IsTrival(){
-    return deleted_files.size() == 1;
+    return deleted_files_.size() == 1;
   }
   std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>>* GetNewFiles(){
-    return &new_files;
+    return &new_files_;
   }
 
   DeletedFileSet* GetDeletedFiles(){
-    return &deleted_files;
+    return &deleted_files_;
   }
-  size_t GetNewFilesNum(){
-    return new_files.size();
+  size_t GetNewFilesNum() {
+    return new_files_.size();
   }
   void EncodeToDiskFormat(std::string* dst) const;
+  std::list<uint64_t> merged_file_numbers;
+  bool ready_to_upin_merged_file;
+ private:
+  DeletedFileSet deleted_files_;
+
+  int ve_counter;
+  std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>> new_files_;
 };
 }  // namespace TimberSaw
 
