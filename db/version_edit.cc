@@ -481,18 +481,23 @@ std::string VersionEdit::DebugString() const {
 }
 
 bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
-  for (auto iter : *edit->GetNewFiles()) {
-    new_files_.insert({iter.second->number, iter.second});
-  }
+
   for (auto iter : *edit->GetDeletedFiles()){
     if (new_files_.erase(std::get<1>(iter)) == 0) {
       deleted_files_.insert(iter);
     }else{
-      merged_file_numbers.push_back(std::get<1>(iter));
-      if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
-        ready_to_upin_merged_file = true;
+      //if this is a trival edit, the delted file will not triger its unpin.
+      if (!edit->IsTrival()){
+        merged_file_numbers.push_back(std::get<1>(iter));
+        if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
+          ready_to_upin_merged_file = true;
+        }
+
       }
     }
+  }
+  for (auto iter : *edit->GetNewFiles()) {
+    new_files_.insert({iter.second->number, iter.second});
   }
   ve_counter++;
   if (ve_counter >= EDIT_MERGER_COUNT){
