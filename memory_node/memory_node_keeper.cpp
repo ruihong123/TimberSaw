@@ -854,7 +854,7 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
 //    file_number = versions_->NewFileNumber();
     //    pending_outputs_.insert(file_number);
     CompactionOutput out;
-    out.number = file_number;
+//    out.number = file_number;
     out.smallest.Clear();
     out.largest.Clear();
     compact->outputs.push_back(out);
