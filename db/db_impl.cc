@@ -1105,6 +1105,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       assert(c->num_input_files(0) == 1);
       std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
       f->level = c->level() + 1;
+
       c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
       c->edit()->AddFile(c->level() + 1, f);
       {
@@ -1112,6 +1113,8 @@ void DBImpl::BackgroundCompaction(void* p) {
         std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
 
         status = versions_->LogAndApply(c->edit(), &l_vs);
+        //trival move need to clear the UnderCompaction flag
+        f->UnderCompaction = false;
         c->ReleaseInputs();
         Edit_sync_to_remote(c->edit(),&l_vs);
 //        l_vs.unlock();
