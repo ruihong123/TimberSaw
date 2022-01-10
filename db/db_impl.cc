@@ -1110,8 +1110,9 @@ void DBImpl::BackgroundCompaction(void* p) {
       {
         std::unique_lock<std::mutex> l_sv(superversion_memlist_mtx);
         std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
-        c->ReleaseInputs();
+
         status = versions_->LogAndApply(c->edit(), &l_vs);
+        c->ReleaseInputs();
         Edit_sync_to_remote(c->edit(),&l_vs);
 //        l_vs.unlock();
         InstallSuperVersion();
@@ -1418,9 +1419,11 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   }
   assert(compact->compaction->edit()->GetNewFilesNum() > 0 );
   lck_sv->lock();
-  compact->compaction->ReleaseInputs();
+
   std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
+
   Status s = versions_->LogAndApply(compact->compaction->edit(), &lck_vs);
+  compact->compaction->ReleaseInputs();
   write_stall_cv.notify_all();
   return s;
 }
