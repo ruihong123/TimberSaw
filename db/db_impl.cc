@@ -1793,8 +1793,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   byte_len = 0;
   imm_data = 0;
   assert(*((unsigned char*)recv_mr_c.addr + buffer_size - 1) == 1);
-  lck.unlock();
   assert(imm_data == 0);
+  lck.unlock();
+
 //  _mm_clflush(polling_size_2);
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
