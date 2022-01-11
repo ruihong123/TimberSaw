@@ -772,9 +772,9 @@ class VersionSet::Builder {
 
     if (file_number_deleted) {
       // File is deleted: do nothing
-#ifndef NDEBUG
-      printf("file NUM %lu get deleted.\n", f->number);
-#endif
+//#ifndef NDEBUG
+//      printf("file NUM %lu get deleted.\n", f->number);
+//#endif
     } else {
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* files = &v->levels_[level];
       std::vector<std::shared_ptr<RemoteMemTableMetaData>>* in_progresses = &v->in_progress[level];
@@ -890,11 +890,11 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
 //  }
 //
 //  edit->SetNextFile(next_file_number_.load());
-#ifndef NDEBUG
-  for (int i = 0; i < edit->GetNewFilesNum(); ++i) {
-    printf("file number for this flush or compaction version edit installation : %lu \n", (*edit->GetNewFiles())[i].second->number);
-  }
-#endif
+//#ifndef NDEBUG
+//  for (int i = 0; i < edit->GetNewFilesNum(); ++i) {
+//    printf("file number for this flush or compaction version edit installation : %lu \n", (*edit->GetNewFiles())[i].second->number);
+//  }
+//#endif
 
   edit->SetLastSequence(last_sequence_);
   Version* v;
