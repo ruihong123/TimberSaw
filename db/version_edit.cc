@@ -117,10 +117,10 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   assert(remote_data_chunk_num < 1000 && remote_data_chunk_num>0);
   for(auto i = 0; i< remote_data_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.
-    ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
-                            pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
-                            length: 0,
-                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
+    ibv_mr* mr = new ibv_mr{.context =  reinterpret_cast<ibv_context*>(context_temp),
+                            .pd =  reinterpret_cast<ibv_pd*>(pd_temp), .addr =  nullptr,
+                            .length =  0,
+                            .handle = handle_temp, .lkey = lkey_temp, .rkey = rkey_temp};
     uint32_t offset = 0;
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
@@ -132,10 +132,10 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   }
   for(auto i = 0; i< remote_dataindex_chunk_num; i++){
     //Todo: check whether the reinterpret_cast here make the correct value.
-    ibv_mr* mr = new ibv_mr{context: reinterpret_cast<ibv_context*>(context_temp),
-                            pd: reinterpret_cast<ibv_pd*>(pd_temp), addr: nullptr,
-                            length: 0,
-                            handle:handle_temp, lkey:lkey_temp, rkey:rkey_temp};
+    ibv_mr* mr = new ibv_mr{.context =  reinterpret_cast<ibv_context*>(context_temp),
+                            .pd =  reinterpret_cast<ibv_pd*>(pd_temp), .addr =  nullptr,
+                            .length =  0,
+                            .handle = handle_temp, .lkey = lkey_temp, .rkey = rkey_temp};
     uint32_t offset = 0;
     GetFixed32(&src, &offset);
     GetFixed64(&src, reinterpret_cast<uint64_t*>(&mr->addr));
@@ -486,10 +486,10 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
     if (new_files_.erase(std::get<1>(iter)) == 0) {
       deleted_files_.insert(iter);
     }else{
-      //if this is a trival edit, the delted file will not triger its unpin.
+      //if this is a trival edit, the delted file will not trigger its unpin.
       if (!edit->IsTrival()){
-        if(std::get<1>(iter) == 4)
-          printf("here");
+//        if(std::get<1>(iter) == 4)
+//          printf("here");
         merged_file_numbers.push_back(std::get<1>(iter));
         if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
           ready_to_upin_merged_file = true;

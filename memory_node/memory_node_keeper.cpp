@@ -346,6 +346,8 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   for(auto iter : *edit_merger->GetNewFiles()){
+    if (iter.second->number == 4)
+      printf("check here");
     arr_ptr[index] = iter.second->number;
     index++;
   }
@@ -407,6 +409,8 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   for(auto iter : *merged_file_number){
+    if (iter == 4)
+      printf("check here");
     arr_ptr[index] = iter;
     index++;
   }
