@@ -286,6 +286,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     if (!ve_merger.IsTrival()){
       UnpinSSTables_RPC(&ve_merger, client_ip);
     }
+    ve_merger.Clear();
 
 
   }

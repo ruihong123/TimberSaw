@@ -267,7 +267,10 @@ class VersionEdit {
 class VersionEdit_Merger {
  public:
   typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
-
+  void Clear(){
+    deleted_files_.clear();
+    new_files_.clear();
+  }
   bool merge_one_edit(VersionEdit* edit);
   bool IsTrival(){
     return deleted_files_.size() == 1;
@@ -288,7 +291,7 @@ class VersionEdit_Merger {
  private:
   DeletedFileSet deleted_files_;
 
-  int ve_counter;
+  int ve_counter = 0;
   std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>> new_files_;
 };
 }  // namespace TimberSaw
