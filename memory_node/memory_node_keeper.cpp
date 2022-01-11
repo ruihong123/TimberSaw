@@ -347,7 +347,12 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   for(auto iter : *edit_merger->GetNewFiles()){
+#ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 1", iter.second->number);
+    assert(debug_map.find(iter.second->number) != debug_map.end());
+    debug_map.insert(iter.second->number);
+#endif
+
     arr_ptr[index] = iter.second->number;
     index++;
   }
@@ -409,7 +414,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   for(auto iter : *merged_file_number){
+#ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 2", iter);
+    assert(debug_map.find(iter) != debug_map.end());
+    debug_map.insert(iter);
+#endif
     arr_ptr[index] = iter;
     index++;
   }
