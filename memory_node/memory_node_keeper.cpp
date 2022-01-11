@@ -349,7 +349,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   for(auto iter : *edit_merger->GetNewFiles()){
 #ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 1", iter.second->number);
-    assert(debug_map.find(iter.second->number) != debug_map.end());
+    assert(debug_map.find(iter.second->number) == debug_map.end());
     debug_map.insert(iter.second->number);
 #endif
 
@@ -416,7 +416,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   for(auto iter : *merged_file_number){
 #ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 2", iter);
-    assert(debug_map.find(iter) != debug_map.end());
+    assert(debug_map.find(iter) == debug_map.end());
     debug_map.insert(iter);
 #endif
     arr_ptr[index] = iter;
