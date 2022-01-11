@@ -86,6 +86,7 @@ struct install_versionedit {
   uint8_t node_id;
 } __attribute__((packed));
 struct sst_unpin {
+  uint16_t id;
   size_t buffer_size;
 } __attribute__((packed));
 struct sst_compaction {

@@ -221,7 +221,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
   VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
   if(!ve_merger.merge_one_edit(edit)){
-    // NOt digusting enough edit, directly get the next edit.
+    // NOt digesting enough edit, directly get the next edit.
 
     // unpin the sstables merged during the edit merge
     if (ve_merger.ready_to_upin_merged_file){
@@ -357,7 +357,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = persist_unpin_;
   send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;
-
+  send_pointer->content.psu.id = 1;
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
@@ -420,7 +420,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = persist_unpin_;
   send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;
-
+  send_pointer->content.psu.id = 2;
   send_pointer->reply_buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;

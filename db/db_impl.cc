@@ -2333,6 +2333,7 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
   uint64_t* arr_ptr = (uint64_t*)file_number_recv_mr.addr;
   uint32_t size = (request.content.psu.buffer_size - 1)/sizeof(uint64_t);
   assert((request.content.psu.buffer_size - 1)%sizeof(uint64_t) == 0);
+  DEBUG_arg("Persistent unpin id is %d", request.content.psu.id);
   versions_->Persistency_unpin(arr_ptr, size);
 }
 #endif
