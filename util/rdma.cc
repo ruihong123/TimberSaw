@@ -2370,7 +2370,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
 //          (ptr->second).get_mr_ori();  // it could be confused that the map_pointer is for the memtadata deletion
 // so that we can easily find where to deallocate our RDMA buffer. The key is a pointer to ibv_mr.
 //      remote_data_mrs->file_size = 0;
-      DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
+//      DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
       return;
     } else
       ptr++;
@@ -2393,7 +2393,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
   remote_mr.length = Table_Size;
   //    remote_data_mrs->fname = file_name;
   //    remote_data_mrs->map_pointer = mr_last;
-  DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
+//  DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
   return;
 }
 // A function try to allocate RDMA registered local memory
@@ -2525,7 +2525,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_t
   return false;
 }
 bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p) {
-  DEBUG_arg("Delete Remote pointer %p", p);
+//  DEBUG_arg("Delete Remote pointer %p", p);
   std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
   std::map<void*, In_Use_Array>* Bitmap;
   Bitmap = Remote_Mem_Bitmap;
