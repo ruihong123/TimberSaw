@@ -496,10 +496,11 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
       if (!edit->IsTrival()){
 //        assert(std::find(merged_file_numbers.begin(), merged_file_numbers.end(),
 //                         std::get<1>(iter)) == merged_file_numbers.end());
-        assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
-        DEBUG_arg("The merged file is %lu\n", std::get<1>(iter));
+
         // if the merged file is a result from the element in the only_trival_change.
         if (only_trival_change.find(std::get<1>(iter)) == only_trival_change.end()){
+          assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
+          DEBUG_arg("The merged file is %lu\n", std::get<1>(iter));
           merged_file_numbers.push_back(std::get<1>(iter));
           if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
             ready_to_upin_merged_file = true;
