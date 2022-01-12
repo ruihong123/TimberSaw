@@ -346,18 +346,22 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
+  bool empty =  edit_merger->trival_files.empty();
   for(auto iter : *edit_merger->GetNewFiles()){
 #ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 1", iter.second->number);
     assert(debug_map.find(iter.second->number) == debug_map.end());
     debug_map.insert(iter.second->number);
 #endif
-
+    if (!empty && edit_merger->trival_files.find(iter.second->number) !=
+                      edit_merger->trival_files.end()){
+      continue;
+    }
     arr_ptr[index] = iter.second->number;
     index++;
   }
+  assert(index*sizeof(uint64_t) < send_mr_large.length);
   memset((char*)send_mr_large.addr + index*sizeof(uint64_t), 1, 1);
-
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = persist_unpin_;
   send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;

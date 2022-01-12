@@ -485,11 +485,12 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
   for (auto iter : *edit->GetDeletedFiles()){
     if (new_files_.erase(std::get<1>(iter)) == 0) {
       deleted_files_.insert(iter);
+      if (edit->IsTrival()){
+        trival_files.insert(std::get<1>(iter));
+      }
     }else{
       //if this is a trival edit, the delted file will not trigger its unpin.
       if (!edit->IsTrival()){
-        if(std::get<1>(iter) == 4)
-          printf("here");
         merged_file_numbers.push_back(std::get<1>(iter));
         if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
           ready_to_upin_merged_file = true;
