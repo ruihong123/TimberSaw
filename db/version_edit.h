@@ -289,6 +289,7 @@ class VersionEdit_Merger {
   std::list<uint64_t> merged_file_numbers;
   bool ready_to_upin_merged_file;
   std::set<uint64_t> trival_files;
+  std::set<uint64_t> debug_map;
  private:
   DeletedFileSet deleted_files_;
 

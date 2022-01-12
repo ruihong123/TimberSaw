@@ -493,6 +493,7 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
       if (!edit->IsTrival()){
         assert(std::find(merged_file_numbers.begin(), merged_file_numbers.end(),
                          std::get<1>(iter)) == merged_file_numbers.end());
+        assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
         merged_file_numbers.push_back(std::get<1>(iter));
         if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
           ready_to_upin_merged_file = true;

@@ -167,7 +167,7 @@ class Memory_Node_Keeper {
   VersionEdit_Merger ve_merger;
 #ifndef NDEBUG
   std::atomic<size_t> debug_counter = 0;
-  std::set<uint64_t> debug_map;
+
 #endif
   Status InstallCompactionResults(CompactionState* compact,
                                   std::string& client_ip);
