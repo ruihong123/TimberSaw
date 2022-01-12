@@ -346,11 +346,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
-  bool empty =  edit_merger->trival_files.empty();
+  bool empty =  edit_merger->only_trival_change.empty();
   for(auto iter : *edit_merger->GetNewFiles()){
 
-    if (!empty && edit_merger->trival_files.find(iter.second->number) !=
-                      edit_merger->trival_files.end()){
+    if (!empty && edit_merger->only_trival_change.find(iter.second->number) !=
+                      edit_merger->only_trival_change.end()){
       continue;
     }
 #ifndef NDEBUG

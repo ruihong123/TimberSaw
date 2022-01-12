@@ -483,16 +483,19 @@ std::string VersionEdit::DebugString() const {
 bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
 
   for (auto iter : *edit->GetDeletedFiles()){
+    //TODO: we need to consider when the version edit is out of order.
     if (new_files_.erase(std::get<1>(iter)) == 0) {
       deleted_files_.insert(iter);
+      //if there is no file already and it is a trival change then this file do not
+      // need to be unpin.
       if (edit->IsTrival()){
-        trival_files.insert(std::get<1>(iter));
+        only_trival_change.insert(std::get<1>(iter));
       }
     }else{
       //if this is a trival edit, the delted file will not trigger its unpin.
       if (!edit->IsTrival()){
-        assert(std::find(merged_file_numbers.begin(), merged_file_numbers.end(),
-                         std::get<1>(iter)) == merged_file_numbers.end());
+//        assert(std::find(merged_file_numbers.begin(), merged_file_numbers.end(),
+//                         std::get<1>(iter)) == merged_file_numbers.end());
         assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
         merged_file_numbers.push_back(std::get<1>(iter));
         if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
@@ -500,6 +503,9 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
         }
 
       }
+      //if the edit is trival and the file creation is within this merging,
+      // do not unpin here, unpin during the consistent check point. we do nothing
+      // here
     }
   }
   for (auto iter : *edit->GetNewFiles()) {
