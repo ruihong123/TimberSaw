@@ -348,15 +348,16 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   uint32_t index = 0;
   bool empty =  edit_merger->trival_files.empty();
   for(auto iter : *edit_merger->GetNewFiles()){
+
+    if (!empty && edit_merger->trival_files.find(iter.second->number) !=
+                      edit_merger->trival_files.end()){
+      continue;
+    }
 #ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 1", iter.second->number);
     assert(debug_map.find(iter.second->number) == debug_map.end());
     debug_map.insert(iter.second->number);
 #endif
-    if (!empty && edit_merger->trival_files.find(iter.second->number) !=
-                      edit_merger->trival_files.end()){
-      continue;
-    }
     arr_ptr[index] = iter.second->number;
     index++;
   }
