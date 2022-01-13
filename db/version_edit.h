@@ -271,7 +271,9 @@ class VersionEdit_Merger {
     deleted_files_.clear();
     new_files_.clear();
     only_trival_change.clear();
+#ifndef NDEBUG
     debug_map.clear();
+#endif
   }
   bool merge_one_edit(VersionEdit* edit);
   bool IsTrival(){
