@@ -275,7 +275,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
       // No reason to unlock *mu here since we only hit this path in the
       // first call to LogAndApply (when opening the database).
       assert(descriptor_file == nullptr);
-      new_manifest_file = DescriptorFileName(".", manifest_file_number_);
+      new_manifest_file = DescriptorFileName("./db_content", manifest_file_number_);
       //      edit->SetNextFile(next_file_number_);
 
       s = NewWritableFile(new_manifest_file, &descriptor_file);
@@ -304,7 +304,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 }
 void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr) {
   DEBUG_arg("Persist SSTable %lu", sstable_ptr->number);
-  std::string fname = TableFileName(".", sstable_ptr->number);
+  std::string fname = TableFileName("./db_content", sstable_ptr->number);
   WritableFile * f;
   //      std::vector<uint32_t> chunk_barriers;
   uint32_t barrier_size = sstable_ptr->remote_data_mrs.size() +
@@ -1646,6 +1646,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
         Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+        assert(Persistency_bg_pool_.queue_len_.load() == 0);
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
         ve_merger.Clear();
         check_point_t_ready.store(false);
@@ -1885,6 +1886,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
         Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+        assert(Persistency_bg_pool_.queue_len_.load() == 0);
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
         ve_merger.Clear();
         check_point_t_ready.store(false);
