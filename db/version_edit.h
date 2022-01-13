@@ -275,7 +275,7 @@ class VersionEdit_Merger {
     debug_map.clear();
 #endif
   }
-  bool merge_one_edit(VersionEdit* edit);
+  void merge_one_edit(VersionEdit* edit);
   bool IsTrival(){
     return deleted_files_.size() == 1;
   }

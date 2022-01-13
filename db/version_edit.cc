@@ -480,7 +480,7 @@ std::string VersionEdit::DebugString() const {
   return r;
 }
 
-bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
+void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
 
   for (auto iter : *edit->GetDeletedFiles()){
     //TODO: we need to consider when the version edit is out of order.
@@ -530,7 +530,7 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
 //  }else{
 //    return false;
 //  }
-  return true;
+//  return true;
 }
 void VersionEdit_Merger::EncodeToDiskFormat(std::string* dst) const {
   for (const auto& deleted_file_kvp : deleted_files_) {

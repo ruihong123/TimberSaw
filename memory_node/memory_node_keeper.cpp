@@ -1630,16 +1630,16 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 #ifdef WITHPERSISTENCE
     {
       std::unique_lock<std::mutex> lck(merger_mtx);
-      if(!ve_merger.merge_one_edit(version_edit)){
-        // NOt digesting enough edit, directly get the next edit.
+      ve_merger.merge_one_edit(version_edit);
+      // NOt digesting enough edit, directly get the next edit.
 
-        // unpin the sstables merged during the edit merge
-        if (ve_merger.ready_to_upin_merged_file){
-          UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
-          ve_merger.ready_to_upin_merged_file = false;
-          ve_merger.merged_file_numbers.clear();
-        }
+      // unpin the sstables merged during the edit merge
+      if (ve_merger.ready_to_upin_merged_file){
+        UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+        ve_merger.ready_to_upin_merged_file = false;
+        ve_merger.merged_file_numbers.clear();
       }
+
       if (check_point_t_ready.load() == true){
         VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
         Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
