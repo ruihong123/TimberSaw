@@ -517,13 +517,14 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
   for (auto iter : *edit->GetNewFiles()) {
     new_files_.insert({iter.second->number, iter.second});
   }
-  ve_counter++;
-  if (ve_counter >= EDIT_MERGER_COUNT){
-    ve_counter = 0;
-    return true;
-  }else{
-    return false;
-  }
+//  ve_counter++;
+//  if (ve_counter >= EDIT_MERGER_COUNT){
+//    ve_counter = 0;
+//    return true;
+//  }else{
+//    return false;
+//  }
+  return true;
 }
 void VersionEdit_Merger::EncodeToDiskFormat(std::string* dst) const {
   for (const auto& deleted_file_kvp : deleted_files_) {

@@ -218,40 +218,45 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
 //}
 void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
-  VersionEdit* edit = ((Arg_for_persistent*)arg)->edit;
+  VersionEdit_Merger* edit_merger = ((Arg_for_persistent*)arg)->edit_merger;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
-  if(!ve_merger.merge_one_edit(edit)){
-    // NOt digesting enough edit, directly get the next edit.
-
-    // unpin the sstables merged during the edit merge
-    if (ve_merger.ready_to_upin_merged_file){
-      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
-      ve_merger.ready_to_upin_merged_file = false;
-      ve_merger.merged_file_numbers.clear();
-    }
-    return;
-  }else{
-
-    // unpin the sstables merged during the edit merge
-    if (ve_merger.ready_to_upin_merged_file){
-      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
-      ve_merger.ready_to_upin_merged_file = false;
-      ve_merger.merged_file_numbers.clear();
-    }
+//  if(!ve_merger.merge_one_edit(edit_merger)){
+//    // NOt digesting enough edit, directly get the next edit.
+//
+//    // unpin the sstables merged during the edit merge
+//    if (ve_merger.ready_to_upin_merged_file){
+//      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+//      ve_merger.ready_to_upin_merged_file = false;
+//      ve_merger.merged_file_numbers.clear();
+//    }
+//    return;
+//  }else{
+//
+//    // unpin the sstables merged during the edit merge
+//    if (ve_merger.ready_to_upin_merged_file){
+//      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+//      ve_merger.ready_to_upin_merged_file = false;
+//      ve_merger.merged_file_numbers.clear();
+//    }
 
     // The version edit merger has merge enough edits, lets make those files durable.
 
-    int thread_number = ve_merger.GetNewFilesNum();
+    int thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
 
-    if (!ve_merger.IsTrival()){
+    if (!edit_merger->IsTrival()){
       std::thread* threads = new std::thread[thread_number];
       int i = 0;
-      for (auto iter : *ve_merger.GetNewFiles()) {
-        threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
-        i++;
+      for (auto iter : *edit_merger->GetNewFiles()) {
+        // do not persist the sstable of trival move
+        if (edit_merger->only_trival_change.find(iter.first) == edit_merger->only_trival_change.end()){
+          threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
+          i++;
+        }
+
       }
-      for (int i = 0; i < thread_number; ++i) {
-        threads[i].join();
+      assert(i == thread_number);
+      for (int j = 0; j < thread_number; ++j) {
+        threads[j].join();
       }
       delete[] threads;
     }
@@ -276,21 +281,20 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     // Write new record to MANIFEST log
     if (s.ok()) {
       std::string record;
-      ve_merger.EncodeToDiskFormat(&record);
+      edit_merger->EncodeToDiskFormat(&record);
       s = descriptor_log->AddRecord(record);
       if (s.ok()) {
         s = descriptor_file->Sync();
       }
 
     }
-    if (!ve_merger.IsTrival()){
-      UnpinSSTables_RPC(&ve_merger, client_ip);
+    if (!edit_merger->IsTrival()){
+      UnpinSSTables_RPC(edit_merger, client_ip);
     }
-    ve_merger.Clear();
+//    ve_merger.Clear();
+    delete edit_merger;
 
-
-  }
-  delete edit;
+  delete edit_merger;
 }
 void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr) {
   DEBUG_arg("Persist SSTable %lu", sstable_ptr->number);
@@ -1619,9 +1623,29 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
 //  versions_->LogAndApply(version_edit, &lck);
 #ifdef WITHPERSISTENCE
-  Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit=version_edit,.client_ip = client_ip};
-  BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
-  Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+    {
+      std::unique_lock<std::mutex> lck(merger_mtx);
+      if(!ve_merger.merge_one_edit(version_edit)){
+        // NOt digesting enough edit, directly get the next edit.
+
+        // unpin the sstables merged during the edit merge
+        if (ve_merger.ready_to_upin_merged_file){
+          UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+          ve_merger.ready_to_upin_merged_file = false;
+          ve_merger.merged_file_numbers.clear();
+        }
+      }
+      if (check_point_t_ready.load() == true){
+        VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
+        Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
+        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+        Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+        ve_merger.Clear();
+      }
+
+    }
+
+
 #endif
 //  lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
@@ -1838,9 +1862,28 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 #ifdef WITHPERSISTENCE
     VersionEdit* edit = new VersionEdit();
     *edit = *compact->compaction->edit();
-    Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit=edit,.client_ip = client_ip};
-    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
-    Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+    {
+      std::unique_lock<std::mutex> lck(merger_mtx);
+      if(!ve_merger.merge_one_edit(edit)){
+        // NOt digesting enough edit, directly get the next edit.
+
+        // unpin the sstables merged during the edit merge
+        if (ve_merger.ready_to_upin_merged_file){
+          UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+          ve_merger.ready_to_upin_merged_file = false;
+          ve_merger.merged_file_numbers.clear();
+        }
+      }
+      if (check_point_t_ready.load() == true){
+        VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
+        Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
+        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+        Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+        ve_merger.Clear();
+      }
+
+    }
+
 #endif
     //The validation below should happen before the real edit send back to the compute node
     // because there is no reference for this test, the sstables can be garbage collected.

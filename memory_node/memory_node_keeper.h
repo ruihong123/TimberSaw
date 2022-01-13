@@ -20,7 +20,7 @@ struct Arg_for_handler{
   std::string client_ip;
 };
 struct Arg_for_persistent{
-  VersionEdit* edit;
+  VersionEdit_Merger* edit_merger;
   std::string client_ip;
 };
 class Memory_Node_Keeper {
@@ -165,6 +165,8 @@ class Memory_Node_Keeper {
   std::mutex versionset_mtx;
   VersionSet* versions_;
   VersionEdit_Merger ve_merger;
+  std::atomic<bool> check_point_t_ready = false;
+  std::mutex merger_mtx;
 #ifndef NDEBUG
   std::atomic<size_t> debug_counter = 0;
 
