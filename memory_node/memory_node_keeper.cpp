@@ -1869,7 +1869,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     *edit = *compact->compaction->edit();
     {
       std::unique_lock<std::mutex> lck(merger_mtx);
-      ve_merger.merge_one_edit(edit)
+      ve_merger.merge_one_edit(edit);
       // NOt digesting enough edit, directly get the next edit.
 
       // unpin the sstables merged during the edit merge
