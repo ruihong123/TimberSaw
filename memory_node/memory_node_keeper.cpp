@@ -294,12 +294,13 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
       }
 
     }
+    check_point_t_ready.store(true);
     if (!edit_merger->IsTrival()){
       UnpinSSTables_RPC(edit_merger, client_ip);
     }
 //    ve_merger.Clear();
     delete edit_merger;
-    check_point_t_ready.store(true);
+
 }
 void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr) {
   DEBUG_arg("Persist SSTable %lu", sstable_ptr->number);
@@ -1627,6 +1628,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit->GetNewFilesNum());
 //  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
 //  versions_->LogAndApply(version_edit, &lck);
+  //Merge the version edit below.
 #ifdef WITHPERSISTENCE
     {
       std::unique_lock<std::mutex> lck(merger_mtx);
