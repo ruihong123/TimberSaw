@@ -293,8 +293,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     }
 //    ve_merger.Clear();
     delete edit_merger;
-
-  delete edit_merger;
+    check_point_t_ready.store(true);
 }
 void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr) {
   DEBUG_arg("Persist SSTable %lu", sstable_ptr->number);
@@ -1880,6 +1879,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
         ve_merger.Clear();
+        check_point_t_ready.store(false);
       }
 
     }
