@@ -165,7 +165,7 @@ class Memory_Node_Keeper {
   std::mutex versionset_mtx;
   VersionSet* versions_;
   VersionEdit_Merger ve_merger;
-  std::atomic<bool> check_point_t_ready = false;
+  std::atomic<bool> check_point_t_ready = true;
   std::mutex merger_mtx;
 #ifndef NDEBUG
   std::atomic<size_t> debug_counter = 0;
