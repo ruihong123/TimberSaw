@@ -242,7 +242,13 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     // The version edit merger has merge enough edits, lets make those files durable.
 
     int thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
-
+#ifndef NDEBUG
+    //assert all the file number in the only trival change list exist in the ve_merger
+    // so that we can calculate the thread number correctly.
+    for(auto iter : edit_merger->only_trival_change){
+      assert(edit_merger->GetNewFiles()->find(iter) != edit_merger->GetNewFiles()->end());
+    }
+#endif
     if (!edit_merger->IsTrival()){
       std::thread* threads = new std::thread[thread_number];
       int i = 0;

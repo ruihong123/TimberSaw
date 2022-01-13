@@ -505,6 +505,12 @@ bool VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
           if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
             ready_to_upin_merged_file = true;
           }
+        }else{
+          // if we just delete a sstable which only have trival change according to
+          // the merge edit. Then we need to remove it from the only trival change list.
+          // if we do not do this, the fucntion PersistSSTables will create more threads than expected.
+          // That may cause system crash.
+          only_trival_change.erase(std::get<1>(iter));
         }
 
 
