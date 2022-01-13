@@ -1646,6 +1646,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
         ve_merger.Clear();
+        check_point_t_ready.store(false);
       }
 
     }
