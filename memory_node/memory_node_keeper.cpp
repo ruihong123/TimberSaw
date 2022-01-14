@@ -1641,12 +1641,16 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         ve_merger.ready_to_upin_merged_file = false;
         ve_merger.merged_file_numbers.clear();
       }
-
+#ifndef NDEBUG
+      for(auto iter : *ve_merger.GetNewFiles()){
+        printf("The file for this ve_merger is %lu\n", iter.second->number);
+      }
+#endif
       if (check_point_t_ready.load() == true){
         VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
 #ifndef NDEBUG
         for(auto iter : *ve_m->GetNewFiles()){
-          printf("The file for this ve_merger is %lu\n", iter.second->number);
+          printf("The file for this ve_m is %lu\n", iter.second->number);
         }
 #endif
         Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
