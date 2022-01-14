@@ -261,13 +261,13 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
           i++;
         }
 
-//      }
+      }
       assert(i == thread_number);
       for (int j = 0; j < thread_number; ++j) {
         threads[j].join();
       }
       delete[] threads;
-    }
+//    }
 
     // Initialize new descriptor log file if necessary by creating
     // a temporary file that contains a snapshot of the current version.
