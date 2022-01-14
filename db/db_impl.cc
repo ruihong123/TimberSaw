@@ -2063,7 +2063,13 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 #ifdef WITHPERSISTENCE
         } else if(receive_msg_buf.command == persist_unpin_) {
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          auto start = std::chrono::high_resolution_clock::now();
           persistence_unpin_handler(receive_msg_buf, q_id);
+          auto stop = std::chrono::high_resolution_clock::now();
+          auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+          printf("unpin for %lu files time elapse is %ld",
+                 (receive_msg_buf.content.psu.buffer_size-1)/sizeof(uint64_t),
+                 duration.count());
 #endif
         } else {
           printf("corrupt message from client.");
