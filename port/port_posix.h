@@ -93,7 +93,7 @@
 #define WITHMEMORYVERSIONSET
 #define WITHPERSISTENCE
 #define PROCESSANALYSIS
-#define R_SIZE 512
+#define R_SIZE 1024
 
 //#define BLOOMANALYSIS
 #include "port/thread_annotations.h"
