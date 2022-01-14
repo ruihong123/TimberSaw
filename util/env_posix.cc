@@ -83,7 +83,7 @@ void PosixEnv::Schedule(
         printf("queue length has been too long %d elements in the queue\n", flushing.queue_len_.load());
         return;
       }
-      DEBUG_arg("flushing thread pool task queue length %zu\n", flushing.queue_.size());
+//      DEBUG_arg("flushing thread pool task queue length %zu\n", flushing.queue_.size());
       flushing.Schedule(background_work_function, background_work_arg);
       break;
     case CompactionThreadPool:
@@ -92,7 +92,7 @@ void PosixEnv::Schedule(
         printf("queue length has been too long %d elements in the queue\n", compaction.queue_len_.load());
         return;
       }
-      DEBUG_arg("compaction thread pool task queue length %zu\n", compaction.queue_.size());
+//      DEBUG_arg("compaction thread pool task queue length %zu\n", compaction.queue_.size());
       compaction.Schedule(background_work_function, background_work_arg);
       break;
 //    case SubcompactionThreadPool:

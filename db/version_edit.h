@@ -45,10 +45,10 @@ struct RemoteMemTableMetaData {
           assert(false);
         }
       }else{
-#ifndef NDEBUG
-        printf("chunks will be garbage collected on the memory node, Table number is %lu, "
-            "creator node id is %d index block pointer is %p\n", number, creator_node_id, remote_dataindex_mrs.begin()->second->addr);
-#endif
+//#ifndef NDEBUG
+//        printf("chunks will be garbage collected on the memory node, Table number is %lu, "
+//            "creator node id is %d index block pointer is %p\n", number, creator_node_id, remote_dataindex_mrs.begin()->second->addr);
+//#endif
 //        assert(remote_dataindex_mrs.size() == 1);
         Prepare_Batch_Deallocate();
       }
