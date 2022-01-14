@@ -495,6 +495,7 @@ void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
         only_trival_change.insert(std::get<1>(iter));
       }
     }else{
+      DEBUG_arg("delete a file %lu to", std::get<1>(iter));
       //if this is a trival edit, the delted file will not trigger its unpin.
       if (!edit->IsTrival()){
 //        assert(std::find(merged_file_numbers.begin(), merged_file_numbers.end(),
