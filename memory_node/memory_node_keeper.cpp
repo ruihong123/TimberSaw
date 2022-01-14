@@ -240,7 +240,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 //    }
 
     // The version edit merger has merge enough edits, lets make those files durable.
-
+    DEBUG("A work pesistent work request was executed");
     int thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
 #ifndef NDEBUG
     //assert all the file number in the only trival change list exist in the ve_merger
@@ -357,6 +357,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   bool empty =  edit_merger->only_trival_change.empty();
+  assert(edit_merger->GetNewFilesNum()>0);
   for(auto iter : *edit_merger->GetNewFiles()){
 
     if (!empty && edit_merger->only_trival_change.find(iter.second->number) !=
