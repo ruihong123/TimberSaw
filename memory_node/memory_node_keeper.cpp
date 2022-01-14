@@ -432,6 +432,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
+  DEBUG("Unpin RPC for merged files\n");
   for(auto iter : *merged_file_number){
 #ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 2 ****************\n", iter);

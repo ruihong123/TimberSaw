@@ -1677,7 +1677,7 @@ Compaction* VersionSet::PickCompaction() {
         continue;
       }
       if (PickFileToCompact(level,c)) {
-        assert(c->level() == level);
+        assert(c->level() == level && level < 10);
 #ifndef NDEBUG
         for (auto iter : c->inputs_[0]) {
           assert(std::find(current_->levels_[level].begin(), current_->levels_[level].end(), iter)
