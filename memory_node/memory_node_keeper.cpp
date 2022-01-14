@@ -365,8 +365,8 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
     }
 #ifndef NDEBUG
     DEBUG_arg("Unpin file number is %lu, id 1", iter.second->number);
-    assert(ve_merger.debug_map.find(iter.second->number) == ve_merger.debug_map.end());
-    ve_merger.debug_map.insert(iter.second->number);
+    assert(edit_merger->debug_map.find(iter.second->number) == edit_merger->debug_map.end());
+    edit_merger->debug_map.insert(iter.second->number);
 #endif
     arr_ptr[index] = iter.second->number;
     index++;
@@ -1647,6 +1647,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
         assert(Persistency_bg_pool_.queue_len_.load() == 0);
+
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
         ve_merger.Clear();
         check_point_t_ready.store(false);

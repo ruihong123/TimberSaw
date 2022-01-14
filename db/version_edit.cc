@@ -524,6 +524,7 @@ void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
     }
   }
   for (auto iter : *edit->GetNewFiles()) {
+    DEBUG_arg("insert a file %lu to", iter.second->number);
     new_files_.insert({iter.second->number, iter.second});
   }
 //  ve_counter++;
