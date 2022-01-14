@@ -483,6 +483,9 @@ std::string VersionEdit::DebugString() const {
 void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
 
   for (auto iter : *edit->GetDeletedFiles()){
+    if (std::get<1>(iter)==5){
+      printf("break here");
+    }
     //TODO: we need to consider when the version edit is out of order.
     if (new_files_.erase(std::get<1>(iter)) == 0) {
       deleted_files_.insert(iter);
