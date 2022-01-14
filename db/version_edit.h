@@ -272,7 +272,7 @@ class VersionEdit_Merger {
     new_files_.clear();
     only_trival_change.clear();
 #ifndef NDEBUG
-    debug_map.clear();
+//    debug_map.clear();
 #endif
   }
   void merge_one_edit(VersionEdit* edit);
