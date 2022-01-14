@@ -250,7 +250,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
       assert(edit_merger->GetNewFiles()->find(iter) != edit_merger->GetNewFiles()->end());
     }
 #endif
-    if (!edit_merger->IsTrival()){
+//    if (!edit_merger->IsTrival()){
       DEBUG("Persist the files&&&&&&&&&&&&&&&&&&&&&\n");
       std::thread* threads = new std::thread[thread_number];
       int i = 0;
@@ -261,7 +261,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
           i++;
         }
 
-      }
+//      }
       assert(i == thread_number);
       for (int j = 0; j < thread_number; ++j) {
         threads[j].join();
@@ -297,10 +297,10 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
     }
     check_point_t_ready.store(true);
-    if (!edit_merger->IsTrival()){
+//    if (!edit_merger->IsTrival()){
       DEBUG("Unpin the SSTables *$$$$$$$$$$$$$$$$$$$\n");
       UnpinSSTables_RPC(edit_merger, client_ip);
-    }
+//    }
 //    ve_merger.Clear();
     delete edit_merger;
 
