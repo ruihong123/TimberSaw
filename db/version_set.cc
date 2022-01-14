@@ -1935,8 +1935,10 @@ Compaction::Compaction(const Options* options)
   }
 }
 Compaction::~Compaction() {
+  //TODO: protect the unref by the versionset mtx
   if (input_version_ != nullptr) {
     input_version_->Unref(0);
+    assert(false);
   }
 }
 

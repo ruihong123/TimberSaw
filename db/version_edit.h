@@ -33,9 +33,9 @@ struct RemoteMemTableMetaData {
     assert(creator_node_id == 0 || creator_node_id == 1);
     if (this_machine_type == 0){
       if (creator_node_id == rdma_mg->node_id){
-#ifndef NDEBUG
-        printf("Destroying RemoteMemtableMetaData locally on compute node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
-#endif
+//#ifndef NDEBUG
+//        printf("Destroying RemoteMemtableMetaData locally on compute node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
+//#endif
         if(Remote_blocks_deallocate(remote_data_mrs) &&
             Remote_blocks_deallocate(remote_dataindex_mrs) &&
             Remote_blocks_deallocate(remote_filter_mrs)){
