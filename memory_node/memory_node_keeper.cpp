@@ -240,7 +240,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 //    }
 
     // The version edit merger has merge enough edits, lets make those files durable.
-    DEBUG("A work pesistent work request was executed\n");
+    DEBUG("A work pesistent work request was executed--------------\n");
     assert(edit_merger->GetNewFilesNum()>0);
     int thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
 #ifndef NDEBUG
