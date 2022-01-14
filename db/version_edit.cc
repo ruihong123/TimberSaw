@@ -498,21 +498,19 @@ void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
 //                         std::get<1>(iter)) == merged_file_numbers.end());
 
         // if the merged file is a result from the element in the only_trival_change.
-        if (only_trival_change.find(std::get<1>(iter)) == only_trival_change.end()){
-          assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
-          DEBUG_arg("The merged file is %lu\n", std::get<1>(iter));
-          merged_file_numbers.push_back(std::get<1>(iter));
-          if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
-            ready_to_upin_merged_file = true;
-          }
-        }else{
+        if (only_trival_change.find(std::get<1>(iter)) != only_trival_change.end()){
           // if we just delete a sstable which only have trival change according to
           // the merge edit. Then we need to remove it from the only trival change list.
           // if we do not do this, the fucntion PersistSSTables will create more threads than expected.
           // That may cause system crash.
           only_trival_change.erase(std::get<1>(iter));
         }
-
+        assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
+        DEBUG_arg("The merged file is %lu\n", std::get<1>(iter));
+        merged_file_numbers.push_back(std::get<1>(iter));
+        if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
+          ready_to_upin_merged_file = true;
+        }
 
       }
       //if the edit is trival and the file creation is within this merging,
