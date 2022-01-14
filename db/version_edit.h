@@ -285,7 +285,7 @@ class VersionEdit_Merger {
   }
   void merge_one_edit(VersionEdit* edit);
   bool IsTrival(){
-    return deleted_files_.size() == 1;
+    return deleted_files_.size() == 1 && new_files_.size() == 1;
   }
   std::unordered_map<uint64_t , std::shared_ptr<RemoteMemTableMetaData>>* GetNewFiles(){
     return &new_files_;
