@@ -507,13 +507,15 @@ void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
           // if we do not do this, the fucntion PersistSSTables will create more threads than expected.
           // That may cause system crash.
           only_trival_change.erase(std::get<1>(iter));
+        }else{
+          assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
+          DEBUG_arg("The merged file is %lu\n", std::get<1>(iter));
+          merged_file_numbers.push_back(std::get<1>(iter));
+          if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
+            ready_to_upin_merged_file = true;
+          }
         }
-        assert(debug_map.find(std::get<1>(iter)) == debug_map.end());
-        DEBUG_arg("The merged file is %lu\n", std::get<1>(iter));
-        merged_file_numbers.push_back(std::get<1>(iter));
-        if (merged_file_numbers.size() >= UNPIN_GRANULARITY){
-          ready_to_upin_merged_file = true;
-        }
+
 
       }
       //if the edit is trival and the file creation is within this merging,
