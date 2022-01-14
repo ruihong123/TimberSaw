@@ -275,6 +275,14 @@ class VersionEdit_Merger {
 //    debug_map.clear();
 #endif
   }
+  void Swap(VersionEdit_Merger * ve_m){
+    deleted_files_.swap(ve_m->deleted_files_);
+    new_files_.swap(ve_m->new_files_);
+    only_trival_change.swap(ve_m->only_trival_change);
+#ifndef NDEBUG
+    debug_map.swap(ve_m->debug_map);
+#endif
+  }
   void merge_one_edit(VersionEdit* edit);
   bool IsTrival(){
     return deleted_files_.size() == 1;

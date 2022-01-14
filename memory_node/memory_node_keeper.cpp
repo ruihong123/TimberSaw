@@ -240,7 +240,8 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 //    }
 
     // The version edit merger has merge enough edits, lets make those files durable.
-    DEBUG("A work pesistent work request was executed");
+    DEBUG("A work pesistent work request was executed\n");
+    assert(edit_merger->GetNewFilesNum()>0);
     int thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
 #ifndef NDEBUG
     //assert all the file number in the only trival change list exist in the ve_merger
@@ -1648,7 +1649,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       }
 #endif
       if (check_point_t_ready.load() == true){
-        VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
+        VersionEdit_Merger* ve_m = new VersionEdit_Merger();
+        ve_m->Swap(&ve_merger);
 #ifndef NDEBUG
         for(auto iter : *ve_m->GetNewFiles()){
           printf("The file for this ve_m is %lu\n", iter.second->number);
@@ -1659,7 +1661,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         assert(Persistency_bg_pool_.queue_len_.load() == 0);
 
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
-        ve_merger.Clear();
+//        ve_merger.Clear();
         check_point_t_ready.store(false);
       }
 
