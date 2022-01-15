@@ -254,6 +254,7 @@ class DBImpl : public DB {
   std::atomic<bool> shutting_down_;
   std::condition_variable write_stall_cv;
   std::mutex FlushPickMTX;
+  // THE Mutex will protect both memlist and the superversion pointer.
   std::mutex superversion_memlist_mtx;
   // TODO: use read write lock to control the version set mtx.
   std::mutex versionset_mtx;

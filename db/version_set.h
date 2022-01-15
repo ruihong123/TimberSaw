@@ -206,7 +206,7 @@ class Version {
       assert(Valid());
       EncodeFixed64(value_buf_, (*flist_)[index_]->number);
       EncodeFixed64(value_buf_ + 8, (*flist_)[index_]->file_size);
-      return Slice(value_buf_, sizeof(value_buf_));
+      return {value_buf_, sizeof(value_buf_)};
     }
     std::shared_ptr<RemoteMemTableMetaData> file_value() const {
       return (*flist_)[index_];
@@ -256,7 +256,7 @@ class Version {
   VersionSet* vset_;  // VersionSet to which this Version belongs
   Version* next_;     // Next version in linked list
   Version* prev_;     // Previous version in linked list
-  int refs_;          // Number of live refs to this version
+  std::atomic<int> refs_;          // Number of live refs to this version
 
   // List of files per level
   std::vector<std::shared_ptr<RemoteMemTableMetaData>> levels_[config::kNumLevels];
@@ -271,9 +271,11 @@ class Version {
   // are initialized by Finalize().
   std::array<double, config::kNumLevels - 1> compaction_score_;
   std::array<int, config::kNumLevels - 1> compaction_level_;
+#ifndef NDENUG
   std::vector<int> ref_mark_collection;
   std::vector<int> unref_mark_collection;
-
+  std::mutex version_mtx;
+#endif
 
 };
 

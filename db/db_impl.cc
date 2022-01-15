@@ -119,7 +119,7 @@ bool SuperVersion::Unref() {
   // fetch_sub returns the previous value of ref
   uint32_t previous_refs = refs.fetch_sub(1);
   assert(previous_refs > 0);
-  // TODO change it back to assert(refs >=0);
+  // TODO: change it back to assert(refs >=0);
   assert(refs >=0);
   return previous_refs == 1;
 
@@ -129,7 +129,8 @@ void SuperVersion::Cleanup() {
   assert(refs.load(std::memory_order_relaxed) == 0);
   imm->Unref();
   mem->Unref();
-  std::unique_lock<std::mutex> lck(*versionset_mutex);// in case that the version list is messed up
+  // in case that the version list is messed up, do not delete it.
+  std::unique_lock<std::mutex> lck(*versionset_mutex);
   current->Unref(4);
   lck.unlock();
   delete this;
@@ -137,7 +138,7 @@ void SuperVersion::Cleanup() {
 }
 SuperVersion::SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
                            Version* new_current, std::mutex* versionset_mtx)
-    :refs(0),version_number(0), versionset_mutex(versionset_mtx) {
+    :version_number(0),versionset_mutex(versionset_mtx), refs(0) {
   //Guarded by superversion_mtx, so those pointer will always be valide
   mem = new_mem;
   imm = new_imm;
@@ -1119,10 +1120,10 @@ void DBImpl::BackgroundCompaction(void* p) {
         //trival move need to clear the UnderCompaction flag
         f->UnderCompaction = false;
         c->ReleaseInputs();
-        InstallSuperVersion();
+
         Edit_sync_to_remote(c->edit(),&l_vs);
 //        l_vs.unlock();
-
+        InstallSuperVersion();
       }
 
       if (!status.ok()) {
@@ -1526,8 +1527,11 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
     s = vset->LogAndApply(edit, &lck);
     // Install Superversion will also modify the version reference counter.
-    InstallSuperVersion();
+
     Edit_sync_to_remote(edit, &lck);
+    //In stallSuperVersion should be outside the version set lock, other wise there
+    // will be a deadlock
+    InstallSuperVersion();
   }
 
 #ifndef NDEBUG
@@ -1637,6 +1641,7 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
 
 void DBImpl::InstallSuperVersion() {
   SuperVersion* old_superversion = super_version;
+  // need to be protected by a versionset mutex. or make the refs an atomic value.
   super_version =
       new SuperVersion(mem_, imm_.current(), versions_->current(), &versionset_mtx);
   super_version->Ref();

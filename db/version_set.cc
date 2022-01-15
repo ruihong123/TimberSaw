@@ -71,7 +71,7 @@ static int64_t TotalFileSize(const std::vector<std::shared_ptr<RemoteMemTableMet
 }
 
 Version::~Version() {
-  assert(refs_ == 0);
+  assert(refs_.load() == 0);
 
   // Remove from linked list
   prev_->next_ = next_;
@@ -412,23 +412,27 @@ bool Version::RecordReadSample(Slice internal_key) {
 
 void Version::Ref(int mark) {
 #ifndef NDEBUG
+  version_mtx.lock();
   if (std::find(ref_mark_collection.begin(), ref_mark_collection.end(), mark) != ref_mark_collection.end())
     printf("mark in the ref\n");
   ref_mark_collection.push_back(mark);
+  version_mtx.unlock();
 #endif
 
 
-  ++refs_;
+  refs_.fetch_add(1);
 }
 
 void Version::Unref(int mark) {
 #ifndef NDEBUG
+  version_mtx.lock();
   assert(this != &vset_->dummy_versions_);
-  assert(refs_ >= 1);
+  assert(refs_.load() >= 1);
   unref_mark_collection.push_back(mark);
+  version_mtx.unlock();
 #endif
-  --refs_;
-  if (refs_ == 0) {
+  refs_.fetch_sub(1);
+  if (refs_.load() == 0) {
     DEBUG("Version get garbage collected\n");
 #ifndef NDEBUG
     vset_->version_remain--;
@@ -842,7 +846,7 @@ VersionSet::~VersionSet() {
 
 void VersionSet::AppendVersion(Version* v) {
   // Make "v" current
-  assert(v->refs_ == 0);
+  assert(v->refs_.load() == 0);
   assert(v != current_);
   if (current_ != nullptr) {
     current_->Unref(1);
@@ -927,7 +931,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
 //#endif
 //  }
 
-
+  //TOTHINK: may be we can move the lock before the Finalize(v);
   lck_vs->lock();
 
   {
