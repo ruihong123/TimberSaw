@@ -255,6 +255,7 @@ class DBImpl : public DB {
   std::condition_variable write_stall_cv;
   std::mutex FlushPickMTX;
   std::mutex superversion_memlist_mtx;
+  // TODO: use read write lock to control the version set mtx.
   std::mutex versionset_mtx;
   bool locked = false;
   bool check_and_clear_pending_recvWR = false;

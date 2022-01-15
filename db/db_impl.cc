@@ -1119,9 +1119,10 @@ void DBImpl::BackgroundCompaction(void* p) {
         //trival move need to clear the UnderCompaction flag
         f->UnderCompaction = false;
         c->ReleaseInputs();
+        InstallSuperVersion();
         Edit_sync_to_remote(c->edit(),&l_vs);
 //        l_vs.unlock();
-        InstallSuperVersion();
+
       }
 
       if (!status.ok()) {
@@ -1524,6 +1525,8 @@ Status DBImpl::TryInstallMemtableFlushResults(
 
 
     s = vset->LogAndApply(edit, &lck);
+    // Install Superversion will also modify the version reference counter.
+    InstallSuperVersion();
     Edit_sync_to_remote(edit, &lck);
   }
 
@@ -1534,7 +1537,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
 //  new_edit.DecodeFrom(temp_buf);
 //  printf("check\n");
 #endif
-  InstallSuperVersion();
+
   lck2.unlock();
   job->write_stall_cv_->notify_all();
 
