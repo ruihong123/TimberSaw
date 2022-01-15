@@ -217,9 +217,10 @@ class DBImpl : public DB {
   void sync_option_to_remote();
   void remote_qp_reset(std::string& q_id);
   void client_message_polling_and_handling_thread(std::string q_id);
-  void install_version_edit_handler(RDMA_Request request, std::string client_ip);
+  void install_version_edit_handler(RDMA_Request* request, std::string client_ip);
 #ifdef WITHPERSISTENCE
-  void persistence_unpin_handler(RDMA_Request request, std::string client_ip);
+  static void SSTable_Unpin_Dispatch(void* thread_args);
+  void persistence_unpin_handler(void* arg);
 #endif
   // Constant after construction
   Env* const env_;
@@ -272,7 +273,7 @@ class DBImpl : public DB {
   WriteBatch* tmp_batch_;
 
   SnapshotList snapshots_;
-
+  ThreadPool Unpin_bg_pool_;
   // Set of table files to protect from deletion because they are
   // part of ongoing compactions.
 //  std::set<uint64_t> pending_outputs_;

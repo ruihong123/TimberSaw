@@ -62,6 +62,7 @@
 #error __BYTE_ORDER is neither __LITTLE_ENDIAN nor __BIG_ENDIAN
 #endif
 namespace TimberSaw {
+
 struct config_t {
   const char* dev_name;    /* IB device name */
   const char* server_name; /* server host name */
@@ -166,6 +167,10 @@ struct SST_Metadata {
   SST_Metadata* last_ptr = nullptr;
   SST_Metadata* next_ptr = nullptr;
   unsigned int file_size = 0;
+};
+struct Arg_for_handler{
+  RDMA_Request* request;
+  std::string client_ip;
 };
 template <typename T>
 struct atomwrapper {

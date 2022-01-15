@@ -200,6 +200,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
         printf("Waked up\n");
       }
     }
+    Unpin_bg_pool_.SetBackgroundThreads(1);
 
 
 //      rdma_mg->Remote_Memory_Register(1024*1024*1024);
@@ -233,6 +234,7 @@ DBImpl::~DBImpl() {
 
 
   env_->JoinAllThreads(true);
+  Unpin_bg_pool_.JoinThreads(true);
   shutting_down_.store(true);
   // wait for communicaiton thread to finish
   for(int i = 0; i < main_comm_threads.size(); i++){
@@ -2018,7 +2020,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     printf("Start to sync options\n");
     sync_option_to_remote();
     ibv_wc wc[3] = {};
-    RDMA_Request receive_msg_buf;
+//    RDMA_Request receive_msg_buf;
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       check_and_clear_pending_recvWR = true;
@@ -2051,24 +2053,28 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
           }
           continue;
         }
-        memcpy(&receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+        RDMA_Request* receive_msg_buf = new RDMA_Request();
+        memcpy(receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
         //        printf("Buffer counter %d has been used!\n", buffer_counter);
 
         // copy the pointer of receive buf to a new place because
         // it is the same with send buff pointer.
-        if (receive_msg_buf.command == install_version_edit) {
+        if (receive_msg_buf->command == install_version_edit) {
           ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
           install_version_edit_handler(receive_msg_buf, q_id);
 #ifdef WITHPERSISTENCE
-        } else if(receive_msg_buf.command == persist_unpin_) {
+        } else if(receive_msg_buf->command == persist_unpin_) {
+          //TODO: implement the persistent unpin dispatch machenism
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
           auto start = std::chrono::high_resolution_clock::now();
-          persistence_unpin_handler(receive_msg_buf, q_id);
+          Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
+          BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
+          Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch, thread_pool_args);
           auto stop = std::chrono::high_resolution_clock::now();
           auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
           printf("unpin for %lu files time elapse is %ld",
-                 (receive_msg_buf.content.psu.buffer_size-1)/sizeof(uint64_t),
+                 (receive_msg_buf->content.psu.buffer_size-1)/sizeof(uint64_t),
                  duration.count());
 #endif
         } else {
@@ -2199,19 +2205,19 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
 //  printf("Sync version edit time elapse: %ld us part 6 Deallocation \n", duration.count());
 
 }
-void DBImpl::install_version_edit_handler(RDMA_Request request,
+void DBImpl::install_version_edit_handler(RDMA_Request* request,
                                           std::string client_ip) {
 
   auto rdma_mg = env_->rdma_mg;
-  if (request.content.ive.trival){
+  if (request->content.ive.trival){
     std::unique_lock<std::mutex> lck(versionset_mtx);
     DEBUG("install trival version\n");
-    auto f = versions_->current()->FindFileByNumber(request.content.ive.level, request.content.ive.file_number,
-                                   request.content.ive.node_id);
+    auto f = versions_->current()->FindFileByNumber(request->content.ive.level, request->content.ive.file_number,
+                                   request->content.ive.node_id);
     lck.unlock();
     VersionEdit edit;
-    edit.RemoveFile(request.content.ive.level, f->number, f->creator_node_id);
-    edit.AddFile(request.content.ive.level + 1, f);
+    edit.RemoveFile(request->content.ive.level, f->number, f->creator_node_id);
+    edit.AddFile(request->content.ive.level + 1, f);
     f->level = f->level +1;
     {
       //first superversion then version set.
@@ -2231,7 +2237,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 
 
   }else{
-    uint8_t check_byte = request.content.ive.check_byte;
+    uint8_t check_byte = request->content.ive.check_byte;
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
@@ -2243,7 +2249,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     send_pointer->received = true;
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)edit_recv_mr.addr + request.content.ive.buffer_size - 1;
+    volatile char* polling_byte = (char*)edit_recv_mr.addr + request->content.ive.buffer_size - 1;
     memset((void*)polling_byte, 0, 1);
     for (int i = 0; i < 100; ++i) {
       if(*polling_byte != 0){
@@ -2254,9 +2260,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+    rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
-    DEBUG_arg("install non-trival version, version id is %lu\n", request.content.ive.version_id);
+    DEBUG_arg("install non-trival version, version id is %lu\n", request->content.ive.version_id);
     size_t counter = 0;
     while (*(unsigned char*)polling_byte != check_byte){
       _mm_clflush(polling_byte);
@@ -2276,7 +2282,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
 #endif
     VersionEdit version_edit;
     version_edit.DecodeFrom(
-        Slice((char*)edit_recv_mr.addr, request.content.ive.buffer_size), 0);
+        Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 0);
 //    printf("Marker 1\n");
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
 //    printf("Marker 2\n");
@@ -2293,11 +2299,17 @@ void DBImpl::install_version_edit_handler(RDMA_Request request,
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
     rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
   }
-
+  delete request;
 }
 #ifdef WITHPERSISTENCE
-void DBImpl::persistence_unpin_handler(RDMA_Request request,
-                                          std::string client_ip) {
+void DBImpl::SSTable_Unpin_Dispatch(void* thread_args) {
+  BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_args);
+  ((DBImpl*)p->db)->persistence_unpin_handler(p->func_args);
+  delete static_cast<BGThreadMetadata*>(thread_args);
+}
+void DBImpl::persistence_unpin_handler(void* arg) {
+  RDMA_Request* request = ((Arg_for_handler*)arg)->request;
+  std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
   auto rdma_mg = env_->rdma_mg;
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
@@ -2310,7 +2322,7 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
   send_pointer->received = true;
   //TODO: how to check whether the version edit message is ready, we need to know the size of the
   // version edit in the first REQUEST from compute node.
-  volatile char* polling_byte = (char*)file_number_recv_mr.addr + request.content.psu.buffer_size - 1;
+  volatile char* polling_byte = (char*)file_number_recv_mr.addr + request->content.psu.buffer_size - 1;
   memset((void*)polling_byte, 0, 1);
   for (int i = 0; i < 100; ++i) {
     if(*polling_byte != 0){
@@ -2321,7 +2333,7 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(request.reply_buffer, request.rkey,
+  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                       &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
   size_t counter = 0;
   while (*(unsigned char*)polling_byte != 1){
@@ -2337,10 +2349,11 @@ void DBImpl::persistence_unpin_handler(RDMA_Request request,
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   uint64_t* arr_ptr = (uint64_t*)file_number_recv_mr.addr;
-  uint32_t size = (request.content.psu.buffer_size - 1)/sizeof(uint64_t);
-  assert((request.content.psu.buffer_size - 1)%sizeof(uint64_t) == 0);
-  DEBUG_arg("Persistent unpin id is %d", request.content.psu.id);
+  uint32_t size = (request->content.psu.buffer_size - 1)/sizeof(uint64_t);
+  assert((request->content.psu.buffer_size - 1)%sizeof(uint64_t) == 0);
+  DEBUG_arg("Persistent unpin id is %d", request->content.psu.id);
   versions_->Persistency_unpin(arr_ptr, size);
+  delete request;
 }
 #endif
 void DBImpl::ResetThreadLocalSuperVersions() {

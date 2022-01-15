@@ -966,7 +966,7 @@ ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
 
   /* each side will send only one WR, so Completion Queue with 1 entry is enough
    */
-  int cq_size = 2500;
+  int cq_size = 1024;
   // cq1 send queue, cq2 receive queue
   ibv_cq* cq1 = ibv_create_cq(res->ib_ctx, cq_size, NULL, NULL, 0);
   ibv_cq* cq2;

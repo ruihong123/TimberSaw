@@ -15,10 +15,7 @@
 #include "db/version_set.h"
 
 namespace TimberSaw {
-struct Arg_for_handler{
-  RDMA_Request* request;
-  std::string client_ip;
-};
+
 struct Arg_for_persistent{
   VersionEdit_Merger* edit_merger;
   std::string client_ip;
