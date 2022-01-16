@@ -272,6 +272,12 @@ class In_Use_Array {
   bool deallocate_memory_slot(int index) {
     std::unique_lock<SpinMutex> lck(mtx);
     free_list.push_back(index);
+    if (index < element_size_){
+      assert(false);
+      return true;
+    }else{
+      return false;
+    }
   }
   size_t get_chunk_size() { return chunk_size_; }
   ibv_mr* get_mr_ori() { return mr_ori_; }
