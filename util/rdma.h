@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include "util/thread_local.h"
+#include "mutexlock.h"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -187,51 +188,94 @@ struct atomwrapper {
   }
 };
 
+//class In_Use_Array {
+// public:
+//  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
+//      : element_size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori) {
+//    in_use_ = new std::atomic<bool>[element_size_];
+//    for (size_t i = 0; i < element_size_; ++i) {
+//      in_use_[i] = false;
+//    }
+//  }
+//  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori,
+//               std::atomic<bool>* in_use)
+//      : element_size_(size),
+//        chunk_size_(chunk_size),
+//        in_use_(in_use),
+//        mr_ori_(mr_ori) {}
+//  int allocate_memory_slot() {
+//    for (int i = 0; i < static_cast<int>(element_size_); ++i) {
+//      //      auto start = std::chrono::high_resolution_clock::now();
+//      bool temp = in_use_[i];
+//      if (temp == false) {
+//        //        auto stop = std::chrono::high_resolution_clock::now();
+//        //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); std::printf("Compare and swap time duration is %ld \n", duration.count());
+//        if (in_use_[i].compare_exchange_strong(temp, true)) {
+//          //          std::cout << "chunk" <<i << "was changed to true" << std::endl;
+//
+//          return i;  // find the empty slot then return the index for the slot
+//        }
+//        //        else
+//        //          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
+//      }
+//    }
+//    return -1;  // Not find the empty memory chunk.
+//  }
+//  bool deallocate_memory_slot(size_t index) {
+//    bool temp = true;
+//    assert(in_use_[index] == true);
+//    assert(index < element_size_);
+//    //    std::cout << "chunk" <<index << "was changed to false" << std::endl;
+//    while (!in_use_[index].compare_exchange_strong(temp, false));
+//    return true;
+//  }
+//  size_t get_chunk_size() { return chunk_size_; }
+//  ibv_mr* get_mr_ori() { return mr_ori_; }
+//  size_t get_element_size() { return element_size_; }
+//  std::atomic<bool>* get_inuse_table() { return in_use_; }
+//  //  void deserialization(char*& temp, int& size){
+//  //
+//  //
+//  //  }
+// private:
+//  size_t element_size_;
+//  size_t chunk_size_;
+//  std::atomic<bool>* in_use_;
+//  ibv_mr* mr_ori_;
+//  //  int type_;
+//};
 class In_Use_Array {
  public:
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
       : element_size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori) {
-    in_use_ = new std::atomic<bool>[element_size_];
     for (size_t i = 0; i < element_size_; ++i) {
-      in_use_[i] = false;
+      free_list.push_back(i);
     }
   }
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori,
                std::atomic<bool>* in_use)
       : element_size_(size),
         chunk_size_(chunk_size),
-        in_use_(in_use),
+//        in_use_(in_use),
         mr_ori_(mr_ori) {}
   int allocate_memory_slot() {
-    for (int i = 0; i < static_cast<int>(element_size_); ++i) {
-      //      auto start = std::chrono::high_resolution_clock::now();
-      bool temp = in_use_[i];
-      if (temp == false) {
-        //        auto stop = std::chrono::high_resolution_clock::now();
-        //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); std::printf("Compare and swap time duration is %ld \n", duration.count());
-        if (in_use_[i].compare_exchange_strong(temp, true)) {
-          //          std::cout << "chunk" <<i << "was changed to true" << std::endl;
-
-          return i;  // find the empty slot then return the index for the slot
-        }
-        //        else
-        //          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
-      }
+    std::unique_lock<SpinMutex> lck(mtx);
+    if (free_list.empty())
+      return -1;  // Not find the empty memory chunk.
+    else{
+      int result = free_list.back();
+      free_list.pop_back();
+      return result;
     }
-    return -1;  // Not find the empty memory chunk.
   }
-  bool deallocate_memory_slot(size_t index) {
-    bool temp = true;
-    assert(in_use_[index] == true);
-    assert(index < element_size_);
-    //    std::cout << "chunk" <<index << "was changed to false" << std::endl;
-    while (!in_use_[index].compare_exchange_strong(temp, false));
-    return true;
+  bool deallocate_memory_slot(int index) {
+    std::unique_lock<SpinMutex> lck(mtx);
+    free_list.push_back(index);
   }
   size_t get_chunk_size() { return chunk_size_; }
   ibv_mr* get_mr_ori() { return mr_ori_; }
   size_t get_element_size() { return element_size_; }
-  std::atomic<bool>* get_inuse_table() { return in_use_; }
+//  std::atomic<bool>* get_inuse_table() { return in_use_; }
   //  void deserialization(char*& temp, int& size){
   //
   //
@@ -239,7 +283,8 @@ class In_Use_Array {
  private:
   size_t element_size_;
   size_t chunk_size_;
-  std::atomic<bool>* in_use_;
+  std::list<int> free_list;
+  SpinMutex mtx;
   ibv_mr* mr_ori_;
   //  int type_;
 };
@@ -380,7 +425,7 @@ class RDMA_Manager {
   //TOFIX: There will be memory leak for the remote_mr and mr_input for local/remote memory
   // allocation.
   void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr);
-  void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, std::string pool_name);
+  void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, const std::string& pool_name);
   // this function will determine whether the pointer is with in the registered memory
   bool CheckInsideLocalBuff(
       void* p,
@@ -399,7 +444,7 @@ class RDMA_Manager {
   void fs_deserilization(
       char*& buff, size_t& size, std::string& db_name,
       std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
-      std::map<void*, In_Use_Array>& remote_mem_bitmap, ibv_mr* local_mr);
+      std::map<void*, In_Use_Array*>& remote_mem_bitmap, ibv_mr* local_mr);
   //  void mem_pool_serialization
   bool poll_reply_buffer(RDMA_Reply* rdma_reply);
   // TODO: Make all the variable more smart pointers.
@@ -409,7 +454,7 @@ class RDMA_Manager {
   std::vector<ibv_mr*>
       local_mem_pool; /* a vector for all the local memory regions.*/
   std::list<ibv_mr*> pre_allocated_pool;
-  std::map<void*, In_Use_Array>* Remote_Mem_Bitmap;
+  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap;
   size_t total_registered_size;
   //  std::shared_mutex remote_pool_mutex;
   //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
@@ -436,7 +481,7 @@ class RDMA_Manager {
   ThreadLocalPtr* local_read_qp_info;
   //  thread_local static std::unique_ptr<ibv_qp, QP_Deleter> qp_local_write_flush;
   //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local_write_flush;
-  std::unordered_map<std::string, std::map<void*, In_Use_Array>>
+  std::unordered_map<std::string, std::map<void*, In_Use_Array*>>
       name_to_mem_pool;
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
