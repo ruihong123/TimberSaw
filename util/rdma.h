@@ -273,9 +273,9 @@ class In_Use_Array {
     std::unique_lock<SpinMutex> lck(mtx);
     free_list.push_back(index);
     if (index < element_size_){
-      assert(false);
       return true;
     }else{
+      assert(false);
       return false;
     }
   }
