@@ -1318,8 +1318,8 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data,
     else
       rc = read_bytes;
   }
-  fprintf(stdout, "The data which has been read through is %s size is %d\n",
-          remote_data, read_bytes);
+//  fprintf(stdout, "The data which has been read through is %s size is %d\n",
+//          remote_data, read_bytes);
   return rc;
 }
 /******************************************************************************
