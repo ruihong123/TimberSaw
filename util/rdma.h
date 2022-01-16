@@ -25,6 +25,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include "util/thread_local.h"
+#include "port/port_posix.h"
 #include "mutexlock.h"
 #include <atomic>
 #include <chrono>
