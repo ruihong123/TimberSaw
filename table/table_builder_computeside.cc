@@ -197,6 +197,7 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
     r->pending_data_handle.EncodeTo(&handle_encoding);
     if (r->index_block->CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
         sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr[0]->length){
+      assert(false);
       BlockHandle dummy_handle;
       size_t msg_size;
       FinishDataIndexBlock(r->index_block, &dummy_handle, r->options.compression, msg_size);
