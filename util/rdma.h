@@ -503,6 +503,12 @@ class RDMA_Manager {
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
+
+#endif
+#ifdef PROCESSANALYSIS
+  static std::atomic<uint64_t> RDMAFindmrElapseSum;
+  static std::atomic<uint64_t> RDMAMemoryAllocElapseSum;
+  static std::atomic<uint64_t> ReadCount1;
 #endif
   //  std::unordered_map<std::string, ibv_mr*> fs_image;
   //  std::unordered_map<std::string, ibv_mr*> log_image;

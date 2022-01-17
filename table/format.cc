@@ -126,22 +126,26 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 
 //  if (){
 
-
+#ifdef GETANALYSIS
+  auto start1 = std::chrono::high_resolution_clock::now();
+#endif
     Find_Remote_mr(remote_data_blocks, handle, &remote_mr);
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Find mr time elapse is %zu\n",  duration.count());
-//#endif
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
+#ifdef GETANALYSIS
+  auto stop1 = std::chrono::high_resolution_clock::now();
+  auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
+  RDMA_Manager::RDMAFindmrElapseSum.fetch_add(duration1.count());
+
+#endif
+#ifdef GETANALYSIS
+  start1 = std::chrono::high_resolution_clock::now();
+#endif
     rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-//#ifdef GETANALYSIS
-//  auto stop = std::chrono::high_resolution_clock::now();
-//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//  printf("Local memory allocation time elapse is %zu\n",  duration.count());
-//#endif
+#ifdef GETANALYSIS
+  stop1 = std::chrono::high_resolution_clock::now();
+  duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
+  RDMA_Manager::RDMAMemoryAllocElapseSum.fetch_add(duration1.count());
+  RDMA_Manager::ReadCount1.fetch_add(1);
+#endif
 #ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif

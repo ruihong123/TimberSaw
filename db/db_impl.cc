@@ -251,6 +251,13 @@ DBImpl::~DBImpl() {
         RDMA_Manager::RDMAReadTimeElapseSum.load()/RDMA_Manager::ReadCount.load(),
         RDMA_Manager::ReadCount.load(), RDMA_Manager::RDMAReadTimeElapseSum.load());
 #endif
+#ifdef GETANALYSIS
+  if (RDMA_Manager::ReadCount1.load() != 0)
+    printf("****Find MR average time duration: %zu, Allocate MR is%zu, "
+        "Read NUm is %zu ****\n",
+        RDMA_Manager::RDMAFindmrElapseSum.load()/RDMA_Manager::ReadCount1.load(),
+        RDMA_Manager::RDMAMemoryAllocElapseSum.load(), RDMA_Manager::ReadCount1.load());
+#endif
 //  undefine_mutex.Unlock();
 
   if (db_lock_ != nullptr) {
