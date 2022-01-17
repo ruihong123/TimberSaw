@@ -2421,9 +2421,9 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
       char* buff;
       // the registration size should be 1024* pool size and should not exceed
       // 1 GB
-      Local_Memory_Register(&buff, &mr,
-  name_to_size.at(pool_name)*1024>1024*1024*1024? 1024*1024*1024:
-       name_to_size.at(pool_name)*1024, pool_name);
+      Local_Memory_Register(&buff, &mr, 1024*1024*1024, pool_name);
+//      name_to_size.at(pool_name)*1024>1024*1024*1024? 1024*1024*1024:
+//                                                             name_to_size.at(pool_name)*1024
     }
     mem_write_lock.unlock();
   }
@@ -2460,9 +2460,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
   if (node_id == 0)
     printf("Memory used up, allocate new one\n");
-  Local_Memory_Register(&buff, &mr_to_allocate,
-                  name_to_size.at(pool_name)*1024>1024*1024*1024? 1024*1024*1024:
-                       name_to_size.at(pool_name)*1024, pool_name);
+  Local_Memory_Register(&buff, &mr_to_allocate,1024*1024*1024, pool_name);
 
   int block_index = name_to_mem_pool.at(pool_name)
                         .at(mr_to_allocate->addr)

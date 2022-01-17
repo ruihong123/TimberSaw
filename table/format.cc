@@ -134,7 +134,6 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
   auto stop1 = std::chrono::high_resolution_clock::now();
   auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
   RDMA_Manager::RDMAFindmrElapseSum.fetch_add(duration1.count());
-
 #endif
 #ifdef GETANALYSIS
   start1 = std::chrono::high_resolution_clock::now();

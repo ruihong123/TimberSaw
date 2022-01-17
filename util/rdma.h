@@ -505,7 +505,7 @@ class RDMA_Manager {
   static std::atomic<uint64_t> ReadCount;
 
 #endif
-#ifdef PROCESSANALYSIS
+#ifdef GETANALYSIS
   static std::atomic<uint64_t> RDMAFindmrElapseSum;
   static std::atomic<uint64_t> RDMAMemoryAllocElapseSum;
   static std::atomic<uint64_t> ReadCount1;

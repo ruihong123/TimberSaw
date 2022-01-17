@@ -253,7 +253,7 @@ DBImpl::~DBImpl() {
 #endif
 #ifdef GETANALYSIS
   if (RDMA_Manager::ReadCount1.load() != 0)
-    printf("****Find MR average time duration: %zu, Allocate MR is%zu, "
+    printf("****Find MR average time duration: %zu, Allocate MR is %zu, "
         "Read NUm is %zu ****\n",
         RDMA_Manager::RDMAFindmrElapseSum.load()/RDMA_Manager::ReadCount1.load(),
         RDMA_Manager::RDMAMemoryAllocElapseSum.load()/RDMA_Manager::ReadCount1.load(), RDMA_Manager::ReadCount1.load());
