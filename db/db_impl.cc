@@ -256,7 +256,7 @@ DBImpl::~DBImpl() {
     printf("****Find MR average time duration: %zu, Allocate MR is%zu, "
         "Read NUm is %zu ****\n",
         RDMA_Manager::RDMAFindmrElapseSum.load()/RDMA_Manager::ReadCount1.load(),
-        RDMA_Manager::RDMAMemoryAllocElapseSum.load(), RDMA_Manager::ReadCount1.load());
+        RDMA_Manager::RDMAMemoryAllocElapseSum.load()/RDMA_Manager::ReadCount1.load(), RDMA_Manager::ReadCount1.load());
 #endif
 //  undefine_mutex.Unlock();
 
