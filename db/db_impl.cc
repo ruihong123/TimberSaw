@@ -203,9 +203,15 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     }
     Unpin_bg_pool_.SetBackgroundThreads(1);
     // Preallocate the RDMA local buffer.
-    ibv_mr contents = {};
-    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
-    rdma_mg->Deallocate_Local_RDMA_Slot(contents.addr, "DataBlock");
+    size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1;
+    for (size_t i = 0; i < size_in_gb; ++i) {
+      ibv_mr* mr;
+      char* buff;
+      rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, "DataBlock");
+    }
+//    ibv_mr contents = {};
+//    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
+//    rdma_mg->Deallocate_Local_RDMA_Slot(contents.addr, "DataBlock");
 //      rdma_mg->Remote_Memory_Register(1024*1024*1024);
 //        std::string trial("trial");
 //        rdma_mg->Remote_Query_Pair_Connection(trial);

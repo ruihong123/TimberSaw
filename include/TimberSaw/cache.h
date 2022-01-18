@@ -44,7 +44,7 @@ class TimberSaw_EXPORT Cache {
 
   // Opaque handle to an entry stored in the cache.
   struct Handle {};
-
+  virtual size_t GetCapacity() = 0;
   // Insert a mapping from key->value into the cache and assign it
   // the specified charge against the total cache capacity.
   //

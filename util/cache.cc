@@ -348,6 +348,7 @@ class ShardedLRUCache : public Cache {
   LRUCache shard_[kNumShards];
   port::Mutex id_mutex_;
   uint64_t last_id_;
+  size_t capacity_;
 
   static inline uint32_t HashSlice(const Slice& s) {
     return Hash(s.data(), s.size(), 0);
@@ -358,11 +359,15 @@ class ShardedLRUCache : public Cache {
  public:
   explicit ShardedLRUCache(size_t capacity) : last_id_(0) {
     const size_t per_shard = (capacity + (kNumShards - 1)) / kNumShards;
+    capacity_ = capacity;
     for (int s = 0; s < kNumShards; s++) {
       shard_[s].SetCapacity(per_shard);
     }
   }
   ~ShardedLRUCache() override {}
+  size_t GetCapacity() override{
+      return capacity_;
+  }
   Handle* Insert(const Slice& key, void* value, size_t charge,
                  void (*deleter)(const Slice& key, void* value)) override {
     const uint32_t hash = HashSlice(key);
