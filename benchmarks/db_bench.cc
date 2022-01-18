@@ -102,7 +102,7 @@ static int FLAGS_max_file_size = 0;
 static int FLAGS_block_size = 0;
 
 // Number of bytes to use as a cache of uncompressed data.
-// Negative means use default settings.
+// Negative means use no cache.
 static int FLAGS_cache_size = -1;
 
 // Maximum number of files to keep open at the same time (use default if == 0)
