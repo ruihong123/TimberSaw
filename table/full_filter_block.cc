@@ -49,7 +49,7 @@ void FullFilterBlockBuilder::AddKey(const Slice& key) {
 inline void FullFilterBlockBuilder::AddHash(uint32_t h, char* data,
                                             uint32_t num_lines,
                                             uint32_t total_bits) {
-#ifdef NDEBUG
+#ifndef NDEBUG
   static_cast<void>(total_bits);
 #endif
   assert(num_lines > 0 && total_bits > 0);

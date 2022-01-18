@@ -337,8 +337,8 @@ void DBImpl::WaitforAllbgtasks() {
 
   lck.unlock();
 
-  bool version_not_ready = false;
-  bool immutable_list_not_ready = false;
+  bool version_not_ready = true;
+  bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
   // conditions are both false.
   while( version_not_ready || immutable_list_not_ready){
