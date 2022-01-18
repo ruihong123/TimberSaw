@@ -94,9 +94,9 @@ Options SanitizeOptions(const std::string& dbname,
       result.info_log = nullptr;
     }
   }
-  if (result.block_cache == nullptr) {
-    result.block_cache = NewLRUCache(64 << 20);
-  }
+//  if (result.block_cache == nullptr) {
+//    result.block_cache = NewLRUCache(64 << 20);
+//  }
   return result;
 }
 
@@ -202,8 +202,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       }
     }
     Unpin_bg_pool_.SetBackgroundThreads(1);
-    // Preallocate the RDMA local buffer.
-    size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1;
+    // Preallocate the RDMA local buffer. ADD extra 1GB to make sure covering all the cache.
+    size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1 +1;
     for (size_t i = 0; i < size_in_gb; ++i) {
       ibv_mr* mr;
       char* buff;
