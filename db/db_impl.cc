@@ -2988,7 +2988,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
 //    }
 //
 //  }
-  bool have_stat_update = false;
+//  bool have_stat_update = false;
   Version::GetStats stats;
 
   // Unlock while reading from files and memtables
@@ -3003,14 +3003,14 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
       // Done
     } else {
       s = current->Get(options, lkey, value, &stats);
-      have_stat_update = true;
+//      have_stat_update = true;
     }
 //    undefine_mutex.Lock();
   }
-
-  if (have_stat_update && current->UpdateStats(stats)) {
-    MaybeScheduleFlushOrCompaction();
-  }
+  // TODO keep the file compaction. we remove it as we want.
+//  if (have_stat_update && current->UpdateStats(stats)) {
+//    MaybeScheduleFlushOrCompaction();
+//  }
   //TOthink: whether we need a lock for the dereference
   ReturnAndCleanupSuperVersion(sv);
   return s;

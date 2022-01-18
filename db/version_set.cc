@@ -1541,6 +1541,7 @@ Iterator* VersionSet::MakeInputIteratorMemoryServer(Compaction* c) {
 //    std::shared_ptr<RemoteMemTableMetaData> sst) {
 //  return sst->UnderCompaction;
 //}
+// TODO: Implement the file picking up for those file who exceed their peeking limit.
 bool VersionSet::PickFileToCompact(int level, Compaction* c){
   assert(c->inputs_[0].empty());
   assert(c->inputs_[1].empty());
