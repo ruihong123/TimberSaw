@@ -2459,7 +2459,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
   if (node_id == 0)
-    printf("Memory used up, allocate new one\n");
+    printf("Memory used up, allocate new one, memory pool is %s\n", pool_name.c_str());
   Local_Memory_Register(&buff, &mr_to_allocate,1024*1024*1024, pool_name);
 
   int block_index = name_to_mem_pool.at(pool_name)
