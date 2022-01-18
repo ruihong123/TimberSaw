@@ -9,6 +9,7 @@
 #include "db/log_writer.h"
 #include "db/memtable.h"
 #include "db/table_cache.h"
+//#include "db/dbformat.h"
 #include <algorithm>
 #include <cstdio>
 
@@ -49,7 +50,7 @@ static double MaxBytesForLevel(const Options* options, int level) {
   // the level-0 compaction threshold based on number of files.
 
   // Result for both level-0 and level-1
-  double result = 32. * 1048576.0;
+  double result = config::max_mega_bytes_for_level_base * 1048576.0;
   while (level > 1) {
     result *= 10;
     level--;
