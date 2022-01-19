@@ -38,7 +38,7 @@ static const int kL0_SlowdownWritesTrigger = 20;
 // Maximum number of level-0 files.  We stop writes at this point.
 static const int kL0_StopWritesTrigger = 36;
 
-static const double max_mega_bytes_for_level_base = 32.0;
+static const double max_mega_bytes_for_level_base = 2304.0;
 
 
 // Maximum level to which a new compacted memtable is pushed if it
