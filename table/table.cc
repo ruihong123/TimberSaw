@@ -140,6 +140,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   if (s.ok()) {
     BlockContents contents;
     if (block_cache != nullptr) {
+      printf("There is a cache!!\n");
       char cache_key_buffer[16];
       EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
       EncodeFixed64(cache_key_buffer + 8, handle.offset());
