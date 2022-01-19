@@ -184,6 +184,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
+      printf("NO cache found!!\n");
       s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
