@@ -869,7 +869,7 @@ void VersionSet::Persistency_pin(VersionEdit* edit) {
   std::unique_lock<std::mutex> lck(pinner_mtx);
   for(auto iter : *edit->GetNewFiles()){
     persistent_pinner_.insert({iter.second->number, iter.second});
-    printf("pin sstable %lu", iter.second->number);
+//    printf("pin sstable %lu", iter.second->number);
   }
 
   assert(persistent_pinner_.size() <= 256);
@@ -878,7 +878,7 @@ void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
   std::unique_lock<std::mutex> lck(pinner_mtx);
   for (int i = 0; i < size; ++i) {
     assert(persistent_pinner_.find(array[i]) != persistent_pinner_.end());
-    printf("Unpin sstable %lu", array[i]);
+//    printf("Unpin sstable %lu", array[i]);
     persistent_pinner_.erase(array[i]);
   }
 }
