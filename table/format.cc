@@ -60,13 +60,13 @@ Status Footer::DecodeFrom(Slice* input) {
   }
   return result;
 }
-void Find_Block_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+void Find_Remote_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, ibv_mr* remote_mr) {
   uint64_t  position = handle.offset();
 //  auto iter = remote_data_blocks.begin();
   auto iter = remote_data_blocks->upper_bound(position);
   position = position - (iter->first - iter->second->length);
-  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
+//  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
 //  assert(handle.size() +kBlockTrailerSize <= )
   *(remote_mr) = *(iter->second);
 //      DEBUG_arg("Block buffer position %lu\n", position);
@@ -74,13 +74,13 @@ void Find_Block_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 
 }
 
-void Find_KV_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+void Find_Local_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, Slice& data) {
   uint64_t  position = handle.offset();
   //  auto iter = remote_data_blocks.begin();
   auto iter = remote_data_blocks->upper_bound(position);
   position = position - (iter->first - iter->second->length);
-  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
+//  assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
   //  assert(handle.size() +kBlockTrailerSize <= )
   //      DEBUG_arg("Block buffer position %lu\n", position);
   data.Reset((static_cast<char*>(iter->second->addr) + position), handle.size());
@@ -94,7 +94,7 @@ bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
     return false;
   }
   position = position - (iter->first - iter->second->length);
-  assert(position  <= iter->second->length);
+  assert(position  <= iter->second->length - 8);
   //  assert(handle.size() +kBlockTrailerSize <= )
   *(remote_mr) = *(iter->second);
   //      DEBUG_arg("Block buffer position %lu\n", position);
@@ -134,7 +134,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef GETANALYSIS
   auto start1 = std::chrono::high_resolution_clock::now();
 #endif
-  Find_Block_MR(remote_data_blocks, handle, &remote_mr);
+  Find_Remote_MR(remote_data_blocks, handle, &remote_mr);
 #ifdef GETANALYSIS
   auto stop1 = std::chrono::high_resolution_clock::now();
   auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
@@ -259,7 +259,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
 #ifdef GETANALYSIS
   auto start1 = std::chrono::high_resolution_clock::now();
 #endif
-  Find_Block_MR(remote_data_blocks, handle, &remote_mr);
+  Find_Local_MR(remote_data_blocks, handle, &remote_mr);
 #ifdef GETANALYSIS
   auto stop1 = std::chrono::high_resolution_clock::now();
   auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);

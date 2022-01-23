@@ -85,9 +85,9 @@ struct BlockContents {
 //  bool cachable;        // True iff data can be cached
 //  bool heap_allocated;  // True iff caller should delete[] data.data()
 };
-void Find_KV_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+void Find_Local_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, Slice& data);
-void Find_Block_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+void Find_Remote_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                          const BlockHandle& handle, ibv_mr* remote_mr);
 bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                        const size_t& offset, ibv_mr* remote_mr);

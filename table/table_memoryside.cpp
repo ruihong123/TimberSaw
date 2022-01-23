@@ -167,8 +167,8 @@ Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
   if (s.ok()) {
     BlockContents contents;
     //The function below is correct, because the handle content the block without crc.
-    Find_KV_MR(&table->rep->remote_table->remote_data_mrs, handle,
-               contents.data);
+    Find_Local_MR(&table->rep->remote_table->remote_data_mrs, handle,
+                  contents.data);
     block = new Block(contents, Block_On_Memory_Side);
   }
 
@@ -199,7 +199,7 @@ Slice Table_Memory_Side::KVReader(void* arg, const ReadOptions& options,
   assert(s.ok());
   Slice KV;
   //The function below is correct, because the handle content the block without crc.
-  Find_KV_MR(&table->rep->remote_table->remote_data_mrs, handle, KV);
+  Find_Local_MR(&table->rep->remote_table->remote_data_mrs, handle, KV);
   return KV;
 
 
