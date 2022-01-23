@@ -195,6 +195,8 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
     //    assert(r->last_key.size()>= 8);
     if (!r->last_key.empty()){
       r->options.comparator->FindShortestSeparator(&r->last_key, key);
+    }else{
+      r->last_key.assign(key.data(), key.size());
     }
 
     //    assert(r->last_key.size() >= 8  );

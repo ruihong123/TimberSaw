@@ -194,7 +194,11 @@ void TableBuilder_BAMS::Add(const Slice& key, const Slice& value) {
     //    size_t key_length = r->last_key.size();
     //#endif
     //    assert(r->last_key.size()>= 8);
-    r->options.comparator->FindShortestSeparator(&r->last_key, key);
+    if (!r->last_key.empty()){
+      r->options.comparator->FindShortestSeparator(&r->last_key, key);
+    }else{
+      r->last_key.assign(key.data(), key.size());
+    }
     //    assert(r->last_key.size() >= 8  );
     std::string handle_encoding;
     //Note that the handle block size does not contain CRC!
