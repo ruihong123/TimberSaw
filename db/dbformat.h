@@ -486,12 +486,12 @@ class LookupKey {
 inline LookupKey::~LookupKey() {
   if (start_ != space_) delete[] start_;
 }
-void FindNextInternalKeySuccessor(Slice* key) {
-  ParsedInternalKey ikey;
-  ParseInternalKey(*key, &ikey);
-  ikey.sequence +=1;
-
-}
+//void FindNextInternalKeySuccessor(Slice* key) {
+//  ParsedInternalKey ikey;
+//  ParseInternalKey(*key, &ikey);
+//  ikey.sequence +=1;
+//
+//}
 }  // namespace TimberSaw
 
 
