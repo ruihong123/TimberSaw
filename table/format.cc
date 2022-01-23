@@ -259,7 +259,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
 #ifdef GETANALYSIS
   auto start1 = std::chrono::high_resolution_clock::now();
 #endif
-  Find_Local_MR(remote_data_blocks, handle, &remote_mr);
+  Find_Remote_MR(remote_data_blocks, handle, &remote_mr);
 #ifdef GETANALYSIS
   auto stop1 = std::chrono::high_resolution_clock::now();
   auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
