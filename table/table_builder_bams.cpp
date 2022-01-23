@@ -456,8 +456,11 @@ Status TableBuilder_BAMS::status() const { return rep_->status; }
 
 Status TableBuilder_BAMS::Finish() {
   Rep* r = rep_;
-  UpdateFunctionBLock();
-  FlushData();
+//  UpdateFunctionBLock();
+  if (r->offset - r->offset_last_flushed >0){
+    FlushData();
+  }
+
   assert(!r->closed);
   r->closed = true;
   DEBUG_arg("sst offset is %lu\n", r->offset);
@@ -506,7 +509,10 @@ Status TableBuilder_BAMS::Finish() {
       r->options.comparator->FindShortSuccessor(&r->last_key);
       //      assert(r->last_key.size()>= 8);
       std::string handle_encoding;
+      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
+      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
       r->pending_data_handle.EncodeTo(&handle_encoding);
+
       r->index_block->Add(r->last_key, Slice(handle_encoding));
       r->pending_index_filter_entry = false;
     }
