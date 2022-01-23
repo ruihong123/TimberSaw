@@ -177,7 +177,7 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
   // *           if not, the flush temporal buffer content to the remote memory.
 
 
-  if ((r->offset - r->offset_last_flushed + key.size() + value.size() + 2*sizeof(uint32_t)) <  r->local_data_mr[0]->length) {
+  if ((r->offset - r->offset_last_flushed + key.size() + value.size() + 2*sizeof(uint32_t)) >  r->local_data_mr[0]->length) {
     FlushData();// reset the buffer inside
 
   }
