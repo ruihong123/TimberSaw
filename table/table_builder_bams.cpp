@@ -178,7 +178,7 @@ void TableBuilder_BAMS::Add(const Slice& key, const Slice& value) {
   // *   if so then finish the old data to a block make it insert to a new block
   // *   Second, if new block finished, check whether the write buffer can hold a new block size.
   // *           if not, the flush temporal buffer content to the remote memory.
-  if ((r->offset - r->offset_last_flushed + key.size() + value.size() + 2*sizeof(uint32_t)) <  r->local_data_mr->length) {
+  if ((r->offset - r->offset_last_flushed + key.size() + value.size() + 2*sizeof(uint32_t)) >  r->local_data_mr->length) {
     FlushData();// reset the buffer inside
 
   }
