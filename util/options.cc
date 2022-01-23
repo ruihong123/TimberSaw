@@ -16,7 +16,7 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     env->rdma_mg->Mempool_initialize(std::string("FilterBlock"),
                                      RDMA_WRITE_BLOCK);
     env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"),
-                                     RDMA_WRITE_BLOCK);
+                                     INDEX_BLOCK);
   }
 
   env->initialized = true;

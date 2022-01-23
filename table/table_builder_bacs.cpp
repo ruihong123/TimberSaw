@@ -350,6 +350,7 @@ void TableBuilder_BACS::FinishDataIndexBlock(BlockBuilder* block,
     EncodeFixed32(trailer + 1, crc32c::Mask(crc));
     block_contents->append(trailer, kBlockTrailerSize);
   }
+  assert(block_contents->size() <= r->local_index_mr.at(0)->length);
   r->compressed_output.clear();
   block_size = block_contents->size();
   DEBUG_arg("index block size: %zu \n", block_size);
