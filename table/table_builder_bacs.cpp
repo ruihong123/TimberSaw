@@ -86,6 +86,8 @@ struct TableBuilder_BACS::Rep {
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;
   //  std::vector<size_t> remote_mr_real_length;
   uint64_t offset_last_flushed = 0;
+  uint64_t offset_last_added = 0;
+
   uint64_t offset = 0;
   uint32_t chunk_offset = 0;
 
@@ -196,7 +198,7 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
       //    assert(r->last_key.size() >= 8  );
       std::string handle_encoding;
       //Note that the handle block size does not contain CRC!
-      r->pending_data_handle.set_offset(r->offset);// This is the offset of the begginning of this block.
+      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
       r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
       r->pending_data_handle.EncodeTo(&handle_encoding);
 
@@ -220,6 +222,7 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
   PutFixed32(&r->data_buff, value.size());
   r->data_buff.append(key.data(), key.size());
   r->data_buff.append(value.data(), value.size());
+  r->offset_last_added = r->offset;
   r->offset +=  key.size() + value.size() + 2*sizeof(uint32_t);
 
 

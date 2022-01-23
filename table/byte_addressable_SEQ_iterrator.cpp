@@ -1,7 +1,7 @@
 //
 // Created by ruihong on 1/21/22.
 //
-#define PREFETCH_GRANULARITY  (64*1024)
+#define PREFETCH_GRANULARITY  (1024*1024)
 #include "byte_addressable_SEQ_iterrator.h"
 #include "TimberSaw/env.h"
 #include "port/likely.h"
@@ -25,7 +25,12 @@ ByteAddressableSEQIterator::ByteAddressableSEQIterator(Iterator* index_iter,
 }
 
 ByteAddressableSEQIterator::~ByteAddressableSEQIterator() {
-  Env::Default()->rdma_mg->Deallocate_Local_RDMA_Slot(prefetched_mr->addr, "Prefetch");
+  auto rdma_mg = Env::Default()->rdma_mg;
+  if (poll_number != 0){
+    ibv_wc* wc = new ibv_wc[poll_number];
+    rdma_mg->poll_completion(wc, poll_number, "read_local", true);
+  }
+  rdma_mg->Deallocate_Local_RDMA_Slot(prefetched_mr->addr, "Prefetch");
   delete prefetched_mr;
 
 
