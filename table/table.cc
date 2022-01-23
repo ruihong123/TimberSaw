@@ -220,7 +220,7 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
 #ifdef BYTEADDRESSABLE
   return new ByteAddressableRAIterator(
       rep->index_block->NewIterator(rep->options.comparator),
-      &Table::KVReader, const_cast<Table*>(this), options, false);
+      &Table::KVReader, const_cast<Table*>(this), options, true);
 #endif
 }
 
