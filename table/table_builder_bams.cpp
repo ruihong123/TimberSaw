@@ -196,17 +196,15 @@ void TableBuilder_BAMS::Add(const Slice& key, const Slice& value) {
     //    assert(r->last_key.size()>= 8);
     if (!r->last_key.empty()){
       r->options.comparator->FindShortestSeparator(&r->last_key, key);
-    }else{
-      r->last_key.assign(key.data(), key.size());
-    }
-    //    assert(r->last_key.size() >= 8  );
-    std::string handle_encoding;
-    //Note that the handle block size does not contain CRC!
-    r->pending_data_handle.set_offset(r->offset);// This is the offset of the begginning of this block.
-    r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
-    r->pending_data_handle.EncodeTo(&handle_encoding);
+      //    assert(r->last_key.size() >= 8  );
+      std::string handle_encoding;
+      //Note that the handle block size does not contain CRC!
+      r->pending_data_handle.set_offset(r->offset);// This is the offset of the begginning of this block.
+      r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
+      r->pending_data_handle.EncodeTo(&handle_encoding);
 
-    r->index_block->Add(r->last_key, Slice(handle_encoding));
+      r->index_block->Add(r->last_key, Slice(handle_encoding));
+    }
 
   }
 
