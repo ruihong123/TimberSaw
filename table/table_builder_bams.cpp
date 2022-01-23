@@ -498,6 +498,10 @@ Status TableBuilder_BAMS::Finish() {
   if (ok()) {
     if(r->pending_index_filter_entry){
       //      assert(r->last_key.size()>= 8);
+      //TOTHINK: why there we need the shortSuccessor, what if the
+      // shortSuccessor is the same as the first key in the next sstable.
+      // ANSWER: That's not gonna happen, because all the duplicated key with
+      // different sequence number will be merged by flushing or compaction.
       r->options.comparator->FindShortSuccessor(&r->last_key);
       //      assert(r->last_key.size()>= 8);
       std::string handle_encoding;
