@@ -2071,7 +2071,9 @@ void Compaction::ReleaseInputs() {
   }
 }
 void Compaction::GenSubcompactionBoundaries() {
-  //TODO: make boundary a pair of small and largest key.
+  //TODO: make boundary a pair of small and largest key. Or we can add
+  // internal key to the boundary. so that we can directly search the (start, end]
+  // by search the key of the same userkey to the startdata, but has a higher sequence number
   std::vector<Slice>& bounds = boundaries_;
   std::vector<uint64_t>& sizes = sizes_;
   //TODO: for the first time level 0 compaction, we do not have level 1 files, so
@@ -2105,7 +2107,7 @@ void Compaction::GenSubcompactionBoundaries() {
     sizes.push_back(level_inputs[0]->file_size);
     for (size_t i = 1; i < num_files; i++) {
       // use user key as boundary, so that there will be no user key accross SSTables.
-      bounds.emplace_back(ExtractUserKey(level_inputs[i]->largest.Encode()));
+      bounds.emplace_back(ExtractUserKey(level_inputs[i]->smallest.Encode()));
       sizes.push_back(level_inputs[i]->file_size);
     }
   }

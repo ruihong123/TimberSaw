@@ -13,15 +13,15 @@ namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
     :
-      internal_comparator_(BytewiseComparator()),
       opts(std::make_shared<Options>(true)),
-      usesubcompaction(use_sub_compaction),
-      table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
-      versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx)),
+      internal_comparator_(BytewiseComparator()),
+      mmap_limiter_(MaxMmaps()),
+      fd_limiter_(MaxOpenFiles()),
       descriptor_file(nullptr),
       descriptor_log(nullptr),
-      mmap_limiter_(MaxMmaps()),
-      fd_limiter_(MaxOpenFiles())
+      usesubcompaction(use_sub_compaction),
+      table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
+      versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx))
 {
     struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
