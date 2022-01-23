@@ -19,6 +19,7 @@
 #include "table/merger.h"
 #include "db/table_cache.h"
 #include "table/table_builder_computeside.h"
+#include "table/table_builder_bacs.h"
 namespace TimberSaw {
 
 std::mutex MemTableList::imm_mtx;
@@ -824,8 +825,12 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
   std::string current_user_key;
   bool has_current_user_key = false;
   if (iter->Valid()) {
-
+#ifndef BYTEADDRESSABLE
     auto* builder = new TableBuilder_ComputeSide(options, type);
+#endif
+#ifdef BYTEADDRESSABLE
+    auto* builder = new TableBuilder_BACS(options, type);
+#endif
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {

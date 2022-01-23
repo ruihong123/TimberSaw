@@ -11,7 +11,9 @@
 #include "TimberSaw/export.h"
 #include "TimberSaw/iterator.h"
 #include "db/version_edit.h"
-
+#include "table/full_filter_block.h"
+#include "table/format.h"
+#include "table/block.h"
 namespace TimberSaw {
 
 class Block;
@@ -27,6 +29,28 @@ class TableCache;
 // multiple threads without external synchronization.
 class TimberSaw_EXPORT Table {
  public:
+  struct Rep {
+    Rep(const Options& options) : options(options) {
+
+    }
+    ~Rep() {
+      delete filter;
+      //    delete[] filter_data;
+      delete index_block;
+    }
+
+    Options options;
+    Status status;
+    // weak_ptr because if there is cached value in the table cache then the obsoleted SST
+    // will never be garbage collected.
+    std::weak_ptr<RemoteMemTableMetaData> remote_table;
+    uint64_t cache_id;
+    FullFilterBlockReader* filter;
+    //  const char* filter_data;
+
+    BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
+    Block* index_block;
+  };
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
   // retrieving data from the table.
@@ -59,14 +83,16 @@ class TimberSaw_EXPORT Table {
   // E.g., the approximate offset of the last key in the table will
   // be close to the file length.
   uint64_t ApproximateOffsetOf(const Slice& key) const;
+  Rep* const rep;
+
+  static Slice KVReader(void*, const ReadOptions&, const Slice&);
 
  private:
   friend class TableCache;
-  struct Rep;
+//  struct Rep;
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
-
-  explicit Table(Rep* rep) : rep_(rep) {}
+  explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call
   // to Seek(key).  May not make such a call if filter policy says
@@ -78,7 +104,6 @@ class TimberSaw_EXPORT Table {
   void ReadMeta(const Footer& footer);
   void ReadFilter();
 
-  Rep* const rep_;
 };
 
 }  // namespace TimberSaw

@@ -12,38 +12,18 @@
 #include "TimberSaw/filter_policy.h"
 #include "TimberSaw/options.h"
 
-#include "table/block.h"
+
 #include "table/filter_block.h"
 #include "table/format.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
 
 #include "full_filter_block.h"
+#include "byte_addressable_RA_iterator.h"
 
 namespace TimberSaw {
 
-struct Table::Rep {
-  Rep(const Options& options) : options(options) {
 
-  }
-  ~Rep() {
-    delete filter;
-//    delete[] filter_data;
-    delete index_block;
-  }
-
-  Options options;
-  Status status;
-  // weak_ptr because if there is cached value in the table cache then the obsoleted SST
-  // will never be garbage collected.
-  std::weak_ptr<RemoteMemTableMetaData> remote_table;
-  uint64_t cache_id;
-  FullFilterBlockReader* filter;
-//  const char* filter_data;
-
-  BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
-  Block* index_block;
-};
 
 Status Table::Open(const Options& options, Table** table,
                    const std::shared_ptr<RemoteMemTableMetaData>& Remote_table_meta) {
@@ -85,27 +65,29 @@ Status Table::Open(const Options& options, Table** table,
 }
 
 void Table::ReadFilter() {
-  if (rep_->options.filter_policy == nullptr) {
+  if (rep->options.filter_policy == nullptr) {
     return;  // Do not need any metadata
   }
   // We might want to unify with ReadDataBlock() if we start
   // requiring checksum verification in Table::Open.
   ReadOptions opt;
-  if (rep_->options.paranoid_checks) {
+  if (rep->options.paranoid_checks) {
     opt.verify_checksums = true;
   }
   BlockContents block;
-  if (!ReadFilterBlock(rep_->remote_table.lock()->remote_filter_mrs.begin()->second, opt, &block).ok()) {
+  if (!ReadFilterBlock(
+           rep->remote_table.lock()->remote_filter_mrs.begin()->second, opt, &block).ok()) {
     return;
   }
 //  if (block.heap_allocated) {
 //    rep_->filter_data = block.data.data();  // Will need to delete later
 //  }
-  rep_->filter = new FullFilterBlockReader(
-      block.data, rep_->remote_table.lock()->rdma_mg, Compute);
+  rep->filter = new FullFilterBlockReader(
+      block.data, rep->remote_table.lock()->rdma_mg, Compute);
 }
 
-Table::~Table() { delete rep_; }
+Table::~Table() { delete rep; }
+
 
 static void DeleteBlock(void* arg, void* ignored) {
   delete reinterpret_cast<Block*>(arg);
@@ -115,7 +97,6 @@ static void DeleteCachedBlock(const Slice& key, void* value) {
   Block* block = reinterpret_cast<Block*>(value);
   delete block;
 }
-
 static void ReleaseBlock(void* arg, void* h) {
   Cache* cache = reinterpret_cast<Cache*>(arg);
   Cache::Handle* handle = reinterpret_cast<Cache::Handle*>(h);
@@ -127,7 +108,7 @@ static void ReleaseBlock(void* arg, void* h) {
 Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
-  Cache* block_cache = table->rep_->options.block_cache;
+  Cache* block_cache = table->rep->options.block_cache;
   Block* block = nullptr;
   Cache::Handle* cache_handle = nullptr;
 
@@ -142,7 +123,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
     if (block_cache != nullptr) {
 //      printf("There is a cache!!\n");
       char cache_key_buffer[16];
-      EncodeFixed64(cache_key_buffer, table->rep_->cache_id);
+      EncodeFixed64(cache_key_buffer, table->rep->cache_id);
       EncodeFixed64(cache_key_buffer + 8, handle.offset());
       Slice key(cache_key_buffer, sizeof(cache_key_buffer));
 #ifdef PROCESSANALYSIS
@@ -169,7 +150,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         start = std::chrono::high_resolution_clock::now();
 
 #endif
-        s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+        s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
 #ifdef PROCESSANALYSIS
         stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -186,7 +167,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       }
     } else {
 //      printf("NO cache found!!\n");
-      s = ReadDataBlock(&table->rep_->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }
@@ -195,10 +176,11 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 
   Iterator* iter;
   if (block != nullptr) {
-    iter = block->NewIterator(table->rep_->options.comparator);
+    iter = block->NewIterator(table->rep->options.comparator);
     if (cache_handle == nullptr) {
       iter->RegisterCleanup(&DeleteBlock, block, nullptr);
     } else {
+      // Realease the cache handle when we delete the block iterator
       iter->RegisterCleanup(&ReleaseBlock, block_cache, cache_handle);
     }
   } else {
@@ -208,18 +190,45 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 //  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
   return iter;
 }
+// Convert an index iterator value (i.e., an encoded BlockHandle)
+// into an iterator over the contents of the corresponding block.
+Slice Table::KVReader(void* arg, const ReadOptions& options,
+                             const Slice& index_value) {
+  Table* table = reinterpret_cast<Table*>(arg);
+  Cache* block_cache = table->rep->options.block_cache;
+  Block* block = nullptr;
+  Cache::Handle* cache_handle = nullptr;
+
+  BlockHandle handle;
+  Slice input = index_value;
+  Status s = handle.DecodeFrom(&input);
+  // We intentionally allow extra stuff in index_value so that we
+  // can add more features in the future.
+  assert(s.ok());
+  Slice result;
+  ReadKVPair(&table->rep->remote_table.lock()->remote_data_mrs, options,
+             handle, &result);
+  return result;
+}
 
 Iterator* Table::NewIterator(const ReadOptions& options) const {
+#ifndef BYTEADDRESSABLE
   return NewTwoLevelIterator(
-      rep_->index_block->NewIterator(rep_->options.comparator),
+      rep->index_block->NewIterator(rep->options.comparator),
       &Table::BlockReader, const_cast<Table*>(this), options);
+#endif
+#ifdef BYTEADDRESSABLE
+  return new ByteAddressableRAIterator(
+      rep->index_block->NewIterator(rep->options.comparator),
+      &Table::KVReader, const_cast<Table*>(this), options, false);
+#endif
 }
 
 Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {
   Status s;
-  FullFilterBlockReader* filter = rep_->filter;
+  FullFilterBlockReader* filter = rep->filter;
   if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
     // Not found
 #ifdef PROCESSANALYSIS
@@ -256,7 +265,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 #endif
   } else {
 
-    Iterator* iiter = rep_->index_block->NewIterator(rep_->options.comparator);
+    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
 #ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
 #endif
@@ -318,8 +327,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 }
 
 uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
-  Iterator* index_iter =
-      rep_->index_block->NewIterator(rep_->options.comparator);
+  Iterator* index_iter = rep->index_block->NewIterator(rep->options.comparator);
   index_iter->Seek(key);
   uint64_t result;
   if (index_iter->Valid()) {
@@ -332,13 +340,13 @@ uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
       // Strange: we can't decode the block handle in the index block.
       // We'll just return the offset of the metaindex block, which is
       // close to the whole file size for this case.
-      result = rep_->metaindex_handle.offset();
+      result = rep->metaindex_handle.offset();
     }
   } else {
     // key is past the last key in the file.  Approximate the offset
     // by returning the offset of the metaindex block (which is
     // right near the end of the file).
-    result = rep_->metaindex_handle.offset();
+    result = rep->metaindex_handle.offset();
   }
   delete index_iter;
   return result;

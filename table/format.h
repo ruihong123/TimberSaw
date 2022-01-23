@@ -85,12 +85,20 @@ struct BlockContents {
 //  bool cachable;        // True iff data can be cached
 //  bool heap_allocated;  // True iff caller should delete[] data.data()
 };
-void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+void Find_KV_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, Slice& data);
+void Find_Block_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                         const BlockHandle& handle, ibv_mr* remote_mr);
+bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                       const size_t& offset, ibv_mr* remote_mr);
+
 // Read the block identified by "handle" from "file".  On failure
 // return non-OK.  On success fill *result and return OK.
 Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result);
+Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
+                     const BlockHandle& handle,
+                  Slice* result);
 Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
                           BlockContents* result);
 Status ReadFilterBlock(ibv_mr* remote_mr,

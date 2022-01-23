@@ -114,7 +114,7 @@ Status TableCache::FindTable(
 //      tf->file = file;
 //      tf->remote_table = Remote_memtable_meta;
       tf->table_compute = table;
-      assert(table->rep_ != nullptr);
+      assert(table->rep != nullptr);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Compute);
     }
   }
@@ -149,7 +149,7 @@ Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> 
       //      tf->remote_table = Remote_memtable_meta;
       assert(table->Get_remote_table_ptr() != nullptr);
       tf->table_memory = table;
-      assert(table->rep_ != nullptr);
+      assert(table->rep != nullptr);
 //      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
     }

@@ -123,7 +123,7 @@ endif(BUILD_SHARED_LIBS)
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(TimberSaw table/table_builder.cpp util/env_posix.h)
+add_library(TimberSaw          )
 target_sources(TimberSaw
   PRIVATE
     "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
@@ -169,6 +169,7 @@ target_sources(TimberSaw
     "port/thread_annotations.h"
     "memory_node/memory_node_keeper.h"
     "memory_node/memory_node_keeper.cpp"
+    "table/table_builder.cpp"
     "table/table_builder_memoryside.h"
     "table/table_builder_memoryside.cpp"
     "table/table_memoryside.h"
@@ -189,10 +190,18 @@ target_sources(TimberSaw
     "table/merger.h"
     "table/table_builder_computeside.h"
     "table/table_builder_computeside.cc"
+    "table/table_builder_bacs.cpp"
+    "table/table_builder_bacs.h"
+    "table/table_builder_bams.cpp"
+    "table/table_builder_bams.h"
     "table/table.cc"
     "include/TimberSaw/table_builder.h"
     "table/two_level_iterator.cc"
     "table/two_level_iterator.h"
+    "table/byte_addressable_RA_iterator.h"
+    "table/byte_addressable_RA_iterator.cpp"
+    "table/byte_addressable_SEQ_iterrator.cpp"
+    "table/byte_addressable_SEQ_iterrator.h"
     "util/arena.cc"
     "util/arena.h"
     "util/autovector.h"
@@ -208,6 +217,7 @@ target_sources(TimberSaw
     "util/comparator.cc"
     "util/crc32c.cc"
     "util/crc32c.h"
+    "util/env_posix.h"
     "util/env.cc"
     "util/fastrange.h"
     "util/filter_policy.cc"

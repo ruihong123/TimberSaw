@@ -7,6 +7,7 @@
 #include <list>
 
 #include "table/table_builder_memoryside.h"
+#include "table/table_builder_bams.h"
 
 namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
@@ -36,6 +37,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
     rdma_mg->Mempool_initialize(std::string("FlushBuffer"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
+    rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
     opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
     opts->comparator = &internal_comparator_;
@@ -965,8 +967,14 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(SubcompactionState* compact)
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
+#ifndef BYTEADDRESSABLE
     compact->builder = new TableBuilder_Memoryside(
         *opts, Compact, rdma_mg);
+#endif
+#ifdef BYTEADDRESSABLE
+    compact->builder = new TableBuilder_BAMS(
+        *opts, Compact, rdma_mg);
+#endif
   }
   return s;
 }
@@ -992,7 +1000,14 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_Memoryside(*opts, Compact, rdma_mg);
+#ifndef BYTEADDRESSABLE
+    compact->builder = new TableBuilder_Memoryside(
+        *opts, Compact, rdma_mg);
+#endif
+#ifdef BYTEADDRESSABLE
+    compact->builder = new TableBuilder_BAMS(
+        *opts, Compact, rdma_mg);
+#endif
   }
 //  printf("rep_ is %p", compact->builder->get_filter_map())
   return s;

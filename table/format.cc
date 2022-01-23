@@ -60,7 +60,7 @@ Status Footer::DecodeFrom(Slice* input) {
   }
   return result;
 }
-void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+void Find_Block_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, ibv_mr* remote_mr) {
   uint64_t  position = handle.offset();
 //  auto iter = remote_data_blocks.begin();
@@ -71,22 +71,10 @@ void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
   *(remote_mr) = *(iter->second);
 //      DEBUG_arg("Block buffer position %lu\n", position);
   remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
-//  while(iter != remote_data_blocks.end()){
-//    if (position >= iter->second->length){// the missing of the equal, cause the
-//                                          // problem of iterator sometime drop, make the compaction failed
-//      position -= ((iter->second->length));
-//      iter++;
-//    }else{
-//      assert(position + handle.size() + kBlockTrailerSize <= iter->second->length);
-//      *(remote_mr) = *(iter->second);
-////      DEBUG_arg("Block buffer position %lu\n", position);
-//      remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
-//      return true;
-//    }
-//  }
-//  return false;
+
 }
-void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+
+void Find_KV_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                     const BlockHandle& handle, Slice& data) {
   uint64_t  position = handle.offset();
   //  auto iter = remote_data_blocks.begin();
@@ -96,6 +84,23 @@ void Find_Remote_mr(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
   //  assert(handle.size() +kBlockTrailerSize <= )
   //      DEBUG_arg("Block buffer position %lu\n", position);
   data.Reset((static_cast<char*>(iter->second->addr) + position), handle.size());
+}
+bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                      const size_t& offset , ibv_mr* remote_mr) {
+  uint64_t  position = offset;
+  //  auto iter = remote_data_blocks.begin();
+  auto iter = remote_data_blocks->upper_bound(position);
+  if (iter == remote_data_blocks->end()){
+    return false;
+  }
+  position = position - (iter->first - iter->second->length);
+  assert(position  <= iter->second->length);
+  //  assert(handle.size() +kBlockTrailerSize <= )
+  *(remote_mr) = *(iter->second);
+  //      DEBUG_arg("Block buffer position %lu\n", position);
+  remote_mr->addr = static_cast<void*>(static_cast<char*>(iter->second->addr) + position);
+  remote_mr->length = remote_mr->length - position;
+  return true;
 }
 //TODO: Make the block mr searching and creating outside this function, so that datablock is
 // the same as data index block and filter block.
@@ -129,7 +134,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef GETANALYSIS
   auto start1 = std::chrono::high_resolution_clock::now();
 #endif
-    Find_Remote_mr(remote_data_blocks, handle, &remote_mr);
+  Find_Block_MR(remote_data_blocks, handle, &remote_mr);
 #ifdef GETANALYSIS
   auto stop1 = std::chrono::high_resolution_clock::now();
   auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
@@ -224,7 +229,77 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //#endif
   return Status::OK();
 }
+Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
+                     const BlockHandle& handle,
+                  Slice* result) {
+  //#ifdef GETANALYSIS
+  //  auto start = std::chrono::high_resolution_clock::now();
+  //#endif
+  //  result->cachable = false;
+  //  result->heap_allocated = false;
+  // Read the block contents as well as the type/crc footer.
+  // See table_builder.cc for the code that built this structure.
+  Status s = Status::OK();
 
+  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
+
+  size_t n = static_cast<size_t>(handle.size());
+  assert(n + kBlockTrailerSize <= rdma_mg->name_to_size["DataBlock"]);
+  ibv_mr contents = {};
+  ibv_mr remote_mr = {};
+  //#ifndef NDEBUG
+  //  ibv_wc wc;
+  //  int check_poll_number =
+  //      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
+  //  assert( check_poll_number == 0);
+  //#endif
+
+  //  if (){
+
+#ifdef GETANALYSIS
+  auto start1 = std::chrono::high_resolution_clock::now();
+#endif
+  Find_Block_MR(remote_data_blocks, handle, &remote_mr);
+#ifdef GETANALYSIS
+  auto stop1 = std::chrono::high_resolution_clock::now();
+  auto duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
+  RDMA_Manager::RDMAFindmrElapseSum.fetch_add(duration1.count());
+#endif
+#ifdef GETANALYSIS
+  start1 = std::chrono::high_resolution_clock::now();
+#endif
+  rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
+#ifdef GETANALYSIS
+  stop1 = std::chrono::high_resolution_clock::now();
+  duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
+  RDMA_Manager::RDMAMemoryAllocElapseSum.fetch_add(duration1.count());
+  RDMA_Manager::ReadCount1.fetch_add(1);
+#endif
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
+  rdma_mg->RDMA_Read(&remote_mr, &contents, n,
+                     "read_local", IBV_SEND_SIGNALED, 1);
+#ifdef PROCESSANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  assert(n  <= rdma_mg->name_to_size["DataBlock"]);
+  RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
+  RDMA_Manager::ReadCount.fetch_add(1);
+#endif
+
+  const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
+
+  result->Reset(data, n);
+
+
+  //#ifdef GETANALYSIS
+  //  auto stop = std::chrono::high_resolution_clock::now();
+  //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  //  printf("CRC check elapse is %zu\n",  duration.count());
+  //#endif
+  return Status::OK();
+}
 Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
                           BlockContents* result) {
   result->data = Slice();

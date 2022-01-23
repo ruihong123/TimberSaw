@@ -1,27 +1,25 @@
-// Copyright (c) 2011 The TimberSaw Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style license that can be
-// found in the LICENSE file. See the AUTHORS file for names of contributors.
+//
+// Created by ruihong on 1/20/22.
+//
 
-#include "table_builder_computeside.h"
-
+#include "table_builder_bacs.h"
 #include "db/dbformat.h"
 #include <cassert>
-
 namespace TimberSaw {
 //TOthink: how to save the remote mr?
 //TOFIX : now we suppose the index and filter block will not over the write buffer.
 // TODO: make the Option of tablebuilder a pointer avoiding large data copying
-struct TableBuilder_ComputeSide::Rep {
+struct TableBuilder_BACS::Rep {
   Rep(const Options& opt, IO_type type)
-  : options(opt),
-  index_block_options(opt),
-  type_(type),
-  offset_last_flushed(0),
-  offset(0),
+      : options(opt),
+        index_block_options(opt),
+        type_(type),
+        offset_last_flushed(0),
+        offset(0),
 
-  num_entries(0),
-  closed(false),
-  pending_index_filter_entry(false) {
+        num_entries(0),
+        closed(false),
+        pending_index_filter_entry(false) {
     //TOTHINK: why the block restart interval is 1 by default?
     // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
@@ -50,7 +48,7 @@ struct TableBuilder_ComputeSide::Rep {
     //    delete temp_data_mr;
     //    delete temp_index_mr;
     //    delete temp_filter_mr;
-    data_block = new BlockBuilder(&options, local_data_mr[0]);
+    data_buff = Slice((char*)local_data_mr.at(0)->addr,0);
     index_block = new BlockBuilder(&index_block_options, local_index_mr[0]);
     if (type_ == IO_type::Compact){
       type_string_ = "write_local_compact";
@@ -60,8 +58,8 @@ struct TableBuilder_ComputeSide::Rep {
       assert(false);
     }
     filter_block = (opt.filter_policy == nullptr
-        ? nullptr
-        : new FullFilterBlockBuilder(local_filter_mr[0], opt.bloom_bits));
+                        ? nullptr
+                        : new FullFilterBlockBuilder(local_filter_mr[0], opt.bloom_bits));
 
     status = Status::OK();
   }
@@ -87,10 +85,13 @@ struct TableBuilder_ComputeSide::Rep {
   std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;
   //  std::vector<size_t> remote_mr_real_length;
-  uint64_t offset_last_flushed;
-  uint64_t offset;
+  uint64_t offset_last_flushed = 0;
+  uint64_t offset = 0;
+  uint32_t chunk_offset = 0;
+
   Status status;
-  BlockBuilder* data_block;
+//  BlockBuilder* data_block;
+  Slice data_buff;
   BlockBuilder* index_block;
   std::string last_key;
   int64_t num_entries;
@@ -111,14 +112,14 @@ struct TableBuilder_ComputeSide::Rep {
 
   std::string compressed_output;
 };
-TableBuilder_ComputeSide::TableBuilder_ComputeSide(const Options& options, IO_type type)
+TableBuilder_BACS::TableBuilder_BACS(const Options& options, IO_type type)
     : rep_(new Rep(options, type)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }
 }
 
-TableBuilder_ComputeSide::~TableBuilder_ComputeSide() {
+TableBuilder_BACS::~TableBuilder_BACS() {
   assert(rep_->closed);  // Catch errors where caller forgot to call Finish()
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
@@ -136,7 +137,7 @@ TableBuilder_ComputeSide::~TableBuilder_ComputeSide() {
     rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
     delete iter;
   }
-  delete rep_->data_block;
+//  delete rep_->data_block;
   delete rep_->index_block;
   delete rep_;
 }
@@ -158,15 +159,15 @@ TableBuilder_ComputeSide::~TableBuilder_ComputeSide() {
 //}
 //TODO: make it create a block every blocksize, flush every 1M. When flushing do not poll completion
 // pool the completion at the same time in the end
-void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
+void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
   Rep* r = rep_;
   assert(!r->closed);
   if (!ok()) return;
   if (r->num_entries > 0) {
     assert(r->options.comparator->Compare(key, Slice(r->last_key)) > 0);
   }
-//  DEBUG_arg("ADD new key data, key is %s\n", key.ToString().c_str());
-//  DEBUG_arg("number of entry is %ld\n", r->num_entries);
+  //  DEBUG_arg("ADD new key data, key is %s\n", key.ToString().c_str());
+  //  DEBUG_arg("number of entry is %ld\n", r->num_entries);
   //todo: MAKE IT a remote block size which could be 1M
   // How to predict the datasize before actually serilizae the data, so that there will
   // not be buffer overflow.
@@ -174,39 +175,34 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
   // *   if so then finish the old data to a block make it insert to a new block
   // *   Second, if new block finished, check whether the write buffer can hold a new block size.
   // *           if not, the flush temporal buffer content to the remote memory.
-  const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
-  // maximize added length to the block is key size + value size + restart point + shared, nonshared, valuesize
-  if (estimated_block_size + key.size() + value.size() +sizeof(size_t) + 3*sizeof(uint32_t) + kBlockTrailerSize >= r->options.block_size) {
-    UpdateFunctionBLock();
-    if (r->local_data_mr[0]->length - (r->offset - r->offset_last_flushed) < r->options.block_size) {
-      FlushData();
-    }
-  }
 
-  //Create a new index entry but never flush it
-  // when write a index entry, the data block offset and data block size will be attached
-  if (r->pending_index_filter_entry) {
-    assert(r->data_block->empty());
-//#ifndef NDEBUG
-//    size_t key_length = r->last_key.size();
-//#endif
-//    assert(r->last_key.size()>= 8);
+
+  if ((r->offset - r->offset_last_flushed + key.size() + value.size() + 2*sizeof(uint32_t)) <  r->local_data_mr[0]->length) {
+    FlushData();// reset the buffer inside
+
+  }
+//  const size_t estimated_block_size = r->data_block->CurrentSizeEstimate();
+//  if (estimated_block_size + key.size() + value.size() +sizeof(size_t) + kBlockTrailerSize >= r->options.block_size) {
+//
+//  }
+
+  //Create a new index entry for every items.
+  {
+//    assert(r->data_block->empty());
+    //#ifndef NDEBUG
+    //    size_t key_length = r->last_key.size();
+    //#endif
+    //    assert(r->last_key.size()>= 8);
     r->options.comparator->FindShortestSeparator(&r->last_key, key);
-//    assert(r->last_key.size() >= 8  );
+    //    assert(r->last_key.size() >= 8  );
     std::string handle_encoding;
     //Note that the handle block size does not contain CRC!
+    r->pending_data_handle.set_offset(r->offset);// This is the offset of the begginning of this block.
+    r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
     r->pending_data_handle.EncodeTo(&handle_encoding);
-    if (r->index_block->CurrentSizeEstimate()+ r->last_key.size() + handle_encoding.size() +
-        sizeof (uint32_t) + kBlockTrailerSize > r->local_index_mr[0]->length){
-      assert(false);
-      BlockHandle dummy_handle;
-      size_t msg_size;
-      FinishDataIndexBlock(r->index_block, &dummy_handle, r->options.compression, msg_size);
-      FlushDataIndex(msg_size);
-    }
+
     r->index_block->Add(r->last_key, Slice(handle_encoding));
 
-    r->pending_index_filter_entry = false;
   }
 
   if (r->filter_block != nullptr) {
@@ -214,48 +210,54 @@ void TableBuilder_ComputeSide::Add(const Slice& key, const Slice& value) {
   }
 
   r->last_key.assign(key.data(), key.size());
-//  assert(key.size() == 28 || key.size() == 29);
-//  assert(r->last_key.c_str()[8] == 060);
+  //  assert(key.size() == 28 || key.size() == 29);
+  //  assert(r->last_key.c_str()[8] == 060);
   r->num_entries++;
-  r->data_block->Add(key, value);
-
+  // append k-V pair to the buffer.
+  PutFixed32(&r->data_buff, key.size());
+  PutFixed32(&r->data_buff, value.size());
+  r->data_buff.append(key.data(), key.size());
+  r->data_buff.append(value.data(), value.size());
+  r->offset +=  key.size() + value.size() + 2*sizeof(uint32_t);
 
 
 
 }
 
-void TableBuilder_ComputeSide::UpdateFunctionBLock() {
+void TableBuilder_BACS::UpdateFunctionBLock() {
 
-  Rep* r = rep_;
-  assert(!r->closed);
-  if (!ok()) return;
-  if (r->data_block->empty()) return;
-  assert(!r->pending_index_filter_entry);
-  FinishDataBlock(r->data_block, &r->pending_data_handle, r->options.compression);
-  //set data block pointer to next one, clear the block state
-//  r->data_block->Reset();
-  if (ok()) {
-    r->pending_index_filter_entry = true;
-//    r->status = r->file->FlushData();
-  }
+//  Rep* r = rep_;
+//  assert(!r->closed);
+//  if (!ok()) return;
+//  if (r->data_block->empty()) return;
+//  assert(!r->pending_index_filter_entry);
+//  FinishDataBlock(r->data_block, &r->pending_data_handle, r->options.compression);
+//  //set data block pointer to next one, clear the block state
+//  //  r->data_block->Reset();
+//  if (ok()) {
+//    r->pending_index_filter_entry = true;
+//    //    r->status = r->file->FlushData();
+//  }
 
 }
 //Note: there are three types of finish function for different blocks, the main
 //difference is whether update the offset which will record the size of the data block.
 //And the filter blocks has a different way to reset the block.
-void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
-                                   CompressionType compressiontype) {
+void TableBuilder_BACS::FinishDataBlock(BlockBuilder* block, BlockHandle* handle,
+                                               CompressionType compressiontype) {
   // File format contains a sequence of blocks where each block has:
   //    block_data: uint8[n]
   //    compressiontype: uint8
   //    crc: uint32
-  assert(ok());
+  assert(false);
   Rep* r = rep_;
   block->Finish();
 
-  Slice* raw = &(r->data_block->buffer);
+//  Slice* raw = &(r->data_block->buffer);
+  Slice* raw ;
+
   Slice* block_contents;
-//  CompressionType compressiontype = r->options.compression;
+  //  CompressionType compressiontype = r->options.compression;
   //TOTHINK: temporally disable the compression, because it can increase the latency but it could
   // increase the available bandwidth. THis part depends on whether the in-memory write can catch
   // up with the high RDMA bandwidth.
@@ -264,25 +266,25 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
       block_contents = raw;
       break;
 
-//    case kSnappyCompression: {
-//      std::string* compressed = &r->compressed_output;
-//      if (port::Snappy_Compress(raw->data(), raw->size(), compressed) &&
-//          compressed->size() < raw->size() - (raw->size() / 8u)) {
-//        block_contents = *compressed;
-//        memcpy(block_contents.data);
-//      } else {
-//        // Snappy not supported, or compressed less than 12.5%, so just
-//        // store uncompressed form
-//        block_contents = raw;
-//        compressiontype = kNoCompression;
-//      }
-//      break;
-//    }
+      //    case kSnappyCompression: {
+      //      std::string* compressed = &r->compressed_output;
+      //      if (port::Snappy_Compress(raw->data(), raw->size(), compressed) &&
+      //          compressed->size() < raw->size() - (raw->size() / 8u)) {
+      //        block_contents = *compressed;
+      //        memcpy(block_contents.data);
+      //      } else {
+      //        // Snappy not supported, or compressed less than 12.5%, so just
+      //        // store uncompressed form
+      //        block_contents = raw;
+      //        compressiontype = kNoCompression;
+      //      }
+      //      break;
+      //    }
   }
-//#ifndef NDEBUG
-//  if (r->offset == 72100)
-//    printf("mark!!\n");
-//#endif
+  //#ifndef NDEBUG
+  //  if (r->offset == 72100)
+  //    printf("mark!!\n");
+  //#endif
   handle->set_offset(r->offset);// This is the offset of the begginning of this block.
   handle->set_size(block_contents->size());
   assert(block_contents->size() <= r->options.block_size - kBlockTrailerSize);
@@ -296,17 +298,17 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
     // block_type == 0 means data block
     if (r->status.ok()) {
       r->offset += block_contents->size();
-//      DEBUG_arg("Offset is %lu", r->offset);
+      //      DEBUG_arg("Offset is %lu", r->offset);
       assert(r->offset - r->offset_last_flushed <= r->local_data_mr[0]->length);
     }
   }
   r->compressed_output.clear();
   block->Reset_Forward();
 }
-void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
-                                        BlockHandle* handle,
-                                        CompressionType compressiontype,
-                                        size_t& block_size) {
+void TableBuilder_BACS::FinishDataIndexBlock(BlockBuilder* block,
+                                                    BlockHandle* handle,
+                                                    CompressionType compressiontype,
+                                                    size_t& block_size) {
   // File format contains a sequence of blocks where each block has:
   //    block_data: uint8[n]
   //    compressiontype: uint8
@@ -322,19 +324,19 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
       block_contents = raw;
       break;
 
-//    case kSnappyCompression: {
-//      std::string* compressed = &r->compressed_output;
-//      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-//          compressed->size() < raw.size() - (raw.size() / 8u)) {
-//        block_contents = *compressed;
-//      } else {
-//        // Snappy not supported, or compressed less than 12.5%, so just
-//        // store uncompressed form
-//        block_contents = raw;
-//        compressiontype = kNoCompression;
-//      }
-//      break;
-//    }
+      //    case kSnappyCompression: {
+      //      std::string* compressed = &r->compressed_output;
+      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
+      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
+      //        block_contents = *compressed;
+      //      } else {
+      //        // Snappy not supported, or compressed less than 12.5%, so just
+      //        // store uncompressed form
+      //        block_contents = raw;
+      //        compressiontype = kNoCompression;
+      //      }
+      //      break;
+      //    }
   }
   handle->set_offset(r->offset);
   handle->set_size(block_contents->size());
@@ -362,9 +364,9 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
   block->Reset_Forward();
 
 }
-void TableBuilder_ComputeSide::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
-                                     CompressionType compressiontype,
-                                     size_t& block_size) {
+void TableBuilder_BACS::FinishFilterBlock(FullFilterBlockBuilder* block, BlockHandle* handle,
+                                                 CompressionType compressiontype,
+                                                 size_t& block_size) {
   Rep* r = rep_;
   block->Finish();
 
@@ -376,19 +378,19 @@ void TableBuilder_ComputeSide::FinishFilterBlock(FullFilterBlockBuilder* block, 
       block_contents = raw;
       break;
 
-//    case kSnappyCompression: {
-//      std::string* compressed = &r->compressed_output;
-//      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
-//          compressed->size() < raw.size() - (raw.size() / 8u)) {
-//        block_contents = *compressed;
-//      } else {
-//        // Snappy not supported, or compressed less than 12.5%, so just
-//        // store uncompressed form
-//        block_contents = raw;
-//        compressiontype = kNoCompression;
-//      }
-//      break;
-//    }
+      //    case kSnappyCompression: {
+      //      std::string* compressed = &r->compressed_output;
+      //      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
+      //          compressed->size() < raw.size() - (raw.size() / 8u)) {
+      //        block_contents = *compressed;
+      //      } else {
+      //        // Snappy not supported, or compressed less than 12.5%, so just
+      //        // store uncompressed form
+      //        block_contents = raw;
+      //        compressiontype = kNoCompression;
+      //      }
+      //      break;
+      //    }
   }
   handle->set_offset(r->offset);
   handle->set_size(block_contents->size());
@@ -406,7 +408,7 @@ void TableBuilder_ComputeSide::FinishFilterBlock(FullFilterBlockBuilder* block, 
   block->Reset();
 }
 //TODO make flushing flush the data to the remote memory flushing to remote memory
-void TableBuilder_ComputeSide::FlushData(){
+void TableBuilder_BACS::FlushData(){
   Rep* r = rep_;
   size_t msg_size = r->offset - r->offset_last_flushed;
   ibv_mr* remote_mr = new ibv_mr();
@@ -431,9 +433,9 @@ void TableBuilder_ComputeSide::FlushData(){
 
   }else{
     // check the maximum outstanding buffer number, if not set it the flushing and compaction will be messed up
-//    int maximum_poll_number = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
-//                      r->data_inuse_end - r->data_inuse_start + 1:
-//                      (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
+    //    int maximum_poll_number = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
+    //                      r->data_inuse_end - r->data_inuse_start + 1:
+    //                      (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
     int maximum_poll_number = 5;
     auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
@@ -444,7 +446,7 @@ void TableBuilder_ComputeSide::FlushData(){
     if(r->data_inuse_start >= r->local_data_mr.size()){
       r->data_inuse_start = r->data_inuse_start - r->local_data_mr.size();
     }
-//    DEBUG_arg("Poll the completion %d\n", poll_num);
+    //    DEBUG_arg("Poll the completion %d\n", poll_num);
 
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
@@ -465,17 +467,17 @@ void TableBuilder_ComputeSide::FlushData(){
     delete[] wc;
   }
   remote_mr->length = msg_size;
-//  if(r->remote_data_mrs.empty()){
-//    r->remote_data_mrs.insert({0, remote_mr});
-//  }else{
-//#ifndef NDEBUG
-//    for (auto iter : r->remote_data_mrs) {
-//      assert(remote_mr->addr != iter.second->addr);
-//
-//    }
-//#endif
-//    r->remote_data_mrs.insert({r->remote_data_mrs.rbegin()->first+1, remote_mr});
-//  }
+  //  if(r->remote_data_mrs.empty()){
+  //    r->remote_data_mrs.insert({0, remote_mr});
+  //  }else{
+  //#ifndef NDEBUG
+  //    for (auto iter : r->remote_data_mrs) {
+  //      assert(remote_mr->addr != iter.second->addr);
+  //
+  //    }
+  //#endif
+  //    r->remote_data_mrs.insert({r->remote_data_mrs.rbegin()->first+1, remote_mr});
+  //  }
   if(r->remote_data_mrs.empty()){
     r->remote_data_mrs.insert({r->offset, remote_mr});
   }else{
@@ -493,16 +495,16 @@ void TableBuilder_ComputeSide::FlushData(){
   int next_buffer_index = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
 
   assert(next_buffer_index != r->data_inuse_start);
-  r->data_block->Move_buffer(const_cast<const char*>(static_cast<char*>(r->local_data_mr[next_buffer_index]->addr)));
-//  DEBUG_arg("In use start is %d\n", r->data_inuse_start);
-//  DEBUG_arg("In use end is %d\n", r->data_inuse_end);
-//  DEBUG_arg("Next write buffer to use %d\n", next_buffer_index);
-//  DEBUG_arg("Total local write buffer number is %zu\n", r->local_data_mr.size());
-//  DEBUG_arg("MR element number is %lu\n", r->remote_data_mrs.size());
-//  assert(r->data_inuse_start!= r->data_inuse_end);
+  r->data_buff.Reset((char*)r->local_data_mr[next_buffer_index]->addr, 0);
+  //  DEBUG_arg("In use start is %d\n", r->data_inuse_start);
+  //  DEBUG_arg("In use end is %d\n", r->data_inuse_end);
+  //  DEBUG_arg("Next write buffer to use %d\n", next_buffer_index);
+  //  DEBUG_arg("Total local write buffer number is %zu\n", r->local_data_mr.size());
+  //  DEBUG_arg("MR element number is %lu\n", r->remote_data_mrs.size());
+  //  assert(r->data_inuse_start!= r->data_inuse_end);
   // No need to record the flushing times, because we can check from the remote mr map element number.
 }
-void TableBuilder_ComputeSide::FlushDataIndex(size_t msg_size) {
+void TableBuilder_BACS::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
@@ -516,11 +518,11 @@ void TableBuilder_ComputeSide::FlushDataIndex(size_t msg_size) {
   }
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
-//  DEBUG_arg("Index block size is %zu", msg_size);
+  //  DEBUG_arg("Index block size is %zu", msg_size);
   r->index_block->Move_buffer(static_cast<char*>(r->local_index_mr[0]->addr));
 
 }
-void TableBuilder_ComputeSide::FlushFilter(size_t& msg_size) {
+void TableBuilder_BACS::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
@@ -538,9 +540,9 @@ void TableBuilder_ComputeSide::FlushFilter(size_t& msg_size) {
 
 }
 
-Status TableBuilder_ComputeSide::status() const { return rep_->status; }
+Status TableBuilder_BACS::status() const { return rep_->status; }
 
-Status TableBuilder_ComputeSide::Finish() {
+Status TableBuilder_BACS::Finish() {
   Rep* r = rep_;
   UpdateFunctionBLock();
   FlushData();
@@ -556,7 +558,7 @@ Status TableBuilder_ComputeSide::Finish() {
   //TOthink why not compress the block here.
   if (ok() && r->filter_block != nullptr) {
     if(r->pending_index_filter_entry){
-//      r->filter_block->RestartBlock(r->offset);
+      //      r->filter_block->RestartBlock(r->offset);
     }
 
     size_t msg_size;
@@ -566,20 +568,20 @@ Status TableBuilder_ComputeSide::Finish() {
 
 
   // Write metaindex block
-//  if (ok()) {
-//    BlockBuilder meta_index_block(&r->options, nullptr);
-//    if (r->filter_block != nullptr) {
-//      // Add mapping from "filter.Name" to location of filter data
-//      std::string key = "filter.";
-//      key.append(r->options.filter_policy->Name());
-//      std::string handle_encoding;
-//      filter_block_handle.EncodeTo(&handle_encoding);
-//      meta_index_block->Add(key, handle_encoding);
-//    }
-//
-//    // TODO(postrelease): Add stats and other meta blocks
-//    FinishDataBlock(&meta_index_block, &metaindex_block_handle);
-//  }
+  //  if (ok()) {
+  //    BlockBuilder meta_index_block(&r->options, nullptr);
+  //    if (r->filter_block != nullptr) {
+  //      // Add mapping from "filter.Name" to location of filter data
+  //      std::string key = "filter.";
+  //      key.append(r->options.filter_policy->Name());
+  //      std::string handle_encoding;
+  //      filter_block_handle.EncodeTo(&handle_encoding);
+  //      meta_index_block->Add(key, handle_encoding);
+  //    }
+  //
+  //    // TODO(postrelease): Add stats and other meta blocks
+  //    FinishDataBlock(&meta_index_block, &metaindex_block_handle);
+  //  }
 
   // Write index block
   if (ok()) {
@@ -592,14 +594,14 @@ Status TableBuilder_ComputeSide::Finish() {
     }
     size_t msg_size;
     FinishDataIndexBlock(r->index_block, &index_block_handle,
-                    r->options.compression, msg_size);
+                         r->options.compression, msg_size);
     FlushDataIndex(msg_size);
   }
-//  DEBUG_arg("for a sst the remote data chunks number %zu\n", r->remote_data_mrs.size());
+  //  DEBUG_arg("for a sst the remote data chunks number %zu\n", r->remote_data_mrs.size());
   //TODO: the polling number here sometime is not correct.
   int num_of_poll = r->data_inuse_end - r->data_inuse_start + 1 >= 0 ?
-                    r->data_inuse_end - r->data_inuse_start + 1:
-                    (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
+                                                                     r->data_inuse_end - r->data_inuse_start + 1:
+                                                                     (int)(r->local_data_mr.size()) - r->data_inuse_start + r->data_inuse_end +1;
   // add one more for the index block,if have filter block add 2
   if (r->filter_block != nullptr){
     num_of_poll = num_of_poll + 2;
@@ -616,41 +618,41 @@ Status TableBuilder_ComputeSide::Finish() {
           wc, 1, r->type_string_, true);
   assert( check_poll_number == 0);
 #endif
-//  printf("A table finsihed flushing\n");
-//  // Write footer
-//  if (ok()) {
-//    Footer footer;
-//    footer.set_metaindex_handle(metaindex_block_handle);
-//    footer.set_index_handle(index_block_handle);
-//    std::string footer_encoding;
-//    footer.EncodeTo(&footer_encoding);
-//    r->status = r->file->Append(footer_encoding);
-//    if (r->status.ok()) {
-//      r->offset += footer_encoding.size();
-//    }
-//  }
+  //  printf("A table finsihed flushing\n");
+  //  // Write footer
+  //  if (ok()) {
+  //    Footer footer;
+  //    footer.set_metaindex_handle(metaindex_block_handle);
+  //    footer.set_index_handle(index_block_handle);
+  //    std::string footer_encoding;
+  //    footer.EncodeTo(&footer_encoding);
+  //    r->status = r->file->Append(footer_encoding);
+  //    if (r->status.ok()) {
+  //      r->offset += footer_encoding.size();
+  //    }
+  //  }
   return r->status;
 }
 
-void TableBuilder_ComputeSide::Abandon() {
+void TableBuilder_BACS::Abandon() {
   Rep* r = rep_;
   assert(!r->closed);
   r->closed = true;
 }
 
-uint64_t TableBuilder_ComputeSide::NumEntries() const { return rep_->num_entries; }
+uint64_t TableBuilder_BACS::NumEntries() const { return rep_->num_entries; }
 
-uint64_t TableBuilder_ComputeSide::FileSize() const { return rep_->offset; }
-void TableBuilder_ComputeSide::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
+uint64_t TableBuilder_BACS::FileSize() const { return rep_->offset; }
+void TableBuilder_BACS::get_datablocks_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_data_mrs;
 }
-void TableBuilder_ComputeSide::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
+void TableBuilder_BACS::get_dataindexblocks_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_dataindex_mrs;
 }
-void TableBuilder_ComputeSide::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
+void TableBuilder_BACS::get_filter_map(std::map<uint32_t, ibv_mr*>& map) {
   map = rep_->remote_filter_mrs;
 }
-size_t TableBuilder_ComputeSide::get_numentries() {
+size_t TableBuilder_BACS::get_numentries() {
   return rep_->num_entries;
 }
 

@@ -53,13 +53,14 @@ class TimberSaw_EXPORT Table_Memory_Side {
   // be close to the file length.
   uint64_t ApproximateOffsetOf(const Slice& key) const;
 
+  static Slice KVReader(void* arg, const ReadOptions& options, const Slice& index_value);
+
  private:
   friend class TableCache;
   struct Rep;
 
-  static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
-
-  explicit Table_Memory_Side(Rep* rep) : rep_(rep) {}
+  static Iterator* BlockReader(void* arg, const ReadOptions&, const Slice&);
+  explicit Table_Memory_Side(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call
   // to Seek(key).  May not make such a call if filter policy says
@@ -71,7 +72,7 @@ class TimberSaw_EXPORT Table_Memory_Side {
   //  void ReadMeta(const Footer& footer);
   void ReadFilter();
   void* Get_remote_table_ptr();
-  Rep* const rep_;
+  Rep* const rep;
   //  static std::atomic<int> table
 };
 }

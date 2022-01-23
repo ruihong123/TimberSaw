@@ -8,6 +8,7 @@
 #include <cstddef>
 
 #include "TimberSaw/export.h"
+#include "table/format.h"
 
 namespace TimberSaw {
 
@@ -183,6 +184,7 @@ struct TimberSaw_EXPORT ReadOptions {
   // snapshot of the state at the beginning of this read operation.
   const Snapshot* snapshot = nullptr;
 };
+
 
 // Options that control write operations
 struct TimberSaw_EXPORT WriteOptions {

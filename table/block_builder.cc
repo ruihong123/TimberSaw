@@ -68,7 +68,7 @@ Slice BlockBuilder::Finish() {
     PutFixed32(&buffer, restarts_[i]);
   }
 //  assert(restarts_.size() > 1);
-  assert(restarts_.size() < 200000);
+//  assert(restarts_.size() < 200000);
   PutFixed32(&buffer, restarts_.size());
   finished_ = true;
   return Slice(buffer);
@@ -96,9 +96,11 @@ void BlockBuilder::Add(const Slice& key, const Slice& value) {
   const size_t non_shared = key.size() - shared;
 
   // Add "<shared><non_shared><value_size>" to buffer
-  assert(shared <= 29);
-  assert(non_shared <= 29);
+//  assert(shared <= 29);
+//  assert(non_shared <= 29);
+//#ifndef BYTEADDRESSABLE
   PutVarint32(&buffer, shared);
+//#endif
   PutVarint32(&buffer, non_shared);
 
   PutVarint32(&buffer, value.size());

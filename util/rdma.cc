@@ -632,12 +632,12 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size) {
   std::unique_lock<std::mutex> lck(dealloc_mtx);
 //  memcpy(deallocation_buffer + top * sizeof(uint64_t), ptr, size);
-  while(top >= DEALLOC_BUFF_SIZE/ sizeof(uint64_t) - 128){
+  while(top >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
     dealloc_cv.wait(lck);
   }
   *ptr = deallocation_buffer + top;
   top = top + size;
-  if (top >= DEALLOC_BUFF_SIZE/ sizeof(uint64_t) - 128)
+  if (top >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128)
     return true;
   else
     return false;
@@ -882,7 +882,8 @@ int RDMA_Manager::resources_create() {
   int mr_flags =
       IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
   //  auto start = std::chrono::high_resolution_clock::now();
-  dealloc_mr = ibv_reg_mr(res->pd, deallocation_buffer, DEALLOC_BUFF_SIZE, mr_flags);
+  dealloc_mr = ibv_reg_mr(res->pd, deallocation_buffer,
+                          REMOTE_DEALLOC_BUFF_SIZE, mr_flags);
   if (dealloc_mr == nullptr){
     fprintf(stdout, "dealloc_mr registration failed\n");
 
@@ -2353,7 +2354,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
 
 void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
   // If the Remote buffer is empty, register one from the remote memory.
-//  remote_mr = new ibv_mr;
+  //  remote_mr = new ibv_mr;
   if (Remote_Mem_Bitmap->empty()) {
     // this lock is to prevent the system register too much remote memory at the
     // begginning.
