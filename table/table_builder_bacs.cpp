@@ -199,6 +199,7 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
       std::string handle_encoding;
       //Note that the handle block size does not contain CRC!
       r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
+      assert(key.size() == 28);
       r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
       r->pending_data_handle.EncodeTo(&handle_encoding);
 
