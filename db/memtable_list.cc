@@ -910,6 +910,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
         counter++;
         it->Next();
       }
+      assert(counter = Not_drop_counter);
 #endif
       delete it;
     }
