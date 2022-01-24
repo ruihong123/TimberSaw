@@ -127,7 +127,9 @@ void ByteAddressableRAIterator::GetKV() {
         uint32_t key_size, value_size;
         GetFixed32(&KV, &key_size);
         GetFixed32(&KV, &value_size);
+
         assert(key_size + value_size == KV.size());
+        printf("key is %s", key_.GetKey().data());
         key_.SetKey(Slice(KV.data(), key_size), false /* copy */);
         KV.remove_prefix(key_size);
         assert(KV.size() == value_size);
