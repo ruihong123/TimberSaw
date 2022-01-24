@@ -96,8 +96,7 @@ void ByteAddressableRAIterator::GetKV() {
     Slice handle = index_iter_.value();
 #ifndef NDEBUG
     Slice test_handle = handle;
-    BlockHandle bhandle;
-    bhandle.DecodeFrom(&test_handle);
+    index_handle.DecodeFrom(&test_handle);
 //    printf("Iterator pointer is %p, Offset is %lu, this data block size is %lu\n", this, bhandle.offset(), bhandle.size());
 #endif
     if (handle.compare(data_block_handle_) == 0) {

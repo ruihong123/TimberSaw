@@ -65,6 +65,7 @@ class ByteAddressableRAIterator :public Iterator{
     // "index_value" passed to block_function_ to create the data_iter_.
     std::string data_block_handle_;
 #ifndef NDEBUG
+    BlockHandle index_handle;
     std::string last_key;
     int64_t num_entries=0;
 #endif
