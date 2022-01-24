@@ -39,6 +39,11 @@ ByteAddressableRAIterator::~ByteAddressableRAIterator() {
 void ByteAddressableRAIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
   GetKV();
+  //Todo: delete the things below.
+  for (int i = 0; i < target.size(); ++i) {
+    assert(key_.GetKey().data()[i] == target.data()[i]);
+  }
+
 
 }
 
