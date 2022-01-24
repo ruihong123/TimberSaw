@@ -104,18 +104,21 @@ void ByteAddressableRAIterator::GetKV() {
       // no need to change anything
     } else {
       if (compute_side_){
+        //TODO: just reuse the RDMA registered buffer every time, no need to
+        // allocate and deallocate again. we abandon the function pointer design,
+        // directly call the static function instead.
+        if (mr_addr != nullptr){
+          auto rdma_mg = Env::Default()->rdma_mg;
+          rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, "DataBlock");
+        }
         Slice KV = (*kv_function_)(arg_, options_, handle);
         mr_addr = const_cast<char*>(KV.data());
         uint32_t key_size, value_size;
         GetFixed32(&KV, &key_size);
         GetFixed32(&KV, &value_size);
         assert(key_size + value_size == KV.size());
-        //TODO: just reuse the RDMA registered buffer every time, no need to
-        // allocate and deallocate again.
-        if (mr_addr != nullptr){
-          auto rdma_mg = Env::Default()->rdma_mg;
-          rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, "DataBlock");
-        }
+
+
         key_.SetKey(Slice(KV.data(), key_size), false /* copy */);
         KV.remove_prefix(key_size);
         assert(KV.size() == value_size);
@@ -128,7 +131,8 @@ void ByteAddressableRAIterator::GetKV() {
         GetFixed32(&KV, &value_size);
 
         assert(key_size + value_size == KV.size());
-        printf("!key is %p \n", key_.GetKey().data());
+
+        printf("!key is %p, KV.data is %p \n", key_.GetKey().data(), KV.data());
         key_.SetKey(Slice(KV.data(), key_size), false /* copy */);
         KV.remove_prefix(key_size);
         assert(KV.size() == value_size);
