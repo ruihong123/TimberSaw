@@ -203,7 +203,7 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
       if (key.size() == 29){
         printf("Key size larger than 29");
       }
-      r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
+      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
       r->pending_data_handle.EncodeTo(&handle_encoding);
 
       r->index_block->Add(r->last_key, Slice(handle_encoding));

@@ -202,7 +202,7 @@ void TableBuilder_BAMS::Add(const Slice& key, const Slice& value) {
       std::string handle_encoding;
       //This index should point to the offset of the last KV.
       r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
-      r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
+      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
       r->pending_data_handle.EncodeTo(&handle_encoding);
 
       r->index_block->Add(r->last_key, Slice(handle_encoding));
