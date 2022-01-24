@@ -77,6 +77,8 @@ void ByteAddressableSEQIterator::GetKVInitial(){
       ibv_wc wc[1];
       rdma_mg->poll_completion(wc,1, "read_local", true);
       cur_prefetch_status += PREFETCH_GRANULARITY;
+      poll_number--;
+      assert(poll_number >= 0);
     }
     Slice Size_buff = Slice(iter_ptr, 8);
     GetFixed32(&Size_buff, &key_size);
@@ -118,6 +120,8 @@ void ByteAddressableSEQIterator::GetNextKV() {
     ibv_wc wc[1];
     rdma_mg->poll_completion(wc,1, "read_local", true);
     cur_prefetch_status += PREFETCH_GRANULARITY;
+    poll_number--;
+    assert(poll_number >= 0);
   }
   Slice Size_buff = Slice(iter_ptr, 8);
   GetFixed32(&Size_buff, &key_size);
@@ -128,6 +132,8 @@ void ByteAddressableSEQIterator::GetNextKV() {
     ibv_wc wc[1];
     rdma_mg->poll_completion(wc,1, "read_local", true);
     cur_prefetch_status += PREFETCH_GRANULARITY;
+    poll_number--;
+    assert(poll_number >= 0);
   }
   key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
   iter_ptr += key_size;

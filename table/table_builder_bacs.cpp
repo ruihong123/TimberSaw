@@ -193,21 +193,13 @@ void TableBuilder_BACS::Add(const Slice& key, const Slice& value) {
 
     // Add to index block from the second data, and when finishing the index block
     // add the smallest successor of the last key.
-    if (!r->last_key.empty()){
-      r->options.comparator->FindShortestSeparator(&r->last_key, key);
-      //    assert(r->last_key.size() >= 8  );
-      std::string handle_encoding;
-      //Note that the handle block size does not contain CRC!
-      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
-//      assert(key.size() == 28);
-      if (key.size() == 29){
-        printf("Key size larger than 29");
-      }
-      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
-      r->pending_data_handle.EncodeTo(&handle_encoding);
+    std::string handle_encoding;
+    //This index point to this offset and the key is this key.
+    r->pending_data_handle.set_offset(r->offset);// This is the offset of the begginning of this block.
+    r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
+    r->pending_data_handle.EncodeTo(&handle_encoding);
 
-      r->index_block->Add(r->last_key, Slice(handle_encoding));
-    }
+    r->index_block->Add(key, Slice(handle_encoding));
 
 
 
@@ -598,15 +590,15 @@ Status TableBuilder_BACS::Finish() {
 
   // Write index block
   if (ok()) {
-    if(r->pending_index_filter_entry){
-      r->options.comparator->FindShortSuccessor(&r->last_key);
-      std::string handle_encoding;
-      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
-      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
-      r->pending_data_handle.EncodeTo(&handle_encoding);
-      r->index_block->Add(r->last_key, Slice(handle_encoding));
-      r->pending_index_filter_entry = false;
-    }
+//    if(r->pending_index_filter_entry){
+//      r->options.comparator->FindShortSuccessor(&r->last_key);
+//      std::string handle_encoding;
+//      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
+//      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
+//      r->pending_data_handle.EncodeTo(&handle_encoding);
+//      r->index_block->Add(r->last_key, Slice(handle_encoding));
+//      r->pending_index_filter_entry = false;
+//    }
     size_t msg_size;
     FinishDataIndexBlock(r->index_block, &index_block_handle,
                          r->options.compression, msg_size);

@@ -31,6 +31,8 @@ void TwoLevelIterator::Seek(const Slice& target) {
     data_iter_.Seek(target);
     valid_ = true;
   }
+  // if the target is in the middle of two block, then iter should stop at the
+  // beggining of the nex block.
   SkipEmptyDataBlocksForward();
 }
 

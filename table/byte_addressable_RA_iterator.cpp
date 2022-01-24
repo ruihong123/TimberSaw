@@ -35,15 +35,17 @@ ByteAddressableRAIterator::~ByteAddressableRAIterator() {
   }
     //  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p\n", this);
 };
-
+//Note: if the iterator can not seek the same target, it will stop at the key right before or
+// right after the data, we need to make it right before
 void ByteAddressableRAIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
   GetKV();
   assert(valid_);
-  //Todo: delete the things below.
-  for (int i = 0; i < target.size(); ++i) {
-    assert(key_.GetKey().data()[i] == target.data()[i]);
-  }
+//  if ()
+//  //Todo: delete the things below.
+//  for (int i = 0; i < target.size(); ++i) {
+//    assert(key_.GetKey().data()[i] == target.data()[i]);
+//  }
 
 
 }
@@ -132,8 +134,8 @@ void ByteAddressableRAIterator::GetKV() {
 
         assert(key_size + value_size == KV.size());
 
-        printf("!key is %p, KV.data is %p, the 7 bit is %s \n",
-               key_.GetKey().data(), KV.data(), KV.data()+7);
+//        printf("!key is %p, KV.data is %p, the 7 bit is %s \n",
+//               key_.GetKey().data(), KV.data(), KV.data()+7);
 
         key_.SetKey(Slice(KV.data(), key_size), false /* copy */);
         KV.remove_prefix(key_size);

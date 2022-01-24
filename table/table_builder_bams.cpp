@@ -12,7 +12,7 @@ struct TableBuilder_BAMS::Rep {
         type_(type),
         index_block_options(opt),
         offset(0),
-        offset_last_added(0),
+//        offset_last_added(0),
         offset_last_flushed(0),
         
         num_entries(0),
@@ -88,7 +88,7 @@ struct TableBuilder_BAMS::Rep {
   std::map<uint32_t, ibv_mr*> local_filter_mrs;
   //  std::vector<size_t> remote_mr_real_length;
   uint64_t offset_last_flushed;
-  uint64_t offset_last_added;
+//  uint64_t offset_last_added;
   uint64_t offset;
   Status status;
   Slice data_buff;
@@ -196,19 +196,19 @@ void TableBuilder_BAMS::Add(const Slice& key, const Slice& value) {
     //    size_t key_length = r->last_key.size();
     //#endif
     //    assert(r->last_key.size()>= 8);
-    if (!r->last_key.empty()){
-      r->options.comparator->FindShortestSeparator(&r->last_key, key);
+//    if (!r->last_key.empty()){
+//      r->options.comparator->FindShortestSeparator(&r->last_key, key);
       //    assert(r->last_key.size() >= 8  );
       std::string handle_encoding;
-      //This index should point to the offset of the last KV.
-      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
-      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
+      //This index point to this offset and the key is this key.
+      r->pending_data_handle.set_offset(r->offset);// This is the offset of the begginning of this block.
+      r->pending_data_handle.set_size(key.size() + value.size() + 2*sizeof(uint32_t));
       r->pending_data_handle.EncodeTo(&handle_encoding);
 
-      r->index_block->Add(r->last_key, Slice(handle_encoding));
+      r->index_block->Add(key, Slice(handle_encoding));
     }
 
-  }
+//  }
 
   if (r->filter_block != nullptr) {
     r->filter_block->AddKey(ExtractUserKey(key));
@@ -223,7 +223,7 @@ void TableBuilder_BAMS::Add(const Slice& key, const Slice& value) {
   PutFixed32(&r->data_buff, value.size());
   r->data_buff.append(key.data(), key.size());
   r->data_buff.append(value.data(), value.size());
-  r->offset_last_added = r->offset;
+//  r->offset_last_added = r->offset;
   r->offset +=  key.size() + value.size() + 2*sizeof(uint32_t);
 
 
@@ -500,22 +500,18 @@ Status TableBuilder_BAMS::Finish() {
 
   // Write index block
   if (ok()) {
-    if(r->pending_index_filter_entry){
+//    if(r->pending_index_filter_entry){
+      //No need to add the last index entry.
+//      r->options.comparator->FindShortSuccessor(&r->last_key);
       //      assert(r->last_key.size()>= 8);
-      //TOTHINK: why there we need the shortSuccessor, what if the
-      // shortSuccessor is the same as the first key in the next sstable.
-      // ANSWER: That's not gonna happen, because all the duplicated key with
-      // different sequence number will be merged by flushing or compaction.
-      r->options.comparator->FindShortSuccessor(&r->last_key);
-      //      assert(r->last_key.size()>= 8);
-      std::string handle_encoding;
-      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
-      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
-      r->pending_data_handle.EncodeTo(&handle_encoding);
-
-      r->index_block->Add(r->last_key, Slice(handle_encoding));
-      r->pending_index_filter_entry = false;
-    }
+//      std::string handle_encoding;
+//      r->pending_data_handle.set_offset(r->offset_last_added);// This is the offset of the begginning of this block.
+//      r->pending_data_handle.set_size(r->offset - r->offset_last_added);
+//      r->pending_data_handle.EncodeTo(&handle_encoding);
+//
+//      r->index_block->Add(r->last_key, Slice(handle_encoding));
+//      r->pending_index_filter_entry = false;
+//    }
     size_t msg_size;
     FinishDataIndexBlock(r->index_block, &index_block_handle,
                          r->options.compression, msg_size);
