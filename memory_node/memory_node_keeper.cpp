@@ -788,11 +788,13 @@ void Memory_Node_Keeper::ProcessKeyValueCompaction(SubcompactionState* sub_compa
 
   // Release mutex while we're actually doing the compaction work
   //  undefine_mutex.Unlock();
+
   if (start != nullptr) {
     //The compaction range is (start, end]. so we set 0 as look up key sequence.
     InternalKey start_internal(*start, 0, kValueTypeForSeek);
     //tofix(ruihong): too much data copy for the seek here!
     input->Seek(start_internal.Encode());
+    assert(internal_comparator_.Compare(input->key(), *start) > 0 );
     // The first key larger or equal to start_internal was covered in the subtask before it.
     // The range for the subcompactions are (s1,e1] (s2,e2] ... (sn,en]
     input->Next();
