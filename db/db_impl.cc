@@ -2900,14 +2900,18 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
                                       SequenceNumber* latest_snapshot,
                                       uint32_t* seed) {
   SequenceNumber snapshot;
+  // TODO: make the user defined snapshot work. THe superversion should be confirmed when
+  // creating the snapshot.
+  SuperVersion* sv;
   if (options.snapshot != nullptr) {
     snapshot =
         static_cast<const SnapshotImpl*>(options.snapshot)->sequence_number();
+
   } else {
     snapshot = versions_->LastSequence();
-  }
+    sv = GetThreadLocalSuperVersion();
 
-  auto sv = GetThreadLocalSuperVersion();
+  }
 
   MemTable* mem = sv->mem;
   MemTableListVersion* imm = sv->imm;
@@ -2948,6 +2952,64 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   ReturnAndCleanupSuperVersion(sv);
   return internal_iter;
 }
+#ifdef BYTEADDRESSABLE
+Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
+                                      SequenceNumber* latest_snapshot,
+                                      uint32_t* seed) {
+  SequenceNumber snapshot;
+  // TODO: make the user defined snapshot work. THe superversion should be confirmed when
+  // creating the snapshot.
+  SuperVersion* sv;
+  if (options.snapshot != nullptr) {
+    snapshot =
+        static_cast<const SnapshotImpl*>(options.snapshot)->sequence_number();
+    sv = options.snapshot->sv;
+  } else {
+    snapshot = versions_->LastSequence();
+    sv = GetThreadLocalSuperVersion();
+
+  }
+
+  MemTable* mem = sv->mem;
+  MemTableListVersion* imm = sv->imm;
+  Version* current = sv->current;
+
+  //  if (sv != nullptr){
+  //    sv->Ref();
+  //    if (sv == super_version.load()){// there is no superversion change between.
+  //      MemTable* mem = sv->mem;
+  //      MemTableListVersion* imm = sv->imm;
+  //      Version* current = sv->current;
+  //      mem->Ref();
+  //      if (imm != nullptr) imm->Ref();
+  //      current->Ref();
+  //    }else{
+  //      sv->Unref();
+  //    }
+  //
+  //  }
+  bool have_stat_update = false;
+  Version::GetStats stats;
+  // Collect together all needed child iterators
+  std::vector<Iterator*> list;
+  list.push_back(mem->NewIterator());
+  mem->Ref();
+  //  imm
+  imm->AddIteratorsToList(&list);
+  versions_->current()->AddSEQIterators(options, &list);
+  Iterator* internal_iter =
+      NewMergingIterator(&internal_comparator_, &list[0], list.size());
+  versions_->current()->Ref(0);
+
+  IterState* cleanup = new IterState(&undefine_mutex, mem_, imm, versions_->current());
+  internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
+
+  *seed = ++seed_;
+  //  undefine_mutex.Unlock();
+  ReturnAndCleanupSuperVersion(sv);
+  return internal_iter;
+}
+#endif
 
 Iterator* DBImpl::TEST_NewInternalIterator() {
   SequenceNumber ignored;
@@ -3030,7 +3092,19 @@ Iterator* DBImpl::NewIterator(const ReadOptions& options) {
                             : latest_snapshot),
                        seed);
 }
-
+#ifdef BYTEADDRESSABLE
+Iterator* DBImpl::NewSEQIterator(const ReadOptions& options) {
+  SequenceNumber latest_snapshot;
+  uint32_t seed;
+  Iterator* iter = NewInternalIterator(options, &latest_snapshot, &seed);
+  return NewDBIterator(this, user_comparator(), iter,
+                       (options.snapshot != nullptr
+                            ? static_cast<const SnapshotImpl*>(options.snapshot)
+                                  ->sequence_number()
+                            : latest_snapshot),
+                       seed);
+}
+#endif
 void DBImpl::RecordReadSample(Slice key) {
   MutexLock l(&undefine_mutex);
   if (versions_->current()->RecordReadSample(key)) {

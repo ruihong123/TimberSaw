@@ -11,7 +11,7 @@
 namespace TimberSaw {
 
 class SnapshotList;
-
+class SuperVersion;
 // Snapshots are kept in a doubly-linked list in the DB.
 // Each SnapshotImpl corresponds to a particular sequence number.
 class SnapshotImpl : public Snapshot {
@@ -20,6 +20,7 @@ class SnapshotImpl : public Snapshot {
       : sequence_number_(sequence_number) {}
 
   SequenceNumber sequence_number() const { return sequence_number_; }
+  //TODO: include the superversion within the snapshot.
 
  private:
   friend class SnapshotList;
@@ -88,6 +89,7 @@ class SnapshotList {
  private:
   // Dummy head of doubly-linked list of snapshots
   SnapshotImpl head_;
+
 };
 
 }  // namespace TimberSaw

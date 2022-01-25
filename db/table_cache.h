@@ -52,6 +52,11 @@ class TableCache {
   Iterator* NewIterator(const ReadOptions& options,
                         std::shared_ptr<RemoteMemTableMetaData> remote_table,
                         Table** tableptr = nullptr);
+#ifdef BYTEADDRESSABLE
+  Iterator* NewSEQIterator(const ReadOptions& options,
+                        std::shared_ptr<RemoteMemTableMetaData> remote_table,
+                        Table** tableptr = nullptr);
+#endif
   Iterator* NewIterator_MemorySide(const ReadOptions& options,
                         std::shared_ptr<RemoteMemTableMetaData> remote_table,
       Table_Memory_Side** tableptr = nullptr);

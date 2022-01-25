@@ -22,11 +22,13 @@ struct Options;
 struct ReadOptions;
 struct WriteOptions;
 class WriteBatch;
-
+class SuperVersion;
 // Abstract handle to particular state of a DB.
 // A Snapshot is an immutable object and can therefore be safely
 // accessed from multiple threads without any external synchronization.
 class TimberSaw_EXPORT Snapshot {
+ public:
+  SuperVersion* sv;
  protected:
   virtual ~Snapshot();
 };
@@ -94,7 +96,11 @@ class TimberSaw_EXPORT DB {
   // Caller should delete the iterator when it is no longer needed.
   // The returned iterator should be deleted before this db is deleted.
   virtual Iterator* NewIterator(const ReadOptions& options) = 0;
-
+#ifdef BYTEADDRESSABLE
+  //Sequential access iterator for byteaddressable iterator, only
+  // support forward direction now.
+  virtual Iterator* NewSEQIterator(const ReadOptions& options) {};
+#endif
   // Return a handle to the current DB state.  Iterators created with
   // this handle will all observe a stable snapshot of the current DB
   // state.  The caller must call ReleaseSnapshot(result) when the

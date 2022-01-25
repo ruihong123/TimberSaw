@@ -168,6 +168,14 @@ static Iterator* GetFileIterator(
   TableCache* cache = reinterpret_cast<TableCache*>(arg);
     return cache->NewIterator(options, remote_table);
 }
+#ifdef BYTEADDRESSABLE
+static Iterator* GetFileSEQIterator(
+    void* arg, const ReadOptions& options,
+    std::shared_ptr<RemoteMemTableMetaData> remote_table) {
+  TableCache* cache = reinterpret_cast<TableCache*>(arg);
+  return cache->NewSEQIterator(options, remote_table);
+}
+#endif
 static Iterator* GetFileIterator_Memoryside(
     void* arg, const ReadOptions& options,
     std::shared_ptr<RemoteMemTableMetaData> remote_table) {
@@ -182,6 +190,14 @@ Iterator* Version::NewConcatenatingIterator(const ReadOptions& options,
       new LevelFileNumIterator(vset_->icmp_, &levels_[level]), &GetFileIterator,
       vset_->table_cache_, options);
 }
+#ifdef BYTEADDRESSABLE
+Iterator* Version::NewConcatenatingSEQIterator(const ReadOptions& options,
+                                            int level) const {
+  return NewTwoLevelFileIterator(
+      new LevelFileNumIterator(vset_->icmp_, &levels_[level]), &GetFileSEQIterator,
+      vset_->table_cache_, options);
+}
+#endif
 //Subversion::Subversion(size_t version_id,
 //                       std::shared_ptr<RDMA_Manager> rdma_mg) : version_id_(version_id), rdma_mg_(rdma_mg){}
 //Subversion::~Subversion(){
@@ -220,8 +236,25 @@ void Version::AddIterators(const ReadOptions& options,
     }
   }
 }
+#ifdef BYTEADDRESSABLE
+void Version::AddSEQIterators(const ReadOptions& options,
+                           std::vector<Iterator*>* iters) {
+  // Merge all level zero files together since they may overlap
+  for (size_t i = 0; i < levels_[0].size(); i++) {
+    iters->push_back(vset_->table_cache_->NewSEQIterator(
+        options, levels_[0][i]));
+  }
 
-
+  // For levels > 0, we can use a concatenating iterator that sequentially
+  // walks through the non-overlapping files in the level, opening them
+  // lazily.
+  for (int level = 1; level < config::kNumLevels; level++) {
+    if (!levels_[level].empty()) {
+      iters->push_back(NewConcatenatingSEQIterator(options, level));
+    }
+  }
+}
+#endif
 
 static bool NewestFirst(std::shared_ptr<RemoteMemTableMetaData> a, std::shared_ptr<RemoteMemTableMetaData> b) {
   return a->number > b->number;

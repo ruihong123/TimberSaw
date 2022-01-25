@@ -95,6 +95,9 @@ class DBImpl : public DB {
   Status Get(const ReadOptions& options, const Slice& key,
              std::string* value) override;
   Iterator* NewIterator(const ReadOptions&) override;
+#ifdef BYTEADDRESSABLE
+  Iterator* NewSEQIterator(const ReadOptions&) override;
+#endif
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;
   bool GetProperty(const Slice& property, std::string* value) override;
@@ -143,6 +146,11 @@ class DBImpl : public DB {
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
                                 uint32_t* seed);
+#ifdef BYTEADDRESSABLE
+  Iterator* NewInternalSEQIterator(const ReadOptions&,
+                                SequenceNumber* latest_snapshot,
+                                uint32_t* seed);
+#endif
   void WaitforAllbgtasks() override;
   Status NewDB();
 

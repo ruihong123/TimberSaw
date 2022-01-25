@@ -208,7 +208,7 @@ Slice Table_Memory_Side::KVReader(void* arg, const ReadOptions& options,
 Iterator* Table_Memory_Side::NewIterator(const ReadOptions& options) const {
 #ifndef BYTEADDRESSABLE
   return NewTwoLevelIterator(
-      rep_->index_block->NewIterator(rep_->options.comparator),
+      rep->index_block->NewIterator(rep->options.comparator),
       &Table_Memory_Side::BlockReader, const_cast<Table_Memory_Side*>(this), options);
 #endif
 #ifdef BYTEADDRESSABLE

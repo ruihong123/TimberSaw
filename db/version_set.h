@@ -123,7 +123,9 @@ class Version {
   // yield the contents of this Version when merged together.
   // REQUIRES: This version has been saved (see VersionSet::SaveTo)
   void AddIterators(const ReadOptions&, std::vector<Iterator*>* iters);
-
+#ifdef BYTEADDRESSABLE
+  void AddSEQIterators(const ReadOptions&, std::vector<Iterator*>* iters);
+#endif
   Status Get(const ReadOptions&, const LookupKey& key, std::string* val,
              GetStats* stats);
 
@@ -244,7 +246,9 @@ class Version {
   ~Version();
 
   Iterator* NewConcatenatingIterator(const ReadOptions&, int level) const;
-
+#ifdef BYTEADDRESSABLE
+  Iterator* NewConcatenatingSEQIterator(const ReadOptions&, int level) const;
+#endif
   // Call func(arg, level, f) for every file that overlaps user_key in
   // order from newest to oldest.  If an invocation of func returns
   // false, makes no more calls.

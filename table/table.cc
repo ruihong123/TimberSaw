@@ -20,6 +20,7 @@
 
 #include "full_filter_block.h"
 #include "byte_addressable_RA_iterator.h"
+#include "byte_addressable_SEQ_iterrator.h"
 
 namespace TimberSaw {
 
@@ -223,7 +224,16 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
       &Table::KVReader, const_cast<Table*>(this), options, true);
 #endif
 }
+#ifdef BYTEADDRESSABLE
+Iterator* Table::NewSEQIterator(const ReadOptions& options) const {
 
+
+  return new ByteAddressableSEQIterator(
+      rep->index_block->NewIterator(rep->options.comparator),
+      &Table::KVReader, const_cast<Table*>(this), options, true);
+
+}
+#endif
 Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {

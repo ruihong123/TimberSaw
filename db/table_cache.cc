@@ -178,6 +178,29 @@ Iterator* TableCache::NewIterator(
   }
   return result;
 }
+#ifdef BYTEADDRESSABLE
+Iterator* TableCache::NewSEQIterator(
+    const ReadOptions& options,
+    std::shared_ptr<RemoteMemTableMetaData> remote_table, Table** tableptr) {
+  if (tableptr != nullptr) {
+    *tableptr = nullptr;
+  }
+
+  Cache::Handle* handle = nullptr;
+  Status s = FindTable(std::move(remote_table), &handle);
+  if (!s.ok()) {
+    return NewErrorIterator(s);
+  }
+
+  Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
+  Iterator* result = table->NewSEQIterator(options);
+  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+  if (tableptr != nullptr) {
+    *tableptr = table;
+  }
+  return result;
+}
+#endif
 Iterator* TableCache::NewIterator_MemorySide(
     const ReadOptions& options,
     std::shared_ptr<RemoteMemTableMetaData> remote_table,
