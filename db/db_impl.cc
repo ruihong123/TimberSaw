@@ -2876,8 +2876,8 @@ namespace {
 
 struct IterState {
   port::Mutex* const mu;
-  Version* const version GUARDED_BY(mu);
-  MemTable* const mem GUARDED_BY(mu);
+  Version* const version;
+  MemTable* const mem ;
 //  MemTable* const imm GUARDED_BY(mu);
   MemTableListVersion* imm_version;
   IterState(port::Mutex* mutex, MemTable* mem, MemTableListVersion* imm_version, Version* version)
@@ -2886,11 +2886,11 @@ struct IterState {
 
 static void CleanupIteratorState(void* arg1, void* arg2) {
   IterState* state = reinterpret_cast<IterState*>(arg1);
-  state->mu->Lock();
+//  state->mu->Lock();
   state->mem->Unref();
   if (state->imm_version != nullptr) state->imm_version->Unref();
-  state->version->Unref(0);
-  state->mu->Unlock();
+  state->version->Unref(7);
+//  state->mu->Unlock();
   delete state;
 }
 
@@ -2916,7 +2916,14 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   MemTable* mem = sv->mem;
   MemTableListVersion* imm = sv->imm;
   Version* current = sv->current;
-
+  // The iterator will can not use superversion, becuase the iterator can exist,
+  // for a long time. while we have to return the superversion by the end of this
+  // function. Otherwise we can not get the superversion out side this funciton.
+  // THe superversion can not exist in such a long existing class. THe fundamental
+  // reason is that the superverison can not be gotten twice without return.
+  mem->Ref();
+  imm->Ref();
+  current->Ref(7);
   //  if (sv != nullptr){
   //    sv->Ref();
   //    if (sv == super_version.load()){// there is no superversion change between.
@@ -3039,21 +3046,7 @@ Status DBImpl::Get(const ReadOptions& options, const Slice& key,
   MemTableListVersion* imm = sv->imm;
   Version* current = sv->current;
 
-//  if (sv != nullptr){
-//    sv->Ref();
-//    if (sv == super_version.load()){// there is no superversion change between.
-//      MemTable* mem = sv->mem;
-//      MemTableListVersion* imm = sv->imm;
-//      Version* current = sv->current;
-//      mem->Ref();
-//      if (imm != nullptr) imm->Ref();
-//      current->Ref();
-//    }else{
-//      sv->Unref();
-//    }
-//
-//  }
-//  bool have_stat_update = false;
+
   Version::GetStats stats;
 
   // Unlock while reading from files and memtables

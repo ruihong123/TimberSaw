@@ -125,7 +125,12 @@ class DBImpl : public DB {
   // Samples are taken approximately once every config::kReadBytesPeriod
   // bytes.
   void RecordReadSample(Slice key);
-
+  void CleanupSuperVersion(SuperVersion* sv);
+  void ReturnAndCleanupSuperVersion(SuperVersion* sv);
+  SuperVersion* GetThreadLocalSuperVersion();
+  bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
+  void ResetThreadLocalSuperVersions();
+  void InstallSuperVersion();
  private:
   friend class DB;
 //  struct CompactionState;
@@ -209,12 +214,7 @@ class DBImpl : public DB {
       FlushJob* job, VersionSet* vset,
       std::shared_ptr<RemoteMemTableMetaData>& sstable, VersionEdit* edit);
 //  SuperVersion* GetReferencedSuperVersion(DBImpl* db);
-  void CleanupSuperVersion(SuperVersion* sv);
-  void ReturnAndCleanupSuperVersion(SuperVersion* sv);
-  SuperVersion* GetThreadLocalSuperVersion();
-  bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
-  void ResetThreadLocalSuperVersions();
-  void InstallSuperVersion();
+
   void NearDataCompaction(Compaction* c);
 //  void Communication_To_Home_Node();
   void Edit_sync_to_remote(VersionEdit* edit,
