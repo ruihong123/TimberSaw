@@ -264,7 +264,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     }
 #endif
   } else {
-
+#ifndef BYTEADDRESSABLE
     Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
 #ifdef PROCESSANALYSIS
     auto start = std::chrono::high_resolution_clock::now();
@@ -315,12 +315,22 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
         TableCache::foundNum.fetch_add(1);
       }
 #endif
+
     }else{
       printf("block iterator invalid\n");
       exit(1);
     }
     delete iiter;
-
+#endif
+#ifdef BYTEADDRESSABLE
+    Iterator* iter = NewIterator(options);
+    iter->Seek(k);
+    if (iter->Valid()) {
+      (*handle_result)(arg, iter->key(), iter->value());
+    }
+    s = iter->status();
+    delete iter;
+#endif
   }
 
   return s;
