@@ -972,7 +972,7 @@ class Benchmark {
 
   void ReadSequential(ThreadState* thread) {
 #ifdef BYTEADDRESSABLE
-    Iterator* iter = db_->NewIterator(ReadOptions());
+    Iterator* iter = db_->NewSEQIterator(ReadOptions());
 #endif
 #ifndef BYTEADDRESSABLE
     Iterator* iter = db_->NewIterator(ReadOptions());
