@@ -20,7 +20,7 @@ class Logger;
 class Snapshot;
 // The size for one SStable chunk
 //static size_t RDMA_WRITE_BLOCK = 2*1024*1024;
-#define RDMA_WRITE_BLOCK  (7*1024*1024)
+#define RDMA_WRITE_BLOCK  (8*1024*1024)
 #define INDEX_BLOCK  (5*1024*1024)
 //static size_t RDMA_WRITE_BLOCK = 1*1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
