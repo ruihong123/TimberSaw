@@ -137,7 +137,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 #endif
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
-        printf("Cache hit\n");
+//        printf("Cache hit\n");
 #ifdef PROCESSANALYSIS
         TableCache::cache_hit.fetch_add(1);
         TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
