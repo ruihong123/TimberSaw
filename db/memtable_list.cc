@@ -72,8 +72,9 @@ MemTableListVersion::MemTableListVersion(
     : max_write_buffer_number_to_maintain_(max_write_buffer_number_to_maintain),
       max_write_buffer_size_to_maintain_(max_write_buffer_size_to_maintain),
       parent_memtable_list_memory_usage_(parent_memtable_list_memory_usage) {}
-// TODO: make refs_ a atomic pointer, all the refs_ should be atomic pointer in
-// this project.
+//TODO: make refs_ a atomic pointer, all the refs_ should be atomic pointer in
+// this project.  If we can make sure the reference counter can not be 0 then, we can
+// avoid using lock for the reference and dereference
 void MemTableListVersion::Ref() { ++refs_; }
 
 // called by superversion::clean()
