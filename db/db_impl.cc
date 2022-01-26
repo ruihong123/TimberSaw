@@ -2970,7 +2970,7 @@ Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
   if (options.snapshot != nullptr) {
     snapshot =
         static_cast<const SnapshotImpl*>(options.snapshot)->sequence_number();
-    sv = options.snapshot->sv;
+
   } else {
     snapshot = versions_->LastSequence();
     sv = GetThreadLocalSuperVersion();
@@ -2980,6 +2980,14 @@ Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
   MemTable* mem = sv->mem;
   MemTableListVersion* imm = sv->imm;
   Version* current = sv->current;
+  // The iterator will can not use superversion, becuase the iterator can exist,
+  // for a long time. while we have to return the superversion by the end of this
+  // function. Otherwise we can not get the superversion out side this funciton.
+  // THe superversion can not exist in such a long existing class. THe fundamental
+  // reason is that the superverison can not be gotten twice without return.
+  mem->Ref();
+  imm->Ref();
+  current->Ref(7);
 
   //  if (sv != nullptr){
   //    sv->Ref();
