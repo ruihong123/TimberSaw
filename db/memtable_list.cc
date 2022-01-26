@@ -72,7 +72,8 @@ MemTableListVersion::MemTableListVersion(
     : max_write_buffer_number_to_maintain_(max_write_buffer_number_to_maintain),
       max_write_buffer_size_to_maintain_(max_write_buffer_size_to_maintain),
       parent_memtable_list_memory_usage_(parent_memtable_list_memory_usage) {}
-
+// TODO: make refs_ a atomic pointer, all the refs_ should be atomic pointer in
+// this project.
 void MemTableListVersion::Ref() { ++refs_; }
 
 // called by superversion::clean()
