@@ -3089,7 +3089,7 @@ Iterator* DBImpl::NewIterator(const ReadOptions& options) {
 Iterator* DBImpl::NewSEQIterator(const ReadOptions& options) {
   SequenceNumber latest_snapshot;
   uint32_t seed;
-  Iterator* iter = NewInternalIterator(options, &latest_snapshot, &seed);
+  Iterator* iter = NewInternalSEQIterator(options, &latest_snapshot, &seed);
   return NewDBIterator(this, user_comparator(), iter,
                        (options.snapshot != nullptr
                             ? static_cast<const SnapshotImpl*>(options.snapshot)
