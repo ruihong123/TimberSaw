@@ -60,7 +60,9 @@ void ByteAddressableSEQIterator::Next() {
 }
 
 void ByteAddressableSEQIterator::Prev() {
-
+  assert(false);
+  valid_ = false;
+  status_ = Status::NotSupported("Prev not supported");
 }
 void ByteAddressableSEQIterator::GetKVInitial(){
   if(index_iter_.Valid()){
