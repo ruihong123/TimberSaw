@@ -971,7 +971,12 @@ class Benchmark {
   }
 
   void ReadSequential(ThreadState* thread) {
+#ifdef BYTEADDRESSABLE
     Iterator* iter = db_->NewSEQIterator(ReadOptions());
+#endif
+#ifndef BYTEADDRESSABLE
+    Iterator* iter = db_->NewIterator(ReadOptions());
+#endif
     int i = 0;
     int64_t bytes = 0;
     for (iter->SeekToFirst(); i < reads_ && iter->Valid(); iter->Next()) {
