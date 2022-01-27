@@ -94,7 +94,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     GetFixed32(&Size_buff, &value_size);
     iter_ptr += 8;
 //    //Check whether the
-    if (UNLIKELY(iter_offset + key_size + value_size >= cur_prefetch_status)){
+    if ((iter_offset + key_size + value_size >= cur_prefetch_status)){
       DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
       Fetch_next_buffer_middle();
 //      ibv_wc wc[1];
