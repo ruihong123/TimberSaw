@@ -3008,15 +3008,15 @@ Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
   // Collect together all needed child iterators
   std::vector<Iterator*> list;
   list.push_back(mem->NewIterator());
-  mem->Ref();
+//  mem->Ref();
   //  imm
   imm->AddIteratorsToList(&list);
-  versions_->current()->AddSEQIterators(options, &list);
+  current->AddSEQIterators(options, &list);
   Iterator* internal_iter =
       NewMergingIterator(&internal_comparator_, &list[0], list.size());
-  versions_->current()->Ref(0);
+//  versions_->current()->Ref(0);
 
-  IterState* cleanup = new IterState(&undefine_mutex, mem_, imm, versions_->current());
+  IterState* cleanup = new IterState(&undefine_mutex, mem, imm, current);
   internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
 
   *seed = ++seed_;
