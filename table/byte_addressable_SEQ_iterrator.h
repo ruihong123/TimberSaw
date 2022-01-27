@@ -55,14 +55,16 @@ class ByteAddressableSEQIterator :public Iterator{
   void GetKVInitial();
   void GetNextKV();
 
-  bool Fetch_next_buffer(size_t offset);
-
+  bool Fetch_next_buffer_initial(size_t offset);
+  bool Fetch_next_buffer_middle();
   bool compute_side_;
 //  char* mr_addr;
 //  ibv_mr* mr;
   // the memory region for the prefetch buffer, the length represents the border
   // for current prefetched data.
   ibv_mr* prefetched_mr;
+  uint32_t prefetch_counter = 0;
+  ibv_mr remote_mr_current = {};
 //  size_t this_mr_offset;
   size_t iter_offset = 0;
   size_t cur_prefetch_status = 0;
