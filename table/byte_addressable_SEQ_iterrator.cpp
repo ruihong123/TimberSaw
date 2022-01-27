@@ -246,7 +246,8 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
   ibv_mr local_mr = *prefetched_mr;
   local_mr.addr = (char*)local_mr.addr + PREFETCH_GRANULARITY*prefetch_counter;
 
-
+  //Note remote_mr_current.length will not be changed in this function, it will only be
+  // changed in the initial function.
   if (remote_mr_current.length - prefetch_counter*PREFETCH_GRANULARITY > PREFETCH_GRANULARITY){
     remote_mr.length = PREFETCH_GRANULARITY;
     local_mr.length = PREFETCH_GRANULARITY;
@@ -262,7 +263,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
     rdma_mg->RDMA_Read(&remote_mr, &local_mr, remote_mr_current.length - PREFETCH_GRANULARITY*prefetch_counter, "read_local", IBV_SEND_SIGNALED, 1);
 //    remote_mr_current.addr = nullptr;
 //    remote_mr_current.length = 0;
-    cur_prefetch_status += remote_mr_current.length;
+    cur_prefetch_status += remote_mr_current.length - PREFETCH_GRANULARITY*prefetch_counter;
 
   }
   prefetch_counter++;
