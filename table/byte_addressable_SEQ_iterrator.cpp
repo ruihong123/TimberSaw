@@ -94,6 +94,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     GetFixed32(&Size_buff, &key_size);
     GetFixed32(&Size_buff, &value_size);
     iter_ptr += 8;
+    iter_offset += 8;
 //    //Check whether the
     if (UNLIKELY(iter_offset + key_size + value_size > cur_prefetch_status)){
 
@@ -107,9 +108,11 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     }
     key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
     iter_ptr += key_size;
+    iter_offset += key_size;
     value_ = Slice(iter_ptr, value_size);
     iter_ptr += value_size;
-    iter_offset += key_size + value_size + 2*sizeof(uint32_t);
+    iter_offset += value_size;
+//    iter_offset += key_size + value_size + 2*sizeof(uint32_t);
     assert(iter_ptr - (char*)prefetched_mr->addr <= prefetched_mr->length);
   }else{
     valid_ = false;
@@ -144,6 +147,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
   assert(key_size < 10000);
   assert(value_size < 10000);
   iter_ptr += 8;
+  iter_offset += 8;
   //Check whether the
   if (UNLIKELY(iter_offset + key_size + value_size > cur_prefetch_status)){
 
@@ -152,10 +156,11 @@ void ByteAddressableSEQIterator::GetNextKV() {
   }
   key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
   iter_ptr += key_size;
-
+  iter_offset += key_size;
   value_ = Slice(iter_ptr, value_size);
   iter_ptr += value_size;
-  iter_offset += key_size + value_size + 2*sizeof(uint32_t);
+  iter_offset += value_size;
+//  iter_offset += key_size + value_size + 2*sizeof(uint32_t);
   assert(iter_ptr - (char*)prefetched_mr->addr <= remote_mr_current.length);
 }
 // The offset has to be the start address of the SSTable chunk, we only fetch
