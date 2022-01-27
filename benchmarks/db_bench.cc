@@ -923,7 +923,9 @@ class Benchmark {
     for (int i = 0; i < 1000; i++) {
       key = validation_keys[i];
       if (db_->Get(options, key, &value).ok()) {
-
+        if (value != validation_keys[i]){
+          printf("The fetched value is not correct");
+        }
       }else{
 //        printf("Validation failed\n");
         not_found++;
