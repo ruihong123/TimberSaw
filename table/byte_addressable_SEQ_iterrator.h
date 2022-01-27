@@ -69,7 +69,7 @@ class ByteAddressableSEQIterator :public Iterator{
   size_t iter_offset = 0;
   size_t cur_prefetch_status = 0;
   char* iter_ptr = nullptr;
-  int8_t poll_number = 0;
+//  int8_t poll_number = 0;
   KVFunction kv_function_;
   //Some thoughts: We don't have to pin the remote table metadata in the iterator, before we
   // create the iterator we have to creat a snapshot for all the LSM tree which can pin the table.

@@ -1374,7 +1374,7 @@ End of socket operations
   //  auto stop = std::chrono::high_resolution_clock::now();
   //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); std::printf("rdma read  send prepare for (%zu), time elapse : (%ld)\n", msg_size, duration.count()); start = std::chrono::high_resolution_clock::now();
   if (q_id == "read_local"){
-    assert(false);// Never comes to here
+//    assert(false);// Never comes to here
     ibv_qp* qp = static_cast<ibv_qp*>(qp_local_read->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(q_id);
