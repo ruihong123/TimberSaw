@@ -144,8 +144,8 @@ void ByteAddressableSEQIterator::GetNextKV() {
   Slice Size_buff = Slice(iter_ptr, 8);
   GetFixed32(&Size_buff, &key_size);
   GetFixed32(&Size_buff, &value_size);
-  assert(key_size < 10000);
-  assert(value_size < 10000);
+  assert(key_size == 29 || key_size == 28);
+  assert(value_size == 400);
   iter_ptr += 8;
   iter_offset += 8;
   //Check whether the
