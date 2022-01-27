@@ -81,7 +81,10 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     // Only support forward iterator for sequential access iterator.
     uint32_t key_size, value_size;
     if (iter_offset + 8 > cur_prefetch_status){
-      Fetch_next_buffer_middle();
+      if(!Fetch_next_buffer_middle()){
+        assert(iter_offset == cur_prefetch_status);
+        Fetch_next_buffer_initial(iter_offset);
+      }
       DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 
 //      ibv_wc wc[1];
@@ -98,7 +101,10 @@ void ByteAddressableSEQIterator::GetKVInitial(){
 //    //Check whether the
     if (UNLIKELY(iter_offset + key_size + value_size > cur_prefetch_status)){
 
-      Fetch_next_buffer_middle();
+      if(!Fetch_next_buffer_middle()){
+        assert(iter_offset == cur_prefetch_status);
+        Fetch_next_buffer_initial(iter_offset);
+      }
       DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
@@ -128,6 +134,9 @@ void ByteAddressableSEQIterator::GetNextKV() {
     valid_ = Fetch_next_buffer_initial(iter_offset);
     DEBUG_arg("Move to the next chunk, iter_ptr now is %p\n", iter_ptr);
     //TODO: reset all the relevent metadata such as iter_ptr, cur_prefetch_status.
+  }else{
+    // if offset out of bound of this SSTable then this iterator becomes invalid.
+    valid_ = false;
   }
   //TODO: The Get KV need to wait if the data has not been fetched already, need to Poll completion
   // Use the cur_prefetch_status to represent the postion for current prefetching.
@@ -137,7 +146,11 @@ void ByteAddressableSEQIterator::GetNextKV() {
   uint32_t key_size, value_size;
   if (UNLIKELY(iter_offset + 8 > cur_prefetch_status)){
 
-    Fetch_next_buffer_middle();
+    if(!Fetch_next_buffer_middle()){
+      assert(iter_offset == cur_prefetch_status);
+      Fetch_next_buffer_initial(iter_offset);
+    }
+    assert(iter_offset + 8 <= cur_prefetch_status);
     DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 
   }
@@ -151,7 +164,11 @@ void ByteAddressableSEQIterator::GetNextKV() {
   //Check whether the
   if (UNLIKELY(iter_offset + key_size + value_size > cur_prefetch_status)){
 
-    Fetch_next_buffer_middle();
+    if(!Fetch_next_buffer_middle()){
+      assert(iter_offset == cur_prefetch_status);
+      Fetch_next_buffer_initial(iter_offset);
+    }
+    assert(iter_offset + 8 <= cur_prefetch_status);
     DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
   }
   key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
@@ -235,7 +252,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
   auto rdma_mg = Env::Default()->rdma_mg;
 //  assert(remote_mr_current.addr != nullptr);
 //  assert(remote_mr_current.length != 0);
-  if (remote_mr_current.length < PREFETCH_GRANULARITY*prefetch_counter){
+  if (remote_mr_current.length <= PREFETCH_GRANULARITY*prefetch_counter){
     // There is no middle fetch task left we need to start a new chunk.
     return false;
   }
