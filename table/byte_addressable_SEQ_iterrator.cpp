@@ -80,9 +80,10 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     auto rdma_mg = Env::Default()->rdma_mg;
     // Only support forward iterator for sequential access iterator.
     uint32_t key_size, value_size;
-    if (iter_offset + 8 >= cur_prefetch_status){
-      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+    if (iter_offset + 8 > cur_prefetch_status){
       Fetch_next_buffer_middle();
+      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
 //      cur_prefetch_status += PREFETCH_GRANULARITY;
@@ -94,9 +95,10 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     GetFixed32(&Size_buff, &value_size);
     iter_ptr += 8;
 //    //Check whether the
-    if ((iter_offset + key_size + value_size >= cur_prefetch_status)){
-      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+    if (UNLIKELY(iter_offset + key_size + value_size > cur_prefetch_status)){
+
       Fetch_next_buffer_middle();
+      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
 //      cur_prefetch_status += PREFETCH_GRANULARITY;
@@ -130,22 +132,27 @@ void ByteAddressableSEQIterator::GetNextKV() {
   auto rdma_mg = Env::Default()->rdma_mg;
   // Only support forward iterator for sequential access iterator.
   uint32_t key_size, value_size;
-  if ((iter_offset + 8 > cur_prefetch_status)){
-    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+  if (UNLIKELY(iter_offset + 8 > cur_prefetch_status)){
+
     Fetch_next_buffer_middle();
+    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 
   }
   Slice Size_buff = Slice(iter_ptr, 8);
   GetFixed32(&Size_buff, &key_size);
   GetFixed32(&Size_buff, &value_size);
+  assert(key_size < 10000);
+  assert(value_size < 10000);
   iter_ptr += 8;
   //Check whether the
-  if ((iter_offset + key_size + value_size > cur_prefetch_status)){
-    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+  if (UNLIKELY(iter_offset + key_size + value_size > cur_prefetch_status)){
+
     Fetch_next_buffer_middle();
+    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
   }
   key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
   iter_ptr += key_size;
+
   value_ = Slice(iter_ptr, value_size);
   iter_ptr += value_size;
   iter_offset += key_size + value_size + 2*sizeof(uint32_t);
@@ -234,7 +241,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
   local_mr.addr = (char*)local_mr.addr + PREFETCH_GRANULARITY*prefetch_counter;
 
 
-  if (remote_mr_current.length > PREFETCH_GRANULARITY){
+  if (remote_mr_current.length - prefetch_counter*PREFETCH_GRANULARITY > PREFETCH_GRANULARITY){
     remote_mr.length = PREFETCH_GRANULARITY;
     local_mr.length = PREFETCH_GRANULARITY;
     rdma_mg->RDMA_Read(&remote_mr, &local_mr, PREFETCH_GRANULARITY, "read_local", IBV_SEND_SIGNALED, 1);
@@ -246,7 +253,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
     //      local_mr.addr = (void*)((char*)local_mr.addr);
     remote_mr.length = remote_mr_current.length;
     local_mr.length = remote_mr_current.length;
-    rdma_mg->RDMA_Read(&remote_mr, &local_mr, remote_mr_current.length, "read_local", IBV_SEND_SIGNALED, 1);
+    rdma_mg->RDMA_Read(&remote_mr, &local_mr, remote_mr_current.length - PREFETCH_GRANULARITY*prefetch_counter, "read_local", IBV_SEND_SIGNALED, 1);
 //    remote_mr_current.addr = nullptr;
 //    remote_mr_current.length = 0;
     cur_prefetch_status += remote_mr_current.length;
