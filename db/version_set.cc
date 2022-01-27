@@ -173,6 +173,7 @@ static Iterator* GetFileIterator(
 static Iterator* GetFileSEQIterator(
     void* arg, const ReadOptions& options,
     std::shared_ptr<RemoteMemTableMetaData> remote_table) {
+  assert(remote_table.use_count()>=0);
   TableCache* cache = reinterpret_cast<TableCache*>(arg);
   return cache->NewSEQIterator(options, remote_table);
 }

@@ -3021,7 +3021,10 @@ Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
 
   *seed = ++seed_;
   //  undefine_mutex.Unlock();
-  ReturnAndCleanupSuperVersion(sv);
+  if (options.snapshot == nullptr){
+    ReturnAndCleanupSuperVersion(sv);
+  }
+
   return internal_iter;
 }
 #endif
