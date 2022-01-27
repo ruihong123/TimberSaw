@@ -79,6 +79,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     // Only support forward iterator for sequential access iterator.
     uint32_t key_size, value_size;
     if (iter_offset + 8 >= cur_prefetch_status){
+      DEBUG("Move to the next subchunk");
       Fetch_next_buffer_middle();
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
@@ -92,6 +93,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     iter_ptr += 8;
 //    //Check whether the
     if (UNLIKELY(iter_offset + key_size + value_size >= cur_prefetch_status)){
+      DEBUG("Move to the next subchunk");
       Fetch_next_buffer_middle();
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
@@ -115,6 +117,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
 void ByteAddressableSEQIterator::GetNextKV() {
   assert(iter_ptr <= remote_mr_current.length + (char*)prefetched_mr->addr);
   if (iter_ptr == nullptr || iter_ptr == remote_mr_current.length + (char*)prefetched_mr->addr){
+    DEBUG("Move to the next chunk");
     valid_ = Fetch_next_buffer_initial(iter_offset);
     //TODO: reset all the relevent metadata such as iter_ptr, cur_prefetch_status.
   }
@@ -125,7 +128,9 @@ void ByteAddressableSEQIterator::GetNextKV() {
   // Only support forward iterator for sequential access iterator.
   uint32_t key_size, value_size;
   if (UNLIKELY(iter_offset + 8 >= cur_prefetch_status)){
+    DEBUG("Move to the next subchunk");
     Fetch_next_buffer_middle();
+
   }
   Slice Size_buff = Slice(iter_ptr, 8);
   GetFixed32(&Size_buff, &key_size);
@@ -133,6 +138,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
   iter_ptr += 8;
   //Check whether the
   if (UNLIKELY(iter_offset + key_size + value_size >= cur_prefetch_status)){
+    DEBUG("Move to the next subchunk");
     Fetch_next_buffer_middle();
   }
   key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
@@ -166,7 +172,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_initial(size_t offset) {
 //      remote_mr_current.addr = (void*)((char*)remote_mr_current.addr + PREFETCH_GRANULARITY);
 //      remote_mr_current.length -= PREFETCH_GRANULARITY;
       cur_prefetch_status += PREFETCH_GRANULARITY;
-    }else {
+    } else {
 //      remote_mr.addr = (void*)((char*)remote_mr.addr );
 //      local_mr.addr = (void*)((char*)local_mr.addr);
       remote_mr.length = remote_mr_current.length;
