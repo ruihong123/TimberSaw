@@ -72,6 +72,7 @@ static int64_t TotalFileSize(const std::vector<std::shared_ptr<RemoteMemTableMet
 }
 
 Version::~Version() {
+  // TODO: make a version set lock here, so that we do not need any lock for just a unref.
   assert(refs_.load() == 0);
 
   // Remove from linked list
