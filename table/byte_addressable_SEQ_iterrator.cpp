@@ -134,9 +134,9 @@ void ByteAddressableSEQIterator::GetNextKV() {
     valid_ = Fetch_next_buffer_initial(iter_offset);
     DEBUG_arg("Move to the next chunk, iter_ptr now is %p\n", iter_ptr);
     //TODO: reset all the relevent metadata such as iter_ptr, cur_prefetch_status.
-  }else{
-    // if offset out of bound of this SSTable then this iterator becomes invalid.
-    valid_ = false;
+  }
+  if (!valid_){
+    return;
   }
   //TODO: The Get KV need to wait if the data has not been fetched already, need to Poll completion
   // Use the cur_prefetch_status to represent the postion for current prefetching.
