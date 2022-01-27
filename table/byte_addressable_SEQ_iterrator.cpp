@@ -47,6 +47,7 @@ void ByteAddressableSEQIterator::SeekToFirst() {
   index_iter_.SeekToFirst();
   GetKVInitial();
 
+
 }
 
 void ByteAddressableSEQIterator::SeekToLast() {
@@ -103,6 +104,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
   }else{
     valid_ = false;
   }
+  assert(key().size()>0);
 }
 
 
