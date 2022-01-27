@@ -131,6 +131,7 @@ class DBImpl : public DB {
   bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
   void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
+  VersionSet* const versions_;
  private:
   friend class DB;
 //  struct CompactionState;
@@ -293,7 +294,7 @@ class DBImpl : public DB {
 
   ManualCompaction* manual_compaction_;
 
-  VersionSet* const versions_;
+
 
   // Have we encountered a background error in paranoid mode?
   Status bg_error_;
