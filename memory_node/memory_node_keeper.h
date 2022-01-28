@@ -23,7 +23,7 @@ struct Arg_for_persistent{
 class Memory_Node_Keeper {
  public:
 //  friend class RDMA_Manager;
-  Memory_Node_Keeper(bool use_sub_compaction);
+  Memory_Node_Keeper(bool use_sub_compaction, uint32_t tcp_port);
   ~Memory_Node_Keeper();
 //  void Schedule(
 //      void (*background_work_function)(void* background_work_arg),

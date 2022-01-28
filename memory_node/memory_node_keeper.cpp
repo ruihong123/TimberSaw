@@ -11,7 +11,8 @@
 
 namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
-TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
+TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
+                                                  uint32_t tcp_port)
     :
       opts(std::make_shared<Options>(true)),
       internal_comparator_(BytewiseComparator()),
@@ -26,7 +27,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
     struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
         NULL,  /* server_name */
-        19833, /* tcp_port */
+      tcp_port, /* tcp_port */
         1,	 /* ib_port */
         1, /* gid_idx */
         0};
@@ -37,6 +38,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction)
     rdma_mg->Mempool_initialize(std::string("FlushBuffer"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
     rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
+    //TODO: actually we don't need Prefetch buffer.
     rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
     opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
