@@ -60,7 +60,7 @@ class LEVELDB_EXPORT Env {
   std::shared_mutex fs_mutex;
   std::unordered_map<std::string, SST_Metadata*> file_to_sst_meta;
 
-  std::map<void*, In_Use_Array>* Remote_Bitmap;
+  std::map<void*, In_Use_Array*>* Remote_Bitmap;
   void fs_initialization(){
     char* buff;
     size_t size;

@@ -35,6 +35,7 @@
 #include "util/thread_local.h"
 #include "port/thread_annotations.h"
 #include "limits.h"
+#include "mutexlock.h"
 #include <list>
 //#ifdef __cplusplus
 //extern "C" { //only need to export C interface if
@@ -136,71 +137,54 @@ struct atomwrapper
 };
 
 
-class In_Use_Array{
+class In_Use_Array {
  public:
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
-      : element_size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori){
-    in_use_ = new std::atomic<bool>[element_size_];
-    for (size_t i = 0; i < element_size_; ++i){
-      in_use_[i] = false;
+      : element_size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori) {
+    for (size_t i = 0; i < element_size_; ++i) {
+      free_list.push_back(i);
     }
-
   }
-  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori, std::atomic<bool>* in_use)
-      : element_size_(size), chunk_size_(chunk_size), in_use_(in_use), mr_ori_(mr_ori){
-
-  }
-  int allocate_memory_slot(){
-    for (int i = 0; i < static_cast<int>(element_size_); ++i){
-//      auto start = std::chrono::high_resolution_clock::now();
-      bool temp = in_use_[i];
-      if (temp == false) {
-//        auto stop = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//        std::printf("Compare and swap time duration is %ld \n", duration.count());
-        if(in_use_[i].compare_exchange_strong(temp, true)){
-//          std::cout << "chunk" <<i << "was changed to true" << std::endl;
-
-          return i; // find the empty slot then return the index for the slot
-
-        }
-//        else
-//          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
-      }
-
+  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori, bool no_init)
+      : element_size_(size),
+        chunk_size_(chunk_size),
+        //        in_use_(in_use),
+        mr_ori_(mr_ori) { assert(no_init);}
+  int allocate_memory_slot() {
+    std::unique_lock<SpinMutex> lck(mtx);
+    if (free_list.empty())
+      return -1;  // Not find the empty memory chunk.
+    else{
+      int result = free_list.back();
+      free_list.pop_back();
+      return result;
     }
-    return -1; //Not find the empty memory chunk.
   }
-  bool deallocate_memory_slot(int index) {
-    bool temp = true;
-    assert(in_use_[index] == true);
-//    std::cout << "chunk" <<index << "was changed to false" << std::endl;
-
-    return in_use_[index].compare_exchange_strong(temp, false);
-
+  bool deallocate_memory_slot(size_t index) {
+    std::unique_lock<SpinMutex> lck(mtx);
+    free_list.push_back(index);
+    if (index < element_size_){
+      return true;
+    }else{
+      assert(false);
+      return false;
+    }
   }
-  size_t get_chunk_size(){
-    return chunk_size_;
-  }
-  ibv_mr* get_mr_ori(){
-    return mr_ori_;
-  }
-  size_t get_element_size(){
-    return element_size_;
-  }
-  std::atomic<bool>* get_inuse_table(){
-    return in_use_;
-  }
-//  void deserialization(char*& temp, int& size){
-//
-//
-//  }
+  size_t get_chunk_size() { return chunk_size_; }
+  ibv_mr* get_mr_ori() { return mr_ori_; }
+  size_t get_element_size() { return element_size_; }
+  std::list<int>* get_free_list() { return &free_list; }
+  //  void deserialization(char*& temp, int& size){
+  //
+  //
+  //  }
  private:
   size_t element_size_;
   size_t chunk_size_;
-  std::atomic<bool>* in_use_;
+  std::list<int> free_list;
+  SpinMutex mtx;
   ibv_mr* mr_ori_;
-//  int type_;
+  //  int type_;
 };
 /* structure of system resources */
 struct resources
@@ -233,7 +217,7 @@ struct resources
 /* structure of test parameters */
 class RDMA_Manager{
  public:
-  RDMA_Manager(config_t config, std::map<void*, In_Use_Array>* Remote_Bitmap,
+  RDMA_Manager(config_t config, std::map<void*, In_Use_Array*>* Remote_Bitmap,
                size_t table_size, std::string* db_name,
                std::unordered_map<std::string, SST_Metadata*>* file_to_sst_meta,
                std::shared_mutex* fs_mutex);
@@ -302,24 +286,26 @@ class RDMA_Manager{
                                  SST_Metadata*& sst_meta);
   void Allocate_Local_RDMA_Slot(ibv_mr*& mr_input, std::string pool_name);
   // this function will determine whether the pointer is with in the registered memory
-  bool CheckInsideLocalBuff(void* p, std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>>& mr_iter,
-                            std::map<void*, In_Use_Array>* Bitmap);
+  bool CheckInsideLocalBuff(void* p,
+      std::_Rb_tree_iterator<std::pair<void* const, In_Use_Array*>>& mr_iter,
+      std::map<void*, In_Use_Array*>* Bitmap);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
 
   void fs_serialization(char*& buff, size_t& size, std::string& db_name,
-                        std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta, std::map<void*, In_Use_Array>& remote_mem_bitmap);
+                        std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
+      std::map<void*, In_Use_Array*>& remote_mem_bitmap);
   //Deserialization for linked file is problematic because different file may link to the same SSTdata
   void fs_deserilization(char*& buff, size_t& size, std::string& db_name,
                          std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
-                         std::map<void*, In_Use_Array>& remote_mem_bitmap,
+      std::map<void*, In_Use_Array*>& remote_mem_bitmap,
                          ibv_mr* local_mr);
 
   //TODO: Make all the variable more smart pointers.
   resources* res = nullptr;
   std::vector<ibv_mr*> remote_mem_pool; /* a vector for all the remote memory regions*/
   std::vector<ibv_mr*> local_mem_pool; /* a vector for all the local memory regions.*/
-  std::map<void*, In_Use_Array>* Remote_Mem_Bitmap = nullptr;
+  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap = nullptr;
 
 //  std::shared_mutex remote_pool_mutex;
 //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
@@ -338,7 +324,7 @@ class RDMA_Manager{
   ThreadLocalPtr* t_local_1;
   ThreadLocalPtr* qp_local;
   ThreadLocalPtr* cq_local;
-  std::unordered_map<std::string, std::map<void*, In_Use_Array>> name_to_mem_pool GUARDED_BY(name_mempool_mutex);
+  std::unordered_map<std::string, std::map<void*, In_Use_Array*>> name_to_mem_pool GUARDED_BY(name_mempool_mutex);
   std::shared_mutex name_mempool_mutex;
   std::unordered_map<std::string, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;

@@ -347,14 +347,14 @@ class RDMARandomAccessFile final : public RandomAccessFile {
     assert(offset == chunk_offset);
     char* chunk_src = scratch;
 
-    std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array>> mr_start;
+    std::_Rb_tree_iterator<std::pair<void * const, In_Use_Array*>> mr_start;
 //  std::cout << "Read data from " << sst_meta_head_->mr << " " << sst_meta_current->mr->addr << " offset: "
 //                          << chunk_offset << "size: " << n << std::endl;
     if (rdma_mg_->CheckInsideLocalBuff(scratch, mr_start,
                                        &rdma_mg_->name_to_mem_pool.at("read"))){
 //    auto mr_start = rdma_mg_->Read_Local_Mem_Bitmap->lower_bound(scratch);
       ibv_mr local_mr;
-      local_mr = *(mr_start->second.get_mr_ori());
+      local_mr = *(mr_start->second->get_mr_ori());
       local_mr.addr = scratch;
       assert(n <= rdma_mg_->name_to_size.at("read"));
       if (n + chunk_offset >= rdma_mg_->Table_Size ){
@@ -1735,7 +1735,7 @@ PosixEnv::PosixEnv()
 //  size_t read_block_size = 8*1024;
 //  size_t write_block_size = 4*1024*1024;
   size_t table_size = 8*1024*1024;
-  Remote_Bitmap = new std::map<void*, In_Use_Array>;
+  Remote_Bitmap = new std::map<void*, In_Use_Array*>;
   rdma_mg = new RDMA_Manager(config, Remote_Bitmap, table_size, &db_name,
                              &file_to_sst_meta,
                              &fs_mutex);
