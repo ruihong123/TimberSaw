@@ -7,7 +7,7 @@
 int main(int argc,char* argv[])
 {
   uint32_t tcp_port;
-  char* value = argv[0];
+  char* value = argv[1];
   std::stringstream strValue;
   strValue << value;
   strValue >> tcp_port;
