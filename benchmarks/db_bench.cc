@@ -981,12 +981,11 @@ class Benchmark {
 #endif
     int i = 0;
     int64_t bytes = 0;
-    for (iter->SeekToFirst(); i < reads_ ; iter->Next()) {
+    for (iter->SeekToFirst(); i < reads_ && iter->Valid(); iter->Next()) {
       bytes += iter->key().size() + iter->value().size();
       thread->stats.FinishedSingleOp();
       ++i;
     }
-    //&& iter->Valid()
     delete iter;
     thread->stats.AddBytes(bytes);
   }
