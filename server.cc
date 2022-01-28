@@ -4,9 +4,13 @@
 #include "util/rdma.h"
 
 //namespace TimberSaw{
-int main()
-{ uint32_t tcp_port;
-  std::cin >> tcp_port;
+int main(int argc,char* argv[])
+{
+  uint32_t tcp_port;
+  char* value = argv[0];
+  std::stringstream strValue;
+  strValue << value;
+  strValue >> tcp_port;
 
   TimberSaw::Memory_Node_Keeper mn_keeper(true, tcp_port);
   mn_keeper.SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);
