@@ -1190,7 +1190,6 @@ int main(int argc, char** argv) {
   FLAGS_block_size = TimberSaw::Options().block_size;
   FLAGS_open_files = TimberSaw::Options().max_open_files;
   std::string default_db_path;
-
   for (int i = 1; i < argc; i++) {
     double d;
     int n;

@@ -23,7 +23,7 @@ struct Arg_for_persistent{
 class Memory_Node_Keeper {
  public:
 //  friend class RDMA_Manager;
-  Memory_Node_Keeper(bool use_sub_compaction, uint32_t tcp_port);
+  Memory_Node_Keeper(bool use_sub_compaction, uint32_t tcp_port, int pr_s);
   ~Memory_Node_Keeper();
 //  void Schedule(
 //      void (*background_work_function)(void* background_work_arg),
@@ -138,6 +138,7 @@ class Memory_Node_Keeper {
   }
   static std::shared_ptr<RDMA_Manager> rdma_mg;
  private:
+  int pr_size;
   std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;
   unsigned int imm_temp = 1;
   std::mutex mtx_temp;

@@ -50,7 +50,7 @@ Block::~Block() {
     }
 
     if (type_ == IndexBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataIndexBlock")){
-      printf("Index Block RDMA registered memory deallocated successfull\n");
+//      printf("Index Block RDMA registered memory deallocated successfull\n");
       return;
     }
     if (type_ == FilterBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){

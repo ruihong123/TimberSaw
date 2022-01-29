@@ -12,8 +12,8 @@
 namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
-                                                  uint32_t tcp_port)
-    :
+                                                  uint32_t tcp_port, int pr_s)
+    : pr_size(pr_s),
       opts(std::make_shared<Options>(true)),
       internal_comparator_(BytewiseComparator()),
       mmap_limiter_(MaxMmaps()),
@@ -1313,7 +1313,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     rdma_mg->local_mem_pool.reserve(100);
     {
       std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
-      rdma_mg->Preregister_Memory(88);
+      rdma_mg->Preregister_Memory(pr_size);
     }
     if (rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
                        temp_receive)) /* just send a dummy char back and forth */

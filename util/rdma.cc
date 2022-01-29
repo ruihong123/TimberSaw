@@ -45,8 +45,8 @@ void General_Destroy(void* ptr){
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
                            uint8_t nodeid)
-    : Table_Size(remote_block_size),
-      total_registered_size(0),
+    : total_registered_size(0),
+      Table_Size(remote_block_size),
       //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
       qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
       cq_local_write_flush(new ThreadLocalPtr(&UnrefHandle_cq)),
