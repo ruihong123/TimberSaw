@@ -2512,7 +2512,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
 }
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
-  DEBUG_arg("Deallocate pointer %p", p);
+//  DEBUG_arg("Deallocate pointer %p", p);
   std::map<void*, In_Use_Array*>* Bitmap;
   Bitmap = &name_to_mem_pool.at(buff_type);
   auto mr_iter = Bitmap->upper_bound(p);
