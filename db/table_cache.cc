@@ -90,7 +90,7 @@ TableCache::~TableCache() {
 Status TableCache::FindTable(
     std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
     Cache::Handle** handle) {
-  Status s;
+  Status s = Status::OK();
   char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->creator_node_id)];
   EncodeFixed64(buf, Remote_memtable_meta->number);
   memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
@@ -110,6 +110,7 @@ Status TableCache::FindTable(
       // We do not cache error results so that if the error is transient,
       // or somebody repairs the file, we recover automatically.
     } else {
+      assert(table!= nullptr);
       SSTable* tf = new SSTable;
 //      tf->file = file;
 //      tf->remote_table = Remote_memtable_meta;
