@@ -2453,7 +2453,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
       mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
                                           block_index * chunk_size);
       mr_input.length = chunk_size;
-      DEBUG_arg("Allocate pointer %p", mr_input.addr);
+//      DEBUG_arg("Allocate pointer %p", mr_input.addr);
       return;
     } else
       ptr++;
@@ -2482,7 +2482,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
     mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
                                         block_index * chunk_size);
     mr_input.length = chunk_size;
-    DEBUG_arg("Allocate pointer %p", mr_input.addr);
+//    DEBUG_arg("Allocate pointer %p", mr_input.addr);
     //  mr_input.fname = file_name;
     return;
   }
