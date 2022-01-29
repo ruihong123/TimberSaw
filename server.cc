@@ -13,6 +13,7 @@ int main(int argc,char* argv[])
   strValue << value;
   strValue >> tcp_port;
   value = argv[2];
+  strValue.str("");
   strValue << value;
   strValue >> pr_size;
   TimberSaw::Memory_Node_Keeper mn_keeper(true, tcp_port, pr_size);
