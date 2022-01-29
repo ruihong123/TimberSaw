@@ -5,7 +5,8 @@
 
 //namespace TimberSaw{
 int main(int argc,char* argv[])
-{ TimberSaw::Memory_Node_Keeper* mn_keeper;
+{
+  TimberSaw::Memory_Node_Keeper* mn_keeper;
   if (argc == 3){
     uint32_t tcp_port;
     int pr_size;
