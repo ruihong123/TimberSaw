@@ -438,6 +438,7 @@ class RDMA_Manager {
   // allocation.
   void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr);
   void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, Chunk_type pool_name);
+  size_t Calculate_size_of_pool(Chunk_type pool_name);
   // this function will determine whether the pointer is with in the registered memory
   bool CheckInsideLocalBuff(
       void* p,

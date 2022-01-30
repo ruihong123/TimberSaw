@@ -2436,7 +2436,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   name_to_allocated_size.at(pool_name) == 0 ?
       1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
       if (node_id == 0)
-        printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory 1GB chunk for this pool is %lu\n",
+        printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory this pool is %lu\n",
                EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
     }
     mem_write_lock.unlock();
@@ -2476,8 +2476,10 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
       1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
   if (node_id == 0)
-    printf("Memory used up, allocate new one, memory pool is %s, total memory 1GB chunk for this pool is %lu\n",
-           EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
+    printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
+           EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
+           Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)
+           + Calculate_size_of_pool(FlushBuffer)+ Calculate_size_of_pool(Version_edit));
   int block_index = name_to_mem_pool.at(pool_name)
                         .at(mr_to_allocate->addr)
                         ->allocate_memory_slot();
@@ -2493,6 +2495,11 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
     //  mr_input.fname = file_name;
     return;
   }
+}
+size_t RDMA_Manager::Calculate_size_of_pool(Chunk_type pool_name) {
+  size_t Sum = 0;
+  Sum = name_to_mem_pool.at(pool_name).size()*name_to_allocated_size.at(pool_name);
+  return Sum;
 }
 void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
   for (int i = 0; i < size/ sizeof(uint64_t); ++i) {
@@ -3019,6 +3026,7 @@ void RDMA_Manager::fs_deserilization(
   ibv_dereg_mr(local_mr);
   free(buff);
 }
+
 
 // bool RDMA_Manager::client_save_serialized_data(const std::string& db_name,
 //                                               char* buff, size_t buff_size,
