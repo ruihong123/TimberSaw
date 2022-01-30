@@ -119,7 +119,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
 
   size_t n = static_cast<size_t>(handle.size());
-  assert(n + kBlockTrailerSize <= rdma_mg->name_to_size.at(DataChunk));
+  assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
   ibv_mr contents = {};
   ibv_mr remote_mr = {};
 //#ifndef NDEBUG
@@ -244,7 +244,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
 
   size_t n = static_cast<size_t>(handle.size());
-  assert(n + kBlockTrailerSize <= rdma_mg->name_to_size.at(DataChunk));
+  assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
   ibv_mr contents = {};
   ibv_mr remote_mr = {};
   //#ifndef NDEBUG
@@ -311,7 +311,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = remote_mr->length - kBlockTrailerSize;
   assert(n>0);
-  assert(n + kBlockTrailerSize < rdma_mg->name_to_size.at(IndexChunk));
+  assert(n + kBlockTrailerSize < rdma_mg->name_to_chunksize.at(IndexChunk));
   ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk);
   rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
@@ -382,7 +382,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   Status s = Status::OK();
   std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
   size_t n = remote_mr->length - kBlockTrailerSize;
-  assert(n + kBlockTrailerSize < rdma_mg->name_to_size.at(FilterChunk));
+  assert(n + kBlockTrailerSize < rdma_mg->name_to_chunksize.at(FilterChunk));
   ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, FilterChunk);
   rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);

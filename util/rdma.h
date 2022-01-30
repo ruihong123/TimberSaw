@@ -396,7 +396,8 @@ class RDMA_Manager {
   // it also push the new block bit map to the Remote_Mem_Bitmap
 
   // Set the type of the memory pool. the mempool can be access by the pool name
-  bool Mempool_initialize(Chunk_type pool_name, size_t size);
+  bool Mempool_initialize(Chunk_type pool_name, size_t size,
+                          size_t allocated_size);
   //Allocate memory as "size", then slice the whole region into small chunks according to the pool name
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
@@ -494,7 +495,8 @@ class RDMA_Manager {
   //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local_write_flush;
   std::unordered_map<Chunk_type, std::map<void*, In_Use_Array*>>
       name_to_mem_pool;
-  std::unordered_map<Chunk_type, size_t> name_to_size;
+  std::unordered_map<Chunk_type, size_t> name_to_chunksize;
+  std::unordered_map<Chunk_type, size_t> name_to_allocated_size;
   std::shared_mutex local_mem_mutex;
   uint8_t node_id;
   std::unordered_map<std::string, ibv_mr*> comm_thread_recv_mrs;

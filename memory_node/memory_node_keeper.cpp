@@ -35,9 +35,9 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     //  size_t read_block_size = 4*1024;
     size_t table_size = 10*1024*1024;
     rdma_mg = std::make_shared<RDMA_Manager>(config, table_size, 1); //set memory server node id as 1.
-    rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK);
-    rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK);
-    rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK);
+    rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
+    rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
+    rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK, 0);
     //TODO: actually we don't need Prefetch buffer.
 //    rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.

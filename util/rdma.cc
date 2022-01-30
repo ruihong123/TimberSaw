@@ -75,8 +75,9 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
   Remote_Mem_Bitmap = new std::map<void*, In_Use_Array*>;
 
   //Initialize a message memory pool
-  Mempool_initialize(Message, std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
-  Mempool_initialize(Version_edit, 1024*1024);
+  Mempool_initialize(Message,
+                     std::max(sizeof(RDMA_Request), sizeof(RDMA_Reply)), 32*std::max(sizeof(RDMA_Request), sizeof(RDMA_Reply)));
+  Mempool_initialize(Version_edit, 1024 * 1024, 32*1024*1024);
 
 }
 /******************************************************************************
@@ -615,9 +616,9 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
 
     int placeholder_num =
         (*p2mrpointer)->length /
-        (name_to_size.at(
+        (name_to_chunksize.at(
             pool_name));  // here we supposing the SSTables are 4 megabytes
-    auto* in_use_array = new In_Use_Array(placeholder_num, name_to_size.at(pool_name),
+    auto* in_use_array = new In_Use_Array(placeholder_num, name_to_chunksize.at(pool_name),
                               *p2mrpointer);
     // TODO: Modify it to allocate the memory according to the memory chunk types
 
@@ -2424,15 +2425,16 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
                                             Chunk_type pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
   size_t chunk_size;
-  chunk_size = name_to_size.at(pool_name);
+  chunk_size = name_to_chunksize.at(pool_name);
   if (name_to_mem_pool.at(pool_name).empty()) {
     std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
     if (name_to_mem_pool.at(pool_name).empty()) {
       ibv_mr* mr;
       char* buff;
-      // the registration size should be 1024* pool size and should not exceed
-      // 1 GB
-      Local_Memory_Register(&buff, &mr, 1024*1024*1024, pool_name);
+      // the developer can define how much memory cna one time RDMA allocation get.
+      Local_Memory_Register(&buff, &mr,
+  name_to_allocated_size.at(pool_name) == 0 ?
+      1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
       if (node_id == 0)
         printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory 1GB chunk for this pool is %lu\n",
                EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
@@ -2471,7 +2473,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
 
-  Local_Memory_Register(&buff, &mr_to_allocate,1024*1024*1024, pool_name);
+  Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
+      1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
   if (node_id == 0)
     printf("Memory used up, allocate new one, memory pool is %s, total memory 1GB chunk for this pool is %lu\n",
            EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
@@ -2508,7 +2511,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                               Chunk_type buffer_type) {
   size_t buff_offset =
       static_cast<char*>(mr->addr) - static_cast<char*>(map_pointer->addr);
-  size_t chunksize = name_to_size.at(buffer_type);
+  size_t chunksize = name_to_chunksize.at(buffer_type);
   assert(buff_offset % chunksize == 0);
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
   return name_to_mem_pool.at(buffer_type)
@@ -2673,14 +2676,17 @@ bool RDMA_Manager::CheckInsideRemoteBuff(void* p) {
   }
   return false;
 }
-bool RDMA_Manager::Mempool_initialize(Chunk_type pool_name, size_t size) {
+bool RDMA_Manager::Mempool_initialize(Chunk_type pool_name, size_t size,
+                                      size_t allocated_size) {
 
   if (name_to_mem_pool.find(pool_name) != name_to_mem_pool.end()) return false;
+
   std::map<void*, In_Use_Array*> mem_sub_pool;
   // check whether pool name has already exist.
   name_to_mem_pool.insert(std::pair<Chunk_type, std::map<void*, In_Use_Array*>>(
       {pool_name, mem_sub_pool}));
-  name_to_size.insert({pool_name, size});
+  name_to_chunksize.insert({pool_name, size});
+  name_to_allocated_size.insert({pool_name, allocated_size});
   return true;
 }
 // serialization for Memory regions
