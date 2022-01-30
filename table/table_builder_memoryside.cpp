@@ -27,9 +27,9 @@ struct TableBuilder_Memoryside::Rep {
     local_index_mr = new ibv_mr();
     local_filter_mr = new ibv_mr();
     //first create two buffer for each slot.
-    rdma_mg->Allocate_Local_RDMA_Slot(*local_data_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(*local_index_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(*local_filter_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*local_data_mr, FlushBuffer);
+    rdma_mg->Allocate_Local_RDMA_Slot(*local_index_mr, IndexChunk);
+    rdma_mg->Allocate_Local_RDMA_Slot(*local_filter_mr, FilterChunk);
     memset(local_filter_mr->addr, 0, local_filter_mr->length);
 
 //    temp_data_mr = new ibv_mr();
@@ -125,9 +125,9 @@ TableBuilder_Memoryside::~TableBuilder_Memoryside() {
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
   }
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, "FlushBuffer");
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, "FlushBuffer");
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, "FlushBuffer");
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, FlushBuffer);
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, IndexChunk);
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, FilterChunk);
 
 //  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->rdma_mg;
 //  for(auto iter : rep_->local_data_mr){
@@ -417,7 +417,7 @@ void TableBuilder_Memoryside::FlushData(){
   r->local_data_mrs.insert({r->offset, r->local_data_mr});
   r->offset_last_flushed = r->offset;
   r->local_data_mr = new ibv_mr();
-  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_data_mr, "FlushBuffer");
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_data_mr, FlushBuffer);
   r->data_block->Move_buffer((char*)r->local_data_mr->addr);
   //  DEBUG_arg("In use start is %d\n", r->data_inuse_start);
   //  DEBUG_arg("In use end is %d\n", r->data_inuse_end);
@@ -438,7 +438,7 @@ void TableBuilder_Memoryside::FlushDataIndex(size_t msg_size) {
   // it would be overwrited.
   //  DEBUG_arg("Index block size is %zu", msg_size);
   r->local_index_mr = new ibv_mr();
-  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_index_mr, "FlushBuffer");
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_index_mr, IndexChunk);
 
   r->index_block->Move_buffer((char*)r->local_index_mr->addr);
 
@@ -451,7 +451,7 @@ void TableBuilder_Memoryside::FlushFilter(size_t& msg_size) {
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
   r->local_filter_mr = new ibv_mr();
-  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_filter_mr, "FlushBuffer");
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_filter_mr, FilterChunk);
   r->filter_block->Move_buffer((char*)r->local_filter_mr->addr);
 
 }

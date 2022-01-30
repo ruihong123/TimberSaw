@@ -187,7 +187,6 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
-    env_->rdma_mg->Mempool_initialize(std::string("DataBlock"), options_.block_size);
 
     main_comm_threads.emplace_back(
     &DBImpl::client_message_polling_and_handling_thread, this, "main");
@@ -207,7 +206,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       for (size_t i = 0; i < size_in_gb; ++i) {
         ibv_mr* mr;
         char* buff;
-        rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, "DataBlock");
+        rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, DataChunk);
       }
     }
     // Preallocate the RDMA local buffer. ADD extra 1GB to make sure covering all the cache.
@@ -1685,10 +1684,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   ibv_mr send_mr_c = {};
   ibv_mr recv_mr_c = {};
   ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_c, "version_edit");
-  rdma_mg->Allocate_Local_RDMA_Slot(recv_mr_c, "version_edit");
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_c, Version_edit);
+  rdma_mg->Allocate_Local_RDMA_Slot(recv_mr_c, Version_edit);
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
   std::string serilized_c;
   DEBUG_arg("Compaction decoded, the first input file number is %lu \n", c->inputs_[0][0]->number);
   DEBUG_arg("Compaction decoded, input file level is %d \n", c->level());
@@ -1864,10 +1863,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
                            IBV_SEND_SIGNALED, 1);
 
 
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_c.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_c.addr,Version_edit);
+  rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,Version_edit);
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 
 
 }
@@ -1882,9 +1881,9 @@ void DBImpl::sync_option_to_remote() {
   ibv_mr send_mr = {};
   ibv_mr send_mr_ve = {};
   ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, Version_edit);
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
   *(Options*)send_mr_ve.addr = options_;
   memset((char*)send_mr_ve.addr + sizeof(options_), 1, 1);
   send_pointer = (RDMA_Request*)send_mr.addr;
@@ -1926,9 +1925,9 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
                       &send_mr_ve, sizeof(options_) + 1, "main", IBV_SEND_SIGNALED,1);
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 }
 void DBImpl::remote_qp_reset(std::string& q_id){
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -1937,8 +1936,8 @@ void DBImpl::remote_qp_reset(std::string& q_id){
   char temp_send[] = "Q";
   ibv_mr send_mr = {};
 //  ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-//  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+//  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = qp_reset_;
 //  send_pointer->reply_buffer = receive_mr.addr;
@@ -1958,7 +1957,7 @@ void DBImpl::remote_qp_reset(std::string& q_id){
   rdma_mg->sock_sync_data(rdma_mg->res->sock_map[q_id.c_str()], 1, temp_send,temp_receive);
 //  rdma_mg->poll_reply_buffer(receive_pointer);
 //  printf("polled reply buffer\n");
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
 }
 void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
@@ -2034,7 +2033,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       // Some where we need to delete the recv_mr in case of memory leak.
       ibv_mr* recv_mr = new ibv_mr[R_SIZE]();
       for(int i = 0; i<R_SIZE; i++){
-        rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
+        rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], Message);
       }
 
       for(int i = 0; i<R_SIZE; i++) {
@@ -2123,7 +2122,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     rdma_mg->comm_thread_buffer.insert({q_id, buffer_counter});
 //    sleep(1);
 //    for (int i = 0; i < R_SIZE; ++i) {
-//      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, "message");
+//      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
 //    }
 }
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
@@ -2137,10 +2136,10 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   ibv_mr send_mr_ve = {};
 
   ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, Version_edit);
 
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
 //  auto end = std::chrono::high_resolution_clock::now();
 //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 //  printf("Sync version edit time elapse part 1 allocation: %ld us \n", duration.count());
@@ -2223,9 +2222,9 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   // signal may comes befoer the thread go to sleep.
   //
 //  start = std::chrono::high_resolution_clock::now();
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 //  end = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 //  printf("Sync version edit time elapse: %ld us part 6 Deallocation \n", duration.count());
@@ -2265,11 +2264,11 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
   }else{
     uint8_t check_byte = request->content.ive.check_byte;
     ibv_mr send_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
     send_pointer->content.ive = {};
     ibv_mr edit_recv_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, Version_edit);
     send_pointer->reply_buffer = edit_recv_mr.addr;
     send_pointer->rkey = edit_recv_mr.rkey;
     send_pointer->received = true;
@@ -2322,8 +2321,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
     InstallSuperVersion();
     lck.unlock();
     write_stall_cv.notify_all();
-    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-    rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+    rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, Version_edit);
   }
   delete request;
 }
@@ -2338,11 +2337,11 @@ void DBImpl::persistence_unpin_handler(void* arg) {
   std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
   auto rdma_mg = env_->rdma_mg;
   ibv_mr send_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 //  send_pointer->content.ive = {};
   ibv_mr file_number_recv_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(file_number_recv_mr, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(file_number_recv_mr, Version_edit);
   send_pointer->reply_buffer_large = file_number_recv_mr.addr;
   send_pointer->rkey_large = file_number_recv_mr.rkey;
   send_pointer->received = true;

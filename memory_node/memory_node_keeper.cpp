@@ -35,11 +35,11 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     //  size_t read_block_size = 4*1024;
     size_t table_size = 10*1024*1024;
     rdma_mg = std::make_shared<RDMA_Manager>(config, table_size, 1); //set memory server node id as 1.
-    rdma_mg->Mempool_initialize(std::string("FlushBuffer"), RDMA_WRITE_BLOCK);
-    rdma_mg->Mempool_initialize(std::string("FilterBlock"), RDMA_WRITE_BLOCK);
-    rdma_mg->Mempool_initialize(std::string("DataIndexBlock"), RDMA_WRITE_BLOCK);
+    rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK);
+    rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK);
+    rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK);
     //TODO: actually we don't need Prefetch buffer.
-    rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
+//    rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
     opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
     opts->comparator = &internal_comparator_;
@@ -356,11 +356,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   ibv_mr send_mr = {};
   ibv_mr send_mr_large = {};
   ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_large, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_large, Version_edit);
 
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
 
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   bool empty =  edit_merger->only_trival_change.empty();
@@ -419,8 +419,9 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
                       &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 }
 
 void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_number,
@@ -429,11 +430,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   ibv_mr send_mr = {};
   ibv_mr send_mr_large = {};
   ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_large, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr_large, Version_edit);
 
-  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
 
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   uint64_t* arr_ptr = (uint64_t*)send_mr_large.addr;
   uint32_t index = 0;
   DEBUG("Unpin RPC for merged files\n");
@@ -486,8 +487,9 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
                       &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,"version_edit");
-  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
+  rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 }
 void Memory_Node_Keeper::CleanupCompaction(CompactionState* compact) {
   //  undefine_mutex.AssertHeld();
@@ -1296,7 +1298,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //    int buffer_number = 32;
     ibv_mr recv_mr[R_SIZE] = {};
     for(int i = 0; i<R_SIZE; i++){
-      rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], "message");
+      rdma_mg->Allocate_Local_RDMA_Slot(recv_mr[i], Message);
     }
 
 
@@ -1520,7 +1522,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //  << std::endl;
   //TODO: consider the edianess of the RDMA request and reply.
   ibv_mr send_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 
   ibv_mr* mr;
@@ -1529,7 +1531,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
     assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
       if (!rdma_mg->Local_Memory_Register(&buff, &mr, request->content.mem_size,
-                                          std::string())) {
+                                          Default)) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(request->content.mem_size));
       }
@@ -1542,7 +1544,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
   }
   void Memory_Node_Keeper::create_qp_handler(RDMA_Request* request,
@@ -1565,7 +1567,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   fprintf(stdout, "Remote LID = 0x%x\n",
           request->content.qp_config.lid);
   ibv_mr send_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
   ibv_qp* qp = rdma_mg->create_qp(new_qp_id, false);
   if (rdma_mg->rdma_config.gid_idx >= 0) {
@@ -1598,18 +1600,18 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
   }
   void Memory_Node_Keeper::install_version_edit_handler(
       RDMA_Request* request, std::string& client_ip) {
   printf("install version\n");
   ibv_mr send_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
   send_pointer->content.ive = {};
   ibv_mr edit_recv_mr;
-  rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+  rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, Version_edit);
   send_pointer->reply_buffer = edit_recv_mr.addr;
   send_pointer->rkey = edit_recv_mr.rkey;
   assert(request->content.ive.buffer_size < edit_recv_mr.length);
@@ -1695,8 +1697,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //  lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
 
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-  rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, "version_edit");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+  rdma_mg->Deallocate_Local_RDMA_Slot(edit_recv_mr.addr, Version_edit);
   delete request;
   }
   void Memory_Node_Keeper::sst_garbage_collection(void* arg) {
@@ -1711,9 +1713,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //      ibv_mr recv_mr;
       ibv_mr large_recv_mr;
 //      ibv_mr large_send_mr;
-      rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+      rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
 //      rdma_mg->Allocate_Local_RDMA_Slot(recv_mr, "message");
-      rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, "version_edit");
+      rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, Version_edit);
 //      rdma_mg->Allocate_Local_RDMA_Slot(large_send_mr, "version_edit");
       RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
       //    send_pointer->content. = {};
@@ -1751,9 +1753,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       }
       assert(request->content.gc.buffer_size%sizeof(uint64_t) == 0);
       rdma_mg->BatchGarbageCollection((uint64_t*)large_recv_mr.addr, request->content.gc.buffer_size);
-      rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
+      rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
-      rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, "version_edit");
+      rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, Version_edit);
 //      rdma_mg->Deallocate_Local_RDMA_Slot(large_send_mr.addr, "version_edit");
       delete request;
       delete (Arg_for_handler*)arg;
@@ -1772,10 +1774,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     ibv_mr recv_mr;
     ibv_mr large_recv_mr;
     ibv_mr large_send_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
-    rdma_mg->Allocate_Local_RDMA_Slot(recv_mr, "message");
-    rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, "version_edit");
-    rdma_mg->Allocate_Local_RDMA_Slot(large_send_mr, "version_edit");
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+    rdma_mg->Allocate_Local_RDMA_Slot(recv_mr, Message);
+    rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, Version_edit);
+    rdma_mg->Allocate_Local_RDMA_Slot(large_send_mr, Version_edit);
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 //    send_pointer->content. = {};
     // set up the communication buffer information.
@@ -1947,10 +1949,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     //      delete it;
     //    }
     //#endif
-    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-    rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
-    rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, "version_edit");
-    rdma_mg->Deallocate_Local_RDMA_Slot(large_send_mr.addr, "version_edit");
+    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+    rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, Message);
+    rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, Version_edit);
+    rdma_mg->Deallocate_Local_RDMA_Slot(large_send_mr.addr, Version_edit);
 
     delete request;
     delete compact;
@@ -1987,11 +1989,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                                                std::string& client_ip) {
     DEBUG("SYNC option \n");
     ibv_mr send_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
     send_pointer->content.ive = {};
     ibv_mr edit_recv_mr;
-    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, "version_edit");
+    rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, Version_edit);
     send_pointer->reply_buffer = edit_recv_mr.addr;
     send_pointer->rkey = edit_recv_mr.rkey;
     assert(request->content.ive.buffer_size < edit_recv_mr.length);
@@ -2041,7 +2043,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   ibv_mr send_mr = {};
   ibv_mr send_mr_ve = {};
   ibv_mr receive_mr = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
 
   if (edit->IsTrival()){
     send_pointer = (RDMA_Request*)send_mr.addr;
@@ -2065,9 +2067,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       return;
     }
   }else{
-    rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr_ve, Version_edit);
 
-    rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, "message");
+    rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
     std::string serilized_ve;
     edit->EncodeTo(&serilized_ve);
     assert(serilized_ve.size() <= send_mr_ve.length-1);
@@ -2125,10 +2127,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
                         &send_mr_ve, serilized_ve.size() + 1, client_ip, IBV_SEND_SIGNALED,1);
-    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,"version_edit");
-    rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
+    rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
   }
-  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
+  rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
 
   }
 

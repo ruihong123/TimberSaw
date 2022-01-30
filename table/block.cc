@@ -44,16 +44,16 @@ Block::Block(const BlockContents& contents, BlockType type)
 Block::~Block() {
   if (RDMA_Regiested) {
 //    DEBUG("Block garbage collected!\n");
-    if (type_ == DataBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataBlock")){
+    if (type_ == DataBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, DataChunk)){
 //      printf("Block RDMA registered memory deallocated successfull\n");
       return;
     }
 
-    if (type_ == IndexBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "DataIndexBlock")){
+    if (type_ == IndexBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, IndexChunk)){
       printf("Index Block RDMA registered memory deallocated successfull\n");
       return;
     }
-    if (type_ == FilterBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){
+    if (type_ == FilterBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, FilterChunk)){
 //      printf("Block RDMA registered memory deallocated successfull\n");
       return;
     }

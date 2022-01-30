@@ -11,14 +11,16 @@ namespace TimberSaw {
 
 Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
   if (!env->initialized){
-    env->rdma_mg->Mempool_initialize(std::string("DataIndexBlock"),
+    env->rdma_mg->Mempool_initialize(IndexChunk,
+                                     INDEX_BLOCK);
+    env->rdma_mg->Mempool_initialize(FilterChunk,
+                                     FILTER_BLOCK);
+    env->rdma_mg->Mempool_initialize(FlushBuffer,
                                      RDMA_WRITE_BLOCK);
-    env->rdma_mg->Mempool_initialize(std::string("FilterBlock"),
-                                     RDMA_WRITE_BLOCK);
-    env->rdma_mg->Mempool_initialize(std::string("FlushBuffer"),
-                                     RDMA_WRITE_BLOCK);
-    env->rdma_mg->Mempool_initialize(std::string("Prefetch"),
-                                     RDMA_WRITE_BLOCK);
+//    env->rdma_mg->Mempool_initialize(std::string("Prefetch"),
+//                                     RDMA_WRITE_BLOCK);
+    env->rdma_mg->Mempool_initialize(DataChunk, block_size);
+
   }
 
   env->initialized = true;

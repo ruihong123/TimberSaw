@@ -28,9 +28,9 @@ struct TableBuilder_BACS::Rep {
     ibv_mr* temp_index_mr = new ibv_mr();
     ibv_mr* temp_filter_mr = new ibv_mr();
     //first create two buffer for each slot.
-    rdma_mg->Allocate_Local_RDMA_Slot(*temp_data_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(*temp_index_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(*temp_filter_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_data_mr, FlushBuffer);
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_index_mr, IndexChunk);
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_filter_mr, FilterChunk);
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
@@ -38,9 +38,9 @@ struct TableBuilder_BACS::Rep {
     temp_data_mr = new ibv_mr();
     temp_index_mr = new ibv_mr();
     temp_filter_mr = new ibv_mr();
-    rdma_mg->Allocate_Local_RDMA_Slot(*temp_data_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(*temp_index_mr, "FlushBuffer");
-    rdma_mg->Allocate_Local_RDMA_Slot(*temp_filter_mr, "FlushBuffer");
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_data_mr, FlushBuffer);
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_index_mr, IndexChunk);
+    rdma_mg->Allocate_Local_RDMA_Slot(*temp_filter_mr, FilterChunk);
     local_data_mr.push_back(temp_data_mr);
     local_index_mr.push_back(temp_index_mr);
     memset(temp_filter_mr->addr, 0, temp_filter_mr->length);
@@ -128,15 +128,15 @@ TableBuilder_BACS::~TableBuilder_BACS() {
   }
   std::shared_ptr<RDMA_Manager> rdma_mg = rep_->options.env->rdma_mg;
   for(auto iter : rep_->local_data_mr){
-    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, FlushBuffer);
     delete iter;
   }
   for(auto iter : rep_->local_index_mr){
-    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, IndexChunk);
     delete iter;
   }
   for(auto iter : rep_->local_filter_mr){
-    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, "FlushBuffer");
+    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, FilterChunk);
     delete iter;
   }
 //  delete rep_->data_block;
@@ -458,7 +458,7 @@ void TableBuilder_BACS::FlushData(){
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
         r->data_inuse_end - r->data_inuse_start == r->local_data_mr.size()-1){
       ibv_mr* new_local_mr = new ibv_mr();
-      rdma_mg->Allocate_Local_RDMA_Slot(*new_local_mr,"FlushBuffer");
+      rdma_mg->Allocate_Local_RDMA_Slot(*new_local_mr,FlushBuffer);
       if(r->data_inuse_start == 0){// if start is 0 then the insert will also increase the index of end.
         r->data_inuse_end++;
       }

@@ -27,6 +27,7 @@
 #include "util/thread_local.h"
 #include "port/port_posix.h"
 #include "mutexlock.h"
+//#include "TimberSaw/env.h"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -64,6 +65,9 @@
 #error __BYTE_ORDER is neither __LITTLE_ENDIAN nor __BIG_ENDIAN
 #endif
 namespace TimberSaw {
+enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, DataChunk, Default};
+static const char * EnumStrings[] = { "Message", "Version_edit",
+      "IndexChunk", "FilterChunk", "FlushBuffer", "Default" };
 
 struct config_t {
   const char* dev_name;    /* IB device name */
@@ -392,11 +396,11 @@ class RDMA_Manager {
   // it also push the new block bit map to the Remote_Mem_Bitmap
 
   // Set the type of the memory pool. the mempool can be access by the pool name
-  bool Mempool_initialize(std::string pool_name, size_t size);
+  bool Mempool_initialize(Chunk_type pool_name, size_t size);
   //Allocate memory as "size", then slice the whole region into small chunks according to the pool name
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
-      std::string pool_name);  // register the memory on the local side
+      Chunk_type pool_name);  // register the memory on the local side
   // bulk deallocation preparation.
   bool Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size);
   // The RPC to bulk deallocation.
@@ -425,14 +429,14 @@ class RDMA_Manager {
                       bool send_cq);
   void BatchGarbageCollection(uint64_t* ptr, size_t size);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
-                                  std::string buffer_type);
-  bool Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type);
+                                  Chunk_type buffer_type);
+  bool Deallocate_Local_RDMA_Slot(void* p, Chunk_type buff_type);
   //  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
   bool Deallocate_Remote_RDMA_Slot(void* p);
   //TOFIX: There will be memory leak for the remote_mr and mr_input for local/remote memory
   // allocation.
   void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr);
-  void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, const std::string& pool_name);
+  void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, Chunk_type pool_name);
   // this function will determine whether the pointer is with in the registered memory
   bool CheckInsideLocalBuff(
       void* p,
@@ -488,9 +492,9 @@ class RDMA_Manager {
   ThreadLocalPtr* local_read_qp_info;
   //  thread_local static std::unique_ptr<ibv_qp, QP_Deleter> qp_local_write_flush;
   //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local_write_flush;
-  std::unordered_map<std::string, std::map<void*, In_Use_Array*>>
+  std::unordered_map<Chunk_type, std::map<void*, In_Use_Array*>>
       name_to_mem_pool;
-  std::unordered_map<std::string, size_t> name_to_size;
+  std::unordered_map<Chunk_type, size_t> name_to_size;
   std::shared_mutex local_mem_mutex;
   uint8_t node_id;
   std::unordered_map<std::string, ibv_mr*> comm_thread_recv_mrs;

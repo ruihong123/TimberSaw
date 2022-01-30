@@ -23,7 +23,7 @@ ByteAddressableSEQIterator::ByteAddressableSEQIterator(Iterator* index_iter,
       index_iter_(index_iter),
       valid_(false) {
     prefetched_mr = new ibv_mr{};
-    Env::Default()->rdma_mg->Allocate_Local_RDMA_Slot(*prefetched_mr, "Prefetch");
+    Env::Default()->rdma_mg->Allocate_Local_RDMA_Slot(*prefetched_mr, FlushBuffer);
 }
 
 ByteAddressableSEQIterator::~ByteAddressableSEQIterator() {
@@ -32,7 +32,7 @@ ByteAddressableSEQIterator::~ByteAddressableSEQIterator() {
 //    ibv_wc* wc = new ibv_wc[poll_number];
 //    rdma_mg->poll_completion(wc, poll_number, "read_local", true);
 //  }
-  rdma_mg->Deallocate_Local_RDMA_Slot(prefetched_mr->addr, "Prefetch");
+  rdma_mg->Deallocate_Local_RDMA_Slot(prefetched_mr->addr, FlushBuffer);
   delete prefetched_mr;
 
 

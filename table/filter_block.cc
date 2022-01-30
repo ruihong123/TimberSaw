@@ -139,7 +139,7 @@ bool FilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
   return true;  // Errors are treated as potential matches
 }
 FilterBlockReader::~FilterBlockReader() {
-  if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, "FilterBlock")){
+  if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, FilterChunk)){
     printf("Filter Block deregisteration failed\n");
   }else{
 //    printf("Filter block deregisteration successfully\n");

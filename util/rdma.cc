@@ -1,4 +1,5 @@
 #include <util/rdma.h>
+#include "TimberSaw/env.h"
 
 namespace TimberSaw {
 #ifdef PROCESSANALYSIS
@@ -74,8 +75,8 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
   Remote_Mem_Bitmap = new std::map<void*, In_Use_Array*>;
 
   //Initialize a message memory pool
-  Mempool_initialize(std::string("message"), std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
-  Mempool_initialize(std::string("version_edit"), 1024*1024);
+  Mempool_initialize(Message, std::max(sizeof(RDMA_Request),sizeof(RDMA_Reply)));
+  Mempool_initialize(Version_edit, 1024*1024);
 
 }
 /******************************************************************************
@@ -573,7 +574,7 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string client_ip, int socket_fd) 
 //    Register the memory through ibv_reg_mr on the local side. this function will be called by both of the server side and client side.
 bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
-                                         std::string pool_name) {
+                                         Chunk_type pool_name) {
   int mr_flags = 0;
   if (node_id == 0 || pre_allocated_pool.empty()){
 
@@ -608,8 +609,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
         mr_flags, size, local_mem_pool.size());
     return false;
-  } else if(pool_name!= "") {
-    // if pool name == "", then no bit map will be created. The registered memory is used for remote compute node RDMA read and write
+  } else if(pool_name!= Default) {
+    // if pool name == Default, then no bit map will be created. The registered memory is used for remote compute node RDMA read and write
     // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
 
     int placeholder_num =
@@ -649,9 +650,9 @@ void RDMA_Manager::Memory_Deallocation_RPC() {
 //  ibv_mr send_mr_ve = {};
 
   ibv_mr receive_mr = {};
-  Allocate_Local_RDMA_Slot(send_mr, "message");
+  Allocate_Local_RDMA_Slot(send_mr, Message);
 //  Allocate_Local_RDMA_Slot(send_mr_ve, "version_edit");
-  Allocate_Local_RDMA_Slot(receive_mr, "message");
+  Allocate_Local_RDMA_Slot(receive_mr, Message);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = SSTable_gc;
   send_pointer->content.gc.buffer_size = top * sizeof(uint64_t);
@@ -699,8 +700,8 @@ void RDMA_Manager::Memory_Deallocation_RPC() {
   // signal may comes befoer the thread go to sleep.
   //
   //  start = std::chrono::high_resolution_clock::now();
-  Deallocate_Local_RDMA_Slot(send_mr.addr,"message");
-  Deallocate_Local_RDMA_Slot(receive_mr.addr,"message");
+  Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
+  Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
   // Notify all the other deallocation threads that the buffer has been cleared.
   std::unique_lock<std::mutex> lck(dealloc_mtx);
   top = 0;
@@ -872,9 +873,10 @@ int RDMA_Manager::resources_create() {
   //              static_cast<unsigned>(rdma_config.init_local_buffer_size));
   //    }
   //  }
-  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 2500*4096, std::string("message"));
+  //todo: shrink this size.
+  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 2500*4096, Message);
   Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 2500*4096,
-                        std::string("message"));
+                        Message);
   //        if(condition){
   //          fprintf(stderr, "Local memory registering failed\n");
   //
@@ -2229,8 +2231,8 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr receive_mr = {};
-  Allocate_Local_RDMA_Slot(send_mr, "message");
-  Allocate_Local_RDMA_Slot(receive_mr, "message");
+  Allocate_Local_RDMA_Slot(send_mr, Message);
+  Allocate_Local_RDMA_Slot(receive_mr, Message);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = create_mr_;
   send_pointer->content.mem_size = size;
@@ -2270,8 +2272,8 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
   //    l.unlock();
   //  l.unlock();
-  Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-  Deallocate_Local_RDMA_Slot(receive_mr.addr, "message");
+  Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+  Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
@@ -2297,8 +2299,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr receive_mr = {};
-  Allocate_Local_RDMA_Slot(send_mr, "message");
-  Allocate_Local_RDMA_Slot(receive_mr, "message");
+  Allocate_Local_RDMA_Slot(send_mr, Message);
+  Allocate_Local_RDMA_Slot(receive_mr, Message);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = create_qp_;
   send_pointer->content.qp_config.qp_num = qp->qp_num;
@@ -2348,8 +2350,8 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   // te,p_buff will have the informatin for the remote query pair,
   // use this information for qp connection.
   connect_qp(qp, qp_id);
-  Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
-  Deallocate_Local_RDMA_Slot(receive_mr.addr, "message");
+  Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+  Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
   return true;
   //  // sync the communication by rdma.
   //  post_receive<registered_qp_config>(receive_pointer, std::string("main"));
@@ -2419,7 +2421,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
 }
 // A function try to allocate RDMA registered local memory
 void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
-                                            const std::string& pool_name) {
+                                            Chunk_type pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
   size_t chunk_size;
   chunk_size = name_to_size.at(pool_name);
@@ -2433,7 +2435,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
       Local_Memory_Register(&buff, &mr, 1024*1024*1024, pool_name);
       if (node_id == 0)
         printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory 1GB chunk for this pool is %lu\n",
-               pool_name.c_str(), name_to_mem_pool.at(pool_name).size());
+               EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
     }
     mem_write_lock.unlock();
   }
@@ -2472,7 +2474,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   Local_Memory_Register(&buff, &mr_to_allocate,1024*1024*1024, pool_name);
   if (node_id == 0)
     printf("Memory used up, allocate new one, memory pool is %s, total memory 1GB chunk for this pool is %lu\n",
-           pool_name.c_str(), name_to_mem_pool.at(pool_name).size());
+           EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
   int block_index = name_to_mem_pool.at(pool_name)
                         .at(mr_to_allocate->addr)
                         ->allocate_memory_slot();
@@ -2492,7 +2494,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
   for (int i = 0; i < size/ sizeof(uint64_t); ++i) {
 //    assert()
-    bool result = Deallocate_Local_RDMA_Slot((void*)ptr[i], "FlushBuffer");
+    bool result = Deallocate_Local_RDMA_Slot((void*)ptr[i], FlushBuffer);
 //#ifndef NDEBUG
 //    printf("Sucessfully delete a SSTable %p", (void*)ptr[i]);
 //    assert(result);
@@ -2502,7 +2504,7 @@ void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
 
 // Remeber to delete the mr because it was created be new, otherwise memory leak.
 bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
-                                              std::string buffer_type) {
+                                              Chunk_type buffer_type) {
   size_t buff_offset =
       static_cast<char*>(mr->addr) - static_cast<char*>(map_pointer->addr);
   size_t chunksize = name_to_size.at(buffer_type);
@@ -2512,7 +2514,7 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
       .at(map_pointer->addr)
       ->deallocate_memory_slot(buff_offset / chunksize);
 }
-bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, const std::string& buff_type) {
+bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, Chunk_type buff_type) {
   std::shared_lock<std::shared_mutex> read_lock(local_mem_mutex);
 //  DEBUG_arg("Deallocate pointer %p", p);
   std::map<void*, In_Use_Array*>* Bitmap;
@@ -2670,12 +2672,12 @@ bool RDMA_Manager::CheckInsideRemoteBuff(void* p) {
   }
   return false;
 }
-bool RDMA_Manager::Mempool_initialize(std::string pool_name, size_t size) {
+bool RDMA_Manager::Mempool_initialize(Chunk_type pool_name, size_t size) {
 
   if (name_to_mem_pool.find(pool_name) != name_to_mem_pool.end()) return false;
   std::map<void*, In_Use_Array*> mem_sub_pool;
   // check whether pool name has already exist.
-  name_to_mem_pool.insert(std::pair<std::string, std::map<void*, In_Use_Array*>>(
+  name_to_mem_pool.insert(std::pair<Chunk_type, std::map<void*, In_Use_Array*>>(
       {pool_name, mem_sub_pool}));
   name_to_size.insert({pool_name, size});
   return true;
