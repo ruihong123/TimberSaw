@@ -31,7 +31,7 @@ ByteAddressableRAIterator::ByteAddressableRAIterator(Iterator* index_iter,
 ByteAddressableRAIterator::~ByteAddressableRAIterator() {
   if (mr_addr != nullptr){
     auto rdma_mg = Env::Default()->rdma_mg;
-    rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, "DataBlock");
+    rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
   }
     //  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p\n", this);
 };
@@ -111,7 +111,7 @@ void ByteAddressableRAIterator::GetKV() {
         // directly call the static function instead.
         if (mr_addr != nullptr){
           auto rdma_mg = Env::Default()->rdma_mg;
-          rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, "DataBlock");
+          rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
         }
         Slice KV = (*kv_function_)(arg_, options_, handle);
         mr_addr = const_cast<char*>(KV.data());

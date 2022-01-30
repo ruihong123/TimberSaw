@@ -275,7 +275,7 @@ bool FullFilterBlockReader::KeyMayMatch(const Slice& key) {
 }
 FullFilterBlockReader::~FullFilterBlockReader() {
   if (filter_side == Compute){
-    if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)filter_content.data(), "FilterBlock")){
+    if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)filter_content.data(), FilterChunk)){
       DEBUG("Filter Block deregisteration failed\n");
     }else{
 //          printf("Filter block deregisteration successfully\n");
