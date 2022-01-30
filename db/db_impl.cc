@@ -201,14 +201,14 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       }
     }
     Unpin_bg_pool_.SetBackgroundThreads(1);
-    if (options_.block_cache != nullptr){
-      size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1 +1;
-      for (size_t i = 0; i < size_in_gb; ++i) {
-        ibv_mr* mr;
-        char* buff;
-        rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, DataChunk);
-      }
-    }
+//    if (options_.block_cache != nullptr){
+//      size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1 +1;
+//      for (size_t i = 0; i < size_in_gb; ++i) {
+//        ibv_mr* mr;
+//        char* buff;
+//        rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, DataChunk);
+//      }
+//    }
     // Preallocate the RDMA local buffer. ADD extra 1GB to make sure covering all the cache.
 
 //    ibv_mr contents = {};
