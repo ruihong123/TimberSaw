@@ -330,9 +330,9 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
       s = Status::Corruption("block checksum mismatch");
       return s;
     }else{
-      DEBUG_arg("SSTable %p open successfully\n", remote_mr->addr);
-      DEBUG_arg("CRC IS %d\n", crc);
-      DEBUG_arg("Actual IS %d\n", actual);
+//      DEBUG_arg("SSTable %p open successfully\n", remote_mr->addr);
+//      DEBUG_arg("CRC IS %d\n", crc);
+//      DEBUG_arg("Actual IS %d\n", actual);
     }
   }
 
