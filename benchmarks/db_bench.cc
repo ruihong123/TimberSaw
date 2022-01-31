@@ -512,7 +512,7 @@ class Benchmark {
     key_guard->reset(const_data);
     return Slice(key_guard->get(), key_size);
   }
-  void GenerateKeyFromInt(uint64_t v, int64_t num_keys, Slice* key) {
+  void GenerateKeyFromInt(uint64_t v, Slice* key) {
 
     char* start = const_cast<char*>(key->data());
     char* pos = start;
@@ -591,6 +591,9 @@ class Benchmark {
       } else if (name == Slice("fillrandom")) {
         fresh_db = true;
         method = &Benchmark::WriteRandom;
+      } else if (name == Slice("fillrandomshard")) {
+        fresh_db = true;
+        method = &Benchmark::WriteRandomSharded;
       } else if (name == Slice("overwrite")) {
         fresh_db = false;
         method = &Benchmark::WriteRandom;
@@ -610,6 +613,8 @@ class Benchmark {
         method = &Benchmark::ReadReverse;
       } else if (name == Slice("readrandom")) {
         method = &Benchmark::ReadRandom;
+      } else if (name == Slice("readrandomshard")) {
+        method = &Benchmark::ReadRandom_Sharded;
       } else if (name == Slice("readmissing")) {
         method = &Benchmark::ReadMissing;
       } else if (name == Slice("seekrandom")) {
@@ -888,6 +893,7 @@ class Benchmark {
   void WriteSeq(ThreadState* thread) { DoWrite(thread, true); }
 
   void WriteRandom(ThreadState* thread) { DoWrite(thread, false); }
+  void WriteRandomSharded(ThreadState* thread) { DoWrite_Sharded(thread, false); }
   void Validation_Write() {
     Random64 rand(123);
     RandomGenerator gen;
@@ -900,7 +906,7 @@ class Benchmark {
 //      //The key range should be adjustable.
 ////        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
 //      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
-      GenerateKeyFromInt(i, FLAGS_num, &key);
+      GenerateKeyFromInt(i, &key);
       key.Reset(key.data(), key.size()-1);
       char to_be_append = 'v';// add an extra char to make key different from write bench.
       assert(key.size() == FLAGS_key_size);
@@ -957,10 +963,49 @@ class Benchmark {
         const int k = seq ? i + j : thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 
 //        key.Set(k);
-        GenerateKeyFromInt(k, FLAGS_num, &key);
+        GenerateKeyFromInt(k, &key);
 //        batch.Put(key.slice(), gen.Generate(value_size_));
         batch.Put(key, gen.Generate(value_size_));
 //        bytes += value_size_ + key.slice().size();
+        bytes += value_size_ + key.size();
+        thread->stats.FinishedSingleOp();
+      }
+      s = db_->Write(write_options_, &batch);
+      if (!s.ok()) {
+        std::fprintf(stderr, "put error: %s\n", s.ToString().c_str());
+        std::exit(1);
+      }
+    }
+    thread->stats.AddBytes(bytes);
+  }
+  void DoWrite_Sharded(ThreadState* thread, bool seq) {
+    if (num_ != FLAGS_num) {
+      char msg[100];
+      std::snprintf(msg, sizeof(msg), "(%d ops)", num_);
+      thread->stats.AddMessage(msg);
+    }
+
+    RandomGenerator gen;
+    WriteBatch batch;
+    Status s;
+    int64_t bytes = 0;
+    //    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+    int total_number_of_inserted_key = FLAGS_num*FLAGS_threads;
+
+    for (int i = 0; i < num_; i += entries_per_batch_) {
+      batch.Clear();
+      for (int j = 0; j < entries_per_batch_; j++) {
+        //The key range should be adjustable.
+        //        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
+        const int k = seq ? i + j : thread->rand.Next()%(total_number_of_inserted_key);
+
+        //        key.Set(k);
+        GenerateKeyFromInt(k + FLAGS_num_shard*total_number_of_inserted_key, &key);
+        //        batch.Put(key.slice(), gen.Generate(value_size_));
+        batch.Put(key, gen.Generate(value_size_));
+        //        bytes += value_size_ + key.slice().size();
         bytes += value_size_ + key.size();
         thread->stats.FinishedSingleOp();
       }
@@ -1017,10 +1062,37 @@ class Benchmark {
       const int k = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 //
 //            key.Set(k);
-      GenerateKeyFromInt(k, FLAGS_num, &key);
+      GenerateKeyFromInt(k, &key);
 //      if (db_->Get(options, key.slice(), &value).ok()) {
 //        found++;
 //      }
+      if (db_->Get(options, key, &value).ok()) {
+        found++;
+      }
+      thread->stats.FinishedSingleOp();
+    }
+    char msg[100];
+    std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+    thread->stats.AddMessage(msg);
+  }
+  void ReadRandom_Sharded(ThreadState* thread) {
+    ReadOptions options;
+    //TODO(ruihong): specify the cache option.
+    std::string value;
+    int found = 0;
+    //    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+    int total_number_of_inserted_key = FLAGS_num*FLAGS_threads;
+    for (int i = 0; i < reads_; i++) {
+      //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+      const int k = thread->rand.Next()%(total_number_of_inserted_key);
+      //
+      //            key.Set(k);
+      GenerateKeyFromInt(k + FLAGS_num_shard * total_number_of_inserted_key, &key);
+      //      if (db_->Get(options, key.slice(), &value).ok()) {
+      //        found++;
+      //      }
       if (db_->Get(options, key, &value).ok()) {
         found++;
       }
