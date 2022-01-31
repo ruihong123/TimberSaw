@@ -2,7 +2,7 @@
 #define RDMA_H
 
 
-#define REMOTE_DEALLOC_BUFF_SIZE (256 + 128) * sizeof(uint64_t)
+#define REMOTE_DEALLOC_BUFF_SIZE (64 + 128) * sizeof(uint64_t)
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
