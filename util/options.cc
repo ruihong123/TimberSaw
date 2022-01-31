@@ -22,7 +22,7 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     env->rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, IndexChunk);
     env->rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, FilterChunk);
     env->rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, FlushBuffer);
-
+    env->rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, DataChunk);
   }
 
   env->initialized = true;
