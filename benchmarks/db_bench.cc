@@ -1252,7 +1252,7 @@ int main(int argc, char** argv) {
       std::exit(1);
     }
   }
-
+  printf("Initial check, remote ip is %s, tcp_port is %d \n", TimberSaw::IP, TimberSaw::tcp_port);
   TimberSaw::g_env = TimberSaw::Env::Default();
 
   // Choose a location for the test database if none given with --db=<path>
