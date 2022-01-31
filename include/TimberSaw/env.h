@@ -50,10 +50,13 @@ class SequentialFile;
 class Slice;
 class WritableFile;
 
-static uint32_t tcp_port = 19843;
-static const char* IP = "128.10.4.25";
+
 class TimberSaw_EXPORT Env {
+
  public:
+  static uint32_t tcp_port; // = 19843
+  static const char* IP;
+  //= "128.10.4.28"
   Env();
 
   Env(const Env&) = delete;

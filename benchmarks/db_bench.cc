@@ -1198,9 +1198,9 @@ int main(int argc, char** argv) {
     if (TimberSaw::Slice(argv[i]).starts_with("--benchmarks=")) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
     } else if(TimberSaw::Slice(argv[i]).starts_with("--IP=")){
-      TimberSaw::IP = argv[i] + strlen("--IP=");
+      TimberSaw::Env::IP = argv[i] + strlen("--IP=");
     } else if (sscanf(argv[i], "--tcpport=%d%c", &n, &junk) == 1) {
-      TimberSaw::tcp_port = n;
+      TimberSaw::Env::tcp_port = n;
     } else if (sscanf(argv[i], "--shardnum=%d%c", &n, &junk) == 1) {
       FLAGS_num_shard = n;
     } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
@@ -1252,7 +1252,7 @@ int main(int argc, char** argv) {
       std::exit(1);
     }
   }
-  printf("Initial check, remote ip is %s, tcp_port is %d \n", TimberSaw::IP, TimberSaw::tcp_port);
+  printf("Initial check, remote ip is %s, tcp_port is %d \n", TimberSaw::Env::IP, TimberSaw::Env::tcp_port);
   TimberSaw::g_env = TimberSaw::Env::Default();
   TimberSaw::g_env->SetUpConnection();
   // Choose a location for the test database if none given with --db=<path>

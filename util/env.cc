@@ -13,7 +13,8 @@
 #endif
 
 namespace TimberSaw {
-
+uint32_t Env::tcp_port = 19843;
+const char* Env::IP = "128.10.4.28";
 Env::Env() = default;
 
 Env::~Env() = default;
