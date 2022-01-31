@@ -1198,6 +1198,7 @@ int main(int argc, char** argv) {
     if (TimberSaw::Slice(argv[i]).starts_with("--benchmarks=")) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
     } else if(TimberSaw::Slice(argv[i]).starts_with("--IP=")){
+      FLAGS_benchmarks = argv[i] + strlen("--IP=");
     } else if (sscanf(argv[i], "--tcpport=%d%c", &n, &junk) == 1) {
       TimberSaw::tcp_port = n;
     } else if (sscanf(argv[i], "--shardnum=%d%c", &n, &junk) == 1) {

@@ -763,7 +763,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   std::string ip_add;
   std::cout << "please insert the ip address for the remote memory" << std::endl;
   std::cin >> ip_add;
-  rdma_config.server_name = ip_add.c_str();
+  rdma_config.server_name = IP;
   /* if client side */
   printf("Mark: valgrind socket info1\n");
   res->sock_map["main"] =
