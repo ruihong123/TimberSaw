@@ -115,7 +115,8 @@ static int FLAGS_bloom_bits = 10;
 
 // Common key prefix length.
 static int FLAGS_key_prefix = 0;
-
+//Number of Shard.
+static int FLAGS_num_shard = 0;
 // If true, do not destroy the existing database.  If you set this
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
@@ -1196,6 +1197,11 @@ int main(int argc, char** argv) {
     char junk;
     if (TimberSaw::Slice(argv[i]).starts_with("--benchmarks=")) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
+    } else if(TimberSaw::Slice(argv[i]).starts_with("--IP=")){
+    } else if (sscanf(argv[i], "--tcpport=%d%c", &n, &junk) == 1) {
+      TimberSaw::tcp_port = n;
+    } else if (sscanf(argv[i], "--shardnum=%d%c", &n, &junk) == 1) {
+      FLAGS_num_shard = n;
     } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
       FLAGS_compression_ratio = d;
     } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&

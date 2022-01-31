@@ -2435,7 +2435,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
       Local_Memory_Register(&buff, &mr,
   name_to_allocated_size.at(pool_name) == 0 ?
       1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
-      if (node_id == 0)
+//      if (node_id == 0)
         printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory this pool is %lu\n",
                EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
     }
@@ -2475,7 +2475,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 
   Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
       1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
-  if (node_id == 0)
+//  if (node_id == 0)
     printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
            EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
            Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)

@@ -50,7 +50,7 @@ class SequentialFile;
 class Slice;
 class WritableFile;
 
-static uint32_t tcp_port;
+static uint32_t tcp_port = 19843;
 class TimberSaw_EXPORT Env {
  public:
   Env();

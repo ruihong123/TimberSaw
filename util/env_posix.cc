@@ -15,7 +15,7 @@
 
 namespace TimberSaw {
 
-
+//static uint32_t tcp_port = 19843;
 
 PosixEnv::PosixEnv()
     : background_work_cv_(&background_work_mutex_),
@@ -25,7 +25,7 @@ PosixEnv::PosixEnv()
   struct config_t config = {
       NULL,  /* dev_name */
       NULL,  /* server_name */
-      19843, /* tcp_port */
+      tcp_port, /* tcp_port */
       1,	 /* ib_port */ //physical
       1, /* gid_idx */
       4*10*1024*1024 /*initial local buffer size*/
