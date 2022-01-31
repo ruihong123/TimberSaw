@@ -1421,9 +1421,10 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
   }
   void Memory_Node_Keeper::Server_to_Client_Communication() {
-  if (rdma_mg->resources_create()) {
-    fprintf(stderr, "failed to create resources\n");
-  }
+
+  rdma_mg->Local_Memory_Register(&(rdma_mg->res->send_buf), &(rdma_mg->res->mr_send), 2500*4096, Message);
+  rdma_mg->Local_Memory_Register(&(rdma_mg->res->receive_buf), &(rdma_mg->res->mr_receive), 2500*4096,
+                        Message);
   int rc;
   if (rdma_mg->rdma_config.gid_idx >= 0) {
     printf("checkpoint0");

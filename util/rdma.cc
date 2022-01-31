@@ -78,7 +78,9 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
   Mempool_initialize(Message,
                      std::max(sizeof(RDMA_Request), sizeof(RDMA_Reply)), 32*std::max(sizeof(RDMA_Request), sizeof(RDMA_Reply)));
   Mempool_initialize(Version_edit, 1024 * 1024, 32*1024*1024);
-
+  if (resources_create()) {
+    fprintf(stderr, "failed to create resources\n");
+  }
 }
 /******************************************************************************
 * Function: ~RDMA_Manager
@@ -776,10 +778,12 @@ void RDMA_Manager::Client_Set_Up_Resources() {
             rdma_config.server_name, rdma_config.tcp_port);
   }
 
-  if (resources_create()) {
-    fprintf(stderr, "failed to create resources\n");
-    return;
-  }
+//  if (resources_create()) {
+//    fprintf(stderr, "failed to create resources\n");
+//    return;
+//  }
+  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 2500*4096, Message);
+  Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 2500*4096,Message);
   Get_Remote_qp_Info_Then_Connect();
 }
 /******************************************************************************
@@ -876,9 +880,7 @@ int RDMA_Manager::resources_create() {
   //    }
   //  }
   //todo: shrink this size.
-  Local_Memory_Register(&(res->send_buf), &(res->mr_send), 2500*4096, Message);
-  Local_Memory_Register(&(res->receive_buf), &(res->mr_receive), 2500*4096,
-                        Message);
+
   //        if(condition){
   //          fprintf(stderr, "Local memory registering failed\n");
   //
