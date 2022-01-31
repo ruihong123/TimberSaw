@@ -764,8 +764,9 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   std::cout << "please insert the ip address for the remote memory" << std::endl;
 //  std::cin >> ip_add;
   rdma_config.server_name = TimberSaw::IP;
+  rdma_config.tcp_port = TimberSaw::tcp_port;
   /* if client side */
-  printf("remote ip is %s \n", TimberSaw::IP);
+  printf("remote ip is %s, tcp_port is %d \n", TimberSaw::IP, TimberSaw::tcp_port);
   res->sock_map["main"] =
       client_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
 

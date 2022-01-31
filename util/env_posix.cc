@@ -24,7 +24,7 @@ PosixEnv::PosixEnv()
       fd_limiter_(MaxOpenFiles()) {
   struct config_t config = {
       NULL,  /* dev_name */
-      NULL,  /* server_name */
+      IP,  /* server_name */
       tcp_port, /* tcp_port */
       1,	 /* ib_port */ //physical
       1, /* gid_idx */
