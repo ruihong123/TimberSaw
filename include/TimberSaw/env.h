@@ -219,7 +219,7 @@ class TimberSaw_EXPORT Env {
   // Returns the number of micro-seconds since some fixed point in time. Only
   // useful for computing deltas of time.
   virtual uint64_t NowMicros() = 0;
-
+  virtual void SetUpConnection(){}
   // Sleep/delay the thread for the prescribed number of micro-seconds.
   virtual void SleepForMicroseconds(int micros) = 0;
   virtual void SetBackgroundThreads(int num,  ThreadPoolType type) = 0;

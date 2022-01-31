@@ -493,6 +493,7 @@ class PosixWritableFile final : public WritableFile {
 class PosixEnv : public Env {
  public:
   PosixEnv();
+  void SetUpConnection() override;
   ~PosixEnv() override {
     // By default the threadpool will not wait for all the task in the queue finished.
     //    flushing.JoinThreads(false);

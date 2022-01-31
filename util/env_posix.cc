@@ -37,13 +37,15 @@ PosixEnv::PosixEnv()
   // Unlike the remote block size, the local block size is adjustable, and there could be different
   // local memory pool with different size. each size of memory pool will have an ID below is "4k"
 
-  //client will try to connect to the remote memory, now there is only one remote memory.
-  rdma_mg->Client_Set_Up_Resources();
+
 
 
 
       }
-
+void PosixEnv::SetUpConnection() {
+  //client will try to connect to the remote memory, now there is only one remote memory.
+  rdma_mg->Client_Set_Up_Resources();
+}
 void PosixEnv::Schedule(
     void (*background_work_function)(void* background_work_arg),
     void* background_work_arg) {

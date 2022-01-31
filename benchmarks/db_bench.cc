@@ -1254,7 +1254,7 @@ int main(int argc, char** argv) {
   }
   printf("Initial check, remote ip is %s, tcp_port is %d \n", TimberSaw::IP, TimberSaw::tcp_port);
   TimberSaw::g_env = TimberSaw::Env::Default();
-
+  TimberSaw::g_env->SetUpConnection();
   // Choose a location for the test database if none given with --db=<path>
   if (FLAGS_db == nullptr) {
     TimberSaw::g_env->GetTestDirectory(&default_db_path);
