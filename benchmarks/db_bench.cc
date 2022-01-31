@@ -672,7 +672,10 @@ class Benchmark {
 #ifdef PROCESSANALYSIS
         if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadWhileWriting){
           TableCache::CleanAll();
+          Validation_Read();
         }
+        if (name.ToString() == "fillrandom")
+          Validation_Write();
 #endif
         DEBUG("The benchmark start.\n");
         RunBenchmark(num_threads, name, method);
@@ -680,7 +683,7 @@ class Benchmark {
 
       }
     }
-    Validation_Read();
+
   }
 
  private:
@@ -723,8 +726,7 @@ class Benchmark {
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
 //    printf("Bechmark start\n");
-    if (name.ToString() == "fillrandom")
-      Validation_Write();
+
 //    if (name.ToString() == "readrandom"){
 //    }
     SharedState shared(n);
