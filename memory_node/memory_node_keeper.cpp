@@ -1312,11 +1312,11 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
-    rdma_mg->local_mem_pool.reserve(100);
-    {
-      std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
-      rdma_mg->Preregister_Memory(pr_size);
-    }
+//    rdma_mg->local_mem_pool.reserve(100);
+//    {
+//      std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
+//      rdma_mg->Preregister_Memory(pr_size);
+//    }
     if (rdma_mg->sock_sync_data(socket_fd, 1, temp_send,
                        temp_receive)) /* just send a dummy char back and forth */
       {
@@ -1425,6 +1425,11 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
   rdma_mg->Local_Memory_Register(&(rdma_mg->res->send_buf), &(rdma_mg->res->mr_send), 2500*4096, Message);
   rdma_mg->Local_Memory_Register(&(rdma_mg->res->receive_buf), &(rdma_mg->res->mr_receive), 2500*4096,
                         Message);
+  rdma_mg->local_mem_pool.reserve(100);
+  {
+    std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
+    rdma_mg->Preregister_Memory(pr_size);
+  }
   int rc;
   if (rdma_mg->rdma_config.gid_idx >= 0) {
     printf("checkpoint0");
