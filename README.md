@@ -18,7 +18,7 @@ TimberSaw is the first purpose-built LSM-based indexing system for the emerging 
 * Forward and backward iteration is supported over the data.
 ## Getting the Source
 ```bash
-git clone --recurse-submodules https://github.com/ruihong123/TimberSaw2021
+git clone --recurse-submodules https://github.com/ruihong123/TimberSaw
 ```
 ## Building
 This project supports CMake out of the box.
