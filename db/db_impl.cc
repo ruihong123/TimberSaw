@@ -148,8 +148,10 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       manual_compaction_(nullptr),
       versions_(new VersionSet(dbname_, &options_, table_cache_,
                                &internal_comparator_)) {
+#ifdef PROCESSANALYSIS
           Total_time_elapse = 0;
           flush_times = 0;
+#endif
 }
 
 DBImpl::~DBImpl() {
