@@ -64,8 +64,8 @@ function run_bench() {
     while [ $n -lt $nshard ]
   	do
   		echo "Set up the ${compute_shard[n]}"
-  		sudo ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m cd TimberSaw/ &&  cd build && sudo apt-get install -y libnuma-dev  && make db_bench -j 32 && make Server -j 32" &
-  		#git clone --recurse-submodules $github_repo && mkdir build && && cmake -DCMAKE_BUILD_TYPE=Release ..
+  		sudo ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m cd ~ && git clone --recurse-submodules $github_repo && cd TimberSaw/ && mkdir build &&  cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && sudo apt-get install -y libnuma-dev  && make db_bench -j 32 && make Server -j 32" &
+  		#
   		n=$((n+1))
   		sleep 1
   	done
