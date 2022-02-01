@@ -60,11 +60,12 @@ function run_bench() {
   echo memory shards are ${memory_shard[@]}
   echo communication ports are ${communication_port[@]}
   #test for dowload and compile the codes
-  n=0
+  n=1
     while [ $n -lt $nshard ]
   	do
   		echo "Set up the ${compute_shard[n]}"
   		sudo ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "git clone --recurse-submodules $github_repo && cd TimberSaw/ && mkdir build && cd build && sudo apt-get install -y libnuma-dev && cmake -DCMAKE_BUILD_TYPE=Release .. && make db_bench -j 32 make Server -j 32"
+  		n=$((n+1))
   		sleep 1
   	done
 #  n=0
