@@ -790,8 +790,8 @@ class Benchmark {
     }
     delete[] arg;
     db_->WaitforAllbgtasks();
-    if (method == &Benchmark::WriteRandom)
-      sleep(35); // wait for the last sstable disgestion.
+    if (method == &Benchmark::WriteRandom || method == &Benchmark::WriteRandomSharded)
+      sleep(2); // wait for the last sstable disgestion.
   }
 
   void Crc32c(ThreadState* thread) {
