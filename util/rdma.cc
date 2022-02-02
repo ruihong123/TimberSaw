@@ -604,6 +604,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     *p2mrpointer = pre_allocated_pool.back();
     pre_allocated_pool.pop_back();
     *p2buffpointer = (char*)(*p2mrpointer)->addr;
+    assert(size == 1024*1024*1024);
   }
 
   if (!*p2mrpointer) {
