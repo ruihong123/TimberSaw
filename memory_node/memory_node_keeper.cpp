@@ -1422,9 +1422,9 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
   }
   void Memory_Node_Keeper::Server_to_Client_Communication() {
 
-//  rdma_mg->Local_Memory_Register(&(rdma_mg->res->send_buf), &(rdma_mg->res->mr_send), 2500*4096, Message);
-//  rdma_mg->Local_Memory_Register(&(rdma_mg->res->receive_buf), &(rdma_mg->res->mr_receive), 2500*4096,
-//                        Message);
+  rdma_mg->Local_Memory_Register(&(rdma_mg->res->send_buf), &(rdma_mg->res->mr_send), 2500*4096, Message);
+  rdma_mg->Local_Memory_Register(&(rdma_mg->res->receive_buf), &(rdma_mg->res->mr_receive), 2500*4096,
+                        Message);
   rdma_mg->local_mem_pool.reserve(100);
   {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
