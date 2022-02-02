@@ -89,7 +89,7 @@ function run_bench() {
   do
     echo "Set up the ${compute_shard[n]}"
     ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build &&
-    numactl --cpunodebind=all --localalloc gdb --args ./db_bench --benchmarks=fillrandomshard,readrandomshard --threads=16 --value_size=400 --block_size=8192 --num=312500 --bloom_bits=10 --cache_size=67108864 --IP=${memory_shard[n]} --tcpport=${communication_port[n]} --shardnum=${n} > result.txt" &
+    numactl --cpunodebind=all --localalloc ./db_bench --benchmarks=fillrandomshard,readrandomshard --threads=16 --value_size=400 --block_size=8192 --num=312500 --bloom_bits=10 --cache_size=67108864 --IP=${memory_shard[n]} --tcpport=${communication_port[n]} --shardnum=${n} > result.txt" &
     #
     n=$((n+1))
 #    sleep 1
