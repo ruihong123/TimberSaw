@@ -82,7 +82,7 @@ function run_bench() {
     n=$((n+1))
 
   done
-  sleep 40
+  sleep 70
 #Set up compute nodes and run the benchmark at the same time
   n=0
   while [ $n -lt $nshard ]

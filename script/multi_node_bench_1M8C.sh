@@ -77,19 +77,19 @@ function run_bench() {
   do
     echo "Set up the ${memory_shard[n]}"
     ssh -o StrictHostKeyChecking=no ${memory_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build &&
-    numactl --cpunodebind=${numa_node[n%${#numa_node[@]}]} --localalloc ./Server ${communication_port[n]} 12 " &
+    numactl --cpunodebind=${numa_node[n%${#numa_node[@]}]} --localalloc ./Server ${communication_port[n]} 6 " &
     #
     n=$((n+1))
 
   done
-  sleep 70
+  sleep 40
 #Set up compute nodes and run the benchmark at the same time
   n=0
   while [ $n -lt $nshard ]
   do
     echo "Set up the ${compute_shard[n]}"
     ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build &&
-    numactl --cpunodebind=all --localalloc ./db_bench --benchmarks=fillrandomshard,readrandomshard,readrandomshard --threads=16 --value_size=400 --block_size=8192 --num=625000 --bloom_bits=10 --cache_size=67108864 --IP=${memory_shard[n]} --tcpport=${communication_port[n]} --shardnum=${n} > result1M4C.txt" &
+    numactl --cpunodebind=all --localalloc ./db_bench --benchmarks=fillrandomshard,readrandomshard,readrandomshard --threads=16 --value_size=400 --block_size=8192 --num=312500 --bloom_bits=10 --cache_size=67108864 --IP=${memory_shard[n]} --tcpport=${communication_port[n]} --shardnum=${n} > result_1M8C.txt" &
     #
     n=$((n+1))
 #    sleep 1
