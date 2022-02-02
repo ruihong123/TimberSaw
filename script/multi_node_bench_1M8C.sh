@@ -77,8 +77,8 @@ function run_bench() {
   do
     echo "Set up the ${memory_shard[n]}"
     ssh -o StrictHostKeyChecking=no ${memory_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build &&
-    numactl --cpunodebind=${numa_node[n%${#numa_node[@]}]} --localalloc ./Server ${communication_port[n]} 6 " &
-    #
+    numactl --cpunodebind=all --localalloc ./Server ${communication_port[n]} 6 " &
+    #${numa_node[n%${#numa_node[@]}]}
     n=$((n+1))
 
   done
