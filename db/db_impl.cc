@@ -1733,12 +1733,13 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("mfence\n" : : );
 #endif
   rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
-#ifdef WITHPERSISTENCE
   ibv_wc wc[2] = {};
   if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
+#ifdef WITHPERSISTENCE
+
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
