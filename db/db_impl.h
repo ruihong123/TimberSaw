@@ -156,7 +156,7 @@ class DBImpl : public DB {
                                 SequenceNumber* latest_snapshot,
                                 uint32_t* seed);
 #endif
-  void WaitforAllbgtasks() override;
+  void WaitforAllbgtasks(bool clear_mem) override;
   Status NewDB();
 
   // Recover the descriptor from persistent storage.  May do a significant

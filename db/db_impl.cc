@@ -240,7 +240,7 @@ DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
   printf("DBImpl deallocated\n");
-  WaitforAllbgtasks();
+  WaitforAllbgtasks(false);
   //TODO: recycle all the
 
 
@@ -305,39 +305,42 @@ DBImpl::~DBImpl() {
 }
 // put the memtable to immutable table and flush all immutable to remote memory if the
 // immutable trigger is 1. Wait for all the background task to finish.
-void DBImpl::WaitforAllbgtasks() {
-  std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-  MemTable* mem = mem_.load();
-  //Use an iterator to check whether the current memtable is empty, if it is not
-  // flush it before exit.
-  Iterator* iter = mem->NewIterator();
-  iter->SeekToFirst();
-  if(iter->Valid()){
-    mem->NotFullTableflush();
-    MemTable* temp_mem = new MemTable(internal_comparator_);
-    DEBUG_arg("Not full flushed table first seq number is %lu", mem->GetFirstseq());
-    // Get the real largest seq because it is not a full table flush
-    uint64_t last_mem_seq = mem->Getlargest_seq();
-    temp_mem->SetFirstSeq(last_mem_seq+1);
-    // starting from this sequenctial number, the data should write to the new memtable
-    // set the immutable as seq_num - 1
-    temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
-    temp_mem->Ref();
-    mem->SetFlushState(MemTable::FLUSH_REQUESTED);
-    mem_.store(temp_mem);
-    //set the flush flag for imm
-    assert(imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger);
-    imm_.Add(mem);
-    has_imm_.store(true, std::memory_order_release);
-    InstallSuperVersion();
-    // if we have create a new table then the new table will definite be
-    // the table we will write.
+void DBImpl::WaitforAllbgtasks(bool clear_mem) {
+  if (clear_mem){
+    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+    MemTable* mem = mem_.load();
+    //Use an iterator to check whether the current memtable is empty, if it is not
+    // flush it before exit.
+    Iterator* iter = mem->NewIterator();
+    iter->SeekToFirst();
+    if(iter->Valid()){
+      mem->NotFullTableflush();
+      MemTable* temp_mem = new MemTable(internal_comparator_);
+      DEBUG_arg("Not full flushed table first seq number is %lu", mem->GetFirstseq());
+      // Get the real largest seq because it is not a full table flush
+      uint64_t last_mem_seq = mem->Getlargest_seq();
+      temp_mem->SetFirstSeq(last_mem_seq+1);
+      // starting from this sequenctial number, the data should write to the new memtable
+      // set the immutable as seq_num - 1
+      temp_mem->SetLargestSeq(last_mem_seq + MEMTABLE_SEQ_SIZE);
+      temp_mem->Ref();
+      mem->SetFlushState(MemTable::FLUSH_REQUESTED);
+      mem_.store(temp_mem);
+      //set the flush flag for imm
+      assert(imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger);
+      imm_.Add(mem);
+      has_imm_.store(true, std::memory_order_release);
+      InstallSuperVersion();
+      // if we have create a new table then the new table will definite be
+      // the table we will write.
 
-    //        imm_mtx.unlock();
-    MaybeScheduleFlushOrCompaction();
+      //        imm_mtx.unlock();
+      MaybeScheduleFlushOrCompaction();
+    }
+
+    lck.unlock();
   }
 
-  lck.unlock();
 
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
@@ -902,9 +905,9 @@ void DBImpl::CompactMemTable() {
   auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
   Total_time_elapse.fetch_add(duration.count());
   flush_times.fetch_add(1);
-#ifndef NDEBUG
+//#ifndef NDEBUG
       printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
-#endif
+//#endif
 #endif
   //  base->Unref();
 //  assert(edit.GetNewFilesNum()==1);
