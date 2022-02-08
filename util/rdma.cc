@@ -678,7 +678,7 @@ void RDMA_Manager::Memory_Deallocation_RPC() {
   asm volatile ("mfence\n" : : );
   if(!poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
   {
-    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Reply buffer is %p", receive_pointer->buffer);
     printf("Received is %d", receive_pointer->received);
     printf("receive structure size is %lu", sizeof(RDMA_Reply));
     exit(0);
@@ -693,7 +693,7 @@ void RDMA_Manager::Memory_Deallocation_RPC() {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
+  RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
                       dealloc_mr, top* sizeof(uint64_t), "main", IBV_SEND_SIGNALED,1);
   //TODO: implement a wait function for the received bit. THe problem is when to
   // reset the buffer to zero (we may need different buffer for the compaction reply)

@@ -158,7 +158,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  assert(n + kBlockTrailerSize <= rdma_mg->name_to_size["DataBlock"]);
+  assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
   RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
   RDMA_Manager::ReadCount.fetch_add(1);
 #endif
@@ -283,7 +283,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  assert(n  <= rdma_mg->name_to_size["DataBlock"]);
+  assert(n  <= rdma_mg->name_to_chunksize.at(DataChunk));
   RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
   RDMA_Manager::ReadCount.fetch_add(1);
 #endif

@@ -408,7 +408,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   asm volatile ("mfence\n" : : );
   if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
   {
-    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Reply buffer is %p", receive_pointer->buffer);
     printf("Received is %d", receive_pointer->received);
     printf("receive structure size is %lu", sizeof(RDMA_Reply));
     printf("version id is %lu", versions_->version_id);
@@ -417,7 +417,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
+  rdma_mg->RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
                       &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
@@ -476,7 +476,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   asm volatile ("mfence\n" : : );
   if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
   {
-    printf("Reply buffer is %p", receive_pointer->reply_buffer);
+    printf("Reply buffer is %p", receive_pointer->buffer);
     printf("Received is %d", receive_pointer->received);
     printf("receive structure size is %lu", sizeof(RDMA_Reply));
     printf("version id is %lu", versions_->version_id);
@@ -485,7 +485,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->reply_buffer_large, receive_pointer->rkey_large,
+  rdma_mg->RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
                       &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
@@ -1612,7 +1612,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.ive = {};
   ibv_mr edit_recv_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, Version_edit);
-  send_pointer->reply_buffer = edit_recv_mr.addr;
+  send_pointer->buffer = edit_recv_mr.addr;
   send_pointer->rkey = edit_recv_mr.rkey;
   assert(request->content.ive.buffer_size < edit_recv_mr.length);
   send_pointer->received = true;
@@ -1722,7 +1722,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       // set up the communication buffer information.
 //      send_pointer->reply_buffer = recv_mr.addr;
 //      send_pointer->rkey = recv_mr.rkey;
-      send_pointer->reply_buffer_large = large_recv_mr.addr;
+      send_pointer->buffer_large = large_recv_mr.addr;
       send_pointer->rkey_large = large_recv_mr.rkey;
 
       assert(request->content.gc.buffer_size < large_recv_mr.length);
@@ -1778,40 +1778,49 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->Allocate_Local_RDMA_Slot(recv_mr, Message);
     rdma_mg->Allocate_Local_RDMA_Slot(large_recv_mr, Version_edit);
     rdma_mg->Allocate_Local_RDMA_Slot(large_send_mr, Version_edit);
+    assert(request->content.sstCompact.buffer_size < large_recv_mr.length);
+#ifdef WITHPERSISTENCE
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 //    send_pointer->content. = {};
     // set up the communication buffer information.
-    send_pointer->reply_buffer = recv_mr.addr;
+    send_pointer->buffer = recv_mr.addr;
     send_pointer->rkey = recv_mr.rkey;
-    send_pointer->reply_buffer_large = large_recv_mr.addr;
+    send_pointer->buffer_large = large_recv_mr.addr;
     send_pointer->rkey_large = large_recv_mr.rkey;
-
-    assert(request->content.sstCompact.buffer_size < large_recv_mr.length);
     send_pointer->received = true;
+
     //TODO: how to check whether the version edit message is ready, we need to know the size of the
     // version edit in the first REQUEST from compute node.
-    volatile char* polling_byte = (char*)large_recv_mr.addr + request->content.sstCompact.buffer_size - 1;
-    memset((void*)polling_byte, 0, 1);
-    asm volatile ("sfence\n" : : );
-    asm volatile ("lfence\n" : : );
-    asm volatile ("mfence\n" : : );
+    //DO not need the code below if we use RDMA read to get the compaction.
+//    volatile char* polling_byte = (char*)large_recv_mr.addr + request->content.sstCompact.buffer_size - 1;
+//    memset((void*)polling_byte, 0, 1);
+//    asm volatile ("sfence\n" : : );
+//    asm volatile ("lfence\n" : : );
+//    asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(remote_prt, remote_rkey,
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
-    size_t counter = 0;
-    // polling the finishing bit for compaction task transmission.
-    while (*(unsigned char*)polling_byte == 0){
-      _mm_clflush(polling_byte);
-      asm volatile ("sfence\n" : : );
-      asm volatile ("lfence\n" : : );
-      asm volatile ("mfence\n" : : );
-      if (counter == 10000){
-        std::fprintf(stderr, "Polling Remote Compaction handler\r");
-        std::fflush(stderr);
-        counter = 0;
-      }
+#endif
 
-      counter++;
-    }
+//    size_t counter = 0;
+//    // polling the finishing bit for compaction task transmission.
+//    while (*(unsigned char*)polling_byte == 0){
+//      _mm_clflush(polling_byte);
+//      asm volatile ("sfence\n" : : );
+//      asm volatile ("lfence\n" : : );
+//      asm volatile ("mfence\n" : : );
+//      if (counter == 10000){
+//        std::fprintf(stderr, "Polling Remote Compaction handler\r");
+//        std::fflush(stderr);
+//        counter = 0;
+//      }
+//
+//      counter++;
+//    }
+    ibv_mr remote_mr = {.addr=remote_large_prt, .rkey=remote_rkey};
+//    ibv_mr local_mr = {.addr=large_recv_mr, .rkey=remote_rkey};
+    rdma_mg->RDMA_Read(&remote_mr, &large_recv_mr,
+    request->content.sstCompact.buffer_size, client_ip, IBV_SEND_SIGNALED,1);
+
     Status status;
     Compaction c(opts.get());
     //Decode compaction
@@ -1858,6 +1867,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     _mm_clflush((char*)large_send_mr.addr + serilized_ve.size());
     assert(serilized_ve.size() + 1 < large_send_mr.length);
     *(size_t*)send_mr.addr = serilized_ve.size() + 1;
+
     // Prepare the receive buffer for the version edit duribility and the file numbers.
     volatile char* polling_byte_2 = (char*)recv_mr.addr + sizeof(uint64_t);
     memset((void*)polling_byte_2, 0, 1);
@@ -1887,7 +1897,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
 //                             &large_send_mr, serilized_ve.size() + 1, client_ip,
 //                             IBV_SEND_SIGNALED, 1);
-    counter = 0;
+    int counter = 0;
     // polling the finishing bit for the file number transmission.
     while (*(unsigned char*)polling_byte_2 == 0){
       _mm_clflush(polling_byte_2);
@@ -1994,7 +2004,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->content.ive = {};
     ibv_mr edit_recv_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(edit_recv_mr, Version_edit);
-    send_pointer->reply_buffer = edit_recv_mr.addr;
+    send_pointer->buffer = edit_recv_mr.addr;
     send_pointer->rkey = edit_recv_mr.rkey;
     assert(request->content.ive.buffer_size < edit_recv_mr.length);
     send_pointer->received = true;
@@ -2112,7 +2122,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("mfence\n" : : );
     if(!rdma_mg->poll_reply_buffer(receive_pointer)) // poll the receive for 2 entires
     {
-      printf("Reply buffer is %p", receive_pointer->reply_buffer);
+      printf("Reply buffer is %p", receive_pointer->buffer);
       printf("Received is %d", receive_pointer->received);
       printf("receive structure size is %lu", sizeof(RDMA_Reply));
       printf("version id is %lu", versions_->version_id);
@@ -2125,7 +2135,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(receive_pointer->reply_buffer, receive_pointer->rkey,
+    rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
                         &send_mr_ve, serilized_ve.size() + 1, client_ip, IBV_SEND_SIGNALED,1);
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
     rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);

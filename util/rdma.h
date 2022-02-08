@@ -157,9 +157,9 @@ struct RDMA_Request {
 struct RDMA_Reply {
 //  RDMA_Command_Type command;
   RDMA_Reply_Content content;
-  void* reply_buffer;
+  void* buffer;
   uint32_t rkey;
-  void* reply_buffer_large;
+  void* buffer_large;
   uint32_t rkey_large;
   volatile bool received;
 } __attribute__((packed));
