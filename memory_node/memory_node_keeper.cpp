@@ -385,7 +385,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   send_pointer->command = persist_unpin_;
   send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;
   send_pointer->content.psu.id = 1;
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
@@ -453,7 +453,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   send_pointer->command = persist_unpin_;
   send_pointer->content.psu.buffer_size = index*sizeof(uint64_t) + 1;
   send_pointer->content.psu.id = 2;
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
@@ -1542,7 +1542,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.mr = *mr;
   send_pointer->received = true;
 
-  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+  rdma_mg->RDMA_Write(request->buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
@@ -1551,7 +1551,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                                              std::string& client_ip) {
     int rc;
     DEBUG("Create new qp\n");
-  assert(request->reply_buffer != nullptr);
+  assert(request->buffer != nullptr);
   assert(request->rkey != 0);
   char gid_str[17];
   memset(gid_str, 0, 17);
@@ -1598,7 +1598,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->res->qp_connection_info.insert({new_qp_id,remote_con_data});
   rdma_mg->connect_qp(qp, new_qp_id);
 
-  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+  rdma_mg->RDMA_Write(request->buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
@@ -1630,7 +1630,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+  rdma_mg->RDMA_Write(request->buffer, request->rkey,
                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1); //IBV_SEND_INLINE
 
   size_t counter = 0;
@@ -1706,7 +1706,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
       printf("Garbage collection\n");
 
-      void* remote_prt = request->reply_buffer;
+      void* remote_prt = request->buffer;
       uint32_t remote_rkey = request->rkey;
       unsigned int imm_num = request->imm_num;
       ibv_mr send_mr;
@@ -1765,8 +1765,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     RDMA_Request* request = ((Arg_for_handler*) arg)->request;
     std::string client_ip = ((Arg_for_handler*) arg)->client_ip;
     printf("near data compaction\n");
-    void* remote_prt = request->reply_buffer;
-    void* remote_large_prt = request->reply_buffer_large;
+    void* remote_prt = request->buffer;
+    void* remote_large_prt = request->buffer_large;
     uint32_t remote_rkey = request->rkey;
     uint32_t remote_large_rkey = request->rkey_large;
     unsigned int imm_num = request->imm_num;
@@ -2007,7 +2007,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+    rdma_mg->RDMA_Write(request->buffer, request->rkey,
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
 
     while (*(unsigned char*)polling_byte == 0){
@@ -2087,7 +2087,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->content.ive.buffer_size = serilized_ve.size() + 1;
     send_pointer->content.ive.version_id = versions_->version_id;
     send_pointer->content.ive.check_byte = check_byte;
-    send_pointer->reply_buffer = receive_mr.addr;
+    send_pointer->buffer = receive_mr.addr;
     send_pointer->rkey = receive_mr.rkey;
     RDMA_Reply* receive_pointer;
     receive_pointer = (RDMA_Reply*)receive_mr.addr;

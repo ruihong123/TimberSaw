@@ -657,7 +657,7 @@ void RDMA_Manager::Memory_Deallocation_RPC() {
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = SSTable_gc;
   send_pointer->content.gc.buffer_size = top * sizeof(uint64_t);
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   send_pointer->imm_num = 0;
   RDMA_Reply* receive_pointer;
@@ -2237,7 +2237,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size) {
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = create_mr_;
   send_pointer->content.mem_size = size;
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;
@@ -2309,7 +2309,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_id) {
   send_pointer->content.qp_config.lid = res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &my_gid, 16);
   fprintf(stdout, "Local LID = 0x%x\n", res->port_attr.lid);
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   RDMA_Reply* receive_pointer;
   receive_pointer = (RDMA_Reply*)receive_mr.addr;

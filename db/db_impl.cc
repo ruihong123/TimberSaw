@@ -1710,9 +1710,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = near_data_compaction;
   send_pointer->content.sstCompact.buffer_size = serilized_c.size() + 1;
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
-  send_pointer->reply_buffer_large = recv_mr_c.addr;
+  send_pointer->buffer_large = recv_mr_c.addr;
   send_pointer->rkey_large = recv_mr_c.rkey;
   //Todo: modify this.
   uint32_t imm_num = imm_gen.fetch_add(1);
@@ -1892,7 +1892,7 @@ void DBImpl::sync_option_to_remote() {
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = sync_option;
   send_pointer->content.ive.buffer_size = sizeof(options_) + 1;
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
 
   RDMA_Reply* receive_pointer;
@@ -2163,7 +2163,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = install_version_edit;
   send_pointer->content.ive.buffer_size = serilized_ve.size() + 1;
-  send_pointer->reply_buffer = receive_mr.addr;
+  send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   send_pointer->imm_num = 0;
   RDMA_Reply* receive_pointer;
@@ -2288,7 +2288,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request->reply_buffer, request->rkey,
+    rdma_mg->RDMA_Write(request->buffer, request->rkey,
                         &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
     DEBUG_arg("install non-trival version, version id is %lu\n", request->content.ive.version_id);
     size_t counter = 0;

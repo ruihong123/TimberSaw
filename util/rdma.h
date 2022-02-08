@@ -146,9 +146,9 @@ union RDMA_Reply_Content {
 struct RDMA_Request {
   RDMA_Command_Type command;
   RDMA_Request_Content content;
-  void* reply_buffer;
+  void* buffer;
   uint32_t rkey;
-  void* reply_buffer_large;
+  void* buffer_large;
   uint32_t rkey_large;
   uint32_t imm_num; // 0 for Compaction threads signal, 1 for Flushing threads signal.
 //  Options opt;
