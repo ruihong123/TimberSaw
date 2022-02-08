@@ -1897,6 +1897,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    rdma_mg->RDMA_Write(remote_large_prt, remote_large_rkey,
 //                             &large_send_mr, serilized_ve.size() + 1, client_ip,
 //                             IBV_SEND_SIGNALED, 1);
+#ifdef WITHPERSISTENCE
     int counter = 0;
     // polling the finishing bit for the file number transmission.
     while (*(unsigned char*)polling_byte_2 == 0){
@@ -1916,7 +1917,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     assert(file_number_end >0);
     compact->compaction->edit()->SetFileNumbers(file_number_end);
     DEBUG_arg("file number end %lu", file_number_end);
-#ifdef WITHPERSISTENCE
+
     VersionEdit* edit = new VersionEdit();
     *edit = *compact->compaction->edit();
     {
