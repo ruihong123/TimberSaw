@@ -130,7 +130,7 @@ static const char* FLAGS_db = nullptr;
 
 static int FLAGS_readwritepercent = 90;
 static int FLAGS_ops_between_duration_checks = 2000;
-static int FLAGS_duration = 10;
+static int FLAGS_duration = 0;
 namespace TimberSaw {
 
 namespace {
