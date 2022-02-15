@@ -128,11 +128,50 @@ static bool FLAGS_reuse_logs = false;
 // Use the db with the following name.
 static const char* FLAGS_db = nullptr;
 
+static int FLAGS_readwritepercent = 90;
+static int FLAGS_ops_between_duration_checks = 2000;
+static int FLAGS_duration = 10;
 namespace TimberSaw {
 
 namespace {
 TimberSaw::Env* g_env = nullptr;
+class Duration {
+ public:
+  Duration(uint64_t max_seconds, int64_t max_ops, int64_t ops_per_stage = 0) {
+    max_seconds_ = max_seconds;
+    max_ops_= max_ops;
+    ops_per_stage_ = (ops_per_stage > 0) ? ops_per_stage : max_ops;
+    ops_ = 0;
+    start_at_ = g_env->NowMicros();
+  }
 
+  int64_t GetStage() { return std::min(ops_, max_ops_ - 1) / ops_per_stage_; }
+
+  bool Done(int64_t increment) {
+    if (increment <= 0) increment = 1;    // avoid Done(0) and infinite loops
+    ops_ += increment;
+
+    if (max_seconds_) {
+      // Recheck every appx 1000 ops (exact iff increment is factor of 1000)
+      auto granularity = FLAGS_ops_between_duration_checks;
+      if ((ops_ / granularity) != ((ops_ - increment) / granularity)) {
+        uint64_t now = g_env->NowMicros();
+        return ((now - start_at_) / 1000000) >= max_seconds_;
+      } else {
+        return false;
+      }
+    } else {
+      return ops_ > max_ops_;
+    }
+  }
+
+ private:
+  uint64_t max_seconds_;
+  int64_t max_ops_;
+  int64_t ops_per_stage_;
+  int64_t ops_;
+  uint64_t start_at_;
+};
 class CountComparator : public Comparator {
  public:
   CountComparator(const Comparator* wrapped) : wrapped_(wrapped) {}
@@ -609,6 +648,8 @@ class Benchmark {
         method = &Benchmark::ReadReverse;
       } else if (name == Slice("readrandom")) {
         method = &Benchmark::ReadRandom;
+      } else if (name == Slice("readrandomwriterandom")) {
+        method = &Benchmark::ReadRandomWriteRandom;
       } else if (name == Slice("readmissing")) {
         method = &Benchmark::ReadMissing;
       } else if (name == Slice("seekrandom")) {
@@ -1029,7 +1070,65 @@ class Benchmark {
     std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
     thread->stats.AddMessage(msg);
   }
+  // This is different from ReadWhileWriting because it does not use
+  // an extra thread.
+  void ReadRandomWriteRandom(ThreadState* thread) {
+    ReadOptions options;
+    RandomGenerator gen;
+    std::string value;
+    int64_t found = 0;
+    int get_weight = 0;
+    int put_weight = 0;
+    int64_t reads_done = 0;
+    int64_t writes_done = 0;
+    Duration duration(FLAGS_duration, FLAGS_num);
 
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+
+
+    // the number of iterations is the larger of read_ or write_
+    while (!duration.Done(1)) {
+//      DB* db = SelectDB(thread);
+      GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num*FLAGS_threads), FLAGS_num, &key);
+      if (get_weight == 0 && put_weight == 0) {
+        // one batch completed, reinitialize for next batch
+        get_weight = FLAGS_readwritepercent;
+        put_weight = 100 - get_weight;
+      }
+      if (get_weight > 0) {
+        // do all the gets first
+        Status s = db_->Get(options, key, &value);
+        if (!s.ok() && !s.IsNotFound()) {
+          fprintf(stderr, "get error: %s\n", s.ToString().c_str());
+          // we continue after error rather than exiting so that we can
+          // find more errors if any
+        } else if (!s.IsNotFound()) {
+          found++;
+        }
+        get_weight--;
+        reads_done++;
+        thread->stats.FinishedSingleOp();
+//        thread->stats.FinishedOps(nullptr, db, 1, kRead);
+      } else  if (put_weight > 0) {
+        // then do all the corresponding number of puts
+        // for all the gets we have done earlier
+        Status s = db_->Put(write_options_, key, gen.Generate(value_size_));
+        if (!s.ok()) {
+          fprintf(stderr, "put error: %s\n", s.ToString().c_str());
+          exit(1);
+        }
+        put_weight--;
+        writes_done++;
+//        thread->stats.FinishedOps(nullptr, db, 1, kWrite);
+      }
+    }
+    char msg[100];
+    snprintf(msg, sizeof(msg), "( reads:%" PRIu64 " writes:%" PRIu64 \
+                               " total:%" PRIu64 " found:%" PRIu64 ")",
+             reads_done, writes_done, FLAGS_num, found);
+    thread->stats.AddMessage(msg);
+  }
   void ReadMissing(ThreadState* thread) {
     ReadOptions options;
     std::string value;
@@ -1238,6 +1337,10 @@ int main(int argc, char** argv) {
       FLAGS_enable_numa = n;
     } else if (sscanf(argv[i], "--block_restart_interval=%d%c", &n, &junk) == 1) {
       FLAGS_block_restart_interval = n;
+    } else if (sscanf(argv[i], "--block_readwritepercent=%d%c", &n, &junk) == 1) {
+      FLAGS_readwritepercent = n;
+    } else if (sscanf(argv[i], "--block_duration=%d%c", &n, &junk) == 1) {
+      FLAGS_duration = n;
     } else if (strncmp(argv[i], "--db=", 5) == 0) {
       FLAGS_db = argv[i] + 5;
     } else {
