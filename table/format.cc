@@ -316,7 +316,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk);
   rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
 
-  printf("Fetch a Index Block");
+//  printf("Fetch a Index Block");
 
   // Check the crc of the type and the block contents
   const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
