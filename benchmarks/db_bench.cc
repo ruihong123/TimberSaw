@@ -1337,9 +1337,9 @@ int main(int argc, char** argv) {
       FLAGS_enable_numa = n;
     } else if (sscanf(argv[i], "--block_restart_interval=%d%c", &n, &junk) == 1) {
       FLAGS_block_restart_interval = n;
-    } else if (sscanf(argv[i], "--block_readwritepercent=%d%c", &n, &junk) == 1) {
+    } else if (sscanf(argv[i], "--readwritepercent=%d%c", &n, &junk) == 1) {
       FLAGS_readwritepercent = n;
-    } else if (sscanf(argv[i], "--block_duration=%d%c", &n, &junk) == 1) {
+    } else if (sscanf(argv[i], "--duration=%d%c", &n, &junk) == 1) {
       FLAGS_duration = n;
     } else if (strncmp(argv[i], "--db=", 5) == 0) {
       FLAGS_db = argv[i] + 5;
