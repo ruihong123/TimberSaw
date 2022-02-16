@@ -1801,31 +1801,39 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                         &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
 #endif
 
-//    size_t counter = 0;
-//    // polling the finishing bit for compaction task transmission.
-//    while (*(unsigned char*)polling_byte == 0){
-//      _mm_clflush(polling_byte);
-//      asm volatile ("sfence\n" : : );
-//      asm volatile ("lfence\n" : : );
-//      asm volatile ("mfence\n" : : );
-//      if (counter == 10000){
-//        std::fprintf(stderr, "Polling Remote Compaction handler\r");
-//        std::fflush(stderr);
-//        counter = 0;
-//      }
-//
-//      counter++;
-//    }
+
     ibv_mr remote_mr;
     remote_mr.addr = remote_large_prt;
     remote_mr.rkey = remote_large_rkey;
-//        = {.addr=remote_large_prt, .rkey=remote_large_rkey};
-//    ibv_mr local_mr = {.addr=large_recv_mr, .rkey=remote_rkey};
-    rdma_mg->RDMA_Read(&remote_mr, &large_recv_mr,
-    request->content.sstCompact.buffer_size + 1, client_ip, IBV_SEND_SIGNALED,1);
+    //NOte we have to use the polling mechanism because other wise the read can be finished ealier
+    // than we want.
+    volatile char* polling_byte = (char*)large_recv_mr.addr + request->content.sstCompact.buffer_size - 1;
+    memset((void*)polling_byte, 0, 1);
+    asm volatile ("sfence\n" : : );
+    asm volatile ("lfence\n" : : );
+    asm volatile ("mfence\n" : : );
 
+    rdma_mg->RDMA_Read(&remote_mr, &large_recv_mr,
+    request->content.sstCompact.buffer_size + 1, client_ip, 0,0);
+    size_t counter = 0;
+    // polling the finishing bit for compaction task transmission.
+    while (*(unsigned char*)polling_byte == 0){
+      _mm_clflush(polling_byte);
+      asm volatile ("sfence\n" : : );
+      asm volatile ("lfence\n" : : );
+      asm volatile ("mfence\n" : : );
+      if (counter == 10000){
+        std::fprintf(stderr, "Polling Remote Compaction content\r");
+        std::fflush(stderr);
+        counter = 0;
+      }
+
+      counter++;
+    }
     Status status;
     Compaction c(opts.get());
+    //Note the RDMA read here could read an unfinished RDMA read.
+
     //Decode compaction
     c.DecodeFrom(
         Slice((char*)large_recv_mr.addr, request->content.sstCompact.buffer_size), 1);

@@ -100,7 +100,7 @@ Status TableCache::FindTable(
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
     Table* table = nullptr;
-    DEBUG_arg("Did not find the table in the cache, file number is %lu \n ", Remote_memtable_meta->number);
+    printf("Did not find the table in the cache, file number is %lu \n ", Remote_memtable_meta->number);
     if (s.ok()) {
       s = Table::Open(options_, &table, Remote_memtable_meta);
     }
