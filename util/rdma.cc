@@ -1349,7 +1349,7 @@ End of socket operations
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
-  assert(poll_num == 1);
+//  assert(poll_num == 1);
   struct ibv_send_wr sr;
   struct ibv_sge sge;
   struct ibv_send_wr* bad_wr = NULL;
