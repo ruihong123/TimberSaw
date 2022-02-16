@@ -1816,7 +1816,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //
 //      counter++;
 //    }
-    ibv_mr remote_mr = {.addr=remote_large_prt, .rkey=remote_large_rkey};
+    ibv_mr remote_mr;
+    remote_mr.addr = remote_large_prt;
+    remote_mr.rkey = remote_large_rkey;
+//        = {.addr=remote_large_prt, .rkey=remote_large_rkey};
 //    ibv_mr local_mr = {.addr=large_recv_mr, .rkey=remote_rkey};
     rdma_mg->RDMA_Read(&remote_mr, &large_recv_mr,
     request->content.sstCompact.buffer_size + 1, client_ip, IBV_SEND_SIGNALED,1);
