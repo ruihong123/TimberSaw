@@ -244,6 +244,8 @@ Status TableCache::Get(const ReadOptions& options,
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   Cache::Handle* handle = nullptr;
+  //TODO: not let concurrent thread finding the same tale and inserting the same
+  // index block to the cache
   Status s = FindTable(f, &handle);
   if (s.ok()) {
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;

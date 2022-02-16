@@ -296,6 +296,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
     // next is read by key() in an assert, so it must be initialized
     e->next = nullptr;
   }
+  printf("Cache capacity is %zu, usage is %zu", capacity_, usage_);
   // This will remove some entry from LRU if the cache over size.
   while (usage_ > capacity_ && lru_.next != &lru_) {
     LRUHandle* old = lru_.next;
