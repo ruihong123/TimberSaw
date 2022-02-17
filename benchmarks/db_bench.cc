@@ -1125,6 +1125,7 @@ class Benchmark {
         }
         put_weight--;
         writes_done++;
+        thread->stats.FinishedSingleOp();
 //        thread->stats.FinishedOps(nullptr, db, 1, kWrite);
       }
     }
