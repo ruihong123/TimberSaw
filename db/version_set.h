@@ -278,7 +278,7 @@ class Version {
 #ifndef NDENUG
   std::vector<int> ref_mark_collection;
   std::vector<int> unref_mark_collection;
-  std::mutex version_mtx;
+  std::mutex this_version_mtx;
 #endif
 
 };
@@ -330,7 +330,7 @@ class VersionSet {
   // already been allocated.
   // REQUIRES: "file_number" was returned by a call to NewFileNumber().
   void ReuseFileNumber(uint64_t file_number) {
-    std::unique_lock<std::mutex> lck(*version_set_mtx);
+    std::unique_lock<std::mutex> lck(*version_set_current_mtx);
     if (next_file_number_.load() == file_number + 1) {
       next_file_number_ = file_number;
     }
@@ -434,6 +434,8 @@ class VersionSet {
   // Opened lazily
   WritableFile* descriptor_file;
   log::Writer* descriptor_log;
+  std::mutex* version_set_current_mtx;
+  SpinMutex version_set_list;
  private:
   class Builder;
 
@@ -481,7 +483,7 @@ class VersionSet {
 
   //TODO: make it spinmutex?
 //  std::mutex* sv_mtx;
-  std::mutex* version_set_mtx;
+
   // Per-level key at which the next compaction at that level should start.
   // Either an empty string, or a valid InternalKey.
   std::string compact_index_[config::kNumLevels];

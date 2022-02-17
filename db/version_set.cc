@@ -74,10 +74,12 @@ static int64_t TotalFileSize(const std::vector<std::shared_ptr<RemoteMemTableMet
 Version::~Version() {
   // TODO: make a version set lock here, so that we do not need any lock for just a unref.
   assert(refs_.load() == 0);
-
+  vset_->version_set_list.lock();
   // Remove from linked list
   prev_->next_ = next_;
   next_->prev_ = prev_;
+  vset_->version_set_list.unlock();
+
   DEBUG("version garbage collected.\n");
   // Drop references to files
 #ifndef NDEBUG
@@ -448,11 +450,11 @@ bool Version::RecordReadSample(Slice internal_key) {
 
 void Version::Ref(int mark) {
 #ifndef NDEBUG
-  version_mtx.lock();
+  this_version_mtx.lock();
   if (std::find(ref_mark_collection.begin(), ref_mark_collection.end(), mark) != ref_mark_collection.end())
     printf("mark in the ref\n");
   ref_mark_collection.push_back(mark);
-  version_mtx.unlock();
+  this_version_mtx.unlock();
 #endif
 
 
@@ -461,11 +463,11 @@ void Version::Ref(int mark) {
 
 void Version::Unref(int mark) {
 #ifndef NDEBUG
-  version_mtx.lock();
+  this_version_mtx.lock();
   assert(this != &vset_->dummy_versions_);
   assert(refs_.load() >= 1);
   unref_mark_collection.push_back(mark);
-  version_mtx.unlock();
+  this_version_mtx.unlock();
 #endif
   refs_.fetch_sub(1);
   if (refs_.load() == 0) {
@@ -862,7 +864,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       prev_log_number_(0),
       dummy_versions_(this),
       current_(nullptr),
-      version_set_mtx(mtx){
+      version_set_current_mtx(mtx){
   AppendVersion(new Version(this));
 
 }
@@ -893,11 +895,14 @@ void VersionSet::AppendVersion(Version* v) {
   version_remain++;
   version_all++;
 #endif
+
   // Append to linked list
+  version_set_list.lock();
   v->prev_ = dummy_versions_.prev_;
   v->next_ = &dummy_versions_;
   v->prev_->next_ = v;
   v->next_->prev_ = v;
+  version_set_list.unlock();
 }
 #ifdef WITHPERSISTENCE
 void VersionSet::Persistency_pin(VersionEdit* edit) {
@@ -968,6 +973,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
 //  }
 
   //TOTHINK: may be we can move the lock before the Finalize(v);
+  // create a new verison and then destroy it should be atomic.
   lck_vs->lock();
 
   {
@@ -1210,7 +1216,7 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
 }
 //Use mutex to synchronize between threads.
 void VersionSet::MarkFileNumberUsed(uint64_t number) {
-  std::unique_lock<std::mutex> lck(*version_set_mtx);
+  std::unique_lock<std::mutex> lck(*version_set_current_mtx);
   if (next_file_number_ <= number) {
     next_file_number_ = number + 1;
   }
@@ -1703,7 +1709,7 @@ Compaction* VersionSet::PickCompaction() {
 
   //TODO: may be we can create a verion for current_, and only use a read lock
   // when fetch the current from the list.
-  std::unique_lock<std::mutex> lck(*version_set_mtx);
+  std::unique_lock<std::mutex> lck(*version_set_current_mtx);
 
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);

@@ -130,9 +130,9 @@ void SuperVersion::Cleanup() {
   imm->Unref();
   mem->Unref();
   // in case that the version list is messed up, do not delete it.
-  std::unique_lock<std::mutex> lck(*versionset_mutex);
+//  std::unique_lock<std::mutex> lck(*versionset_mutex);
   current->Unref(4);
-  lck.unlock();
+//  lck.unlock();
   delete this;
 
 }
@@ -1140,9 +1140,13 @@ void DBImpl::BackgroundCompaction(void* p) {
         //trival move need to clear the UnderCompaction flag
         f->UnderCompaction = false;
         c->ReleaseInputs();
-
+#ifdef WITHPERSISTENCE
         Edit_sync_to_remote(c->edit(),&l_vs);
-//        l_vs.unlock();
+#endif
+#ifndef WITHPERSISTENCE
+        l_vs.unlock();
+#endif
+
         InstallSuperVersion();
       }
 
