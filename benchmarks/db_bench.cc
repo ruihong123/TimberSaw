@@ -1085,7 +1085,7 @@ class Benchmark {
 
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
-
+    printf("Read percentage is %%%d\n", FLAGS_readwritepercent);
 
     // the number of iterations is the larger of read_ or write_
     while (!duration.Done(1)) {
