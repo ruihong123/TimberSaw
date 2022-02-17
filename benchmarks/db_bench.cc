@@ -1086,7 +1086,7 @@ class Benchmark {
     std::unique_ptr<const char[]> key_guard;
     Slice key = AllocateKey(&key_guard);
     printf("Read percentage is %%%d\n", FLAGS_readwritepercent);
-
+    uint64_t time_elapse;
     // the number of iterations is the larger of read_ or write_
     while (!duration.Done(1)) {
 //      DB* db = SelectDB(thread);
@@ -1098,7 +1098,12 @@ class Benchmark {
       }
       if (get_weight > 0) {
         // do all the gets first
+        auto start = std::chrono::high_resolution_clock::now();
         Status s = db_->Get(options, key, &value);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        time_elapse+=duration.count();
+
         if (!s.ok() && !s.IsNotFound()) {
           fprintf(stderr, "get error: %s\n", s.ToString().c_str());
           // we continue after error rather than exiting so that we can
@@ -1127,6 +1132,7 @@ class Benchmark {
     snprintf(msg, sizeof(msg), "( reads:%" PRIu64 " writes:%" PRIu64 \
                                " total:%" PRIu64 " found:%" PRIu64 ")",
              reads_done, writes_done, FLAGS_num, found);
+    printf("Read average latency is %lu\n", time_elapse/reads_done);
     thread->stats.AddMessage(msg);
   }
   void ReadMissing(ThreadState* thread) {

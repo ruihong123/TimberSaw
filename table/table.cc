@@ -333,8 +333,19 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     delete iiter;
 #endif
 #ifdef BYTEADDRESSABLE
+#ifdef PROCESSANALYSIS
+    auto start = std::chrono::high_resolution_clock::now();
+    TableCache::not_filtered.fetch_add(1);
+#endif
+
     Iterator* iter = NewIterator(options);
     iter->Seek(k);
+#ifdef PROCESSANALYSIS
+    auto stop = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+    //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+    TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
+#endif
     if (iter->Valid()) {
       (*handle_result)(arg, iter->key(), iter->value());
     }
