@@ -1552,7 +1552,12 @@ Status DBImpl::TryInstallMemtableFlushResults(
     s = vset->LogAndApply(edit, &lck);
     // Install Superversion will also modify the version reference counter.
 
-    Edit_sync_to_remote(edit, &lck);
+#ifdef WITHPERSISTENCE
+    Edit_sync_to_remote(c->edit(),&lck);
+#endif
+#ifndef WITHPERSISTENCE
+    lck.unlock();
+#endif
     //In stallSuperVersion should be outside the version set lock, other wise there
     // will be a deadlock
     InstallSuperVersion();
