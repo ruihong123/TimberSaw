@@ -3345,7 +3345,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
 //      imm_mtx.unlock();
     } else if(level0_filenum > config::kL0_SlowdownWritesTrigger && !delayed){
-      env_->SleepForMicroseconds(2000);
+      env_->SleepForMicroseconds(1000);
       delayed = true;
     }else{
       std::unique_lock<std::mutex> l(superversion_memlist_mtx);
