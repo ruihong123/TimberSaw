@@ -1102,6 +1102,7 @@ class Benchmark {
         Status s = db_->Get(options, key, &value);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        printf("This get time duration is %lu \n", duration.count());
         time_elapse+=duration.count();
 
         if (!s.ok() && !s.IsNotFound()) {
