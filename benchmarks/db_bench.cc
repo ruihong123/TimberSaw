@@ -1098,11 +1098,11 @@ class Benchmark {
       }
       if (get_weight > 0) {
         // do all the gets first
-//        auto start = std::chrono::high_resolution_clock::now();
+        auto start = std::chrono::high_resolution_clock::now();
         Status s = db_->Get(options, key, &value);
-//        auto stop = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//        time_elapse+=duration.count();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        time_elapse+=duration.count();
 
         if (!s.ok() && !s.IsNotFound()) {
           fprintf(stderr, "get error: %s\n", s.ToString().c_str());
