@@ -22,7 +22,8 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
       descriptor_log(nullptr),
       usesubcompaction(use_sub_compaction),
       table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
-      versions_(new VersionSet("home_node", opts.get(), table_cache_, &internal_comparator_, &versionset_mtx))
+      versions_(new VersionSet("home_node", opts.get(), table_cache_,
+                               &internal_comparator_, &mtx_temp))
 {
     struct TimberSaw::config_t config = {
         NULL,  /* dev_name */
@@ -1208,7 +1209,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   compact->compaction->ReleaseInputs();
   std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);
 
-  Status s = versions_->LogAndApply(compact->compaction->edit(), &lck);
+  Status s = versions_->LogAndApply(compact->compaction->edit());
 //  versions_->Pin_Version_For_Compute();
 
   Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);

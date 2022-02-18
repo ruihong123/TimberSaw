@@ -848,8 +848,8 @@ class VersionSet::Builder {
 };
 
 VersionSet::VersionSet(const std::string& dbname, const Options* options,
-                       TableCache* table_cache, const InternalKeyComparator* cmp,
-                       std::mutex* mtx)
+                       TableCache* table_cache,
+                       const InternalKeyComparator* cmp, std::mutex* mtx)
     : table_cache_(table_cache),
       descriptor_file(nullptr),
       descriptor_log(nullptr),
@@ -864,7 +864,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
       prev_log_number_(0),
       dummy_versions_(this),
       current_(nullptr),
-      version_set_current_mtx(mtx){
+      sv_mtx(mtx){
   AppendVersion(new Version(this));
 
 }
@@ -923,8 +923,7 @@ void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
   }
 }
 #endif
-Status VersionSet::LogAndApply(VersionEdit* edit,
-                               std::unique_lock<std::mutex>* lck_vs) {
+Status VersionSet::LogAndApply(VersionEdit* edit) {
 //  if (edit->has_log_number_) {
 //    assert(edit->log_number_ >= log_number_);
 //    assert(edit->log_number_ < next_file_number_.load());
@@ -974,7 +973,7 @@ Status VersionSet::LogAndApply(VersionEdit* edit,
 
   //TOTHINK: may be we can move the lock before the Finalize(v);
   // create a new verison and then destroy it should be atomic.
-  lck_vs->lock();
+//  lck_vs->lock();
 
   {
     // Decide what table to keep what to discard.
@@ -1216,7 +1215,7 @@ bool VersionSet::ReuseManifest(const std::string& dscname,
 }
 //Use mutex to synchronize between threads.
 void VersionSet::MarkFileNumberUsed(uint64_t number) {
-  std::unique_lock<std::mutex> lck(*version_set_current_mtx);
+  std::unique_lock<std::mutex> lck(*sv_mtx);
   if (next_file_number_ <= number) {
     next_file_number_ = number + 1;
   }
@@ -1709,7 +1708,7 @@ Compaction* VersionSet::PickCompaction() {
 
   //TODO: may be we can create a verion for current_, and only use a read lock
   // when fetch the current from the list.
-  std::unique_lock<std::mutex> lck(*version_set_current_mtx);
+  std::unique_lock<std::mutex> lck(*sv_mtx);
 
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);

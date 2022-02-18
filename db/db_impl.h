@@ -42,11 +42,11 @@ struct SuperVersion {
   Version* current;
   // Version number of the current SuperVersion
   uint64_t version_number;
-  std::mutex* versionset_mutex;
+//  std::mutex* versionset_mutex;
 
   // should be called outside the mutex
   SuperVersion(MemTable* new_mem, MemTableListVersion* new_imm,
-               Version* new_current, std::mutex* versionset_mtx);
+               Version* new_current);
   ~SuperVersion();
   SuperVersion* Ref();
   // If Unref() returns true, Cleanup() should be called with mutex held
@@ -265,7 +265,7 @@ class DBImpl : public DB {
   // THE Mutex will protect both memlist and the superversion pointer.
   std::mutex superversion_memlist_mtx;
   // TODO: use read write lock to control the version set mtx.
-  std::mutex versionset_mtx;
+//  std::mutex versionset_mtx;
   bool locked = false;
   bool check_and_clear_pending_recvWR = false;
 //  SpinMutex LSMv_mtx;

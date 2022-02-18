@@ -311,7 +311,7 @@ class VersionSet {
   // REQUIRES: *mu is held on entry.
   // REQUIRES: no other thread concurrently calls LogAndApply()
   //TODO: Finalize is not required for the comppute node side.
-  Status LogAndApply(VersionEdit* edit, std::unique_lock<std::mutex>* lck_vs);
+  Status LogAndApply(VersionEdit* edit);
 
 
   // Recover the last saved descriptor from persistent storage.
@@ -330,7 +330,7 @@ class VersionSet {
   // already been allocated.
   // REQUIRES: "file_number" was returned by a call to NewFileNumber().
   void ReuseFileNumber(uint64_t file_number) {
-    std::unique_lock<std::mutex> lck(*version_set_current_mtx);
+    std::unique_lock<std::mutex> lck(*sv_mtx);
     if (next_file_number_.load() == file_number + 1) {
       next_file_number_ = file_number;
     }
@@ -434,7 +434,7 @@ class VersionSet {
   // Opened lazily
   WritableFile* descriptor_file;
   log::Writer* descriptor_log;
-  std::mutex* version_set_current_mtx;
+  std::mutex* sv_mtx;
   SpinMutex version_set_list;
  private:
   class Builder;
