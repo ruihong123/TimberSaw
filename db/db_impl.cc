@@ -1652,11 +1652,11 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.
       sv->Cleanup();
-      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       sv = super_version->Ref();
 
     } else {
-      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       sv = super_version->Ref();
     }
 
