@@ -1652,11 +1652,11 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.
       sv->Cleanup();
-//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       sv = super_version->Ref();
 
     } else {
-//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       sv = super_version->Ref();
     }
 
@@ -3345,7 +3345,7 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
 //      imm_mtx.unlock();
     } else if(level0_filenum > config::kL0_SlowdownWritesTrigger && !delayed){
-      env_->SleepForMicroseconds(5);
+      env_->SleepForMicroseconds(2000);
       delayed = true;
     }else{
       std::unique_lock<std::mutex> l(superversion_memlist_mtx);
