@@ -97,6 +97,10 @@ Status TableCache::FindTable(
   memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
          sizeof(Remote_memtable_meta->creator_node_id));
   Slice key(buf, sizeof(buf));
+  //TODO: implement a hash lock to reduce the contention here, otherwise multiple
+  // reader may get the same table and RDMA read the index block several times.
+  int hash_value = Remote_memtable_meta->number%8;
+  hash_mtx[hash_value].lock();
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
     Table* table = nullptr;
@@ -120,6 +124,7 @@ Status TableCache::FindTable(
       *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Compute);
     }
   }
+  hash_mtx[hash_value].unlock();
   return s;
 }
 Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
