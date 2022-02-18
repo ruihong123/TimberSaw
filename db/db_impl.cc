@@ -1594,7 +1594,7 @@ void DBImpl::CleanupSuperVersion(SuperVersion* sv) {
   // Release SuperVersion
   if (sv->Unref()) {
     {
-      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       sv->Cleanup();
     }
   }
@@ -1648,10 +1648,11 @@ SuperVersion* DBImpl::GetThreadLocalSuperVersion() {
     // if there is an old superversion unrefer old one and replace it as a new one
 
     if (sv && sv->Unref()) {
-      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+
       // NOTE: underlying resources held by superversion (sst files) might
       // not be released until the next background job.
       sv->Cleanup();
+      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       sv = super_version->Ref();
 
     } else {
