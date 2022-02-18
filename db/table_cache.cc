@@ -99,7 +99,7 @@ Status TableCache::FindTable(
   Slice key(buf, sizeof(buf));
   //TODO: implement a hash lock to reduce the contention here, otherwise multiple
   // reader may get the same table and RDMA read the index block several times.
-  int hash_value = Remote_memtable_meta->number%8;
+  int hash_value = Remote_memtable_meta->number%32;
   hash_mtx[hash_value].lock();
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {

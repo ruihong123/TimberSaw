@@ -98,7 +98,7 @@ class TableCache {
   const std::string dbname_;
   const Options& options_;
   Cache* cache_;
-  std::mutex hash_mtx[8];
+  std::mutex hash_mtx[32];
 };
 
 }  // namespace TimberSaw
