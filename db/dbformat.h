@@ -33,10 +33,10 @@ static const int Immutable_StopWritesTrigger = 10;
 static const int kL0_CompactionTrigger = 1;
 
 // Soft limit on number of level-0 files.  We slow down writes at this point.
-static const int kL0_SlowdownWritesTrigger = 16384;
+static const int kL0_SlowdownWritesTrigger = 20;
 
 // Maximum number of level-0 files.  We stop writes at this point.
-static const int kL0_StopWritesTrigger = 16384;
+static const int kL0_StopWritesTrigger = 36;
 // We  can set it as 48*64 Mega byte for the first level, then there will
 // be two levels after the random file benchmark.
 static const double max_mega_bytes_for_level_base = 256.0;
