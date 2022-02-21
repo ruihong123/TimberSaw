@@ -24,7 +24,7 @@
 
 namespace TimberSaw {
 
-
+//thread_local ibv_mr*  Table::Rep::mr_addr = nullptr;
 
 Status Table::Open(const Options& options, Table** table,
                    const std::shared_ptr<RemoteMemTableMetaData>& Remote_table_meta) {
@@ -51,10 +51,14 @@ Status Table::Open(const Options& options, Table** table,
     rep->remote_table = Remote_table_meta;
 //    rep->metaindex_handle = footer.metaindex_handle();
     rep->index_block = index_block;
+#ifdef BYTEADDRESSABLE
+    rep->index_iter = rep->index_block->NewIterator(rep->options.comparator);
+#endif
     assert(rep->index_block->size() > 0);
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
 //    rep->filter_data = nullptr;
     rep->filter = nullptr;
+
     *table = new Table(rep);
     (*table)->ReadFilter();
 //    (*table)->ReadMeta(footer);
@@ -338,25 +342,57 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     TableCache::not_filtered.fetch_add(1);
 #endif
 
-    Iterator* iter = NewIterator(options);
-    iter->Seek(k);
+//    Iterator* iter = NewIterator(options);
+//    iter->Seek(k);
+    Iterator* iiter = rep->index_iter;
+    iiter->Seek(k);
 #ifdef PROCESSANALYSIS
     auto stop = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
     //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
     TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
-    if (iter->Valid()) {
-      (*handle_result)(arg, iter->key(), iter->value());
+    if (iiter->Valid()){
+      Slice handle = iiter->value();
+      BlockHandle bhandle;
+      bhandle.DecodeFrom(&handle);
+
+//      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
+
+      auto rdma_mg = Env::Default()->rdma_mg;
+      Slice KV;
+      Slice key;
+      Slice value;
+      s = ReadKVPair(&rep->remote_table.lock()->remote_data_mrs,options, bhandle,&KV);
+
+      char* mr_addr = (char*)KV.data();
+      uint32_t key_size, value_size;
+      GetFixed32(&KV, &key_size);
+      GetFixed32(&KV, &value_size);
+      assert(key_size + value_size == KV.size());
+
+
+      key = Slice(KV.data(), key_size);
+      KV.remove_prefix(key_size);
+      assert(KV.size() == value_size);
+      value = KV;
+      (*handle_result)(arg, key, value);
+      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
     }
-    s = iter->status();
-    delete iter;
+
+//    if (iter->Valid()) {
+//      (*handle_result)(arg, iter->key(), iter->value());
+//    }
+//    s = iter->status();
+//    delete iter;
 #endif
   }
 
   return s;
 }
-
+//void Table::GetKV(Iterator* iiter) {
+//
+//}
 uint64_t Table::ApproximateOffsetOf(const Slice& key) const {
   Iterator* index_iter = rep->index_block->NewIterator(rep->options.comparator);
   index_iter->Seek(key);

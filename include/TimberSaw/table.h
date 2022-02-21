@@ -50,6 +50,10 @@ class TimberSaw_EXPORT Table {
 
     BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
     Block* index_block;
+#ifdef BYTEADDRESSABLE
+    Iterator* index_iter;
+//    ThreadLocalPtr* mr_addr;
+#endif
   };
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
@@ -77,6 +81,7 @@ class TimberSaw_EXPORT Table {
   Iterator* NewIterator(const ReadOptions&) const;
 #ifdef BYTEADDRESSABLE
   Iterator* NewSEQIterator(const ReadOptions&) const;
+//  void GetKV(Iterator* iiter);
 #endif
   // Given a key, return an approximate byte offset in the file where
   // the data for that key begins (or would begin if the key were
