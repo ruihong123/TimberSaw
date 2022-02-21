@@ -1651,7 +1651,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   // Will delete the version edit in the background threads.
   VersionEdit* version_edit = new VersionEdit();
   version_edit->DecodeFrom(
-      Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1);
+      Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1,
+      table_cache_);
   assert(version_edit->GetNewFilesNum() > 0);
   DEBUG_arg("Version edit decoded, new file number is %zu", version_edit->GetNewFilesNum());
 //  std::unique_lock<std::mutex> lck(versionset_mtx, std::defer_lock);

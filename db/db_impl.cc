@@ -1850,7 +1850,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("mfence\n" : : );
 //  assert(*(unsigned char*)recv_mr_c.addr == 6);
   VersionEdit edit;
-  edit.DecodeFrom(Slice((char*)mr_c.addr, buffer_size), 0);
+  edit.DecodeFrom(Slice((char*)mr_c.addr, buffer_size), 0, table_cache_);
+
 #ifndef NDEBUG
   auto edit_files_vec = edit.GetNewFiles();
   for (auto iter : *edit_files_vec) {
@@ -2329,7 +2330,8 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
 #endif
     VersionEdit version_edit;
     version_edit.DecodeFrom(
-        Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 0);
+        Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 0,
+        table_cache_);
 //    printf("Marker 1\n");
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
 //    printf("Marker 2\n");

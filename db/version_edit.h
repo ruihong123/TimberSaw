@@ -17,68 +17,17 @@ namespace TimberSaw {
 
 class VersionSet;
 class RDMA_Manager;
+class TableCache;
 //TODO; Make a new data structure for remote SST with no file name, just remote chunks
 // Solved
 struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node
 // creater_node_id  0 means compute node, 1 means memory node
+  RemoteMemTableMetaData(int side, TableCache* cache);
   RemoteMemTableMetaData(int side);
   //TOTHINK: the garbage collection of the Remote table is not triggered!
-  ~RemoteMemTableMetaData() {
-    //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
-    // home node to deference. Or the remote dereference is conducted in the granularity of version.
-    assert(remote_dataindex_mrs.size() == 1);
-    assert(this_machine_type ==0 || this_machine_type == 1);
-    assert(creator_node_id == 0 || creator_node_id == 1);
-    if (this_machine_type == 0){
-      if (creator_node_id == rdma_mg->node_id){
-//#ifndef NDEBUG
-//        printf("Destroying RemoteMemtableMetaData locally on compute node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
-//#endif
-        if(Remote_blocks_deallocate(remote_data_mrs) &&
-            Remote_blocks_deallocate(remote_dataindex_mrs) &&
-            Remote_blocks_deallocate(remote_filter_mrs)){
-          DEBUG("Remote blocks deleted successfully\n");
-        }else{
-          DEBUG("Remote memory collection not found\n");
-          assert(false);
-        }
-      }else{
-//#ifndef NDEBUG
-//        printf("chunks will be garbage collected on the memory node, Table number is %lu, "
-//            "creator node id is %d index block pointer is %p\n", number, creator_node_id, remote_dataindex_mrs.begin()->second->addr);
-//#endif
-//        assert(remote_dataindex_mrs.size() == 1);
-        Prepare_Batch_Deallocate();
-      }
-
-    } else if (this_machine_type == 1){
-      for (auto it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++){
-        delete it->second;
-      }
-      for (auto it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++){
-        delete it->second;
-      }
-      for (auto it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++){
-        delete it->second;
-      }
-    }
-
-//    else if(this_machine_type == 1 && creator_node_id == rdma_mg->node_id){
-//      //TODO: memory collection for the remote memory.
-//      if(Local_blocks_deallocate(remote_data_mrs) &&
-//      Local_blocks_deallocate(remote_dataindex_mrs) &&
-//      Local_blocks_deallocate(remote_filter_mrs)){
-//        DEBUG("Local blocks deleted successfully\n");
-//      }else{
-//        DEBUG("Local memory collection not found\n");
-//        assert(false);
-//      }
-//    }
-
-
-  }
+  ~RemoteMemTableMetaData();
   bool Remote_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
     std::map<uint32_t , ibv_mr*>::iterator it;
 
@@ -150,6 +99,7 @@ struct RemoteMemTableMetaData {
   size_t num_entries;
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
+  TableCache* cache_;
   bool UnderCompaction = false;
 };
 
@@ -237,7 +187,7 @@ class VersionEdit {
     return new_files_.size();
   }
   void EncodeTo(std::string* dst) const;
-  Status DecodeFrom(const Slice src, int this_machine_type);
+  Status DecodeFrom(const Slice src, int this_machine_type, TableCache* cache);
   void EncodeToDiskFormat(std::string* dst) const;
   Status DecodeFromDiskFormat(const Slice& src, int sstable_type);
   std::string DebugString() const;

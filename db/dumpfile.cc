@@ -130,7 +130,7 @@ static void VersionEditPrinter(uint64_t pos, Slice record, WritableFile* dst) {
   AppendNumberTo(&r, pos);
   r += "; ";
   VersionEdit edit;
-  Status s = edit.DecodeFrom(record, 0);
+  Status s = edit.DecodeFrom(record, 0, nullptr);
   if (!s.ok()) {
     r += s.ToString();
     r.push_back('\n');

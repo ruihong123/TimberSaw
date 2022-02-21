@@ -8,14 +8,15 @@
 #include "util/coding.h"
 #include "memory_node/memory_node_keeper.h"
 #include "TimberSaw/env.h"
+#include "table_cache.h"
 namespace TimberSaw {
 //std::shared_ptr<RDMA_Manager> RemoteMemTableMetaData::rdma_mg = Env::Default()->rdma_mg;
 //RemoteMemTableMetaData::RemoteMemTableMetaData()  : table_type(0), allowed_seeks(1 << 30) {
 //  rdma_mg = Env::Default()->rdma_mg;
 //  node_id = rdma_mg->node_id;
 //}
-RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
-    : this_machine_type(side), allowed_seeks(1 << 30) {
+RemoteMemTableMetaData::RemoteMemTableMetaData(int side, TableCache* cache)
+    : this_machine_type(side), allowed_seeks(1 << 30),cache_(cache) {
   //Tothink: Is this_machine_type the same as rdma_mg->node_id?
   // Node_id is unique for every node, while the this_machine_type only distinguish
   // the compute node from the memory node.
@@ -26,9 +27,76 @@ RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
     rdma_mg = Memory_Node_Keeper::rdma_mg;
     creator_node_id = rdma_mg->node_id;
   }
-//#ifndef NDEBUG
-//  printf("RDMA manager pointer is %p, node id is %d", rdma_mg.get(), rdma_mg->node_id);
-//#endif
+}
+RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
+    : this_machine_type(side), allowed_seeks(1 << 30),cache_(nullptr) {
+  // Tothink: Is this_machine_type the same as rdma_mg->node_id?
+  //  Node_id is unique for every node, while the this_machine_type only distinguish the compute node from the memory node.
+  if (side == 0) {
+    rdma_mg = Env::Default()->rdma_mg;
+    creator_node_id = rdma_mg->node_id;  // rdma_mg->node_id = side
+  } else {
+    rdma_mg = Memory_Node_Keeper::rdma_mg;
+    creator_node_id = rdma_mg->node_id;
+  }
+}
+RemoteMemTableMetaData::~RemoteMemTableMetaData() {
+  //TODO and Tothink: when destroy this metadata check whether this is compute node, if yes, send a message to
+  // home node to deference. Or the remote dereference is conducted in the granularity of version.
+  assert(remote_dataindex_mrs.size() == 1);
+  assert(this_machine_type ==0 || this_machine_type == 1);
+  assert(creator_node_id == 0 || creator_node_id == 1);
+
+  if (this_machine_type == 0){
+    if (cache_ != nullptr){
+      cache_->Evict(number);
+    }
+    if (creator_node_id == rdma_mg->node_id){
+      //#ifndef NDEBUG
+      //        printf("Destroying RemoteMemtableMetaData locally on compute node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
+      //#endif
+      if(Remote_blocks_deallocate(remote_data_mrs) &&
+          Remote_blocks_deallocate(remote_dataindex_mrs) &&
+          Remote_blocks_deallocate(remote_filter_mrs)){
+        DEBUG("Remote blocks deleted successfully\n");
+      }else{
+        DEBUG("Remote memory collection not found\n");
+        assert(false);
+      }
+    }else{
+      //#ifndef NDEBUG
+      //        printf("chunks will be garbage collected on the memory node, Table number is %lu, "
+      //            "creator node id is %d index block pointer is %p\n", number, creator_node_id, remote_dataindex_mrs.begin()->second->addr);
+      //#endif
+      //        assert(remote_dataindex_mrs.size() == 1);
+      Prepare_Batch_Deallocate();
+    }
+
+  } else if (this_machine_type == 1){
+    for (auto it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++){
+      delete it->second;
+    }
+    for (auto it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++){
+      delete it->second;
+    }
+    for (auto it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++){
+      delete it->second;
+    }
+  }
+
+  //    else if(this_machine_type == 1 && creator_node_id == rdma_mg->node_id){
+  //      //TODO: memory collection for the remote memory.
+  //      if(Local_blocks_deallocate(remote_data_mrs) &&
+  //      Local_blocks_deallocate(remote_dataindex_mrs) &&
+  //      Local_blocks_deallocate(remote_filter_mrs)){
+  //        DEBUG("Local blocks deleted successfully\n");
+  //      }else{
+  //        DEBUG("Local memory collection not found\n");
+  //        assert(false);
+  //      }
+  //    }
+
+
 }
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
@@ -318,7 +386,8 @@ static bool GetLevel(Slice* input, int* level) {
   }
 }
 // this machine type: 0 means compute node, 1 means memory node.
-Status VersionEdit::DecodeFrom(const Slice src, int this_machine_type) {
+Status VersionEdit::DecodeFrom(const Slice src, int this_machine_type,
+                               TableCache* cache) {
   Clear();
   Slice input = src;
   const char* msg = nullptr;
@@ -397,7 +466,7 @@ Status VersionEdit::DecodeFrom(const Slice src, int this_machine_type) {
 
       case kNewFile:
         if (GetLevel(&input, &level)) {
-          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(this_machine_type);
+          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(this_machine_type,cache);
           f->DecodeFrom(input);
 //          assert(level == 0);
           new_files_.push_back(std::make_pair(level, f));
