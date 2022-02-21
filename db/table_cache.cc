@@ -92,11 +92,16 @@ Status TableCache::FindTable(
     std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
     Cache::Handle** handle) {
   Status s = Status::OK();
-  char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->creator_node_id)];
-  EncodeFixed64(buf, Remote_memtable_meta->number);
-  memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
-         sizeof(Remote_memtable_meta->creator_node_id));
-  Slice key(buf, sizeof(buf));
+//  char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->creator_node_id)];
+//  EncodeFixed64(buf, Remote_memtable_meta->number);
+//  memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
+//         sizeof(Remote_memtable_meta->creator_node_id));
+//  char buf[sizeof(Remote_memtable_meta->number)];
+//  EncodeFixed64(buf, Remote_memtable_meta->number);
+//  Slice key(buf, sizeof(buf));
+//  char buf[sizeof(Remote_memtable_meta->number)];
+//  EncodeFixed64(buf, Remote_memtable_meta->number);
+  Slice key((char*)Remote_memtable_meta->number, sizeof(uint64_t));
   //TODO: implement a hash lock to reduce the contention here, otherwise multiple
   // reader may get the same table and RDMA read the index block several times.
   int hash_value = Remote_memtable_meta->number%32;
