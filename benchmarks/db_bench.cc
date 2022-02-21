@@ -822,7 +822,7 @@ class Benchmark {
       delete arg[i].thread;
     }
     delete[] arg;
-    db_->WaitforAllbgtasks(true);
+    db_->WaitforAllbgtasks(false);
     if (method == &Benchmark::WriteRandom)
       sleep(35); // wait for the last sstable disgestion.
   }
