@@ -52,7 +52,7 @@ Status Table::Open(const Options& options, Table** table,
 //    rep->metaindex_handle = footer.metaindex_handle();
     rep->index_block = index_block;
 #ifdef BYTEADDRESSABLE
-    rep->index_iter = rep->index_block->NewIterator(rep->options.comparator);
+//    rep->index_iter = rep->index_block->NewIterator(rep->options.comparator);
 #endif
     assert(rep->index_block->size() > 0);
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
@@ -344,7 +344,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
 //    Iterator* iter = NewIterator(options);
 //    iter->Seek(k);
-    Iterator* iiter = rep->index_iter;
+    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
     iiter->Seek(k);
 #ifdef PROCESSANALYSIS
     auto stop = std::chrono::high_resolution_clock::now();

@@ -51,7 +51,7 @@ class TimberSaw_EXPORT Table {
     BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
     Block* index_block;
 #ifdef BYTEADDRESSABLE
-    Iterator* index_iter;
+//    Iterator* index_iter;
 //    ThreadLocalPtr* mr_addr;
 #endif
   };
