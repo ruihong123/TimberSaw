@@ -100,31 +100,36 @@ Status TableCache::FindTable(
   //TODO: implement a hash lock to reduce the contention here, otherwise multiple
   // reader may get the same table and RDMA read the index block several times.
   int hash_value = Remote_memtable_meta->number%32;
-  hash_mtx[hash_value].lock();
+
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
-    Table* table = nullptr;
-//    printf("Did not find the table in the cache, file number is %lu \n ", Remote_memtable_meta->number);
-    if (s.ok()) {
-      s = Table::Open(options_, &table, Remote_memtable_meta);
+    hash_mtx[hash_value].lock();
+    *handle = cache_->Lookup(key);
+    if (*handle == nullptr) {
+      Table* table = nullptr;
+      //    printf("Did not find the table in the cache, file number is %lu \n ", Remote_memtable_meta->number);
+      if (s.ok()) {
+        s = Table::Open(options_, &table, Remote_memtable_meta);
+      }
+      //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
+      if (!s.ok()) {
+        assert(table == nullptr);
+        //      delete file;
+        // We do not cache error results so that if the error is transient,
+        // or somebody repairs the file, we recover automatically.
+      } else {
+        assert(table!= nullptr);
+        SSTable* tf = new SSTable;
+        //      tf->file = file;
+        //      tf->remote_table = Remote_memtable_meta;
+        tf->table_compute = table;
+        assert(table->rep != nullptr);
+        *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Compute);
+      }
     }
-    //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
-    if (!s.ok()) {
-      assert(table == nullptr);
-//      delete file;
-      // We do not cache error results so that if the error is transient,
-      // or somebody repairs the file, we recover automatically.
-    } else {
-      assert(table!= nullptr);
-      SSTable* tf = new SSTable;
-//      tf->file = file;
-//      tf->remote_table = Remote_memtable_meta;
-      tf->table_compute = table;
-      assert(table->rep != nullptr);
-      *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Compute);
-    }
+    hash_mtx[hash_value].unlock();
   }
-  hash_mtx[hash_value].unlock();
+
   return s;
 }
 Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
