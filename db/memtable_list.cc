@@ -901,10 +901,10 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 //#ifndef NDEBUG
 //    sleep(10);
 //#endif
-//    if (s.ok()) {
-//      // Verify that the table is usable
-//      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
-//      s = it->status();
+    if (s.ok()) {
+      // Verify that the table is usable
+      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
+      s = it->status();
 //#ifndef NDEBUG
 //      it->SeekToFirst();
 //      size_t counter = 0;
@@ -914,8 +914,8 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 //      }
 //      assert(counter = Not_drop_counter);
 //#endif
-//      delete it;
-//    }
+      delete it;
+    }
   }
 
   // Check for input iterator errors
