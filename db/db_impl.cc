@@ -1852,14 +1852,14 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   VersionEdit edit;
   edit.DecodeFrom(Slice((char*)mr_c.addr, buffer_size), 0, table_cache_);
 
-  auto edit_files_vec = edit.GetNewFiles();
-  for (auto iter : *edit_files_vec) {
-    //load the table metadta into table cache
-    Iterator* it = table_cache_->NewIterator(ReadOptions(), iter.second);
-//    s = it->status();
-    delete it;
-    assert(iter.second->creator_node_id == 1);
-  }
+//  auto edit_files_vec = edit.GetNewFiles();
+//  for (auto iter : *edit_files_vec) {
+//    //load the table metadta into table cache
+//    Iterator* it = table_cache_->NewIterator(ReadOptions(), iter.second);
+////    s = it->status();
+//    delete it;
+//    assert(iter.second->creator_node_id == 1);
+//  }
   size_t new_file_size = edit.GetNewFilesNum();
   assert(new_file_size > 0);
   uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
