@@ -33,6 +33,7 @@
 #include "table/block.h"
 #include "table/merger.h"
 #include "table/table_builder_computeside.h"
+#include "table/table_builder_bacs.h"
 #include "table/two_level_iterator.h"
 #include "util/coding.h"
 #include "util/logging.h"
@@ -1366,7 +1367,14 @@ Status DBImpl::OpenCompactionOutputFile(SubcompactionState* compact) {
 //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_ComputeSide(options_, Compact);
+#ifndef BYTEADDRESSABLE
+    compact->builder = new TableBuilder(
+        options_, Compact, rdma_mg);
+#endif
+#ifdef BYTEADDRESSABLE
+    compact->builder = new TableBuilder_BACS(
+        options_, Compact);
+#endif
   }
   return s;
 }
@@ -1391,7 +1399,14 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
 //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-    compact->builder = new TableBuilder_ComputeSide(options_, Compact);
+#ifndef BYTEADDRESSABLE
+    compact->builder = new TableBuilder(
+        options_, Compact, rdma_mg);
+#endif
+#ifdef BYTEADDRESSABLE
+    compact->builder = new TableBuilder_BACS(
+        options_, Compact);
+#endif
   }
   return s;
 }
