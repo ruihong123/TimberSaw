@@ -1547,9 +1547,10 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
-      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
+      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0,table_cache_);
       //TODO make all the metadata written into out
       meta->number = out.number;
+      meta->level = level+1;
       meta->file_size = out.file_size;
       meta->smallest = out.smallest;
       meta->largest = out.largest;
@@ -1564,10 +1565,11 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
         const CompactionOutput& out = subcompact.outputs[i];
         std::shared_ptr<RemoteMemTableMetaData> meta =
-            std::make_shared<RemoteMemTableMetaData>(0);
+            std::make_shared<RemoteMemTableMetaData>(0,table_cache_);
         // TODO make all the metadata written into out
         meta->number = out.number;
         meta->file_size = out.file_size;
+        meta->level = level+1;
         meta->smallest = out.smallest;
         meta->largest = out.largest;
         meta->remote_data_mrs = out.remote_data_mrs;
