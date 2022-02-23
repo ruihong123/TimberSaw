@@ -1086,6 +1086,119 @@ void DBImpl::BackgroundFlush(void* p) {
   MaybeScheduleFlushOrCompaction();
 //  undefine_mutex.Unlock();
 }
+#ifndef NEARDATACOMPACTION
+void DBImpl::BackgroundCompaction(void* p) {
+  //  write_stall_mutex_.AssertNotHeld();
+
+  if (shutting_down_.load(std::memory_order_acquire)) {
+    // No more background work when shutting down.
+  } else if (!bg_error_.ok()) {
+    // No more background work after a background error.
+  } else if (versions_->NeedsCompaction()) {
+    Compaction* c;
+    bool is_manual = (manual_compaction_ != nullptr);
+    InternalKey manual_end;
+    if (is_manual) {
+      ManualCompaction* m = manual_compaction_;
+      c = versions_->CompactRange(m->level, m->begin, m->end);
+      m->done = (c == nullptr);
+      if (c != nullptr) {
+        manual_end = c->input(0, c->num_input_files(0) - 1)->largest;
+      }
+      Log(options_.info_log,
+          "Manual compaction at level-%d from %s .. %s; will stop at %s\n",
+          m->level, (m->begin ? m->begin->DebugString().c_str() : "(begin)"),
+          (m->end ? m->end->DebugString().c_str() : "(end)"),
+          (m->done ? "(end)" : manual_end.DebugString().c_str()));
+    } else {
+      c = versions_->PickCompaction();
+      //if there is no task to pick up, just return.
+      if (c== nullptr){
+        DEBUG("compaction task executed but not found doable task.\n");
+        delete c;
+        return;
+      }
+
+    }
+    //    write_stall_mutex_.AssertNotHeld();
+    Status status;
+    if (c == nullptr) {
+      // Nothing to do
+    } else if (!is_manual && c->IsTrivialMove()) {
+      // Move file to next level
+      assert(c->num_input_files(0) == 1);
+      std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+      c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
+      c->edit()->AddFile(c->level() + 1, f);
+      {
+        std::unique_lock<std::mutex> l(superversion_memlist_mtx);
+        c->ReleaseInputs();
+        status = versions_->LogAndApply(c->edit());
+        InstallSuperVersion();
+      }
+
+      if (!status.ok()) {
+        RecordBackgroundError(status);
+      }
+      VersionSet::LevelSummaryStorage tmp;
+      Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+          static_cast<unsigned long long>(f->number), c->level() + 1,
+          static_cast<unsigned long long>(f->file_size),
+          status.ToString().c_str(), versions_->LevelSummary(&tmp));
+      DEBUG("Trival compaction\n");
+    } else {
+      CompactionState* compact = new CompactionState(c);
+
+      auto start = std::chrono::high_resolution_clock::now();
+      //      write_stall_mutex_.AssertNotHeld();
+      // Only when there is enough input level files and output level files will the subcompaction triggered
+      if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+        status = DoCompactionWorkWithSubcompaction(compact);
+      }else{
+        status = DoCompactionWork(compact);
+      }
+
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+      printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
+             duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+      DEBUG("Non-trivalcompaction!\n");
+      std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
+      if (!status.ok()) {
+        RecordBackgroundError(status);
+      }
+      CleanupCompaction(compact);
+      //    RemoveObsoleteFiles();
+    }
+    delete c;
+
+    if (status.ok()) {
+      // Done
+    } else if (shutting_down_.load(std::memory_order_acquire)) {
+      // Ignore compaction errors found during shutting down
+    } else {
+      Log(options_.info_log, "Compaction error: %s", status.ToString().c_str());
+    }
+
+    if (is_manual) {
+      ManualCompaction* m = manual_compaction_;
+      if (!status.ok()) {
+        m->done = true;
+      }
+      if (!m->done) {
+        // We only compacted part of the requested range.  Update *m
+        // to the range that is left to be compacted.
+        m->tmp_storage = manual_end;
+        m->begin = &m->tmp_storage;
+      }
+      manual_compaction_ = nullptr;
+    }
+  }
+  MaybeScheduleFlushOrCompaction();
+
+}
+#endif
+#ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
@@ -1215,7 +1328,7 @@ void DBImpl::BackgroundCompaction(void* p) {
   MaybeScheduleFlushOrCompaction();
 
 }
-
+#endif
 void DBImpl::CleanupCompaction(CompactionState* compact) {
 //  undefine_mutex.AssertHeld();
   if (compact->builder != nullptr) {

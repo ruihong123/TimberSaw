@@ -188,7 +188,7 @@ Iterator* TableCache::NewIterator(
   }
 
   Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
-  Iterator* result = table->NewIterator(options);
+  Iterator* result = table->NewSEQIterator(options);
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
     *tableptr = table;
