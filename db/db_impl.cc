@@ -1133,6 +1133,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       c->edit()->AddFile(c->level() + 1, f);
       {
         std::unique_lock<std::mutex> l(superversion_memlist_mtx);
+        f->level = c->level() + 1;
         c->ReleaseInputs();
         status = versions_->LogAndApply(c->edit());
         InstallSuperVersion();
