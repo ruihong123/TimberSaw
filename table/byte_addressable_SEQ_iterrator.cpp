@@ -204,7 +204,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_initial(size_t offset) {
       rdma_mg->RDMA_Read(&remote_mr, &local_mr, PREFETCH_GRANULARITY, "read_local", IBV_SEND_SIGNALED, 1);
 //      remote_mr_current.addr = (void*)((char*)remote_mr_current.addr + PREFETCH_GRANULARITY);
 //      remote_mr_current.length -= PREFETCH_GRANULARITY;
-      cur_prefetch_status += PREFETCH_GRANULARITY;
+      cur_prefetch_status = offset + PREFETCH_GRANULARITY;
     } else {
 //      remote_mr.addr = (void*)((char*)remote_mr.addr );
 //      local_mr.addr = (void*)((char*)local_mr.addr);
@@ -213,7 +213,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_initial(size_t offset) {
       rdma_mg->RDMA_Read(&remote_mr, &local_mr, remote_mr_current.length, "read_local", IBV_SEND_SIGNALED, 1);
 //      remote_mr_current.addr = nullptr;
 //      remote_mr_current.length = 0;
-      cur_prefetch_status += remote_mr_current.length;
+      cur_prefetch_status = offset + remote_mr_current.length;
 
     }
     prefetch_counter = 1;
