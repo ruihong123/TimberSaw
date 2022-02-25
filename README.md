@@ -1,6 +1,6 @@
-# TimberSaw: LSM Indexing for RDMA-Enabled Disaggregated Memory
+# dLSM: An LSM-Based Index for Memory Disaggregation
 
-TimberSaw is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. TimberSaw borrows from LevelDB, but it develops a series of optimizations to address the performance challenges. TimberSaw significantly reduces the software overhead (e.g., the overhead of synchronizing the write queue and flushing), to unlock the full potential of the fast RDMA networking. TimberSaw offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., consistency and garbage collection) to significantly reduce the data movement. TimberSaw optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
+dLSM is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. dLSM borrows from LevelDB, but it develops a series of optimizations to address the performance challenges. dLSM significantly reduces the software overhead (e.g., the overhead of synchronizing the write queue and flushing), to unlock the full potential of the fast RDMA networking. dLSM offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., consistency and garbage collection) to significantly reduce the data movement. dLSM optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
 
 ## New Features
@@ -18,7 +18,7 @@ TimberSaw is the first purpose-built LSM-based indexing system for the emerging 
 * Forward and backward iteration is supported over the data.
 ## Getting the Source
 ```bash
-git clone --recurse-submodules https://github.com/ruihong123/TimberSaw
+git clone --recurse-submodules https://github.com/ruihong123/dLSM
 ```
 ## Building
 This project supports CMake out of the box.
@@ -26,7 +26,7 @@ This project supports CMake out of the box.
 
 ```bash
 mkdir -p build && cd build
-cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench TimberSaw
+cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
 ```
 ### How to run
 * Memory node side: 
@@ -38,9 +38,9 @@ To run the benchmark:
 ```bash
 ./db_bench --benchmarks=fillrandom,readrandom,readwhilewriting --threads=1 --value_size=400 --key_size=20 --num=100000000 < MemoryNodeIP
 ```
-To utilize TimberSaw in your code, you need refer to public interface in **include/TimberSaw/\*.h** .
+To utilize dLSM in your code, you need refer to public interface in **include/dLSM/\*.h** .
 ```bash
-YourCodeOverTimberSaw < MemoryNodeIP
+YourCodeOverdLSM < MemoryNodeIP
 ```
 ## Performance
 
@@ -61,7 +61,7 @@ Memory. The nodes are connected by an RDMA-enabled MellanoxFDR Connectx-3 NIC wi
 a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
 
 ### Baseline
-We compare TimberSaw against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
+We compare dLSM against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
 
 ### LSM-tree Configurations
 We set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
@@ -129,24 +129,24 @@ CloudLab:
 
 Guide to header files:
 
-* **include/TimberSaw/db.h**: Main interface to the DB: Start here.
+* **include/dLSM/db.h**: Main interface to the DB: Start here.
 
-* **include/TimberSaw/comparator.h**: Abstraction for user-specified comparison function.
+* **include/dLSM/comparator.h**: Abstraction for user-specified comparison function.
   If you want just bytewise comparison of keys, you can use the default
   comparator, but clients can write their own comparator implementations if they
   want custom ordering (e.g. to handle different character encodings, etc.).
 
-* **include/TimberSaw/iterator.h**: Interface for iterating over data. You can get
+* **include/dLSM/iterator.h**: Interface for iterating over data. You can get
   an iterator from a DB object.
 
 
 
-* **include/TimberSaw/slice.h**: A simple module for maintaining a pointer and a
+* **include/dLSM/slice.h**: A simple module for maintaining a pointer and a
   length into some other byte array.
 
-* **include/TimberSaw/status.h**: Status is returned from many of the public interfaces
+* **include/dLSM/status.h**: Status is returned from many of the public interfaces
   and is used to report success and various kinds of errors.
 
 
-* **include/TimberSaw/table.h, include/TimberSaw/table_builder.h**: Lower-level modules that most
+* **include/dLSM/table.h, include/dLSM/table_builder.h**: Lower-level modules that most
   clients probably won't use directly.
