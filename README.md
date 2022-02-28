@@ -8,6 +8,7 @@ dLSM is the first purpose-built LSM-based indexing system for the emerging disag
 * Optimistic Memtable switching.
 * Asynchronous flushing.
 * Near-data compaction.
+* Byte-addressable SSTable
 * RDMA specific optimizations.
 
 ## Usage
@@ -15,7 +16,7 @@ dLSM is the first purpose-built LSM-based indexing system for the emerging disag
 * Data is stored sorted by key.
 * The basic operations are `Put(key,value)`, `Get(key)`, `Delete(key)`.
 * Users can create a transient snapshot to get a consistent view of data.
-* Forward and backward iteration is supported over the data.
+* Forward iteration is supported over the data.
 ## Getting the Source
 ```bash
 git clone --recurse-submodules https://github.com/ruihong123/dLSM
@@ -64,7 +65,7 @@ a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
 We compare dLSM against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
 
 ### LSM-tree Configurations
-We set the SSTable file size as 64MB, and the block size as 8KB for each SSTable. We also set
+We set the SSTable file size as 64MB with byte-addressable table format. We also set
 10 bits per key for the Bloom filters. For the in-memory buffer, the MemTable size is
 set to 64MB. We set 12 background compaction threads and 4 background threads for flushing.
 We set the number of immutable tables to 10 to fully utilize the background flushing threads.
