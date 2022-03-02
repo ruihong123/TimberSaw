@@ -37,7 +37,7 @@ cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
 * Compute node side: 
 To run the benchmark:
 ```bash
-./db_bench --benchmarks=fillrandom,readrandom,readwhilewriting --threads=1 --value_size=400 --key_size=20 --num=100000000 < MemoryNodeIP
+./db_bench --benchmarks=fillrandom,readrandom,readseq --threads=1 --value_size=400 --key_size=20 --num=100000000 < MemoryNodeIP
 ```
 To utilize dLSM in your code, you need refer to public interface in **include/dLSM/\*.h** .
 ```bash
@@ -52,8 +52,8 @@ Here is a performance report from the run of the
 
 We test a database with a 100 million entries.  Each entry has a 20 byte 
 key, and a 400 byte value.  We conduct the experiments on two platforms with 
-different types of RDMA fabrics: the BigData testbed andCloudLabtestbed4. The 
-BigDatatestbed consists of two servers: The compute node has a Xeon Platinum 8168
+different types of RDMA fabrics: the BigData testbed and CloudLab testbed. The 
+BigData testbed consists of two servers: The compute node has a Xeon Platinum 8168
 CPU (24 cores, 2.7GHz) and the memory node has 3TB of DRAM, connected by an RDMA-enabled 
 Mellanox EDR Connectx-5 NIC with a bandwidth of 100Gb/s. Eachnode runs Ubuntu 18.04.5. 
 The CloudLab testbed also contains two servers with the instance type of c6220. 
@@ -62,13 +62,10 @@ Memory. The nodes are connected by an RDMA-enabled MellanoxFDR Connectx-3 NIC wi
 a bandwidth of 56Gb/s. Each node runsUbuntu 18.04.1
 
 ### Baseline
-We compare dLSM against the baseline solutions that directly port LevelDB and RocksDB to the RDMA-extended remote memory, namely, LevelDB over RDMA file system and RocksDB over RDMA file system.
+We compare dLSM against the baseline solutions that directly port RocksDB to the RDMA-extended remote memory, namely, **RocksDB-RDMA (8KB)**. Besides,  to better leverage the byte-addressability of the remote memory, we choose 2KB and term this baseline **RocksDB-RDMA (2KB)**. Furthermore, an RocksDB baseline with the block size of a key-value pair is tested and termed as **Memory-RocksDB-RDMA**. Another baseline is **Nova-LSM** that is an optimized LSM-tree for storage disaggregation (instead ofmemory disaggregation).  We make it running on tmpfs to make the comparison fair.
 
 ### LSM-tree Configurations
-We set the SSTable file size as 64MB with byte-addressable table format. We also set
-10 bits per key for the Bloom filters. For the in-memory buffer, the MemTable size is
-set to 64MB. We set 12 background compaction threads and 4 background threads for flushing.
-We set the number of immutable tables to 10 to fully utilize the background flushing threads.
+We set the same parameters of dLSM and other baseline solutions. The SSTable file size is set to 64MB andthe bloom filters key size is set to 10 bits. For in-memory buffers,the MemTable size is set to 64MB. We set 12 and 4 backgroundthreads for compaction and flushing, respectively. The number of immutable tables is set to 10 to fully utilize the background flushing threads. To accelerate compaction further, subcompaction is enabled with 12 workers. These parameters are largely consistentwith RocksDB’s settings. For Nova-LSM, the subrange is set to 64 to maximize concurrency in background compaction.
 
 ### Write performance
 
