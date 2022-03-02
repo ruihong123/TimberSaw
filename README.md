@@ -128,7 +128,7 @@ CloudLab: 4.12Mops/sec
 * Compared to baselines:
     
 <!-- ![TableScan]() -->
-<img src="Figures/readSeq.png" alt="drawing" width="600"/>
+<img src="Figures/ReadSeq.png" alt="drawing" width="600"/>
 
 ## Repository contents
 
