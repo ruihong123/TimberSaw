@@ -89,7 +89,7 @@ CloudLab:
 * Compared to baselines
 
 <!-- ![RandomWrite]() -->
-<img src="Figures/Write_git.pdf" alt="drawing" width="600"/>
+<img src="Figures/write_git.png" alt="drawing" width="600"/>
 
 
 
