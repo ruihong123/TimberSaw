@@ -100,27 +100,35 @@ The "readrandom" benchmarks run 100 million random key-value queries and report 
 Bigdata:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.10Mops/sec | 0.19Mops/sec | 0.36Mops/sec | 0.68Mops/sec | 1.01Mops/sec |
+    | Throughput    | 0.22Mops/sec | 0.39Mops/sec | 0.74Mops/sec | 1.34Mops/sec | 1.97Mops/sec |
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 
 CloudLab:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.08Mops/sec | 0.14Mops/sec | 0.26Mops/sec | 0.50Mops/sec | 0.61Mops/sec |
+    | Throughput    | 0.21Mops/sec | 0.34Mops/sec | 0.53Mops/sec | 0.85Mops/sec | 1.27Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 
 * Compared to baselines:
     
-Bigdata:
-<!-- ![RandomReadBigdata](RandomReadBigdata.png) -->
-<img src="RandomReadBigdata.png" alt="drawing" width="600"/>
+<!-- ![RandomRead]() -->
+<img src="Figures/read_git.png" alt="drawing" width="600"/>
 
-CloudLab:
-<!-- ![RandomReadBigdata](RandomReadCloudLab.png) -->
-<img src="RandomReadCloudLab.png" alt="drawing" width="600"/>
+### Table scan performance
+
+The "readseq" benchmarks scan the whole data range by a single thread and report the throughput as below.
+
+Bigdata: 7.24Mops/sec
+
+CloudLab: 4.12Mops/sec
+
+* Compared to baselines:
+    
+<!-- ![TableScan]() -->
+<img src="Figures/readSeq.png" alt="drawing" width="600"/>
 
 ## Repository contents
 
