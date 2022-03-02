@@ -76,24 +76,22 @@ The throughput of the system is shown as below.
 Bigdata:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.99Mops/sec | 1.47Mops/sec | 1.72Mops/sec | 1.84Mops/sec | 1.96Mops/sec |
+    | Throughput    | 1.03Mops/sec | 1.61Mops/sec | 2.34Mops/sec | 2.52Mops/sec | 2.75Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 CloudLab:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.86Mops/sec | 1.27Mops/sec | 1.30Mops/sec | 1.48Mops/sec | 1.67Mops/sec |
+    | Throughput    | 0.86Mops/sec | 1.22Mops/sec | 1.34Mops/sec | 1.47Mops/sec | 1.69Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 * Compared to baselines
-Bigdata:
-<!-- ![RandomWriteBigdata]() -->
-<img src="RandomWriteBigdata.png" alt="drawing" width="600"/>
 
-CloudLab:
-<!-- ![RandomWriteCloudLab](RandomWriteCloudLab.pdf) -->
-<img src="RandomWriteCloudLab.png" alt="drawing" width="600"/>
+<!-- ![RandomWriteBigdata]() -->
+<img src="Figure/write_git.pdf" alt="drawing" width="600"/>
+
+
 
 ### Read performance
 
