@@ -1,6 +1,6 @@
 # dLSM: An LSM-Based Index for Memory Disaggregation
 
-dLSM is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. dLSM borrows from LevelDB, but it develops a series of optimizations to address the performance challenges. dLSM significantly reduces the software overhead (e.g., the overhead of synchronizing the write queue and flushing), to unlock the full potential of the fast RDMA networking. dLSM offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., consistency and garbage collection) to significantly reduce the data movement. dLSM optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
+dLSM is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. dLSM develops a series of optimizations to address the performance challenges. dLSM significantly reduces the software overhead (e.g., the overhead of synchronizing the in-memory write and flushing), to unlock the full potential of the fast RDMA networking. dLSM offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., RPC and garbage collection) to significantly reduce the data movement. dLSM is tuned to deprecate the concept of block structures to leverage the byte-addressability in RDMA-enabled disaggregated memory. Finally, dLSM optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
 
 ## New Features
@@ -46,7 +46,7 @@ YourCodeOverdLSM < MemoryNodeIP
 ## Performance
 
 Here is a performance report from the run of the
-"fillrandom" and "readrandom" included in the "db_bench" under benchmarks folder.  
+"fillrandom", "readrandom" and "readseq" included in the "db_bench" under benchmarks folder.  
 
 ### Setup
 
@@ -97,6 +97,7 @@ Bigdata:
 CloudLab:
 <!-- ![RandomWriteCloudLab](RandomWriteCloudLab.pdf) -->
 <img src="RandomWriteCloudLab.png" alt="drawing" width="600"/>
+
 ### Read performance
 
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
