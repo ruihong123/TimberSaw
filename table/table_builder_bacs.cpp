@@ -569,6 +569,7 @@ Status TableBuilder_BACS::Finish() {
     size_t msg_size;
     FinishFilterBlock(r->filter_block, &filter_block_handle, kNoCompression, msg_size);
     FlushFilter(msg_size);
+    printf("BloomFilter block size is %zu", msg_size);
   }
 
 
@@ -603,6 +604,7 @@ Status TableBuilder_BACS::Finish() {
     FinishDataIndexBlock(r->index_block, &index_block_handle,
                          r->options.compression, msg_size);
     FlushDataIndex(msg_size);
+    printf("Index block size is %zu", msg_size);
   }
   //  DEBUG_arg("for a sst the remote data chunks number %zu\n", r->remote_data_mrs.size());
   //TODO: the polling number here sometime is not correct.

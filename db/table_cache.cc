@@ -85,6 +85,7 @@ TableCache::~TableCache() {
            TableCache::cache_miss.load(),TableCache::cache_miss_block_fetch_time.load()/TableCache::cache_miss.load());
   }
 #endif
+  printf("Total number of entries within the cahce is %zu", cache_->TotalCharge());
   delete cache_;
 }
 
@@ -134,7 +135,7 @@ Status TableCache::FindTable(
     }
     hash_mtx[hash_value].unlock();
   }
-  printf("Total number of entries within the cahce is %zu", cache_->TotalCharge());
+
   return s;
 }
 Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
