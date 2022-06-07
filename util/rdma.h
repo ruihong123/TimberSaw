@@ -483,6 +483,7 @@ class RDMA_Manager {
 //  std::shared_mutex main_qp_mutex;
   std::shared_mutex qp_cq_map_mutex;
   //  ThreadLocalPtr* t_local_1;
+  //TODO: make every queue pair stored in a map mapping from nodeid to queuepair or completion queue.
   ThreadLocalPtr* qp_local_write_flush;
   ThreadLocalPtr* cq_local_write_flush;
   ThreadLocalPtr* local_write_flush_qp_info;
@@ -507,6 +508,9 @@ class RDMA_Manager {
   size_t top = 0;
   std::mutex dealloc_mtx;
   std::condition_variable dealloc_cv;
+  std::map<uint8_t, std::string> compute_nodes{};
+  std::map<uint8_t, std::string> memory_nodes{};
+
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;

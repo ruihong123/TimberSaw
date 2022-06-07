@@ -134,7 +134,7 @@ Status TableCache::FindTable(
     }
     hash_mtx[hash_value].unlock();
   }
-
+  printf("Total number of entries within the cahce is %zu", cache_->TotalCharge());
   return s;
 }
 Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
@@ -277,9 +277,12 @@ Status TableCache::Get(const ReadOptions& options,
   return s;
 }
 
-void TableCache::Evict(uint64_t file_number) {
-  char buf[sizeof(file_number)];
+void TableCache::Evict(uint64_t file_number, uint8_t creator_node_id) {
+  //TODO: Change it to erase filenumber and node id (shard id)
+  char buf[sizeof(uint64_t) + sizeof(uint8_t)];
   EncodeFixed64(buf, file_number);
+  memcpy(buf + sizeof(uint64_t), &creator_node_id,
+         sizeof(uint8_t));
   cache_->Erase(Slice(buf, sizeof(buf)));
 }
 

@@ -15,9 +15,10 @@ namespace TimberSaw {
 //  rdma_mg = Env::Default()->rdma_mg;
 //  node_id = rdma_mg->node_id;
 //}
+// Every file can only belongs to one remote memory
 RemoteMemTableMetaData::RemoteMemTableMetaData(int side, TableCache* cache)
     : this_machine_type(side), allowed_seeks(1 << 30),cache_(cache) {
-  //Tothink: Is this_machine_type the same as rdma_mg->node_id?
+  // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   // Node_id is unique for every node, while the this_machine_type only distinguish
   // the compute node from the memory node.
   if (side ==0){
@@ -49,7 +50,7 @@ RemoteMemTableMetaData::~RemoteMemTableMetaData() {
 
   if (this_machine_type == 0){
     if (cache_ != nullptr){
-      cache_->Evict(number);
+      cache_->Evict(number, 0);
     }
     if (creator_node_id == rdma_mg->node_id){
       //#ifndef NDEBUG

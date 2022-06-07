@@ -18,8 +18,7 @@ namespace TimberSaw {
 class VersionSet;
 class RDMA_Manager;
 class TableCache;
-//TODO; Make a new data structure for remote SST with no file name, just remote chunks
-// Solved
+//TODO: make
 struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node

@@ -448,7 +448,7 @@ void DBImpl::RemoveObsoleteFiles() {
       if (!keep) {
         files_to_delete.push_back(std::move(filename));
         if (type == kTableFile) {
-          table_cache_->Evict(number);
+          table_cache_->Evict(number, 0);
         }
         Log(options_.info_log, "Delete type=%d #%lld\n", static_cast<int>(type),
             static_cast<unsigned long long>(number));

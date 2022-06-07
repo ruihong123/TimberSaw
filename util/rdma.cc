@@ -1,4 +1,6 @@
+#include <fstream>
 #include <util/rdma.h>
+
 #include "TimberSaw/env.h"
 
 namespace TimberSaw {
@@ -760,12 +762,37 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   //  int rc = 1;
   // int trans_times;
   char temp_char;
+
+  std::string connection_conf;
+  size_t pos = 0;
+  std::ifstream myfile;
+  myfile.open ("../connection.conf");
+  std::string space_delimiter = " ";
+
+  std::getline(myfile,connection_conf );
+  uint8_t i = 0;
+  while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
+    compute_nodes.insert({i, connection_conf.substr(0, pos)});
+    connection_conf.erase(0, pos + space_delimiter.length());
+    i++;
+  }
+  std::getline(myfile,connection_conf );
+  while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
+    memory_nodes.insert({i, connection_conf.substr(0, pos)});
+    connection_conf.erase(0, pos + space_delimiter.length());
+    i++;
+  }
+
+
   std::string ip_add;
   std::cout << "please insert the ip address for the remote memory" << std::endl;
   std::cin >> ip_add;
   rdma_config.server_name = ip_add.c_str();
   /* if client side */
   printf("Mark: valgrind socket info1\n");
+  for(int i = 0; i < compute_nodes.size(); i++){
+
+  }
   res->sock_map["main"] =
       client_sock_connect(rdma_config.server_name, rdma_config.tcp_port);
 
@@ -976,7 +1003,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect() {
 
   return false;
 }
-
+//TODO: add node id as an argument
 ibv_qp* RDMA_Manager::create_qp(std::string& id, bool seperated_cq) {
   struct ibv_qp_init_attr qp_init_attr;
 

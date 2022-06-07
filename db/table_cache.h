@@ -87,7 +87,7 @@ class TableCache {
              void (*handle_result)(void*, const Slice&, const Slice&));
 
   // Evict any entry for the specified file number
-  void Evict(uint64_t file_number);
+  void Evict(uint64_t file_number, uint8_t creator_node_id);
 
  private:
   Status FindTable(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
