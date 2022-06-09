@@ -25,6 +25,7 @@ void UnrefHandle_qp(void* ptr) {
       printf("thread local qp destroy successfully!");
     }
   }
+  delete (QP_Map*)ptr;
 
 }
 void UnrefHandle_cq(void* ptr) {
@@ -36,10 +37,13 @@ void UnrefHandle_cq(void* ptr) {
       printf("thread local cq destroy successfully!");
     }
   }
-
+  delete (CQ_Map*)ptr;
 }
 template<typename T>
 void General_Destroy(void* ptr){
+  for(auto iter : *((std::map<uint8_t, T>*)ptr)){
+    delete iter.second;
+  }
   delete (T) ptr;
 }
 /******************************************************************************

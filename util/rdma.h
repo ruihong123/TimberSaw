@@ -499,15 +499,24 @@ class RDMA_Manager {
   std::shared_mutex qp_cq_map_mutex;
   //  ThreadLocalPtr* t_local_1;
   //TODO: make every queue pair stored in a map mapping from nodeid to queuepair or completion queue.
-  ThreadLocalPtr* qp_local_write_flush;
-  ThreadLocalPtr* cq_local_write_flush;
-  ThreadLocalPtr* local_write_flush_qp_info;
-  ThreadLocalPtr* qp_local_write_compact;
-  ThreadLocalPtr* cq_local_write_compact;
-  ThreadLocalPtr* local_write_compact_qp_info;
-  ThreadLocalPtr* qp_local_read;
-  ThreadLocalPtr* cq_local_read;
-  ThreadLocalPtr* local_read_qp_info;
+  std::map<uint8_t, ThreadLocalPtr*> qp_local_write_flush;
+  std::map<uint8_t, ThreadLocalPtr*> cq_local_write_flush;
+  std::map<uint8_t, ThreadLocalPtr*> local_write_flush_qp_info;
+  std::map<uint8_t, ThreadLocalPtr*> qp_local_write_compact;
+  std::map<uint8_t, ThreadLocalPtr*> cq_local_write_compact;
+  std::map<uint8_t, ThreadLocalPtr*> local_write_compact_qp_info;
+  std::map<uint8_t, ThreadLocalPtr*> qp_local_read;
+  std::map<uint8_t, ThreadLocalPtr*> cq_local_read;
+  std::map<uint8_t, ThreadLocalPtr*> local_read_qp_info;
+//  ThreadLocalPtr* qp_local_write_flush;
+//  ThreadLocalPtr* cq_local_write_flush;
+//  ThreadLocalPtr* local_write_flush_qp_info;
+//  ThreadLocalPtr* qp_local_write_compact;
+//  ThreadLocalPtr* cq_local_write_compact;
+//  ThreadLocalPtr* local_write_compact_qp_info;
+//  ThreadLocalPtr* qp_local_read;
+//  ThreadLocalPtr* cq_local_read;
+//  ThreadLocalPtr* local_read_qp_info;
   //  thread_local static std::unique_ptr<ibv_qp, QP_Deleter> qp_local_write_flush;
   //  thread_local static std::unique_ptr<ibv_cq, CQ_Deleter> cq_local_write_flush;
   std::unordered_map<Chunk_type, std::map<void*, In_Use_Array*>>

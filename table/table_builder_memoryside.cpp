@@ -8,6 +8,7 @@
 #include "db/dbformat.h"
 
 namespace TimberSaw {
+// TODO: Add target node id in Rep
 struct TableBuilder_Memoryside::Rep {
   Rep(const Options& opt, IO_type type, std::shared_ptr<RDMA_Manager> rdma)
       : options(opt),

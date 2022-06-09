@@ -10,7 +10,7 @@ namespace TimberSaw {
 //TOFIX : now we suppose the index and filter block will not over the write buffer.
 // TODO: make the Option of tablebuilder a pointer avoiding large data copying
 struct TableBuilder_BACS::Rep {
-  Rep(const Options& opt, IO_type type)
+  Rep(const Options& opt, IO_type type, uint8_t target_node_id)
       : options(opt),
         index_block_options(opt),
         type_(type),
@@ -19,7 +19,9 @@ struct TableBuilder_BACS::Rep {
 
         num_entries(0),
         closed(false),
-        pending_index_filter_entry(false) {
+        pending_index_filter_entry(false),
+        target_node_id_(target_node_id)
+  {
     //TOTHINK: why the block restart interval is 1 by default?
     // This is only for index block, is it the same for rocks DB?
     index_block_options.block_restart_interval = 1;
@@ -113,9 +115,10 @@ struct TableBuilder_BACS::Rep {
   BlockHandle pending_data_handle;  // Handle to add to index block
 
   std::string compressed_output;
+  uint8_t target_node_id_;
 };
 TableBuilder_BACS::TableBuilder_BACS(const Options& options, IO_type type)
-    : rep_(new Rep(options, type)) {
+    : rep_(new Rep(options, type, 0)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }
@@ -429,7 +432,8 @@ void TableBuilder_BACS::FlushData(){
     // first time flush
     assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 2);
     rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size,
-                        r->type_string_, IBV_SEND_SIGNALED, 0, 0);
+                        r->type_string_, IBV_SEND_SIGNALED,
+                        0, rep_->target_node_id_);
     r->data_inuse_end = 0;
     r->data_inuse_start = 0;
     r->data_inuse_empty = false;
@@ -442,8 +446,8 @@ void TableBuilder_BACS::FlushData(){
     int maximum_poll_number = 5;
     auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
-    poll_num = rdma_mg->try_poll_this_thread_completions(
-        wc, maximum_poll_number, r->type_string_, true, 0);
+    poll_num = rdma_mg->try_poll_this_thread_completions(wc,maximum_poll_number,
+             r->type_string_,true, rep_->target_node_id_);
     // move the start index
     r->data_inuse_start += poll_num;
     if(r->data_inuse_start >= r->local_data_mr.size()){
@@ -454,7 +458,7 @@ void TableBuilder_BACS::FlushData(){
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
     rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end],
-                        msg_size, r->type_string_, IBV_SEND_SIGNALED, 0, 0);
+                        msg_size, r->type_string_, IBV_SEND_SIGNALED, 0, rep_->target_node_id_);
     //Check whether there is available buffer to serialize the memtable onto,
     // if not allocate a new one and insert it to the vector
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
@@ -514,7 +518,7 @@ void TableBuilder_BACS::FlushDataIndex(size_t msg_size) {
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
   rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size,
-                      r->type_string_, IBV_SEND_SIGNALED, 0, 0);
+                      r->type_string_, IBV_SEND_SIGNALED, 0, rep_->target_node_id_);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
     r->remote_dataindex_mrs.insert({1, remote_mr});
@@ -533,7 +537,7 @@ void TableBuilder_BACS::FlushFilter(size_t& msg_size) {
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
   rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size,
-                      r->type_string_, IBV_SEND_SIGNALED, 0, 0);
+                      r->type_string_, IBV_SEND_SIGNALED, 0, rep_->target_node_id_);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){
     r->remote_filter_mrs.insert({1, remote_mr});
@@ -624,12 +628,12 @@ Status TableBuilder_BACS::Finish() {
   ibv_wc wc[num_of_poll];
   r->options.env->rdma_mg->poll_completion(
       wc, num_of_poll, r->type_string_, true,
-      0); //it does not matter whether it is true or false
+      rep_->target_node_id_); //it does not matter whether it is true or false
 #ifndef NDEBUG
   usleep(10);
   int check_poll_number =
       r->options.env->rdma_mg->try_poll_this_thread_completions(
-          wc, 1, r->type_string_, true, 0);
+          wc, 1, r->type_string_, true, rep_->target_node_id_);
   assert( check_poll_number == 0);
 #endif
   //  printf("A table finsihed flushing\n");

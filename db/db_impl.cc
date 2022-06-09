@@ -2031,7 +2031,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 //  ibv_wc wc[3] = {};
 //  env_->rdma_mg->poll_completion(wc, 1, "main", false);
 //}
-void DBImpl::sync_option_to_remote() {
+void DBImpl::sync_option_to_remote(uint8_t target_node_id) {
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   // register the memory block from the remote memory
   RDMA_Request* send_pointer;
@@ -2057,10 +2057,10 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 //  sleep(1);
-  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, target_node_id, std::string("main"));
 
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, 0)){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, target_node_id)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -2199,7 +2199,8 @@ void DBImpl::client_message_polling_and_handling_thread(
       rdma_mg->comm_thread_recv_mrs.insert({target_node_id, recv_mr});
     }
     printf("Start to sync options\n");
-    sync_option_to_remote();
+    //TODO: Sync option to all the memory servers.
+    sync_option_to_remote(0);
     ibv_wc wc[3] = {};
 //    RDMA_Request receive_msg_buf;
     {

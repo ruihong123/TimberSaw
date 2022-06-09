@@ -222,7 +222,7 @@ class DBImpl : public DB {
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
-  void sync_option_to_remote();
+  void sync_option_to_remote(uint8_t target_node_id);
   void remote_qp_reset(std::string& qp_type, uint8_t target_node_id);
   void client_message_polling_and_handling_thread(std::string q_id,
                                                   uint8_t target_node_id);
