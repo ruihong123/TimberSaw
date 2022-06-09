@@ -835,22 +835,26 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 
   std::getline(myfile,connection_conf );
   uint8_t i = 0;
+  uint8_t node_id;
   while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
-    compute_nodes.insert({i, connection_conf.substr(0, pos)});
+    node_id = 2*i + 1;
+    compute_nodes.insert({node_id, connection_conf.substr(0, pos)});
     connection_conf.erase(0, pos + space_delimiter.length());
     i++;
   }
-  compute_nodes.insert({i, connection_conf});
+  compute_nodes.insert({2*i+1, connection_conf});
   i++;
 
   i = 0;
   std::getline(myfile,connection_conf );
   while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
-    memory_nodes.insert({i, connection_conf.substr(0, pos)});
+    node_id = 2*i;
+    memory_nodes.insert({node_id, connection_conf.substr(0, pos)});
     connection_conf.erase(0, pos + space_delimiter.length());
     i++;
   }
-
+  memory_nodes.insert({2*i, connection_conf});
+  i++;
 
 //  std::string ip_add;
 //  std::cout << "please insert the ip address for the remote memory" << std::endl;
