@@ -830,7 +830,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   std::string connection_conf;
   size_t pos = 0;
   std::ifstream myfile;
-  myfile.open ("../connection_bigdata.conf");
+  myfile.open ("../connection_bigdata.conf", std::ios_base::in);
   std::string space_delimiter = " ";
 
   std::getline(myfile,connection_conf );
@@ -840,6 +840,10 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     connection_conf.erase(0, pos + space_delimiter.length());
     i++;
   }
+  compute_nodes.insert({i, connection_conf});
+  i++;
+
+  i = 0;
   std::getline(myfile,connection_conf );
   while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
     memory_nodes.insert({i, connection_conf.substr(0, pos)});
