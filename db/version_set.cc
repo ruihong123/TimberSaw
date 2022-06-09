@@ -1100,7 +1100,7 @@ Status VersionSet::Recover(bool* save_manifest) {
     std::string scratch;
     while (reader.ReadRecord(&record, &scratch) && s.ok()) {
       ++read_records;
-      VersionEdit edit;
+      VersionEdit edit(0);
       s = edit.DecodeFrom(record, 0, table_cache_);
       if (s.ok()) {
         if (edit.has_comparator_ &&
@@ -1287,7 +1287,7 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
   // TODO: Break up into multiple records to reduce memory usage on recovery?
 
   // Save metadata
-  VersionEdit edit;
+  VersionEdit edit(0);
   edit.SetComparatorName(icmp_.user_comparator()->Name());
 
   // Save compaction pointers
@@ -1964,7 +1964,8 @@ Compaction::Compaction(const Options* options, int level)
       input_version_(nullptr),
       grandparent_index_(0),
       seen_key_(false),
-      overlapped_bytes_(0) {
+      overlapped_bytes_(0),
+      edit_(0) {
   for (int i = 0; i < config::kNumLevels; i++) {
     level_ptrs_[i] = 0;
   }
@@ -1975,7 +1976,8 @@ Compaction::Compaction(const Options* options)
       input_version_(nullptr),
       grandparent_index_(0),
       seen_key_(false),
-      overlapped_bytes_(0) {
+      overlapped_bytes_(0),
+      edit_(0) {
   for (int i = 0; i < config::kNumLevels; i++) {
     level_ptrs_[i] = 0;
   }

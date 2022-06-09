@@ -395,11 +395,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, client_ip);
   //TODO: Think of a better way to avoid deadlock and guarantee the same
   // sequence of verision edit between compute node and memory server.
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
+  if (rdma_mg->poll_completion(wc, 1, client_ip, true, 0)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -418,8 +418,10 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
-                      &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg->RDMA_Write(receive_pointer->buffer_large,
+                      receive_pointer->rkey_large, &send_mr_large,
+                      index * sizeof(uint64_t) + 1, client_ip,
+                      IBV_SEND_SIGNALED, 1, 0);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
@@ -463,11 +465,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, client_ip);
   //TODO: Think of a better way to avoid deadlock and guarantee the same
   // sequence of verision edit between compute node and memory server.
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
+  if (rdma_mg->poll_completion(wc, 1, client_ip, true, 0)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -486,8 +488,10 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_numb
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
-                      &send_mr_large, index*sizeof(uint64_t) + 1, client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg->RDMA_Write(receive_pointer->buffer_large,
+                      receive_pointer->rkey_large, &send_mr_large,
+                      index * sizeof(uint64_t) + 1, client_ip,
+                      IBV_SEND_SIGNALED, 1, 0);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
@@ -1212,7 +1216,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
   Status s = versions_->LogAndApply(compact->compaction->edit());
 //  versions_->Pin_Version_For_Compute();
 
-  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck);
+  Edit_sync_to_remote(compact->compaction->edit(), client_ip, &lck, 0);
 
   return s;
 }
@@ -1285,7 +1289,8 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     char temp_receive[2];
     char temp_send[] = "Q";
     int rc = 0;
-    rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd);
+    uint8_t target_node_id;
+    rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd, target_node_id);
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
 //    ibv_mr send_mr[32] = {};
 //    for(int i = 0; i<32; i++){
@@ -1309,7 +1314,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //    }
     //  post_receive<int>(recv_mr, client_ip);
     for(int i = 0; i<R_SIZE; i++) {
-      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], client_ip);
+      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], 0, client_ip);
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
@@ -1345,11 +1350,12 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     int buffer_counter = 0;
     while (true) {
       //TODO: change the polling here to a notification.
-      rdma_mg->poll_completion(wc, 1, client_ip, false);
+      rdma_mg->poll_completion(wc, 1, client_ip, false, 0);
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         cv_temp.notify_all();
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            "main");
 
         // increase the buffer index
         if (buffer_counter== R_SIZE-1 ){
@@ -1366,45 +1372,55 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf->command == create_mr_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
 
-        create_mr_handler(receive_msg_buf, client_ip);
+        create_mr_handler(receive_msg_buf, client_ip, target_node_id);
 //        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == create_qp_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        create_qp_handler(receive_msg_buf, client_ip);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
+        create_qp_handler(receive_msg_buf, client_ip, target_node_id);
         //        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == install_version_edit) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
         //TODO: implement a durable bg thread and make a shadow verison set if possible.
 
-        install_version_edit_handler(receive_msg_buf, client_ip);
+        install_version_edit_handler(receive_msg_buf, client_ip, target_node_id);
       } else if (receive_msg_buf->command == near_data_compaction) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
+        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
+                           .client_ip = client_ip,.target_node_id = target_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
       } else if (receive_msg_buf->command == SSTable_gc) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = client_ip};
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
+        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
+                           .client_ip = client_ip,.target_node_id = target_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Message_handler_pool_.Schedule(
             &Memory_Node_Keeper::RPC_Garbage_Collection_Dispatch, thread_pool_args);
 //TODO: add a handle function for the option value
       } else if (receive_msg_buf->command == version_unpin_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
         version_unpin_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf->command == sync_option) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        sync_option_handler(receive_msg_buf, client_ip);
-      } else if (receive_msg_buf->command == qp_reset_) {
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
+        sync_option_handler(receive_msg_buf, client_ip, target_node_id);
+      } else if (receive_msg_buf->command == qp_reset_) {// depracated functions
         //THis should not be called because the recevei mr will be reset and the buffer
         // counter will be reset as 0
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], client_ip);
-        qp_reset_handler(receive_msg_buf, client_ip, socket_fd);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                            client_ip);
+        qp_reset_handler(receive_msg_buf, client_ip, socket_fd, target_node_id);
         DEBUG("QP has been reconnect from the memory node side\n");
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
@@ -1476,6 +1492,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         goto sock_connect_exit;
       listen(listenfd, 20);
       while (1) {
+
         sockfd = accept(listenfd, &address, &len);
         std::string client_id =
             std::string(
@@ -1497,6 +1514,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         // main thread.
 //        main_comm_threads.back().detach();
       }
+      usleep(1000);
     }
   }
   sock_connect_exit:
@@ -1517,7 +1535,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     Compactor_pool_.JoinThreads(wait_for_jobs_to_complete);
   }
   void Memory_Node_Keeper::create_mr_handler(RDMA_Request* request,
-                                             std::string& client_ip) {
+                                             std::string& client_ip,
+                                             uint8_t target_node_id) {
     DEBUG("Create new mr\n");
 //  std::cout << "create memory region command receive for" << client_ip
 //  << std::endl;
@@ -1543,13 +1562,16 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   send_pointer->content.mr = *mr;
   send_pointer->received = true;
 
-  rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
+                      sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
   }
+  // the client ip can by any string differnt from read_local write_local_flush
+  // and write_local_compact
   void Memory_Node_Keeper::create_qp_handler(RDMA_Request* request,
-                                             std::string& client_ip) {
+                                             std::string& client_ip,
+                                             uint8_t target_node_id) {
     int rc;
     DEBUG("Create new qp\n");
   assert(request->buffer != nullptr);
@@ -1557,10 +1579,13 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   char gid_str[17];
   memset(gid_str, 0, 17);
   memcpy(gid_str, request->content.qp_config.gid, 16);
+
+  // create a unique id for the connection from the compute node
   std::string new_qp_id =
       std::string(gid_str) +
       std::to_string(request->content.qp_config.lid) +
       std::to_string(request->content.qp_config.qp_num);
+
   std::cout << "create query pair command receive for" << client_ip
   << std::endl;
   fprintf(stdout, "Remote QP number=0x%x\n",
@@ -1570,7 +1595,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
-  ibv_qp* qp = rdma_mg->create_qp(new_qp_id, false);
+  ibv_qp* qp = rdma_mg->create_qp_Mside(false, new_qp_id);
   if (rdma_mg->rdma_config.gid_idx >= 0) {
     rc = ibv_query_gid(rdma_mg->res->ib_ctx, rdma_mg->rdma_config.ib_port,
                        rdma_mg->rdma_config.gid_idx, &(rdma_mg->res->my_gid));
@@ -1583,29 +1608,24 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     memset(&(rdma_mg->res->my_gid), 0, sizeof(rdma_mg->res->my_gid));
   /* exchange using TCP sockets info required to connect QPs */
   send_pointer->content.qp_config.qp_num =
-      rdma_mg->res->qp_map[new_qp_id]->qp_num;
+      rdma_mg->qp_map_Mside[new_qp_id]->qp_num;
   send_pointer->content.qp_config.lid = rdma_mg->res->port_attr.lid;
   memcpy(send_pointer->content.qp_config.gid, &(rdma_mg->res->my_gid), 16);
   send_pointer->received = true;
   registered_qp_config* remote_con_data = new registered_qp_config(request->content.qp_config);
   std::shared_lock<std::shared_mutex> l1(rdma_mg->qp_cq_map_mutex);
-  if (new_qp_id == "read_local" )
-    rdma_mg->local_read_qp_info->Reset(remote_con_data);
-  else if(new_qp_id == "write_local_compact")
-    rdma_mg->local_write_compact_qp_info->Reset(remote_con_data);
-  else if(new_qp_id == "write_local_flush")
-    rdma_mg->local_write_flush_qp_info->Reset(remote_con_data);
-  else
-    rdma_mg->res->qp_connection_info.insert({new_qp_id,remote_con_data});
-  rdma_mg->connect_qp(qp, new_qp_id);
+  //keep the remote qp information
+    rdma_mg->qp_main_connection_info_Mside.insert({new_qp_id,remote_con_data});
 
-  rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+  rdma_mg->connect_qp_Mside(qp, new_qp_id);
+
+  rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
+                      sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
   }
   void Memory_Node_Keeper::install_version_edit_handler(
-      RDMA_Request* request, std::string& client_ip) {
+      RDMA_Request* request, std::string& client_ip, uint8_t target_node_id) {
   printf("install version\n");
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
@@ -1631,8 +1651,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                       &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1); //IBV_SEND_INLINE
+  rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
+                      sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1,
+                      target_node_id); //IBV_SEND_INLINE
 
   size_t counter = 0;
   while (*(unsigned char*)polling_byte == 0){
@@ -1649,7 +1670,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     counter++;
   }
   // Will delete the version edit in the background threads.
-  VersionEdit* version_edit = new VersionEdit();
+  VersionEdit* version_edit = new VersionEdit(0);
   version_edit->DecodeFrom(
       Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 1,
       table_cache_);
@@ -1706,6 +1727,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::sst_garbage_collection(void* arg) {
       RDMA_Request* request = ((Arg_for_handler*)arg)->request;
       std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
+      uint8_t target_node_id = ((Arg_for_handler*)arg)->target_node_id;
       printf("Garbage collection\n");
 
       void* remote_prt = request->buffer;
@@ -1736,8 +1758,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
       asm volatile ("mfence\n" : : );
-      rdma_mg->RDMA_Write(remote_prt, remote_rkey,
-                          &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+      rdma_mg->RDMA_Write(remote_prt, remote_rkey, &send_mr, sizeof(RDMA_Reply),
+                          client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
       size_t counter = 0;
       // polling the finishing bit for compaction task transmission.
       while (*polling_byte == 0){
@@ -1766,6 +1788,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::sst_compaction_handler(void* arg) {
     RDMA_Request* request = ((Arg_for_handler*) arg)->request;
     std::string client_ip = ((Arg_for_handler*) arg)->client_ip;
+    uint8_t target_node_id = ((Arg_for_handler*) arg)->target_node_id;
     printf("near data compaction\n");
     void* remote_prt = request->buffer;
     void* remote_large_prt = request->buffer_large;
@@ -1814,9 +1837,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-
+    // The reason why we have no signal but polling the buffer is that we may
+    // poll some completion of other threads RDMA write.
     rdma_mg->RDMA_Read(&remote_mr, &large_recv_mr,
-    request->content.sstCompact.buffer_size + 1, client_ip, 0,0);
+                       request->content.sstCompact.buffer_size + 1, client_ip,
+                       0, 0, target_node_id);
     size_t counter = 0;
     // polling the finishing bit for compaction task transmission.
     while (*(unsigned char*)polling_byte == 0){
@@ -1903,7 +1928,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write_Imme(remote_large_prt, remote_large_rkey,
                              &large_send_mr, serilized_ve.size() + 1, client_ip,
-                             IBV_SEND_SIGNALED, 1, imm_num);
+                             IBV_SEND_SIGNALED, 1, imm_num, target_node_id);
 #ifndef NDEBUG
     debug_counter.fetch_add(1);
 #endif
@@ -1982,22 +2007,23 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     delete compact;
     delete (Arg_for_handler*) arg;
   }
-
+  // THis funciton is deprecated now
   void Memory_Node_Keeper::qp_reset_handler(RDMA_Request* request,
                                             std::string& client_ip,
-                                            int socket_fd) {
+                                            int socket_fd,
+                                            uint8_t target_node_id) {
     ibv_mr send_mr;
     char temp_receive[2];
     char temp_send[] = "Q";
 //    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, "message");
 //    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
     //reset the qp state.
-    ibv_qp* qp = rdma_mg->res->qp_map.at(client_ip);
+    ibv_qp* qp = rdma_mg->qp_map_Mside.at(client_ip);
     printf("qp number before reset is %d\n", qp->qp_num);
 
 
     rdma_mg->modify_qp_to_reset(qp);
-    rdma_mg->connect_qp(qp, client_ip);
+    rdma_mg->connect_qp(qp, client_ip, 0);
     printf("qp number after reset is %d\n", qp->qp_num);
     //NOte: This is not correct because we did not recycle the receive mr, so we also
     //  need to repost the receive wr and start from mr #1
@@ -2010,7 +2036,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, "message");
   }
   void Memory_Node_Keeper::sync_option_handler(RDMA_Request* request,
-                                               std::string& client_ip) {
+                                               std::string& client_ip,
+                                               uint8_t target_node_id) {
     DEBUG("SYNC option \n");
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
@@ -2031,8 +2058,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+    rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
+                        sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
 
     while (*(unsigned char*)polling_byte == 0){
       _mm_clflush(polling_byte);
@@ -2058,7 +2085,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   }
   void Memory_Node_Keeper::Edit_sync_to_remote(
       VersionEdit* edit, std::string& client_ip,
-      std::unique_lock<std::mutex>* version_mtx) {
+      std::unique_lock<std::mutex>* version_mtx, uint8_t target_node_id) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
 
 //  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -2083,10 +2110,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     send_pointer->content.ive.file_number = file_number;
     send_pointer->content.ive.node_id = node_id;
 //    send_pointer->content.ive.version_id = versions_->version_id;
-    rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+    rdma_mg->post_send<RDMA_Request>(&send_mr, target_node_id, client_ip);
     version_mtx->unlock();
     ibv_wc wc[2] = {};
-    if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
+    if (rdma_mg->poll_completion(wc, 1, client_ip, true, target_node_id)){
       fprintf(stderr, "failed to poll send for remote memory register\n");
       return;
     }
@@ -2120,12 +2147,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->post_send<RDMA_Request>(&send_mr, client_ip);
+    rdma_mg->post_send<RDMA_Request>(&send_mr, target_node_id, client_ip);
     //TODO: Think of a better way to avoid deadlock and guarantee the same
     // sequence of verision edit between compute node and memory server.
     version_mtx->unlock();
     ibv_wc wc[2] = {};
-    if (rdma_mg->poll_completion(wc, 1, client_ip,true)){
+    if (rdma_mg->poll_completion(wc, 1, client_ip, true, target_node_id)){
       fprintf(stderr, "failed to poll send for remote memory register\n");
       return;
     }
@@ -2150,7 +2177,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
-                        &send_mr_ve, serilized_ve.size() + 1, client_ip, IBV_SEND_SIGNALED,1);
+                        &send_mr_ve, serilized_ve.size() + 1, client_ip,
+                        IBV_SEND_SIGNALED, 1, target_node_id);
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
     rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
   }

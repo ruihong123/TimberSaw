@@ -105,7 +105,7 @@ struct RemoteMemTableMetaData {
 class VersionEdit {
  public:
   typedef std::set<std::tuple<int, uint64_t, uint8_t>> DeletedFileSet;
-  VersionEdit() { Clear(); }
+  VersionEdit(uint8_t node_id) :node_id_(node_id) { Clear(); }
   ~VersionEdit() = default;
 
   void Clear();
@@ -193,11 +193,12 @@ class VersionEdit {
   int compactlevel(){
     return std::get<0>(*deleted_files_.begin());
   }
+  uint8_t GetNodeID(){return node_id_;}
  private:
   friend class VersionSet;
   // level, file number, node_id
 
-
+  uint8_t node_id_;
   std::string comparator_;
   uint64_t log_number_;
   uint64_t prev_log_number_;

@@ -428,7 +428,8 @@ void TableBuilder_BACS::FlushData(){
   if (r->data_inuse_start == -1){
     // first time flush
     assert(r->data_inuse_end == -1 && r->local_data_mr.size() == 2);
-    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[0], msg_size,
+                        r->type_string_, IBV_SEND_SIGNALED, 0, 0);
     r->data_inuse_end = 0;
     r->data_inuse_start = 0;
     r->data_inuse_empty = false;
@@ -442,7 +443,7 @@ void TableBuilder_BACS::FlushData(){
     auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
     poll_num = rdma_mg->try_poll_this_thread_completions(
-        wc, maximum_poll_number, r->type_string_, true);
+        wc, maximum_poll_number, r->type_string_, true, 0);
     // move the start index
     r->data_inuse_start += poll_num;
     if(r->data_inuse_start >= r->local_data_mr.size()){
@@ -452,7 +453,8 @@ void TableBuilder_BACS::FlushData(){
 
     //move forward the end of the outstanding buffer
     r->data_inuse_end = r->data_inuse_end == r->local_data_mr.size()-1 ? 0:r->data_inuse_end+1;
-    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
+    rdma_mg->RDMA_Write(remote_mr, r->local_data_mr[r->data_inuse_end],
+                        msg_size, r->type_string_, IBV_SEND_SIGNALED, 0, 0);
     //Check whether there is available buffer to serialize the memtable onto,
     // if not allocate a new one and insert it to the vector
     if (r->data_inuse_start - r->data_inuse_end == 1 ||
@@ -511,7 +513,8 @@ void TableBuilder_BACS::FlushDataIndex(size_t msg_size) {
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size,
+                      r->type_string_, IBV_SEND_SIGNALED, 0, 0);
   remote_mr->length = msg_size;
   if(r->remote_dataindex_mrs.empty()){
     r->remote_dataindex_mrs.insert({1, remote_mr});
@@ -529,7 +532,8 @@ void TableBuilder_BACS::FlushFilter(size_t& msg_size) {
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
   rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
-  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size, r->type_string_,IBV_SEND_SIGNALED, 0);
+  rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size,
+                      r->type_string_, IBV_SEND_SIGNALED, 0, 0);
   remote_mr->length = msg_size;
   if(r->remote_filter_mrs.empty()){
     r->remote_filter_mrs.insert({1, remote_mr});
@@ -618,13 +622,14 @@ Status TableBuilder_BACS::Finish() {
     num_of_poll = num_of_poll + 1;
   }
   ibv_wc wc[num_of_poll];
-  r->options.env->rdma_mg->poll_completion(wc, num_of_poll, r->type_string_,
-                                           true); //it does not matter whether it is true or false
+  r->options.env->rdma_mg->poll_completion(
+      wc, num_of_poll, r->type_string_, true,
+      0); //it does not matter whether it is true or false
 #ifndef NDEBUG
   usleep(10);
   int check_poll_number =
       r->options.env->rdma_mg->try_poll_this_thread_completions(
-          wc, 1, r->type_string_, true);
+          wc, 1, r->type_string_, true, 0);
   assert( check_poll_number == 0);
 #endif
   //  printf("A table finsihed flushing\n");

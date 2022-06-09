@@ -174,22 +174,28 @@ class Memory_Node_Keeper {
   Status InstallCompactionResultsToComputePreparation(CompactionState* compact);
   int server_sock_connect(const char* servername, int port);
   void server_communication_thread(std::string client_ip, int socket_fd);
-  void create_mr_handler(RDMA_Request* request, std::string& client_ip);
-  void create_qp_handler(RDMA_Request* request, std::string& client_ip);
+  void create_mr_handler(RDMA_Request* request, std::string& client_ip,
+                         uint8_t target_node_id);
+  void create_qp_handler(RDMA_Request* request, std::string& client_ip,
+                         uint8_t target_node_id);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }
-  void install_version_edit_handler(RDMA_Request* request, std::string& client_ip);
+  void install_version_edit_handler(RDMA_Request* request,
+                                    std::string& client_ip,
+                                    uint8_t target_node_id);
   void sst_garbage_collection(void* arg);
 
   void sst_compaction_handler(void* arg);
 
   void qp_reset_handler(RDMA_Request* request, std::string& client_ip,
-                        int socket_fd);
-  void sync_option_handler(RDMA_Request* request, std::string& client_ip);
+                        int socket_fd, uint8_t target_node_id);
+  void sync_option_handler(RDMA_Request* request, std::string& client_ip,
+                           uint8_t target_node_id);
   void version_unpin_handler(RDMA_Request* request, std::string& client_ip);
   void Edit_sync_to_remote(VersionEdit* edit, std::string& client_ip,
-                           std::unique_lock<std::mutex>* version_mtx);
+                           std::unique_lock<std::mutex>* version_mtx,
+                           uint8_t target_node_id);
 };
 }
 #endif  // TimberSaw_HOME_NODE_KEEPER_H

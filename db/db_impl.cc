@@ -188,9 +188,11 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
+    for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
+      main_comm_threads.emplace_back(
+          &DBImpl::client_message_polling_and_handling_thread, this, "main", 2*i);
+    }
 
-    main_comm_threads.emplace_back(
-    &DBImpl::client_message_polling_and_handling_thread, this, "main");
     printf("communication thread created\n");
     //Wait for the clearance of pending receive work request from the last DB open.
     {
@@ -222,7 +224,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //
 //        if (rdma_mg->res->qp_map.find(trial) != rdma_mg->res->qp_map.end()){
 //          ibv_qp* qp = rdma_mg->res->qp_map.at(trial);
-//          assert(rdma_mg->res->qp_connection_info.find(trial)!= rdma_mg->res->qp_connection_info.end());
+//          assert(rdma_mg->res->qp_main_connection_info.find(trial)!= rdma_mg->res->qp_main_connection_info.end());
 //          l.unlock();
 //          rdma_mg->modify_qp_to_reset(qp);
 //          rdma_mg->connect_qp(qp, trial);
@@ -356,7 +358,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   }
 }
 Status DBImpl::NewDB() {
-  VersionEdit new_db;
+  VersionEdit new_db(0);
   new_db.SetComparatorName(user_comparator()->Name());
   new_db.SetLogNumber(0);
   new_db.SetNextFile(2);
@@ -876,7 +878,7 @@ void DBImpl::CompactMemTable() {
   //TOTHINK What will happen if we remove the mutex in the future?
 
   // Save the contents of the memtable as a new Table
-  VersionEdit edit;
+  VersionEdit edit(0);
 //  Version* base = versions_->current();
   // wait for the ongoing writes for 1 millisecond.
   size_t counter = 0;
@@ -1872,9 +1874,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 #endif
-  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, std::string("main"));
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, 0)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -1980,7 +1982,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 //  assert(*(unsigned char*)recv_mr_c.addr == 6);
-  VersionEdit edit;
+  VersionEdit edit(0);
   edit.DecodeFrom(Slice((char*)mr_c.addr, buffer_size), 0, table_cache_);
 
 //  auto edit_files_vec = edit.GetNewFiles();
@@ -2055,10 +2057,10 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 //  sleep(1);
-  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, std::string("main"));
 
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, 0)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -2079,12 +2081,13 @@ void DBImpl::sync_option_to_remote() {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
-                      &send_mr_ve, sizeof(options_) + 1, "main", IBV_SEND_SIGNALED,1);
+                      &send_mr_ve, sizeof(options_) + 1, "main",
+                      IBV_SEND_SIGNALED, 1, 0);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 }
-void DBImpl::remote_qp_reset(std::string& q_id){
+void DBImpl::remote_qp_reset(std::string& qp_type, uint8_t target_node_id) {
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   RDMA_Request* send_pointer;
   char temp_receive[2];
@@ -2101,20 +2104,21 @@ void DBImpl::remote_qp_reset(std::string& q_id){
 //  receive_pointer = (RDMA_Reply*)receive_mr.addr;
   //Clear the reply buffer for the polling.
 //  *receive_pointer = {};
-  rdma_mg->post_send<RDMA_Request>(&send_mr, q_id);
+  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, qp_type);
 
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, q_id,true)){
+  if (rdma_mg->poll_completion(wc, 1, qp_type, true, 0)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
   // Use out of bind socket to sync two sides
-  rdma_mg->sock_sync_data(rdma_mg->res->sock_map[q_id.c_str()], 1, temp_send,temp_receive);
+  rdma_mg->sock_sync_data(rdma_mg->res->sock_map[target_node_id], 1, temp_send,temp_receive);
 //  rdma_mg->poll_reply_buffer(receive_pointer);
 //  printf("polled reply buffer\n");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
 }
-void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
+void DBImpl::client_message_polling_and_handling_thread(
+    std::string q_id, uint8_t target_node_id) {
 
     ibv_qp* qp;
     int rc = 0;
@@ -2125,11 +2129,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 //    assert(!shutting_down_.load());
     if (q_id == "read_local"){
       assert(false);// Never comes to here
-      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
-      if (qp == NULL) {
-        //if qp not exist create a new qp
-        rdma_mg->Remote_Query_Pair_Connection(q_id);
-        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read->Get());
+      auto* qp_map = ((QP_Map*)rdma_mg->qp_local_read->Get());
+      if (qp_map->find(target_node_id) != qp_map->end()){
+        qp = qp_map->at(target_node_id);
       }else{
         // if the qp has already been existed re initialize the qp to clear the old WRQs.
         assert(rdma_mg->local_read_qp_info->Get() != nullptr);
@@ -2137,20 +2139,19 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 //        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_flush"){
-      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
-      if (qp == NULL) {
-        rdma_mg->Remote_Query_Pair_Connection(q_id);
-        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush->Get());
+      assert(false);// Never comes to here
+      auto* qp_map = ((QP_Map*)rdma_mg->qp_local_write_flush->Get());
+      if (qp_map->find(target_node_id) != qp_map->end()){
+        qp = qp_map->at(target_node_id);
       }else{
         assert(rdma_mg->local_write_flush_qp_info->Get() != nullptr);
 //        rdma_mg->modify_qp_to_reset(qp);
 //        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_compact"){
-      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
-      if (qp == NULL) {
-        rdma_mg->Remote_Query_Pair_Connection(q_id);
-        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact->Get());
+      auto* qp_map = ((QP_Map*)rdma_mg->qp_local_write_compact->Get());
+      if (qp_map->find(target_node_id) != qp_map->end()){
+        qp = qp_map->at(target_node_id);
       }else{
         assert(rdma_mg->local_write_compact_qp_info->Get() != nullptr);
 //        rdma_mg->modify_qp_to_reset(qp);
@@ -2159,19 +2160,19 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     } else {
       std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
 
-      if (rdma_mg->res->qp_map.find(q_id) != rdma_mg->res->qp_map.end()){
+      if (rdma_mg->res->qp_map.find(target_node_id) != rdma_mg->res->qp_map.end()){
 //        qp = rdma_mg->res->qp_map.at(q_id);
 //        printf("qp number before reset is %d\n", qp->qp_num);
-//        assert(rdma_mg->res->qp_connection_info.find(q_id)!= rdma_mg->res->qp_connection_info.end());
+//        assert(rdma_mg->res->qp_main_connection_info.find(q_id)!= rdma_mg->res->qp_main_connection_info.end());
 //        l.unlock();
 //        rdma_mg->modify_qp_to_reset(qp);
 //        rdma_mg->connect_qp(qp, q_id);
 //        printf("qp number after reset is %d\n", qp->qp_num);
       }else{
         l.unlock();
-        rdma_mg->Remote_Query_Pair_Connection(q_id);
+        rdma_mg->Remote_Query_Pair_Connection(q_id, target_node_id);
         l.lock();
-        qp = rdma_mg->res->qp_map.at(q_id);
+        qp = rdma_mg->res->qp_map.at(target_node_id);
         l.unlock();
       }
 
@@ -2181,9 +2182,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     int buffer_counter;
     //TODO: keep the recv mr in rdma manager so that next time we restart
     // the database we can retrieve from the rdma_mg.
-    if (rdma_mg->comm_thread_recv_mrs.find(q_id) != rdma_mg->comm_thread_recv_mrs.end()){
-      recv_mr = rdma_mg->comm_thread_recv_mrs.at(q_id);
-      buffer_counter = rdma_mg->comm_thread_buffer.at(q_id);
+    if (rdma_mg->comm_thread_recv_mrs.find(target_node_id) != rdma_mg->comm_thread_recv_mrs.end()){
+      recv_mr = rdma_mg->comm_thread_recv_mrs.at(target_node_id);
+      buffer_counter = rdma_mg->comm_thread_buffer.at(target_node_id);
     }else{
       // Some where we need to delete the recv_mr in case of memory leak.
       ibv_mr* recv_mr = new ibv_mr[R_SIZE]();
@@ -2192,10 +2193,10 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
       for(int i = 0; i<R_SIZE; i++) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], q_id);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], 0, q_id);
       }
       buffer_counter = 0;
-      rdma_mg->comm_thread_recv_mrs.insert({q_id, recv_mr});
+      rdma_mg->comm_thread_recv_mrs.insert({target_node_id, recv_mr});
     }
     printf("Start to sync options\n");
     sync_option_to_remote();
@@ -2211,7 +2212,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     while (!shutting_down_.load()) {
       // we can only use try_poll... rather than poll_com.. because we need to
       // make sure the shutting down signal can work.
-      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false)>0){
+      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false, target_node_id) >0){
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
           std::unique_lock<std::mutex> lck(mtx_temp);
@@ -2224,7 +2225,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
           while (imm_data != 0 || byte_len != 0 ){
             cv_temp.notify_one();
           }
-          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                              "main");
           // increase the buffer index
           if (buffer_counter== R_SIZE-1 ){
             buffer_counter = 0;
@@ -2241,7 +2243,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         // it is the same with send buff pointer.
         if (receive_msg_buf->command == install_version_edit) {
           ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
-          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+                                              "main");
           install_version_edit_handler(receive_msg_buf, q_id);
 #ifdef WITHPERSISTENCE
         } else if(receive_msg_buf->command == persist_unpin_) {
@@ -2274,7 +2277,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     }
 
 //    remote_qp_reset(q_id);
-    rdma_mg->comm_thread_buffer.insert({q_id, buffer_counter});
+    rdma_mg->comm_thread_buffer.insert({target_node_id, buffer_counter});
 //    sleep(1);
 //    for (int i = 0; i < R_SIZE; ++i) {
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
@@ -2325,7 +2328,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->post_send<RDMA_Request>(&send_mr, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, std::string("main"));
 //  end = std::chrono::high_resolution_clock::now();
 //  duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
 //  printf("Sync version edit time elapse: %ld us part 3 memcopy and WR post\n", duration.count());
@@ -2341,7 +2344,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
 //  version_mtx->unlock();
 
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"),true)){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, edit->GetNodeID())){
     fprintf(stderr, "failed to poll send for edit version edit sync\n");
     return;
   }
@@ -2370,7 +2373,8 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
-                      &send_mr_ve, serilized_ve.size() + 1, "main", IBV_SEND_SIGNALED,1);
+                      &send_mr_ve, serilized_ve.size() + 1, "main",
+                      IBV_SEND_SIGNALED, 1, 0);
   //TODO: implement a wait function for the received bit. THe problem is when to
   // reset the buffer to zero (we may need different buffer for the compaction reply)
   // and how to make sure that the reply will wake up this waiting thread. The
@@ -2395,7 +2399,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
     auto f = versions_->current()->FindFileByNumber(request->content.ive.level, request->content.ive.file_number,
                                    request->content.ive.node_id);
 //    lck.unlock();
-    VersionEdit edit;
+    VersionEdit edit(0);
     edit.RemoveFile(request->content.ive.level, f->number, f->creator_node_id);
     edit.AddFile(request->content.ive.level + 1, f);
     f->level = f->level +1;
@@ -2440,8 +2444,9 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
     asm volatile ("sfence\n" : : );
     asm volatile ("lfence\n" : : );
     asm volatile ("mfence\n" : : );
-    rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                        &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
+    rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
+                        sizeof(RDMA_Reply), std::move(client_ip),
+                        IBV_SEND_SIGNALED, 1, 0);
     DEBUG_arg("install non-trival version, version id is %lu\n", request->content.ive.version_id);
     size_t counter = 0;
     while (*(unsigned char*)polling_byte != check_byte){
@@ -2460,7 +2465,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
 #ifndef NDEBUG
     printf("Get the printed result after %zu iteration, received %d, checkbyte is %d\n", counter, send_pointer->received, check_byte);
 #endif
-    VersionEdit version_edit;
+    VersionEdit version_edit(0);
     version_edit.DecodeFrom(
         Slice((char*)edit_recv_mr.addr, request->content.ive.buffer_size), 0,
         table_cache_);
@@ -3903,7 +3908,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
 
   DBImpl* impl = new DBImpl(options, dbname);
   impl->undefine_mutex.Lock();
-  VersionEdit edit;
+  VersionEdit edit(0);
   // Recover handles create_if_missing, error_if_exists
   bool save_manifest = false;
   Status s = impl->Recover(&edit, &save_manifest);

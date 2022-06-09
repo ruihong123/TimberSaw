@@ -129,7 +129,7 @@ static void VersionEditPrinter(uint64_t pos, Slice record, WritableFile* dst) {
   std::string r = "--- offset ";
   AppendNumberTo(&r, pos);
   r += "; ";
-  VersionEdit edit;
+  VersionEdit edit(0);
   Status s = edit.DecodeFrom(record, 0, nullptr);
   if (!s.ok()) {
     r += s.ToString();

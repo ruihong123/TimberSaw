@@ -153,8 +153,8 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
-    rdma_mg->RDMA_Read(&remote_mr, &contents, n + kBlockTrailerSize,
-                     "read_local", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(&remote_mr, &contents, n + kBlockTrailerSize, "read_local",
+                     IBV_SEND_SIGNALED, 1, 0);
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -278,8 +278,8 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
 #ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
-  rdma_mg->RDMA_Read(&remote_mr, &contents, n,
-                     "read_local", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(&remote_mr, &contents, n, "read_local", IBV_SEND_SIGNALED,
+                     1, 0);
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -314,7 +314,8 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   assert(n + kBlockTrailerSize < rdma_mg->name_to_chunksize.at(IndexChunk));
   ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk);
-  rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local",
+                     IBV_SEND_SIGNALED, 1, 0);
 
 //  printf("Fetch a Index Block");
 
@@ -385,7 +386,8 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   assert(n + kBlockTrailerSize < rdma_mg->name_to_chunksize.at(FilterChunk));
   ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, FilterChunk);
-  rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local", IBV_SEND_SIGNALED, 1);
+  rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local",
+                     IBV_SEND_SIGNALED, 1, 0);
 
   // Check the crc of the type and the block contents
   const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
