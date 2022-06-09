@@ -854,21 +854,23 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 //  rdma_config.server_name = ip_add.c_str();
   /* if client side */
   printf("Mark: valgrind socket info1\n");
+  if (resources_create()) {
+    fprintf(stderr, "failed to create resources\n");
+    return;
+  }
   for(int i = 0; i < memory_nodes.size(); i++){
-    res->sock_map[2*i] =
+    uint8_t target_node_id =  2*i;
+    res->sock_map[target_node_id] =
         client_sock_connect(memory_nodes[i].c_str(), rdma_config.tcp_port);
-
-    if (res->sock_map[2*i] < 0) {
+    printf("connect to node id %d", target_node_id);
+    if (res->sock_map[target_node_id] < 0) {
       fprintf(stderr,
               "failed to establish TCP connection to server %s, port %d\n",
               rdma_config.server_name, rdma_config.tcp_port);
     }
 
-    if (resources_create()) {
-      fprintf(stderr, "failed to create resources\n");
-      return;
-    }
-    Get_Remote_qp_Info_Then_Connect(2*i);
+
+    Get_Remote_qp_Info_Then_Connect(target_node_id);
   }
 
 }
