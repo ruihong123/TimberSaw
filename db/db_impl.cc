@@ -2129,33 +2129,36 @@ void DBImpl::client_message_polling_and_handling_thread(
 //    assert(!shutting_down_.load());
     if (q_id == "read_local"){
       assert(false);// Never comes to here
-      auto* qp_map = ((QP_Map*)rdma_mg->qp_local_read->Get());
-      if (qp_map->find(target_node_id) != qp_map->end()){
-        qp = qp_map->at(target_node_id);
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(target_node_id)->Get());
+      if (qp == NULL) {
+        //if qp not exist create a new qp
+        rdma_mg->Remote_Query_Pair_Connection(q_id,target_node_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(target_node_id)->Get());
       }else{
         // if the qp has already been existed re initialize the qp to clear the old WRQs.
-        assert(rdma_mg->local_read_qp_info->Get() != nullptr);
-//        rdma_mg->modify_qp_to_reset(qp);
-//        rdma_mg->connect_qp(qp, q_id);
+        assert(rdma_mg->local_read_qp_info.at(target_node_id)->Get() != nullptr);
+        //        rdma_mg->modify_qp_to_reset(qp);
+        //        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_flush"){
-      assert(false);// Never comes to here
-      auto* qp_map = ((QP_Map*)rdma_mg->qp_local_write_flush->Get());
-      if (qp_map->find(target_node_id) != qp_map->end()){
-        qp = qp_map->at(target_node_id);
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush.at(target_node_id)->Get());
+      if (qp == NULL) {
+        rdma_mg->Remote_Query_Pair_Connection(q_id, target_node_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush.at(target_node_id)->Get());
       }else{
-        assert(rdma_mg->local_write_flush_qp_info->Get() != nullptr);
-//        rdma_mg->modify_qp_to_reset(qp);
-//        rdma_mg->connect_qp(qp, q_id);
+        assert(rdma_mg->local_write_flush_qp_info.at(target_node_id)->Get() != nullptr);
+        //        rdma_mg->modify_qp_to_reset(qp);
+        //        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_compact"){
-      auto* qp_map = ((QP_Map*)rdma_mg->qp_local_write_compact->Get());
-      if (qp_map->find(target_node_id) != qp_map->end()){
-        qp = qp_map->at(target_node_id);
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact.at(target_node_id)->Get());
+      if (qp == NULL) {
+        rdma_mg->Remote_Query_Pair_Connection(q_id, target_node_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact.at(target_node_id)->Get());
       }else{
-        assert(rdma_mg->local_write_compact_qp_info->Get() != nullptr);
-//        rdma_mg->modify_qp_to_reset(qp);
-//        rdma_mg->connect_qp(qp, q_id);
+        assert(rdma_mg->local_write_compact_qp_info.at(target_node_id)->Get() != nullptr);
+        //        rdma_mg->modify_qp_to_reset(qp);
+        //        rdma_mg->connect_qp(qp, q_id);
       }
     } else {
       std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
