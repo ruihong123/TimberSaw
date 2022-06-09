@@ -262,6 +262,7 @@ class DBImpl : public DB {
 //  SpinMutex spin_memtable_switch_mutex;
   std::atomic<bool> shutting_down_;
   std::condition_variable write_stall_cv;
+  int main_comm_thread_ready_num = 0;
   std::mutex FlushPickMTX;
   // THE Mutex will protect both memlist and the superversion pointer.
   std::mutex superversion_memlist_mtx;

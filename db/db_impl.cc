@@ -2207,7 +2207,11 @@ void DBImpl::client_message_polling_and_handling_thread(
       check_and_clear_pending_recvWR = true;
 
     }
-    write_stall_cv.notify_all();
+    main_comm_thread_ready_num++;
+    if (main_comm_thread_ready_num == rdma_mg->memory_nodes.size()){
+      write_stall_cv.notify_all();
+    }
+
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
       // we can only use try_poll... rather than poll_com.. because we need to
