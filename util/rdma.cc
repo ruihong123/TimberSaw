@@ -830,7 +830,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   std::string connection_conf;
   size_t pos = 0;
   std::ifstream myfile;
-  myfile.open ("../connection.conf");
+  myfile.open ("../connection_bigdata.conf");
   std::string space_delimiter = " ";
 
   std::getline(myfile,connection_conf );
