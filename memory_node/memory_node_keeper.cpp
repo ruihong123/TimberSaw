@@ -1427,6 +1427,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         // stop sending back messasges. The compute node may not reconnect its qp yet!
       } else {
         printf("corrupt message from client. %d\n", receive_msg_buf->command);
+        assert(false);
         break;
       }
       // increase the buffer index
