@@ -222,6 +222,7 @@ class TimberSaw_EXPORT Env {
   // Sleep/delay the thread for the prescribed number of micro-seconds.
   virtual void SleepForMicroseconds(int micros) = 0;
   virtual void SetBackgroundThreads(int num,  ThreadPoolType type) = 0;
+//  RDMA_Manager* rdma_mg;
   std::shared_ptr<RDMA_Manager> rdma_mg;
   bool initialized = false;
 };

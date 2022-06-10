@@ -1305,6 +1305,9 @@ int main(int argc, char** argv) {
       FLAGS_benchmarks = argv[i] + strlen("--benchmarks=");
     } else if (sscanf(argv[i], "--compression_ratio=%lf%c", &d, &junk) == 1) {
       FLAGS_compression_ratio = d;
+    } else if (sscanf(argv[i], "--compute_node_id=%d%c", &n, &junk) == 1) {
+      //Set Node id to RDMA manager's static value directly.
+      TimberSaw::RDMA_Manager::node_id = 2*n+1;
     } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_histogram = n;

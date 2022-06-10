@@ -137,6 +137,7 @@ class Memory_Node_Keeper {
     return ::access(filename.c_str(), F_OK) == 0;
   }
   static std::shared_ptr<RDMA_Manager> rdma_mg;
+//  RDMA_Manager* rdma_mg;
  private:
   int pr_size;
   std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;

@@ -10,6 +10,7 @@ int main(int argc,char* argv[])
   if (argc == 3){
     uint32_t tcp_port;
     int pr_size;
+    int Memory_server_id;
     char* value = argv[1];
     std::stringstream strValue1;
     strValue1 << value;
@@ -19,9 +20,17 @@ int main(int argc,char* argv[])
     //  strValue.str("");
     strValue2 << value;
     strValue2 >> pr_size;
+
      mn_keeper = new TimberSaw::Memory_Node_Keeper(true, tcp_port, pr_size);
+     value = argv[3];
+     std::stringstream strValue3;
+     //  strValue.str("");
+     strValue3 << value;
+     strValue3 >> Memory_server_id;
+     TimberSaw::RDMA_Manager::node_id = 2* Memory_server_id;
   }else{
     mn_keeper = new TimberSaw::Memory_Node_Keeper(true, 19843, 88);
+    TimberSaw::RDMA_Manager::node_id = 1;
   }
 
   mn_keeper->SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);

@@ -177,7 +177,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
   value_ = Slice(iter_ptr, value_size);
   iter_ptr += value_size;
   iter_offset += value_size;
-  DEBUG_arg("Iterator now is at %p \n", iter_ptr);
+//  DEBUG_arg("Iterator now is at %p \n", iter_ptr);
 //  iter_offset += key_size + value_size + 2*sizeof(uint32_t);
   assert(iter_ptr - (char*)prefetched_mr->addr <= remote_mr_current.length);
 }

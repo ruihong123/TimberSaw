@@ -35,7 +35,8 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     //  size_t write_block_size = 4*1024*1024;
     //  size_t read_block_size = 4*1024;
     size_t table_size = 10*1024*1024;
-    rdma_mg = std::make_shared<RDMA_Manager>(config, table_size, 1); //set memory server node id as 1.
+    rdma_mg = std::make_shared<RDMA_Manager>(config, table_size); //set memory server node id as 1.
+//    rdma_mg = new RDMA_Manager(config, table_size);
     rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
     rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK, 0);

@@ -502,6 +502,7 @@ class PosixEnv : public Env {
         "PosixEnv singleton destroyed. Unsupported behavior!\n";
     std::fwrite(msg, 1, sizeof(msg), stderr);
     std::abort();
+//    delete rdma_mg;
   }
 
   Status NewSequentialFile(const std::string& filename,

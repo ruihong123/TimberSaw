@@ -33,7 +33,8 @@ PosixEnv::PosixEnv()
   size_t remote_block_size = RDMA_WRITE_BLOCK;
   //Initialize the rdma manager, the remote block size will be configured in the beggining.
   // remote block size will always be the same.
-  rdma_mg = std::make_shared<RDMA_Manager>(config, remote_block_size, 0);
+  rdma_mg = std::make_shared<RDMA_Manager>(config, remote_block_size);
+//  rdma_mg = new RDMA_Manager(config, remote_block_size);
   // Unlike the remote block size, the local block size is adjustable, and there could be different
   // local memory pool with different size. each size of memory pool will have an ID below is "4k"
 

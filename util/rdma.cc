@@ -4,6 +4,7 @@
 #include "TimberSaw/env.h"
 
 namespace TimberSaw {
+uint8_t RDMA_Manager::node_id = 1;
 #ifdef PROCESSANALYSIS
 std::atomic<uint64_t> RDMA_Manager::RDMAReadTimeElapseSum = 0;
 std::atomic<uint64_t> RDMA_Manager::ReadCount = 0;
@@ -46,8 +47,7 @@ void General_Destroy(void* ptr){
 * Description
 * Initialize the resource for RDMA.
 ******************************************************************************/
-RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
-                           uint8_t nodeid)
+RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
     : total_registered_size(0),
       Table_Size(remote_block_size),
       //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
@@ -60,7 +60,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size,
 //      qp_local_read(new ThreadLocalPtr(&UnrefHandle_qp)),
 //      cq_local_read(new ThreadLocalPtr(&UnrefHandle_cq)),
 //      local_read_qp_info(new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)),
-      node_id(nodeid),
+//      node_id(nodeid),
       rdma_config(config)
 //      db_name_(db_name),
 //      file_to_sst_meta_(file_to_sst_meta),
@@ -651,7 +651,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
                                          ibv_mr** p2mrpointer, size_t size,
                                          Chunk_type pool_name) {
   int mr_flags = 0;
-  if (node_id == 0 || pre_allocated_pool.empty()){
+  if (node_id%2 == 1 || pre_allocated_pool.empty()){
 
     *p2buffpointer = new char[size];
     if (!*p2buffpointer) {
@@ -845,21 +845,20 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 
   std::getline(myfile,connection_conf );
   uint8_t i = 0;
-  uint8_t node_id;
+  uint8_t id;
   while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
-    node_id = 2*i + 1;
-    compute_nodes.insert({node_id, connection_conf.substr(0, pos)});
+    id = 2*i + 1;
+    compute_nodes.insert({id, connection_conf.substr(0, pos)});
     connection_conf.erase(0, pos + space_delimiter.length());
     i++;
   }
   compute_nodes.insert({2*i+1, connection_conf});
-  i++;
-
+  assert((node_id - 1)/2 <  compute_nodes.size());
   i = 0;
   std::getline(myfile,connection_conf );
   while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
-    node_id = 2*i;
-    memory_nodes.insert({node_id, connection_conf.substr(0, pos)});
+    id = 2*i;
+    memory_nodes.insert({id, connection_conf.substr(0, pos)});
     connection_conf.erase(0, pos + space_delimiter.length());
     i++;
   }
@@ -2741,7 +2740,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
       Local_Memory_Register(&buff, &mr,
   name_to_allocated_size.at(pool_name) == 0 ?
       1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
-      if (node_id == 0)
+      if (node_id%2 == 1)
         printf("Memory used up, Initially, allocate new one, memory pool is %s, total memory this pool is %lu\n",
                EnumStrings[pool_name], name_to_mem_pool.at(pool_name).size());
     }
@@ -2781,7 +2780,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 
   Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
       1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
-  if (node_id == 0)
+  if (node_id%2 == 1)
     printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
            EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
            Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)

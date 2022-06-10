@@ -200,62 +200,6 @@ struct atomwrapper {
   }
 };
 
-//class In_Use_Array {
-// public:
-//  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
-//      : element_size_(size), chunk_size_(chunk_size), mr_ori_(mr_ori) {
-//    in_use_ = new std::atomic<bool>[element_size_];
-//    for (size_t i = 0; i < element_size_; ++i) {
-//      in_use_[i] = false;
-//    }
-//  }
-//  In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori,
-//               std::atomic<bool>* in_use)
-//      : element_size_(size),
-//        chunk_size_(chunk_size),
-//        in_use_(in_use),
-//        mr_ori_(mr_ori) {}
-//  int allocate_memory_slot() {
-//    for (int i = 0; i < static_cast<int>(element_size_); ++i) {
-//      //      auto start = std::chrono::high_resolution_clock::now();
-//      bool temp = in_use_[i];
-//      if (temp == false) {
-//        //        auto stop = std::chrono::high_resolution_clock::now();
-//        //        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); std::printf("Compare and swap time duration is %ld \n", duration.count());
-//        if (in_use_[i].compare_exchange_strong(temp, true)) {
-//          //          std::cout << "chunk" <<i << "was changed to true" << std::endl;
-//
-//          return i;  // find the empty slot then return the index for the slot
-//        }
-//        //        else
-//        //          std::cout << "Compare and swap fail" << "i equals" << i  << "type is" << type_ << std::endl;
-//      }
-//    }
-//    return -1;  // Not find the empty memory chunk.
-//  }
-//  bool deallocate_memory_slot(size_t index) {
-//    bool temp = true;
-//    assert(in_use_[index] == true);
-//    assert(index < element_size_);
-//    //    std::cout << "chunk" <<index << "was changed to false" << std::endl;
-//    while (!in_use_[index].compare_exchange_strong(temp, false));
-//    return true;
-//  }
-//  size_t get_chunk_size() { return chunk_size_; }
-//  ibv_mr* get_mr_ori() { return mr_ori_; }
-//  size_t get_element_size() { return element_size_; }
-//  std::atomic<bool>* get_inuse_table() { return in_use_; }
-//  //  void deserialization(char*& temp, int& size){
-//  //
-//  //
-//  //  }
-// private:
-//  size_t element_size_;
-//  size_t chunk_size_;
-//  std::atomic<bool>* in_use_;
-//  ibv_mr* mr_ori_;
-//  //  int type_;
-//};
 class In_Use_Array {
  public:
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
@@ -347,40 +291,14 @@ struct IBV_Deleter {
   }
 };
 
-// class QP_Deleter{
-// public:
-//    void operator()(ibv_qp* ptr){
-//        if (ptr == nullptr)
-//            return;
-//        else if (ibv_destroy_qp(static_cast<ibv_qp*>(ptr))) {
-//            fprintf(stderr, "Thread local qp failed to destroy QP\n");
-//        }
-//        else{
-//            printf("thread local qp destroy successfully!");
-//        }
-//    }
-//};
-// class CQ_Deleter {
-// public:
-//    void operator()(ibv_cq* ptr) {
-//        if (ptr == nullptr)
-//            return;
-//        if (ibv_destroy_cq(static_cast<ibv_cq *>(ptr))) {
-//            fprintf(stderr, "Thread local cq failed to destroy QP\n");
-//        } else {
-//            printf("thread local cq destroy successfully!");
-//        }
-//    }
-//};
-// QP_Deleter qpdeleter;
-// CQ_Deleter cqdeleter;
+
 class Memory_Node_Keeper;
 class RDMA_Manager {
 
  public:
   friend class Memory_Node_Keeper;
   friend class DBImpl;
-  RDMA_Manager(config_t config, size_t remote_block_size, uint8_t nodeid);
+  RDMA_Manager(config_t config, size_t remote_block_size);
   //  RDMA_Manager(config_t config) : rdma_config(config){
   //    res = new resources();
   //    res->sock = -1;
@@ -400,7 +318,7 @@ class RDMA_Manager {
   //  bool client_save_serialized_data(const std::string& db_name, char* buff,
   //                                   size_t buff_size, file_type type,
   //                                   ibv_mr* local_data_mr);
-  void client_message_polling_thread();
+//  void client_message_polling_thread();
   void ConnectQPThroughSocket(std::string qp_type, int socket_fd,
                               uint8_t& target_node_id);
   // Local memory register will register RDMA memory in local machine,
@@ -410,6 +328,8 @@ class RDMA_Manager {
   // Set the type of the memory pool. the mempool can be access by the pool name
   bool Mempool_initialize(Chunk_type pool_name, size_t size,
                           size_t allocated_size);
+  //TODO: seperate the local memory registration by different shards. However,
+  // now we can only seperate the registration by different compute node.
   //Allocate memory as "size", then slice the whole region into small chunks according to the pool name
   bool Local_Memory_Register(
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
@@ -418,6 +338,7 @@ class RDMA_Manager {
   bool Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size);
   // The RPC to bulk deallocation.
   void Memory_Deallocation_RPC();
+  //TODO: Make it register not per 1GB, allocate and register the memory all at once.
   bool Preregister_Memory(int gb_number); //Pre register the memroy do not allocate bit map
   // Remote Memory registering will call RDMA send and receive to the remote memory it also push the new SST bit map to the Remote_Mem_Bitmap
   bool Remote_Memory_Register(size_t size, uint8_t target_node_id);
@@ -480,6 +401,7 @@ class RDMA_Manager {
   resources* res = nullptr;
   std::vector<ibv_mr*>
       remote_mem_pool; /* a vector for all the remote memory regions*/
+ // TODO: seperate the pool for different shards
   std::vector<ibv_mr*>
       local_mem_pool; /* a vector for all the local memory regions.*/
   std::list<ibv_mr*> pre_allocated_pool;
@@ -525,7 +447,8 @@ class RDMA_Manager {
   std::unordered_map<Chunk_type, size_t> name_to_chunksize;
   std::unordered_map<Chunk_type, size_t> name_to_allocated_size;
   std::shared_mutex local_mem_mutex;
-  uint8_t node_id;
+  //Compute node is odd, memory node is even.
+  static uint8_t node_id;
   std::unordered_map<uint8_t, ibv_mr*> comm_thread_recv_mrs;
   std::unordered_map<uint8_t , int> comm_thread_buffer;
   uint64_t deallocation_buffer[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)];
