@@ -269,7 +269,7 @@ class DBImpl : public DB {
   // TODO: use read write lock to control the version set mtx.
 //  std::mutex versionset_mtx;
   bool locked = false;
-  bool check_and_clear_pending_recvWR = false;
+//  bool check_and_clear_pending_recvWR = false;
 //  SpinMutex LSMv_mtx;
   std::atomic<MemTable*> mem_;
 //  std::atomic<MemTable*> imm_;  // Memtable being compacted

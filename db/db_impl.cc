@@ -197,7 +197,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     //Wait for the clearance of pending receive work request from the last DB open.
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      while (!check_and_clear_pending_recvWR) {
+      while (main_comm_thread_ready_num != rdma_mg->memory_nodes.size()) {
         printf("Start to sleep\n");
         write_stall_cv.wait(lck);
         printf("Waked up\n");
@@ -2208,14 +2208,10 @@ void DBImpl::client_message_polling_and_handling_thread(
 //    RDMA_Request receive_msg_buf;
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      check_and_clear_pending_recvWR = true;
-
-    }
-    main_comm_thread_ready_num++;
-    if (main_comm_thread_ready_num == rdma_mg->memory_nodes.size()){
+      main_comm_thread_ready_num++;
       write_stall_cv.notify_all();
-    }
 
+    }
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
       // we can only use try_poll... rather than poll_com.. because we need to
