@@ -1426,7 +1426,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
       } else {
-        printf("corrupt message from client.");
+        printf("corrupt message from client. %d\n", receive_msg_buf->command);
         break;
       }
       // increase the buffer index

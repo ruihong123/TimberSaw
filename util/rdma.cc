@@ -267,14 +267,10 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
           close(sockfd);
           sockfd = -1;
         }
+        printf("Success to connect to %s\n", servername);
       } else {
-        /* Server mode. Set up listening socket an accept a connection */
-        listenfd = sockfd;
-        sockfd = -1;
-        if (bind(listenfd, iterator->ai_addr, iterator->ai_addrlen))
-          goto sock_connect_exit;
-        listen(listenfd, 1);
-        sockfd = accept(listenfd, NULL, 0);
+        assert(false);
+
       }
     }
     fprintf(stdout, "TCP connection was established\n");
