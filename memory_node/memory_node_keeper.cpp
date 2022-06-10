@@ -1885,7 +1885,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     auto edit_files_vec = compact->compaction->edit()->GetNewFiles();
     for (auto iter : *edit_files_vec) {
       assert(iter.second->creator_node_id == rdma_mg->node_id);
-      assert(iter.second->creator_node_id == 1);
+      assert(iter.second->creator_node_id%2 == 0);
     }
 #endif
     compact->compaction->edit()->EncodeTo(&serilized_ve);
