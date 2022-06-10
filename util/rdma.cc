@@ -1093,6 +1093,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
     res->qp_main_connection_info.insert({target_node_id,remote_con_data});
   l.unlock();
   connect_qp(qp, qp_type, target_node_id);
+  printf("Finish the connection with node %d\n", target_node_id);
   //  post_receive<int>(res->mr_receive, std::string("main"));
   if (sock_sync_data(res->sock_map[target_node_id], 1, temp_send,
                      temp_receive)) /* just send a dummy char back and forth */
@@ -1652,6 +1653,7 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
   ibv_qp* qp;
   if (qp_type == "read_local"){
 //    assert(false);// Never comes to here
+    // TODO: Need a mutex to protect the map access. (shared exclusive lock)
     qp = static_cast<ibv_qp*>(qp_local_read.at(target_node_id)->Get());
     if (qp == NULL) {
       Remote_Query_Pair_Connection(qp_type,target_node_id);

@@ -2082,7 +2082,7 @@ void DBImpl::sync_option_to_remote(uint8_t target_node_id) {
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
                       &send_mr_ve, sizeof(options_) + 1, "main",
-                      IBV_SEND_SIGNALED, 1, 0);
+                      IBV_SEND_SIGNALED, 1, target_node_id);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_ve.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
@@ -2127,6 +2127,7 @@ void DBImpl::client_message_polling_and_handling_thread(
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
 
 //    assert(!shutting_down_.load());
+    // try to reconnect the qp according to the cache in RDMA manager.
     if (q_id == "read_local"){
       assert(false);// Never comes to here
       qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(target_node_id)->Get());
@@ -2168,6 +2169,7 @@ void DBImpl::client_message_polling_and_handling_thread(
 //        printf("qp number before reset is %d\n", qp->qp_num);
 //        assert(rdma_mg->res->qp_main_connection_info.find(q_id)!= rdma_mg->res->qp_main_connection_info.end());
 //        l.unlock();
+          qp = rdma_mg->res->qp_map.at(target_node_id);
 //        rdma_mg->modify_qp_to_reset(qp);
 //        rdma_mg->connect_qp(qp, q_id);
 //        printf("qp number after reset is %d\n", qp->qp_num);
@@ -2196,14 +2198,14 @@ void DBImpl::client_message_polling_and_handling_thread(
       }
 
       for(int i = 0; i<R_SIZE; i++) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], 0, q_id);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], target_node_id, q_id);
       }
       buffer_counter = 0;
       rdma_mg->comm_thread_recv_mrs.insert({target_node_id, recv_mr});
     }
     printf("Start to sync options\n");
     //TODO: Sync option to all the memory servers.
-    sync_option_to_remote(0);
+    sync_option_to_remote(target_node_id);
     ibv_wc wc[3] = {};
 //    RDMA_Request receive_msg_buf;
     {
