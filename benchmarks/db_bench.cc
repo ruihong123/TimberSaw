@@ -1292,11 +1292,7 @@ class Benchmark {
 }  // namespace TimberSaw
 
 int main(int argc, char** argv) {
-  FLAGS_write_buffer_size = TimberSaw::Options().write_buffer_size;
-  FLAGS_max_file_size = TimberSaw::Options().max_file_size;
-  FLAGS_block_size = TimberSaw::Options().block_size;
-  FLAGS_open_files = TimberSaw::Options().max_open_files;
-  std::string default_db_path;
+
   for (int i = 1; i < argc; i++) {
     double d;
     int n;
@@ -1359,7 +1355,11 @@ int main(int argc, char** argv) {
       std::exit(1);
     }
   }
-
+  FLAGS_write_buffer_size = TimberSaw::Options().write_buffer_size;
+  FLAGS_max_file_size = TimberSaw::Options().max_file_size;
+  FLAGS_block_size = TimberSaw::Options().block_size;
+  FLAGS_open_files = TimberSaw::Options().max_open_files;
+  std::string default_db_path;
   TimberSaw::g_env = TimberSaw::Env::Default();
 
   // Choose a location for the test database if none given with --db=<path>
