@@ -1315,7 +1315,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //    }
     //  post_receive<int>(recv_mr, client_ip);
     for(int i = 0; i<R_SIZE; i++) {
-      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], 0, client_ip);
+      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], target_node_id, client_ip);
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
@@ -1351,7 +1351,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     int buffer_counter = 0;
     while (true) {
       //TODO: change the polling here to a notification.
-      rdma_mg->poll_completion(wc, 1, client_ip, false, 0);
+      rdma_mg->poll_completion(wc, 1, client_ip, false, target_node_id);
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         cv_temp.notify_all();
