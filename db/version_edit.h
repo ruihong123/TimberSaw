@@ -22,7 +22,7 @@ class TableCache;
 struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node
-// creater_node_id  0 means compute node, 1 means memory node
+// creater_node_id  odd means compute node, even means memory node
   RemoteMemTableMetaData(int side, TableCache* cache);
   RemoteMemTableMetaData(int side);
   //TOTHINK: the garbage collection of the Remote table is not triggered!
@@ -63,7 +63,7 @@ struct RemoteMemTableMetaData {
     }
     assert(index == chunk_num);
     if (RPC){
-      rdma_mg->Memory_Deallocation_RPC();
+      rdma_mg->Memory_Deallocation_RPC(creator_node_id);
     }
 
     return true;

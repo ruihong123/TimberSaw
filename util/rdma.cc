@@ -716,7 +716,7 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t 
     return false;
 
 }
-void RDMA_Manager::Memory_Deallocation_RPC() {
+void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
 //  ibv_mr send_mr_ve = {};
