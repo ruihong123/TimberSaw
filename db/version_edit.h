@@ -174,7 +174,7 @@ class VersionEdit {
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file, uint8_t node_id) {
     //TODO(ruihong): remove this.
-    assert(node_id < 2);
+//    assert(node_id < 2);
 //#ifndef NDEBUG
 //    if(level > 0){
 //      assert(node_id!= 0);
