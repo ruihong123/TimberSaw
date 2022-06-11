@@ -618,7 +618,8 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string qp_type, int socket_fd,
   memcpy(remote_con_data->gid, tmp_con_data.gid, 16);
   fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data->qp_num);
   fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data->lid);
-  target_node_id = remote_con_data->node_id;
+  remote_con_data->node_id = tmp_con_data.node_id;
+  target_node_id = tmp_con_data.node_id;
   std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
   res->qp_map[target_node_id] = qp;
   res->cq_map.insert({target_node_id, std::make_pair(cq1, cq2)});
