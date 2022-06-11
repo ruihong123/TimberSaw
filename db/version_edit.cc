@@ -49,7 +49,7 @@ RemoteMemTableMetaData::~RemoteMemTableMetaData() {
   // home node to deference. Or the remote dereference is conducted in the granularity of version.
   assert(remote_dataindex_mrs.size() == 1);
   assert(this_machine_type ==0 || this_machine_type == 1);
-  assert(creator_node_id == 0 || creator_node_id == 1);
+//  assert(creator_node_id == 0 || creator_node_id == 1);
 
   if (this_machine_type == 0){
     if (cache_ != nullptr){
