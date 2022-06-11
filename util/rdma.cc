@@ -837,7 +837,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   std::string connection_conf;
   size_t pos = 0;
   std::ifstream myfile;
-  myfile.open ("../connection_cloudlab.conf", std::ios_base::in);
+  myfile.open ("../connection_bigdata.conf", std::ios_base::in);
   std::string space_delimiter = " ";
 
   std::getline(myfile,connection_conf );
