@@ -1290,8 +1290,9 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     char temp_receive[2];
     char temp_send[] = "Q";
     int rc = 0;
-    uint8_t target_node_id;
-    rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd, target_node_id);
+    uint8_t compute_node_id;
+    rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd, compute_node_id);
+    printf("The connected compute node's id is %d\n", compute_node_id);
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
 //    ibv_mr send_mr[32] = {};
 //    for(int i = 0; i<32; i++){
@@ -1315,7 +1316,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //    }
     //  post_receive<int>(recv_mr, client_ip);
     for(int i = 0; i<R_SIZE; i++) {
-      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], target_node_id, client_ip);
+      rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], compute_node_id, client_ip);
     }
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
@@ -1351,11 +1352,12 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     int buffer_counter = 0;
     while (true) {
       //TODO: change the polling here to a notification.
-      rdma_mg->poll_completion(wc, 1, client_ip, false, target_node_id);
+      rdma_mg->poll_completion(wc, 1, client_ip, false, compute_node_id);
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         cv_temp.notify_all();
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             "main");
 
         // increase the buffer index
@@ -1373,55 +1375,65 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf->command == create_mr_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
 
-        create_mr_handler(receive_msg_buf, client_ip, target_node_id);
+        create_mr_handler(receive_msg_buf, client_ip, compute_node_id);
 //        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == create_qp_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
-        create_qp_handler(receive_msg_buf, client_ip, target_node_id);
+        create_qp_handler(receive_msg_buf, client_ip, compute_node_id);
         //        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == install_version_edit) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
         //TODO: implement a durable bg thread and make a shadow verison set if possible.
 
-        install_version_edit_handler(receive_msg_buf, client_ip, target_node_id);
+        install_version_edit_handler(receive_msg_buf, client_ip,
+                                     compute_node_id);
       } else if (receive_msg_buf->command == near_data_compaction) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
-                           .client_ip = client_ip,.target_node_id = target_node_id};
+                           .client_ip = client_ip,.target_node_id = compute_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
       } else if (receive_msg_buf->command == SSTable_gc) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
-                           .client_ip = client_ip,.target_node_id = target_node_id};
+                           .client_ip = client_ip,.target_node_id = compute_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Message_handler_pool_.Schedule(
             &Memory_Node_Keeper::RPC_Garbage_Collection_Dispatch, thread_pool_args);
 //TODO: add a handle function for the option value
       } else if (receive_msg_buf->command == version_unpin_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
         version_unpin_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf->command == sync_option) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
-        sync_option_handler(receive_msg_buf, client_ip, target_node_id);
+        sync_option_handler(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == qp_reset_) {// depracated functions
         //THis should not be called because the recevei mr will be reset and the buffer
         // counter will be reset as 0
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            compute_node_id,
                                             client_ip);
-        qp_reset_handler(receive_msg_buf, client_ip, socket_fd, target_node_id);
+        qp_reset_handler(receive_msg_buf, client_ip, socket_fd,
+                         compute_node_id);
         DEBUG("QP has been reconnect from the memory node side\n");
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
@@ -1874,7 +1886,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     DEBUG_arg("Compaction decoded, input file level is %d \n", c.level());
     CompactionState* compact = new CompactionState(&c);
     if (usesubcompaction && c.num_input_files(0)>=4 && c.num_input_files(1)>1){
+      test_compaction_mutex.lock();
       status = DoCompactionWorkWithSubcompaction(compact, client_ip);
+      test_compaction_mutex.unlock();
       //        status = DoCompactionWork(compact, *client_ip);
     }else{
       status = DoCompactionWork(compact, client_ip);

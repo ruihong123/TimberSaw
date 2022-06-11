@@ -589,7 +589,8 @@ struct SubcompactionState {
 
   // The boundaries(UserKey) of the key-range this compaction is interested in. No two
   // subcompactions may have overlapping key-ranges.
-  // 'start' is inclusive, 'end' is exclusive, and nullptr means unbounded
+  //TODO: double check the statement below
+  // 'start' is exclusive, 'end' is inclusive, and nullptr means unbounded
   Slice *start, *end;
 
   // The return status of this subcompaction
