@@ -1874,9 +1874,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 #endif
-  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, c->edit()->GetNodeID(), std::string("main"));
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, 0)){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, c->edit()->GetNodeID())){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }

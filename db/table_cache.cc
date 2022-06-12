@@ -138,42 +138,54 @@ Status TableCache::FindTable(
 
   return s;
 }
-Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
+Status TableCache::FindTable_MemorySide(
+    const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,
+    Table_Memory_Side*& table) {
 {
   Status s;
-  char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->creator_node_id)];
-  EncodeFixed64(buf, Remote_memtable_meta->number);
-  memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
-         sizeof(Remote_memtable_meta->creator_node_id));
-  Slice key(buf, sizeof(buf));
-  *handle = cache_->Lookup(key);
-  if (*handle == nullptr) {
-    Table_Memory_Side* table = nullptr;
-//    DEBUG("FindTable_MemorySide\n");
-    if (s.ok()) {
-      s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
+  s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
 //      DEBUG_arg("file number inserted to the cache is %lu ", Remote_memtable_meta.get()->number);
 //      DEBUG_arg("Remote_memtable_meta pointer is %p\n", Remote_memtable_meta.get());
-    }
-    //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
-    if (!s.ok()) {
-      assert(table == nullptr);
-      //      delete file;
-      // We do not cache error results so that if the error is transient,
-      // or somebody repairs the file, we recover automatically.
-    } else {
-      SSTable* tf = new SSTable;
-      //      tf->file = file;
-      //      tf->remote_table = Remote_memtable_meta;
-      assert(table->Get_remote_table_ptr() != nullptr);
-      tf->table_memory = table;
-      assert(table->rep != nullptr);
-//      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
-      *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
-    }
-  }
   return s;
 }
+//Status TableCache::FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta, Cache::Handle** handle){
+//  {
+//    Status s;
+//    char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->creator_node_id)];
+//    EncodeFixed64(buf, Remote_memtable_meta->number);
+//    memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
+//           sizeof(Remote_memtable_meta->creator_node_id));
+//    Slice key(buf, sizeof(buf));
+//    *handle = cache_->Lookup(key);
+//    if (*handle == nullptr) {
+//      Table_Memory_Side* table = nullptr;
+//      //    DEBUG("FindTable_MemorySide\n");
+//      if (s.ok()) {
+//        s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
+//        //      DEBUG_arg("file number inserted to the cache is %lu ", Remote_memtable_meta.get()->number);
+//        //      DEBUG_arg("Remote_memtable_meta pointer is %p\n", Remote_memtable_meta.get());
+//      }
+//      //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
+//      if (!s.ok()) {
+//        assert(table == nullptr);
+//        //      delete file;
+//        // We do not cache error results so that if the error is transient,
+//        // or somebody repairs the file, we recover automatically.
+//      } else {
+//        SSTable* tf = new SSTable;
+//        //      tf->file = file;
+//        //      tf->remote_table = Remote_memtable_meta;
+//        assert(table->Get_remote_table_ptr() != nullptr);
+//        tf->table_memory = table;
+//        assert(table->rep != nullptr);
+//        //      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
+//        *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
+//      }
+//    }
+//    return s;
+//  }
+
+
 }
 Iterator* TableCache::NewIterator(
     const ReadOptions& options,
@@ -221,7 +233,7 @@ Iterator* TableCache::NewSEQIterator(
 #endif
 Iterator* TableCache::NewIterator_MemorySide(
     const ReadOptions& options,
-    std::shared_ptr<RemoteMemTableMetaData> remote_table,
+    const std::shared_ptr<RemoteMemTableMetaData>& remote_table,
     Table_Memory_Side** tableptr) {
   if (tableptr != nullptr) {
     *tableptr = nullptr;
@@ -234,12 +246,13 @@ Iterator* TableCache::NewIterator_MemorySide(
   if (reinterpret_cast<long>(p) == 0x7fff94151070)
     printf("check for NewIterator_MemorySide\n");
 #endif
-  Status s = FindTable_MemorySide(std::move(remote_table), &handle);
+  Table_Memory_Side* table;
+  Status s = FindTable_MemorySide(remote_table, table);
   if (!s.ok()) {
     return NewErrorIterator(s);
   }
 
-  Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
+//  Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
   // The pointer of p will be different from what stored in the cache because the p is a new
   // created Remote memory metadata from the serialized buffer. so no need for the
   // assert of p == table->Get_rdma()
@@ -281,6 +294,7 @@ Status TableCache::Get(const ReadOptions& options,
 void TableCache::Evict(uint64_t file_number, uint8_t creator_node_id) {
   //TODO: Change it to erase filenumber and node id (shard id)
   char buf[sizeof(uint64_t) + sizeof(uint8_t)];
+
   EncodeFixed64(buf, file_number);
   memcpy(buf + sizeof(uint64_t), &creator_node_id,
          sizeof(uint8_t));

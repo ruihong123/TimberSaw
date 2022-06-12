@@ -229,6 +229,7 @@ class Block::Iter : public Iterator {
           DecodeEntry(data_ + region_offset, data_ + restarts_, &shared,
                       &non_shared, &value_length);
       if (key_ptr == nullptr || (shared != 0)) {
+        //We disable the shared string for byte addressable SSTable.
         CorruptionError();
 #ifndef NDEBUG
         printf("detect corruption block, when seeking some key, num of entries is %ld, num of restart is %u\n", num_entries, num_restarts_);

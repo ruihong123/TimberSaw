@@ -58,7 +58,7 @@ class TableCache {
                         Table** tableptr = nullptr);
 #endif
   Iterator* NewIterator_MemorySide(const ReadOptions& options,
-                        std::shared_ptr<RemoteMemTableMetaData> remote_table,
+                        const std::shared_ptr<RemoteMemTableMetaData>& remote_table,
       Table_Memory_Side** tableptr = nullptr);
 #ifdef PROCESSANALYSIS
   static void CleanAll(){
@@ -92,8 +92,9 @@ class TableCache {
  private:
   Status FindTable(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
                    Cache::Handle** handle);
-  Status FindTable_MemorySide(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
-                   Cache::Handle** handle);
+  Status FindTable_MemorySide(
+      const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,
+      Table_Memory_Side*& table);
   Env* const env_;
   const std::string dbname_;
   const Options& options_;
