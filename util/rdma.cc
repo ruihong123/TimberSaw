@@ -1090,7 +1090,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
     res->qp_main_connection_info.insert({target_node_id,remote_con_data});
   l.unlock();
   connect_qp(qp, qp_type, target_node_id);
-  printf("Finish the connection with node %d\n", target_node_id);
+
   //  post_receive<int>(res->mr_receive, std::string("main"));
   if (sock_sync_data(res->sock_map[target_node_id], 1, temp_send,
                      temp_receive)) /* just send a dummy char back and forth */
@@ -1098,7 +1098,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
     fprintf(stderr, "sync error after QPs are were moved to RTS\n");
     rc = 1;
     }
-
+    printf("Finish the connection with node %d\n", target_node_id);
   // sync the communication by rdma.
 
   //  post_send<int>(res->mr_send, std::string("main"));
