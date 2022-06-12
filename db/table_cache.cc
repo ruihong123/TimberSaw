@@ -258,7 +258,7 @@ Iterator* TableCache::NewIterator_MemorySide(
   // assert of p == table->Get_rdma()
   assert(table->Get_remote_table_ptr()!= nullptr);
   Iterator* result = table->NewIterator(options);
-  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+//  result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
     *tableptr = table;
   }
