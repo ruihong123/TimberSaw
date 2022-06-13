@@ -6,6 +6,7 @@
 #define TIMBERSAW_DB_IMPL_SHARDING_H
 #include "db_impl.h"
 namespace TimberSaw {
+//shard info: [lower bound, upper bound)
 class DBImpl_Sharding : public DB {
   friend class DBImpl;
  public:
@@ -41,15 +42,17 @@ class DBImpl_Sharding : public DB {
     auto iter = shards_pool.upper_bound(key);
     if(iter != shards_pool.end()){
       db_ptr = iter->second;
+//      db_ptr->
       return true;
+      // TODO: Also remember to check the lower bound if not return false.
     }else{
       return false;
     }
   }
     std::map<Slice, DBImpl*, cmpBySlice> shards_pool;// <upper bound, dbptr>
     // In case that the shard key buffer get deleted outside the DB.
+    // THe range of every shard is [lower bound, upper bound).
     std::vector<std::pair<std::string, std::string>> Shard_Info;
-
-};
+  };
 }
 #endif  // TIMBERSAW_DB_IMPL_SHARDING_H

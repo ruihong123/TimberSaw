@@ -9,7 +9,7 @@ namespace TimberSaw {
 DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbname) {
     assert(options.ShardInfo.size() != 0);
     for (auto iter : options.ShardInfo) {
-      Shard_Info.push_back(std::make_pair(iter.first.ToString(), iter.second.ToString()));
+      Shard_Info.emplace_back(iter.first.ToString(), iter.second.ToString());
     }
     for(auto iter : Shard_Info) {
       auto sharded_db = new DBImpl(options, dbname);
@@ -32,6 +32,7 @@ Status DBImpl_Sharding::Put(const WriteOptions& options, const Slice& key,
     return db->Write(options, &batch);
   }else{
     // forward to other shards
+    assert(false);
     return Status();
   }
 
@@ -44,6 +45,7 @@ Status DBImpl_Sharding::Delete(const WriteOptions& options, const Slice& key) {
     return db->Write(options, &batch);
   }else{
     // forward to other shards
+    assert(false);
     return Status();
   }
 
@@ -59,8 +61,13 @@ Status DBImpl_Sharding::Write(const WriteOptions& options,
 Status DBImpl_Sharding::Get(const ReadOptions& options, const Slice& key,
                             std::string* value) {
   DBImpl* db;
-  Get_Target_Shard(db, key);
-  return db->Get(options, key, value);
+  if(Get_Target_Shard(db, key)){
+    return db->Get(options, key, value);
+  }else{
+    assert(false);
+    return Status();
+  }
+
 }
 Iterator* DBImpl_Sharding::NewIterator(const ReadOptions& options) {
   //TODO: support cross shard iterator.

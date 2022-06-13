@@ -135,6 +135,9 @@ namespace TimberSaw {
 
 namespace {
 TimberSaw::Env* g_env = nullptr;
+uint64_t number_of_key_total;
+uint64_t number_of_key_per_compute;
+uint64_t number_of_key_per_shard;
 class Duration {
  public:
   Duration(uint64_t max_seconds, int64_t max_ops, int64_t ops_per_stage = 0) {
@@ -550,7 +553,7 @@ class Benchmark {
     key_guard->reset(const_data);
     return Slice(key_guard->get(), key_size);
   }
-  void GenerateKeyFromInt(uint64_t v, int64_t num_keys, Slice* key) {
+  void GenerateKeyFromInt(uint64_t v, Slice* key) {
 
     char* start = const_cast<char*>(key->data());
     char* pos = start;
@@ -629,6 +632,9 @@ class Benchmark {
       } else if (name == Slice("fillrandom")) {
         fresh_db = true;
         method = &Benchmark::WriteRandom;
+      } else if (name == Slice("fillrandomshard")) {
+        fresh_db = true;
+        method = &Benchmark::WriteRandomSharded;
       } else if (name == Slice("overwrite")) {
         fresh_db = false;
         method = &Benchmark::WriteRandom;
@@ -648,6 +654,8 @@ class Benchmark {
         method = &Benchmark::ReadReverse;
       } else if (name == Slice("readrandom")) {
         method = &Benchmark::ReadRandom;
+      } else if (name == Slice("readrandomshard")) {
+        method = &Benchmark::ReadRandom_Sharded;
       } else if (name == Slice("readrandomwriterandom")) {
         method = &Benchmark::ReadRandomWriteRandom;
       } else if (name == Slice("readmissing")) {
@@ -910,6 +918,37 @@ class Benchmark {
     options.max_open_files = FLAGS_open_files;
     options.filter_policy = filter_policy_;
     options.reuse_logs = FLAGS_reuse_logs;
+    //
+    auto rdma_mg = Env::Default()->rdma_mg;
+    if (rdma_mg->compute_nodes.size()>1 || rdma_mg->memory_nodes.size()>1){
+      number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
+      number_of_key_per_compute =
+          number_of_key_total /rdma_mg->compute_nodes.size();
+      number_of_key_per_shard = number_of_key_per_compute
+                               /rdma_mg->memory_nodes.size();
+      for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
+        char* data_low = new char[FLAGS_key_size];
+        char* data_up = new char[FLAGS_key_size];
+        Slice key_low  = Slice(data_low, FLAGS_key_size);
+        Slice key_up  = Slice(data_up, FLAGS_key_size);
+        uint64_t lower_bound = number_of_key_per_compute*(rdma_mg->node_id -1)/2
+                               + i*number_of_key_per_shard;
+        uint64_t upper_bound = number_of_key_per_compute*(rdma_mg->node_id -1)/2
+                               + (i+1)*number_of_key_per_shard;
+        if (i == rdma_mg->memory_nodes.size()-1){
+          upper_bound = number_of_key_per_compute*(rdma_mg->node_id + 1)/2;
+        }
+        GenerateKeyFromInt(lower_bound, &key_low);
+        GenerateKeyFromInt(upper_bound, &key_up);
+        options.ShardInfo.emplace_back(key_low,key_up);
+      }
+
+
+
+
+    }
+
+
     Status s = DB::Open(options, FLAGS_db, &db_);
     if (!s.ok()) {
       std::fprintf(stderr, "open error: %s\n", s.ToString().c_str());
@@ -928,6 +967,7 @@ class Benchmark {
   void WriteSeq(ThreadState* thread) { DoWrite(thread, true); }
 
   void WriteRandom(ThreadState* thread) { DoWrite(thread, false); }
+  void WriteRandomSharded(ThreadState* thread) { DoWrite_Sharded(thread, false); }
   void Validation_Write() {
     Random64 rand(123);
     RandomGenerator gen;
@@ -940,7 +980,7 @@ class Benchmark {
 //      //The key range should be adjustable.
 ////        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
 //      const int k = rand.Next()%(FLAGS_num*FLAGS_threads);
-      GenerateKeyFromInt(i, FLAGS_num, &key);
+      GenerateKeyFromInt(i, &key);
       key.Reset(key.data(), key.size()-1);
       char to_be_append = 'v';// add an extra char to make key different from write bench.
       assert(key.size() == FLAGS_key_size);
@@ -997,7 +1037,7 @@ class Benchmark {
         const int k = seq ? i + j : thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 
 //        key.Set(k);
-        GenerateKeyFromInt(k, FLAGS_num, &key);
+        GenerateKeyFromInt(k, &key);
 //        batch.Put(key.slice(), gen.Generate(value_size_));
         batch.Put(key, gen.Generate(value_size_));
 //        bytes += value_size_ + key.slice().size();
@@ -1012,7 +1052,46 @@ class Benchmark {
     }
     thread->stats.AddBytes(bytes);
   }
+  void DoWrite_Sharded(ThreadState* thread, bool seq) {
+    if (num_ != FLAGS_num) {
+      char msg[100];
+      std::snprintf(msg, sizeof(msg), "(%d ops)", num_);
+      thread->stats.AddMessage(msg);
+    }
 
+    RandomGenerator gen;
+    WriteBatch batch;
+    Status s;
+    int64_t bytes = 0;
+    //    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+//    int total_number_of_inserted_key = FLAGS_num*FLAGS_threads;
+    uint64_t shard_number_among_computes = (RDMA_Manager::node_id - 1)/2;
+    for (int i = 0; i < num_; i += entries_per_batch_) {
+      batch.Clear();
+      for (int j = 0; j < entries_per_batch_; j++) {
+        //The key range should be adjustable.
+        //        const int k = seq ? i + j : thread->rand.Uniform(FLAGS_num*FLAGS_threads);
+        const int k = seq ? i + j : thread->rand.Next()%(number_of_key_per_compute);
+
+        //        key.Set(k);
+        GenerateKeyFromInt(
+            k + shard_number_among_computes * number_of_key_per_compute, &key);
+        //        batch.Put(key.slice(), gen.Generate(value_size_));
+        batch.Put(key, gen.Generate(value_size_));
+        //        bytes += value_size_ + key.slice().size();
+        bytes += value_size_ + key.size();
+        thread->stats.FinishedSingleOp();
+      }
+      s = db_->Write(write_options_, &batch);
+      if (!s.ok()) {
+        std::fprintf(stderr, "put error: %s\n", s.ToString().c_str());
+        std::exit(1);
+      }
+    }
+    thread->stats.AddBytes(bytes);
+  }
   void ReadSequential(ThreadState* thread) {
 #ifdef BYTEADDRESSABLE
     Iterator* iter = db_->NewSEQIterator(ReadOptions());
@@ -1057,10 +1136,39 @@ class Benchmark {
       const int k = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
 //
 //            key.Set(k);
-      GenerateKeyFromInt(k, FLAGS_num, &key);
+      GenerateKeyFromInt(k, &key);
 //      if (db_->Get(options, key.slice(), &value).ok()) {
 //        found++;
 //      }
+      if (db_->Get(options, key, &value).ok()) {
+        found++;
+      }
+      thread->stats.FinishedSingleOp();
+    }
+    char msg[100];
+    std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+    thread->stats.AddMessage(msg);
+  }
+  void ReadRandom_Sharded(ThreadState* thread) {
+    ReadOptions options;
+    //TODO(ruihong): specify the cache option.
+    std::string value;
+    int found = 0;
+    //    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key = AllocateKey(&key_guard);
+//    int total_number_of_inserted_key = FLAGS_num*FLAGS_threads;
+    uint64_t shard_number_among_computes = (RDMA_Manager::node_id - 1)/2;
+    for (int i = 0; i < reads_; i++) {
+      //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+      const int k = thread->rand.Next()%(shard_number_among_computes);
+      //
+      //            key.Set(k);
+      GenerateKeyFromInt(k + shard_number_among_computes * shard_number_among_computes,
+                         &key);
+      //      if (db_->Get(options, key.slice(), &value).ok()) {
+      //        found++;
+      //      }
       if (db_->Get(options, key, &value).ok()) {
         found++;
       }
@@ -1090,7 +1198,7 @@ class Benchmark {
     // the number of iterations is the larger of read_ or write_
     while (!duration.Done(1)) {
 //      DB* db = SelectDB(thread);
-      GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num*FLAGS_threads), FLAGS_num, &key);
+GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
       if (get_weight == 0 && put_weight == 0) {
         // one batch completed, reinitialize for next batch
         get_weight = FLAGS_readwritepercent;
