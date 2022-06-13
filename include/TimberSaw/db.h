@@ -151,6 +151,8 @@ class TimberSaw_EXPORT DB {
   // Therefore the following call will compact the entire database:
   //    db->CompactRange(nullptr, nullptr);
   virtual void CompactRange(const Slice* begin, const Slice* end) = 0;
+// private:
+//  std::map<Slice, DBImpl*, cmpBySlice> const shards_pool;
 };
 
 // Destroy the contents of the specified database.

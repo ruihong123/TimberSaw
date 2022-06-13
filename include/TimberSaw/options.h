@@ -35,6 +35,12 @@ static void ClipToRange(T* ptr, V minvalue, V maxvalue) {
   if (static_cast<V>(*ptr) > maxvalue) *ptr = maxvalue;
   if (static_cast<V>(*ptr) < minvalue) *ptr = minvalue;
 }
+// check if this structure is correct.
+struct cmpBySlice {
+  bool operator()(const Slice& a, const Slice& b) const {
+    return a.compare(b) < 0;
+  }
+};
 enum CompressionType {
   // NOTE: do not change the values of existing entries, as these are
   // part of the persistent format on disk.
@@ -166,6 +172,8 @@ struct TimberSaw_EXPORT Options {
   // NewBloomFilterPolicy() here.
   const FilterPolicy* filter_policy = nullptr;
   int bloom_bits = 10;
+
+  std::vector<std::pair<Slice,Slice>> ShardInfo;// <Lower bound, upper bound>
 };
 
 // Options that control read operations

@@ -815,7 +815,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
                             const Options& options, TableCache* table_cache,
                             Iterator* iter,
                             const std::shared_ptr<RemoteMemTableMetaData>& meta,
-                            IO_type type) {
+                            IO_type type, uint8_t target_node_id) {
   Status s;
 //  meta->file_size = 0;
   iter->SeekToFirst();
@@ -831,7 +831,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
     auto* builder = new TableBuilder_ComputeSide(options, type);
 #endif
 #ifdef BYTEADDRESSABLE
-    auto* builder = new TableBuilder_BACS(options, type);
+    auto* builder = new TableBuilder_BACS(options, type, target_node_id);
 #endif
     meta->smallest.DecodeFrom(iter->key());
     Slice key;

@@ -132,6 +132,8 @@ target_sources(TimberSaw
     "db/c.cc"
     "db/db_impl.cc"
     "db/db_impl.h"
+    "db/db_impl_sharding.cpp"
+    "db/db_impl_sharding.h"
     "db/db_iter.cc"
     "db/db_iter.h"
     "db/dbformat.cc"

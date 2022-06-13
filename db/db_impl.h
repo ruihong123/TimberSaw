@@ -79,6 +79,7 @@ struct SuperVersion {
 // The structure for storing argument for thread pool.
 
 class DBImpl : public DB {
+
  public:
   DBImpl(const Options& options, const std::string& dbname);
 
@@ -131,6 +132,12 @@ class DBImpl : public DB {
   bool ReturnThreadLocalSuperVersion(SuperVersion* sv);
   void ResetThreadLocalSuperVersions();
   void InstallSuperVersion();
+  void WaitforAllbgtasks(bool clear_mem) override;
+  void SetTargetnodeid(uint8_t id){
+    target_node_id = id;
+    imm_.SetTargetnodeid(id);
+  }
+
  private:
   friend class DB;
 //  struct CompactionState;
@@ -156,7 +163,6 @@ class DBImpl : public DB {
                                 SequenceNumber* latest_snapshot,
                                 uint32_t* seed);
 #endif
-  void WaitforAllbgtasks(bool clear_mem) override;
   Status NewDB();
 
   // Recover the descriptor from persistent storage.  May do a significant
@@ -296,7 +302,7 @@ class DBImpl : public DB {
   ManualCompaction* manual_compaction_;
 
   VersionSet* const versions_;
-
+//  std::map<Slice, VersionSet*, cmpBySlice> const versions_pool;
   // Have we encountered a background error in paranoid mode?
   Status bg_error_;
 
@@ -309,6 +315,7 @@ class DBImpl : public DB {
 //  std::unique_ptr<ThreadLocalPtr> local_sv_;
   ThreadLocalPtr* local_sv_;
   std::vector<std::thread> main_comm_threads;
+  uint8_t target_node_id = 0;
 #ifdef PROCESSANALYSIS
   std::atomic<size_t> Total_time_elapse;
   std::atomic<size_t> flush_times;

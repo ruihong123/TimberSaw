@@ -231,6 +231,7 @@ class MemTableList {
   std::atomic<bool> imm_flush_needed;
 
   std::atomic<bool> imm_trim_needed;
+  uint8_t target_node_id;
 
   // Returns the total number of memtables in the list that haven't yet
   // been flushed and logged.
@@ -371,6 +372,9 @@ class MemTableList {
 
   // DB mutex held
   void InstallNewVersion();
+  void SetTargetnodeid(uint8_t id){
+    target_node_id = id;
+  }
 
  private:
   friend class DBImpl;
@@ -426,7 +430,8 @@ class FlushJob {
   void SetAllMemStateProcessing();
   Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                     TableCache* table_cache, Iterator* iter,
-                    const std::shared_ptr<RemoteMemTableMetaData>& meta, IO_type type);
+                    const std::shared_ptr<RemoteMemTableMetaData>& meta,
+                    IO_type type, uint8_t target_node_id);
 
 };
 // Installs memtable atomic flush results.

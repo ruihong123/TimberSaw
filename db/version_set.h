@@ -288,6 +288,9 @@ class VersionSet {
   VersionSet(const std::string& dbname, const Options* options,
              TableCache* table_cache, const InternalKeyComparator* cmp,
              std::mutex* mtx);
+//  VersionSet(const std::string& dbname, const Options* options,
+//             TableCache* table_cache, const InternalKeyComparator* cmp,
+//             std::mutex* mtx);
   VersionSet(const VersionSet&) = delete;
   VersionSet& operator=(const VersionSet&) = delete;
 
@@ -410,7 +413,7 @@ class VersionSet {
     //since the version are apply
 //    Finalize(v);
 //    || (v->file_to_compact_.get() != nullptr)
-    return (v->compaction_score_[0] >= 1) ;
+    return (v->compaction_score_[0] >= 1);
   }
 
   // Add all files listed in any live version to *live.
@@ -436,6 +439,8 @@ class VersionSet {
   log::Writer* descriptor_log;
   std::mutex* sv_mtx;
   SpinMutex version_set_list;
+  Slice upper_bound;
+  Slice lower_bound;
  private:
   class Builder;
 

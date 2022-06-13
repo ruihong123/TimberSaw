@@ -117,8 +117,9 @@ struct TableBuilder_BACS::Rep {
   std::string compressed_output;
   uint8_t target_node_id_;
 };
-TableBuilder_BACS::TableBuilder_BACS(const Options& options, IO_type type)
-    : rep_(new Rep(options, type, 0)) {
+TableBuilder_BACS::TableBuilder_BACS(const Options& options, IO_type type,
+                                     uint8_t target_node_id)
+    : rep_(new Rep(options, type, target_node_id)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);
   }

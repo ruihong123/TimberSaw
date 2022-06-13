@@ -3,7 +3,7 @@
 // found in the LICENSE file. See the AUTHORS file for names of contributors.
 
 #include "db/db_impl.h"
-
+#include "db/db_impl_sharding.h"
 #include "db/builder.h"
 #include "db/db_iter.h"
 #include "db/dbformat.h"
@@ -184,6 +184,13 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 #endif
 {
   printf("DBImpl start\n");
+
+//  for(auto iter : options_.ShardInfo){
+//    versions_pool.insert({iter.first,
+//         new VersionSet(dbname_, &options_, table_cache_, &internal_comparator_,
+//                        &superversion_memlist_mtx, iter.first, iter.second)})
+//  }
+//  versions_pool = options_.ShardInfo
 //        main_comm_threads.emplace_back(Clientmessagehandler());
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
@@ -351,7 +358,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   // conditions are both false.
   while( version_not_ready || immutable_list_not_ready){
     //TODO: we can implement a wait here.
-
+    usleep(10000);
     version_not_ready = versions_->AllCompactionNotFinished();
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
@@ -698,7 +705,8 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   Status s;
   {
 //    undefine_mutex.Unlock();
-    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush);
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush,
+                    target_node_id);
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -1375,8 +1383,7 @@ Status DBImpl::OpenCompactionOutputFile(SubcompactionState* compact) {
         options_, Compact, rdma_mg);
 #endif
 #ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BACS(
-        options_, Compact);
+    compact->builder = new TableBuilder_BACS(options_, Compact, target_node_id);
 #endif
   }
   return s;
@@ -1407,8 +1414,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
         options_, Compact, rdma_mg);
 #endif
 #ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BACS(
-        options_, Compact);
+    compact->builder = new TableBuilder_BACS(options_, Compact, target_node_id);
 #endif
   }
   return s;
@@ -3912,47 +3918,103 @@ DB::~DB() = default;
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
 
-  DBImpl* impl = new DBImpl(options, dbname);
-  impl->undefine_mutex.Lock();
-  VersionEdit edit(0);
-  // Recover handles create_if_missing, error_if_exists
-  bool save_manifest = false;
-  Status s = impl->Recover(&edit, &save_manifest);
-  if (s.ok() && impl->mem_ == nullptr) {
-    // Create new log and a corresponding memtable.
-    uint64_t new_log_number = impl->versions_->NewFileNumber();
-    WritableFile* lfile;
-    s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
-                                     &lfile);
+  if (options.ShardInfo.size() == 0){
+    //If it is not sharded
+    DBImpl* impl = new DBImpl(options, dbname);
+    impl->undefine_mutex.Lock();
+    VersionEdit edit(0);
+    // Recover handles create_if_missing, error_if_exists
+    bool save_manifest = false;
+    Status s = impl->Recover(&edit, &save_manifest);
+    if (s.ok() && impl->mem_ == nullptr) {
+      // Create new log and a corresponding memtable.
+      uint64_t new_log_number = impl->versions_->NewFileNumber();
+      WritableFile* lfile;
+      s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
+                                       &lfile);
+      if (s.ok()) {
+        edit.SetLogNumber(new_log_number);
+        impl->logfile_ = lfile;
+        impl->logfile_number_ = new_log_number;
+        impl->log_ = new log::Writer(lfile);
+        impl->mem_ = new MemTable(impl->internal_comparator_);
+        impl->mem_.load()->SetFirstSeq(0);
+        impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE-1);
+        impl->mem_.load()->Ref();
+      }
+    }
+    if (s.ok() && save_manifest) {
+      edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
+      edit.SetLogNumber(impl->logfile_number_);
+      //    std::unique_lock<std::mutex> lck(impl->versionset_mtx,std::defer_lock);
+      s = impl->versions_->LogAndApply(&edit);
+    }
     if (s.ok()) {
-      edit.SetLogNumber(new_log_number);
-      impl->logfile_ = lfile;
-      impl->logfile_number_ = new_log_number;
-      impl->log_ = new log::Writer(lfile);
-      impl->mem_ = new MemTable(impl->internal_comparator_);
-      impl->mem_.load()->SetFirstSeq(0);
-      impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE-1);
-      impl->mem_.load()->Ref();
+      //    impl->RemoveObsoleteFiles();
+      impl->MaybeScheduleFlushOrCompaction();
+    }
+    impl->undefine_mutex.Unlock();
+    if (s.ok()) {
+      assert(impl->mem_ != nullptr);
+      *dbptr = impl;
+    } else {
+      delete impl;
+    }
+    return s;
+  }else{// If it is sharded.
+    uint8_t memory_node_num = Env::Default()->rdma_mg->memory_nodes.size();
+    DBImpl_Sharding* impl_with_shards = new DBImpl_Sharding(options, dbname);
+    int i = 0;
+    for(auto iter : *impl_with_shards->GetShards_pool()){
+      DBImpl* impl = iter.second;
+      //The node id space are shared by both compute nodes and memory nodes.
+      // we need to twice the id and plus 1.
+      impl->SetTargetnodeid((i%memory_node_num)*2 + 1);
+      i++;
+//      impl->SetTargetnodeid()
+      impl->undefine_mutex.Lock();
+      VersionEdit edit(0);
+      // Recover handles create_if_missing, error_if_exists
+      bool save_manifest = false;
+      Status s = impl->Recover(&edit, &save_manifest);
+      if (s.ok() && impl->mem_ == nullptr) {
+        // Create new log and a corresponding memtable.
+        uint64_t new_log_number = impl->versions_->NewFileNumber();
+        WritableFile* lfile;
+        s = options.env->NewWritableFile(LogFileName(dbname, new_log_number),
+                                         &lfile);
+        if (s.ok()) {
+          edit.SetLogNumber(new_log_number);
+          impl->logfile_ = lfile;
+          impl->logfile_number_ = new_log_number;
+          impl->log_ = new log::Writer(lfile);
+          impl->mem_ = new MemTable(impl->internal_comparator_);
+          impl->mem_.load()->SetFirstSeq(0);
+          impl->mem_.load()->SetLargestSeq(MEMTABLE_SEQ_SIZE-1);
+          impl->mem_.load()->Ref();
+        }
+      }
+      if (s.ok() && save_manifest) {
+        edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
+        edit.SetLogNumber(impl->logfile_number_);
+        //    std::unique_lock<std::mutex> lck(impl->versionset_mtx,std::defer_lock);
+        s = impl->versions_->LogAndApply(&edit);
+      }
+      if (s.ok()) {
+        //    impl->RemoveObsoleteFiles();
+        impl->MaybeScheduleFlushOrCompaction();
+      }
+      impl->undefine_mutex.Unlock();
+      if (s.ok()) {
+        assert(impl->mem_ != nullptr);
+        *dbptr = impl;
+      } else {
+        delete impl;
+      }
     }
   }
-  if (s.ok() && save_manifest) {
-    edit.SetPrevLogNumber(0);  // No older logs needed after recovery.
-    edit.SetLogNumber(impl->logfile_number_);
-//    std::unique_lock<std::mutex> lck(impl->versionset_mtx,std::defer_lock);
-    s = impl->versions_->LogAndApply(&edit);
-  }
-  if (s.ok()) {
-//    impl->RemoveObsoleteFiles();
-  impl->MaybeScheduleFlushOrCompaction();
-  }
-  impl->undefine_mutex.Unlock();
-  if (s.ok()) {
-    assert(impl->mem_ != nullptr);
-    *dbptr = impl;
-  } else {
-    delete impl;
-  }
-  return s;
+
+
 }
 
 Snapshot::~Snapshot() = default;
