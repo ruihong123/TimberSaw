@@ -921,6 +921,7 @@ class Benchmark {
     //
     auto rdma_mg = Env::Default()->rdma_mg;
     if (rdma_mg->compute_nodes.size()>1 || rdma_mg->memory_nodes.size()>1){
+      options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
       number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
       number_of_key_per_compute =
           number_of_key_total /rdma_mg->compute_nodes.size();
@@ -940,7 +941,7 @@ class Benchmark {
         }
         GenerateKeyFromInt(lower_bound, &key_low);
         GenerateKeyFromInt(upper_bound, &key_up);
-        options.ShardInfo.emplace_back(key_low,key_up);
+        options.ShardInfo->emplace_back(key_low,key_up);
       }
 
 

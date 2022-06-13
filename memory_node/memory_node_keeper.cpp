@@ -2086,6 +2086,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       std::fflush(stderr);
     }
     *opts = *static_cast<Options*>(edit_recv_mr.addr);
+    opts->ShardInfo = nullptr;
     opts->env = nullptr;
     opts->filter_policy = new InternalFilterPolicy(NewBloomFilterPolicy(opts->bloom_bits));
     opts->comparator = &internal_comparator_;

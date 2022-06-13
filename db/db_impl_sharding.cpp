@@ -7,8 +7,8 @@
 namespace TimberSaw {
 
 DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbname) {
-    assert(options.ShardInfo.size() != 0);
-    for (auto iter : options.ShardInfo) {
+    assert(options.ShardInfo->size() != 0);
+    for (auto iter : *options.ShardInfo) {
       Shard_Info.emplace_back(iter.first.ToString(), iter.second.ToString());
     }
     for(auto iter : Shard_Info) {

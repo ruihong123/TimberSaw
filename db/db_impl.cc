@@ -198,6 +198,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
       main_comm_threads.emplace_back(
           &DBImpl::client_message_polling_and_handling_thread, this, "main", 2*i);
+      main_comm_threads.back().detach();
     }
 
     printf("communication thread created\n");
@@ -3918,7 +3919,7 @@ DB::~DB() = default;
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
 
-  if (options.ShardInfo.size() == 0){
+  if (options.ShardInfo->size() == 0){
     //If it is not sharded
     DBImpl* impl = new DBImpl(options, dbname);
     impl->undefine_mutex.Lock();

@@ -874,6 +874,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     fprintf(stderr, "failed to create resources\n");
     return;
   }
+  std::vector<std::thread> threads;
   for(int i = 0; i < memory_nodes.size(); i++){
     uint8_t target_node_id =  2*i;
     res->sock_map[target_node_id] =
@@ -885,10 +886,13 @@ void RDMA_Manager::Client_Set_Up_Resources() {
               rdma_config.server_name, rdma_config.tcp_port);
     }
 
-
-    Get_Remote_qp_Info_Then_Connect(target_node_id);
+    //TODO: use mulitple thread to initialize the queue pairs.
+    threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
+//    Get_Remote_qp_Info_Then_Connect(target_node_id);
   }
-
+  for (auto & thread : threads) {
+    thread.join();
+  }
 }
 void RDMA_Manager::Initialize_threadlocal_map(){
   uint8_t target_node_id;
