@@ -690,8 +690,8 @@ class VersionSet::Builder {
     // Add new files
     for (size_t i = 0; i < edit->new_files_.size(); i++) {
       const int level = edit->new_files_[i].first;
-
       std::shared_ptr<RemoteMemTableMetaData> f = edit->new_files_[i].second;
+
       assert(level == f->level);
       assert(f.get()!= nullptr);
 //      f->refs = 1;
@@ -964,6 +964,12 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //    printf("file number for this flush or compaction version edit installation : %lu \n", (*edit->GetNewFiles())[i].second->number);
 //  }
 //#endif
+
+
+//  for(auto iter : *edit->GetNewFiles()){
+//        if (iter.second->table_cache == nullptr)
+//          iter.second->table_cache = table_cache_;
+//  }
 
   edit->SetLastSequence(last_sequence_);
   Version* v;
@@ -1542,7 +1548,7 @@ Iterator* VersionSet::MakeInputIteratorMemoryServer(Compaction* c) {
 //
 //  Table_Memory_Side* table = Table_Memory_Side::Open(table, f);
 //  Iterator* result = table->NewIterator(options);
-//  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+//  result->RegisterCleanup(&UnrefEntry, table_cache, handle);
 //  if (tableptr != nullptr) {
 //    *tableptr = table;
 //  }

@@ -369,10 +369,10 @@ class RDMA_Manager {
                                   Chunk_type buffer_type);
   bool Deallocate_Local_RDMA_Slot(void* p, Chunk_type buff_type);
   //  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
-  bool Deallocate_Remote_RDMA_Slot(void* p);
+  bool Deallocate_Remote_RDMA_Slot(void* p, uint8_t target_node_id);
   //TOFIX: There will be memory leak for the remote_mr and mr_input for local/remote memory
   // allocation.
-  void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr);
+  void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr, uint8_t target_node_id);
   void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, Chunk_type pool_name);
   size_t Calculate_size_of_pool(Chunk_type pool_name);
   // this function will determine whether the pointer is with in the registered memory
@@ -380,7 +380,7 @@ class RDMA_Manager {
       void* p,
       std::_Rb_tree_iterator<std::pair<void* const, In_Use_Array>>& mr_iter,
       std::map<void*, In_Use_Array>* Bitmap);
-  bool CheckInsideRemoteBuff(void* p);
+  bool CheckInsideRemoteBuff(void* p, uint8_t target_node_id);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
   int try_poll_this_thread_completions(ibv_wc* wc_p, int num_entries,
@@ -405,7 +405,8 @@ class RDMA_Manager {
   std::vector<ibv_mr*>
       local_mem_pool; /* a vector for all the local memory regions.*/
   std::list<ibv_mr*> pre_allocated_pool;
-  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap;
+//  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap;
+  std::map<uint8_t, std::map<void*, In_Use_Array*>*> Remote_Mem_Bitmap;
   size_t total_registered_size;
   //  std::shared_mutex remote_pool_mutex;
   //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;

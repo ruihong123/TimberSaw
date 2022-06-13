@@ -201,7 +201,7 @@ FullFilterBlockReader::FullFilterBlockReader(
   //               | byte for num_probes or            |
   //               |   marker for new implementations  |
   //         len+1 +-----------------------------------+
-  //               | four bytes for number of cache    |
+  //               | four bytes for number of table_cache    |
   //               |   lines                           |
   // len_with_meta +-----------------------------------+
 

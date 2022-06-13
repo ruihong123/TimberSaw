@@ -52,7 +52,7 @@ static void UnrefEntry(void* arg1, void* arg2) {
   Cache* cache = reinterpret_cast<Cache*>(arg1);
   Cache::Handle* h = reinterpret_cast<Cache::Handle*>(arg2);
   cache->Release(h);
-//  cache->Erase()
+//  table_cache->Erase()
 }
 
 TableCache::TableCache(const std::string& dbname, const Options& options,
@@ -74,7 +74,7 @@ TableCache::~TableCache() {
   if (TableCache::not_filtered.load() > 0){
     printf("Average time elapse for Data binary search is %zu, "
            "Average time elapse for Index binary search is %zu,"
-           " Average time elapse for data block fetch before cache is %zu\n",
+           " Average time elapse for data block fetch before table_cache is %zu\n",
            TableCache::DataBinarySearchTimeElapseSum.load()/TableCache::not_filtered.load(),
            TableCache::IndexBinarySearchTimeElapseSum.load()/TableCache::not_filtered.load(),
            TableCache::DataBlockFetchBeforeCacheElapseSum.load()/TableCache::not_filtered.load());
@@ -113,15 +113,15 @@ Status TableCache::FindTable(
     *handle = cache_->Lookup(key);
     if (*handle == nullptr) {
       Table* table = nullptr;
-      //    printf("Did not find the table in the cache, file number is %lu \n ", Remote_memtable_meta->number);
+      //    printf("Did not find the table in the table_cache, file number is %lu \n ", Remote_memtable_meta->number);
       if (s.ok()) {
         s = Table::Open(options_, &table, Remote_memtable_meta);
       }
-      //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
+      //TODO(ruihong): add remotememtablemeta and Table to the table_cache entry.
       if (!s.ok()) {
         assert(table == nullptr);
         //      delete file;
-        // We do not cache error results so that if the error is transient,
+        // We do not table_cache error results so that if the error is transient,
         // or somebody repairs the file, we recover automatically.
       } else {
         assert(table!= nullptr);
@@ -144,7 +144,7 @@ Status TableCache::FindTable_MemorySide(
 {
   Status s;
   s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
-//      DEBUG_arg("file number inserted to the cache is %lu ", Remote_memtable_meta.get()->number);
+//      DEBUG_arg("file number inserted to the table_cache is %lu ", Remote_memtable_meta.get()->number);
 //      DEBUG_arg("Remote_memtable_meta pointer is %p\n", Remote_memtable_meta.get());
   return s;
 }
@@ -156,20 +156,20 @@ Status TableCache::FindTable_MemorySide(
 //    memcpy(buf + sizeof(Remote_memtable_meta->number), &Remote_memtable_meta->creator_node_id,
 //           sizeof(Remote_memtable_meta->creator_node_id));
 //    Slice key(buf, sizeof(buf));
-//    *handle = cache_->Lookup(key);
+//    *handle = table_cache->Lookup(key);
 //    if (*handle == nullptr) {
 //      Table_Memory_Side* table = nullptr;
 //      //    DEBUG("FindTable_MemorySide\n");
 //      if (s.ok()) {
 //        s = Table_Memory_Side::Open(options_, &table, Remote_memtable_meta);
-//        //      DEBUG_arg("file number inserted to the cache is %lu ", Remote_memtable_meta.get()->number);
+//        //      DEBUG_arg("file number inserted to the table_cache is %lu ", Remote_memtable_meta.get()->number);
 //        //      DEBUG_arg("Remote_memtable_meta pointer is %p\n", Remote_memtable_meta.get());
 //      }
-//      //TODO(ruihong): add remotememtablemeta and Table to the cache entry.
+//      //TODO(ruihong): add remotememtablemeta and Table to the table_cache entry.
 //      if (!s.ok()) {
 //        assert(table == nullptr);
 //        //      delete file;
-//        // We do not cache error results so that if the error is transient,
+//        // We do not table_cache error results so that if the error is transient,
 //        // or somebody repairs the file, we recover automatically.
 //      } else {
 //        SSTable* tf = new SSTable;
@@ -179,7 +179,7 @@ Status TableCache::FindTable_MemorySide(
 //        tf->table_memory = table;
 //        assert(table->rep != nullptr);
 //        //      assert(static_cast<RemoteMemTableMetaData*>(table->Get_remote_table_ptr())->number != 0);
-//        *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Memory);
+//        *handle = table_cache->Insert(key, tf, 1, &DeleteEntry_Memory);
 //      }
 //    }
 //    return s;
@@ -252,13 +252,13 @@ Iterator* TableCache::NewIterator_MemorySide(
     return NewErrorIterator(s);
   }
 
-//  Table_Memory_Side* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_memory;
-  // The pointer of p will be different from what stored in the cache because the p is a new
+//  Table_Memory_Side* table = reinterpret_cast<SSTable*>(table_cache->Value(handle))->table_memory;
+  // The pointer of p will be different from what stored in the table_cache because the p is a new
   // created Remote memory metadata from the serialized buffer. so no need for the
   // assert of p == table->Get_rdma()
   assert(table->Get_remote_table_ptr()!= nullptr);
   Iterator* result = table->NewIterator(options);
-//  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+//  result->RegisterCleanup(&UnrefEntry, table_cache, handle);
   if (tableptr != nullptr) {
     *tableptr = table;
   }
@@ -274,7 +274,7 @@ Status TableCache::Get(const ReadOptions& options,
 #endif
   Cache::Handle* handle = nullptr;
   //TODO: not let concurrent thread finding the same tale and inserting the same
-  // index block to the cache
+  // index block to the table_cache
   Status s = FindTable(f, &handle);
   if (s.ok()) {
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;

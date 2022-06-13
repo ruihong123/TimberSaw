@@ -41,7 +41,7 @@ class TimberSaw_EXPORT Table {
 
     Options options;
     Status status;
-    // weak_ptr because if there is cached value in the table cache then the obsoleted SST
+    // weak_ptr because if there is cached value in the table table_cache then the obsoleted SST
     // will never be garbage collected.
     std::weak_ptr<RemoteMemTableMetaData> remote_table;
     uint64_t cache_id;

@@ -192,7 +192,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
     case kNoCompression:
         result->data = Slice(data, n);
 //        result->heap_allocated = false;
-//        result->cachable = false;  // Do not double-cache
+//        result->cachable = false;  // Do not double-table_cache
 
 
       // Ok
@@ -342,7 +342,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
       //block content do not contain compression type and check sum
       result->data = Slice(data, n);
 //      result->heap_allocated = false;
-//      result->cachable = false;  // Do not double-cache
+//      result->cachable = false;  // Do not double-table_cache
 
 
       // Ok
@@ -407,7 +407,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
     case kNoCompression:
       result->data = Slice(data, n);
 //      result->heap_allocated = false;
-//      result->cachable = false;  // Do not double-cache
+//      result->cachable = false;  // Do not double-table_cache
 
 
       // Ok

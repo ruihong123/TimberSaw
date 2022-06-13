@@ -419,7 +419,7 @@ void TableBuilder_BACS::FlushData(){
   size_t msg_size = r->offset - r->offset_last_flushed;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr, rep_->target_node_id_);
   //TOTHINK: check the logic below.
   // I was thinking that the start represent the oldest outgoing buffer, while the
   // end is the latest buffer. When polling a result, the start index will moving forward
@@ -517,7 +517,7 @@ void TableBuilder_BACS::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr, rep_->target_node_id_);
   rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size,
                       r->type_string_, IBV_SEND_SIGNALED, 0, rep_->target_node_id_);
   remote_mr->length = msg_size;
@@ -536,7 +536,7 @@ void TableBuilder_BACS::FlushFilter(size_t& msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr, rep_->target_node_id_);
   rdma_mg->RDMA_Write(remote_mr, r->local_filter_mr[0], msg_size,
                       r->type_string_, IBV_SEND_SIGNALED, 0, rep_->target_node_id_);
   remote_mr->length = msg_size;

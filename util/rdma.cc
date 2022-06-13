@@ -74,7 +74,6 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
 //  char buf[INET_ADDRSTRLEN];
 //  inet_pton(AF_INET, config.server_name, &inaddr);
 //  node_id = static_cast<uint8_t>(inaddr.s_addr);
-  Remote_Mem_Bitmap = new std::map<void*, In_Use_Array*>;
 //  qp_local_write_flush->Reset(new QP_Map());
 //  cq_local_write_flush->Reset(new CQ_Map());
 //  qp_local_write_compact->Reset(new QP_Map());
@@ -170,7 +169,10 @@ RDMA_Manager::~RDMA_Manager() {
       delete iter.second;
     }
   }
-  for(auto iter : *Remote_Mem_Bitmap){
+  for(auto iter : Remote_Mem_Bitmap){
+    for(auto iter1 : *iter.second){
+      delete iter1.second;
+    }
     delete iter.second;
   }
   delete res;
@@ -901,7 +903,10 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     qp_local_read.insert({target_node_id, new ThreadLocalPtr(&UnrefHandle_qp)});
     cq_local_read.insert({target_node_id, new ThreadLocalPtr(&UnrefHandle_cq)});
     local_read_qp_info.insert({target_node_id, new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)});
+    Remote_Mem_Bitmap.insert({target_node_id, new std::map<void*, In_Use_Array*>()});
   }
+
+
 }
 /******************************************************************************
 * Function: resources_create
@@ -2566,7 +2571,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id) {
       (Table_Size);  // here we supposing the SSTables are 4 megabytes
   In_Use_Array* in_use_array = new In_Use_Array(placeholder_num, Table_Size, temp_pointer);
   //    std::unique_lock l(remote_pool_mutex);
-  Remote_Mem_Bitmap->insert({temp_pointer->addr, in_use_array});
+  Remote_Mem_Bitmap.at(target_node_id)->insert({temp_pointer->addr, in_use_array});
   //    l.unlock();
   //  l.unlock();
   Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
@@ -2667,23 +2672,24 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_type,
   //    return false;
 }
 
-void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
+void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
+                                             uint8_t target_node_id) {
   // If the Remote buffer is empty, register one from the remote memory.
   //  remote_mr = new ibv_mr;
-  if (Remote_Mem_Bitmap->empty()) {
+  if (Remote_Mem_Bitmap.at(target_node_id)->empty()) {
     // this lock is to prevent the system register too much remote memory at the
     // begginning.
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
-    if (Remote_Mem_Bitmap->empty()) {
+    if (Remote_Mem_Bitmap.at(target_node_id)->empty()) {
       Remote_Memory_Register(1 * 1024 * 1024 * 1024, 0);
       //      fs_meta_save();
     }
     mem_write_lock.unlock();
   }
   std::shared_lock<std::shared_mutex> mem_read_lock(remote_mem_mutex);
-  auto ptr = Remote_Mem_Bitmap->begin();
+  auto ptr = Remote_Mem_Bitmap.at(target_node_id)->begin();
 
-  while (ptr != Remote_Mem_Bitmap->end()) {
+  while (ptr != Remote_Mem_Bitmap.at(target_node_id)->end()) {
     // iterate among all the remote memory region
     // find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr* second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get from the remote memory. The memory was divided into chunks with size == SSTable size.
     int sst_index = ptr->second->allocate_memory_slot();
@@ -2710,7 +2716,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr) {
   //  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
-  int sst_index = Remote_Mem_Bitmap->at(mr_last->addr)->allocate_memory_slot();
+  int sst_index = Remote_Mem_Bitmap.at(target_node_id)->at(mr_last->addr)->allocate_memory_slot();
   assert(sst_index >= 0);
   mem_write_lock.unlock();
 
@@ -2871,11 +2877,12 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, Chunk_type buff_type) {
   }
   return false;
 }
-bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p) {
+bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p,
+                                               uint8_t target_node_id) {
 //  DEBUG_arg("Delete Remote pointer %p", p);
   std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
   std::map<void*, In_Use_Array*>* Bitmap;
-  Bitmap = Remote_Mem_Bitmap;
+  Bitmap = Remote_Mem_Bitmap.at(target_node_id);
   auto mr_iter = Bitmap->upper_bound(p);
   if (mr_iter == Bitmap->begin()) {
     return false;
@@ -2954,10 +2961,10 @@ bool RDMA_Manager::CheckInsideLocalBuff(
   }
   return false;
 }
-bool RDMA_Manager::CheckInsideRemoteBuff(void* p) {
+bool RDMA_Manager::CheckInsideRemoteBuff(void* p, uint8_t target_node_id) {
   std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
   std::map<void*, In_Use_Array*>* Bitmap;
-  Bitmap = Remote_Mem_Bitmap;
+  Bitmap = Remote_Mem_Bitmap.at(target_node_id);
   auto mr_iter = Bitmap->upper_bound(p);
   if (mr_iter == Bitmap->begin()) {
     return false;

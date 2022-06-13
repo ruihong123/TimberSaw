@@ -101,8 +101,8 @@ static int FLAGS_max_file_size = 0;
 // (initialized to default value by "main")
 static int FLAGS_block_size = 0;
 
-// Number of bytes to use as a cache of uncompressed data.
-// Negative means use no cache.
+// Number of bytes to use as a table_cache of uncompressed data.
+// Negative means use no table_cache.
 static int FLAGS_cache_size = -1;
 
 // Maximum number of files to keep open at the same time (use default if == 0)
@@ -496,7 +496,7 @@ class Benchmark {
         if (key == "model name") {
           ++num_cpus;
           cpu_type = val.ToString();
-        } else if (key == "cache size") {
+        } else if (key == "table_cache size") {
           cache_size = val.ToString();
         }
       }
@@ -955,7 +955,7 @@ class Benchmark {
   }
   void Validation_Read() {
     ReadOptions options;
-    //TODO(ruihong): specify the cache option.
+    //TODO(ruihong): specify the table_cache option.
     std::string value;
     int not_found = 0;
 //    KeyBuffer key;
@@ -1046,7 +1046,7 @@ class Benchmark {
 
   void ReadRandom(ThreadState* thread) {
     ReadOptions options;
-    //TODO(ruihong): specify the cache option.
+    //TODO(ruihong): specify the table_cache option.
     std::string value;
     int found = 0;
 //    KeyBuffer key;

@@ -10,7 +10,7 @@
 // InlineSkipList is derived from SkipList (skiplist.h), but it optimizes
 // the memory layout by requiring that the key storage be allocated through
 // the skip list instance.  For the common case of SkipList<const char*,
-// Cmp> this saves 1 pointer per skip list node and gives better cache
+// Cmp> this saves 1 pointer per skip list node and gives better table_cache
 // locality, at the expense of wasted padding from using AllocateAligned
 // instead of Allocate for the keys.  The unused padding will be from
 // 0 to sizeof(void*)-1 bytes, and the space savings are sizeof(void*)

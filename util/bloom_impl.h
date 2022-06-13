@@ -34,10 +34,10 @@ class BloomMath {
     return std::pow(1.0 - std::exp(-num_probes / bits_per_key), num_probes);
   }
 
-  // False positive rate of a "blocked"/"shareded"/"cache-local" Bloom filter,
+  // False positive rate of a "blocked"/"shareded"/"table_cache-local" Bloom filter,
   // for given ratio of filter memory bits to added keys, number of probes per
-  // operation (all within the given block or cache line size), and block or
-  // cache line size.
+  // operation (all within the given block or table_cache line size), and block or
+  // table_cache line size.
   static double CacheLocalFpRate(double bits_per_key, int num_probes,
                                  int cache_line_bits) {
     double keys_per_cache_line = cache_line_bits / bits_per_key;
@@ -86,21 +86,21 @@ class BloomMath {
   }
 };
 
-// A fast, flexible, and accurate cache-local Bloom implementation with
+// A fast, flexible, and accurate table_cache-local Bloom implementation with
 // SIMD-optimized query performance (currently using AVX2 on Intel). Write
 // performance and non-SIMD read are very good, benefiting from FastRange32
 // used in place of % and single-cycle multiplication on recent processors.
 //
 // Most other SIMD Bloom implementations sacrifice flexibility and/or
 // accuracy by requiring num_probes to be a power of two and restricting
-// where each probe can occur in a cache line. This implementation sacrifices
+// where each probe can occur in a table_cache line. This implementation sacrifices
 // SIMD-optimization for add (might still be possible, especially with AVX512)
-// in favor of allowing any num_probes, not crossing cache line boundary,
-// and accuracy close to theoretical best accuracy for a cache-local Bloom.
+// in favor of allowing any num_probes, not crossing table_cache line boundary,
+// and accuracy close to theoretical best accuracy for a table_cache-local Bloom.
 // E.g. theoretical best for 10 bits/key, num_probes=6, and 512-bit bucket
-// (Intel cache line size) is 0.9535% FP rate. This implementation yields
+// (Intel table_cache line size) is 0.9535% FP rate. This implementation yields
 // about 0.957%. (Compare to LegacyLocalityBloomImpl<false> at 1.138%, or
-// about 0.951% for 1024-bit buckets, cache line size for some ARM CPUs.)
+// about 0.951% for 1024-bit buckets, table_cache line size for some ARM CPUs.)
 //
 // This implementation can use a 32-bit hash (let h2 be h1 * 0x9e3779b9) or
 // a 64-bit hash (split into two uint32s). With many millions of keys, the
@@ -110,20 +110,20 @@ class BloomMath {
 // with 10s of millions of keys or more.
 //
 // Despite accepting a 64-bit hash, this implementation uses 32-bit fastrange
-// to pick a cache line, which can be faster than 64-bit in some cases.
+// to pick a table_cache line, which can be faster than 64-bit in some cases.
 // This only hurts accuracy as you get into 10s of GB for a single filter,
-// and accuracy abruptly breaks down at 256GB (2^32 cache lines). Switch to
+// and accuracy abruptly breaks down at 256GB (2^32 table_cache lines). Switch to
 // 64-bit fastrange if you need filters so big. ;)
 //
-// Using only a 32-bit input hash within each cache line has negligible
-// impact for any reasonable cache line / bucket size, for arbitrary filter
+// Using only a 32-bit input hash within each table_cache line has negligible
+// impact for any reasonable table_cache line / bucket size, for arbitrary filter
 // size, and potentially saves intermediate data size in some cases vs.
 // tracking full 64 bits. (Even in an implementation using 64-bit arithmetic
 // to generate indices, I might do the same, as a single multiplication
 // suffices to generate a sufficiently mixed 64 bits from 32 bits.)
 //
-// This implementation is currently tied to Intel cache line size, 64 bytes ==
-// 512 bits. If there's sufficient demand for other cache line sizes, this is
+// This implementation is currently tied to Intel table_cache line size, 64 bytes ==
+// 512 bits. If there's sufficient demand for other table_cache line sizes, this is
 // a pretty good implementation to extend, but slight performance enhancements
 // are possible with an alternate implementation (probably not very compatible
 // with SIMD):
@@ -144,7 +144,7 @@ class FastLocalBloomImpl {
                                 int hash_bits) {
     return BloomMath::IndependentProbabilitySum(
         BloomMath::CacheLocalFpRate(8.0 * bytes / keys, num_probes,
-                                    /*cache line bits*/ 512),
+                                    /*table_cache line bits*/ 512),
         BloomMath::FingerprintFpRate(keys, hash_bits));
   }
 
@@ -152,7 +152,7 @@ class FastLocalBloomImpl {
     // Since this implementation can (with AVX2) make up to 8 probes
     // for the same cost, we pick the most accurate num_probes, based
     // on actual tests of the implementation. Note that for higher
-    // bits/key, the best choice for cache-local Bloom can be notably
+    // bits/key, the best choice for table_cache-local Bloom can be notably
     // smaller than standard bloom, e.g. 9 instead of 11 @ 16 b/k.
     if (millibits_per_key <= 2080) {
       return 1;
@@ -202,7 +202,7 @@ class FastLocalBloomImpl {
                                      char *data_at_cache_line) {
     uint32_t h = h2;
     for (int i = 0; i < num_probes; ++i, h *= uint32_t{0x9e3779b9}) {
-      // 9-bit address within 512 bit cache line
+      // 9-bit address within 512 bit table_cache line
       int bitpos = h >> (32 - 9);
       data_at_cache_line[bitpos >> 3] |= (uint8_t{1} << (bitpos & 7));
     }
@@ -250,7 +250,7 @@ class FastLocalBloomImpl {
       hash_vector = _mm256_mullo_epi32(hash_vector, multipliers);
 
       // Now the top 9 bits of each of the eight 32-bit values in
-      // hash_vector are bit addresses for probes within the cache line.
+      // hash_vector are bit addresses for probes within the table_cache line.
       // While the platform-independent code uses byte addressing (6 bits
       // to pick a byte + 3 bits to pick a bit within a byte), here we work
       // with 32-bit words (4 bits to pick a word + 5 bits to pick a bit
@@ -261,7 +261,7 @@ class FastLocalBloomImpl {
       const __m256i word_addresses = _mm256_srli_epi32(hash_vector, 28);
 
       // Gather 32-bit values spread over 512 bits by 4-bit address. In
-      // essence, we are dereferencing eight pointers within the cache
+      // essence, we are dereferencing eight pointers within the table_cache
       // line.
       //
       // Option 1: AVX2 gather (seems to be a little slow - understandable)
@@ -271,7 +271,7 @@ class FastLocalBloomImpl {
       //                            word_addresses,
       //                            /*bytes / i32*/ 4);
       // END Option 1
-      // Potentially unaligned as we're not *always* cache-aligned -> loadu
+      // Potentially unaligned as we're not *always* table_cache-aligned -> loadu
       const __m256i *mm_data =
           reinterpret_cast<const __m256i *>(data_at_cache_line);
       __m256i lower = _mm256_loadu_si256(mm_data);
@@ -328,7 +328,7 @@ class FastLocalBloomImpl {
     }
 #else
     for (int i = 0; i < num_probes; ++i, h *= uint32_t{0x9e3779b9}) {
-      // 9-bit address within 512 bit cache line
+      // 9-bit address within 512 bit table_cache line
       int bitpos = h >> (32 - 9);
       if ((data_at_cache_line[bitpos >> 3] & (char(1) << (bitpos & 7))) == 0) {
         return false;
@@ -381,14 +381,14 @@ class LegacyNoLocalityBloomImpl {
 };
 
 // A legacy Bloom filter implementation with probes local to a single
-// cache line (fast). Because SST files might be transported between
-// platforms, the cache line size is a parameter rather than hard coded.
+// table_cache line (fast). Because SST files might be transported between
+// platforms, the table_cache line size is a parameter rather than hard coded.
 // (But if specified as a constant parameter, an optimizing compiler
 // should take advantage of that.)
 //
 // When ExtraRotates is false, this implementation is notably deficient in
 // accuracy. Specifically, it uses double hashing with a 1/512 chance of the
-// increment being zero (when cache line size is 512 bits). Thus, there's a
+// increment being zero (when table_cache line size is 512 bits). Thus, there's a
 // 1/512 chance of probing only one index, which we'd expect to incur about
 // a 1/2 * 1/512 or absolute 0.1% FP rate penalty. More detail at
 // https://github.com/facebook/rocksdb/issues/4120
@@ -409,7 +409,7 @@ class LegacyLocalityBloomImpl {
   static double EstimatedFpRate(size_t keys, size_t bytes, int num_probes) {
     double bits_per_key = 8.0 * bytes / keys;
     double filter_rate = BloomMath::CacheLocalFpRate(bits_per_key, num_probes,
-                                                     /*cache line bits*/ 512);
+                                                     /*table_cache line bits*/ 512);
     if (!ExtraRotates) {
       // Good estimate of impact of flaw in index computation.
       // Adds roughly 0.002 around 50 bits/key and 0.001 around 100 bits/key.
@@ -432,7 +432,7 @@ class LegacyLocalityBloomImpl {
         data + (GetLine(h, num_lines) << log2_cache_line_bytes);
     const uint32_t delta = (h >> 17) | (h << 15);
     for (int i = 0; i < num_probes; ++i) {
-      // Mask to bit-within-cache-line address
+      // Mask to bit-within-table_cache-line address
       const uint32_t bitpos = h & ((1 << log2_cache_line_bits) - 1);
       data_at_offset[bitpos / 8] |= (1 << (bitpos % 8));
       if (ExtraRotates) {
@@ -467,7 +467,7 @@ class LegacyLocalityBloomImpl {
 
     const uint32_t delta = (h >> 17) | (h << 15);
     for (int i = 0; i < num_probes; ++i) {
-      // Mask to bit-within-cache-line address
+      // Mask to bit-within-table_cache-line address
       const uint32_t bitpos = h & ((1 << log2_cache_line_bits) - 1);
       if (((data_at_offset[bitpos / 8]) & (1 << (bitpos % 8))) == 0) {
         return false;

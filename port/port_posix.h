@@ -264,7 +264,7 @@ typedef pthread_once_t OnceType;
 extern void InitOnce(OnceType* once, void (*initializer)());
 
 #ifndef CACHE_LINE_SIZE
-// To test behavior with non-native cache line size, e.g. for
+// To test behavior with non-native table_cache line size, e.g. for
 // Bloom filters, set TEST_CACHE_LINE_SIZE to the desired test size.
 // This disables ALIGN_AS to keep it from failing compilation.
 #ifdef TEST_CACHE_LINE_SIZE

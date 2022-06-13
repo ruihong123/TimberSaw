@@ -19,23 +19,23 @@ Cache::~Cache() {}
 
 namespace {
 
-// LRU cache implementation
+// LRU table_cache implementation
 //
-// Cache entries have an "in_cache" boolean indicating whether the cache has a
+// Cache entries have an "in_cache" boolean indicating whether the table_cache has a
 // reference on the entry.  The only ways that this can become false without the
 // entry being passed to its "deleter" are via Erase(), via Insert() when
-// an element with a duplicate key is inserted, or on destruction of the cache.
+// an element with a duplicate key is inserted, or on destruction of the table_cache.
 //
-// The cache keeps two linked lists of items in the cache.  All items in the
-// cache are in one list or the other, and never both.  Items still referenced
-// by clients but erased from the cache are in neither list.  The lists are:
+// The table_cache keeps two linked lists of items in the table_cache.  All items in the
+// table_cache are in one list or the other, and never both.  Items still referenced
+// by clients but erased from the table_cache are in neither list.  The lists are:
 // - in-use:  contains the items currently referenced by clients, in no
 //   particular order.  (This list is used for invariant checking.  If we
 //   removed the check, elements that would otherwise be on this list could be
 //   left as disconnected singleton lists.)
 // - LRU:  contains the items not currently referenced by clients, in LRU order
 // Elements are moved between these lists by the Ref() and Unref() methods,
-// when they detect an element in the cache acquiring or losing its only
+// when they detect an element in the table_cache acquiring or losing its only
 // external reference.
 
 // An entry is a variable length heap-allocated structure.  Entries
@@ -48,8 +48,8 @@ struct LRUHandle {
   LRUHandle* prev;
   size_t charge;  // TODO(opt): Only allow uint32_t?
   size_t key_length;
-  bool in_cache;     // Whether entry is in the cache.
-  uint32_t refs;     // References, including cache reference, if present.
+  bool in_cache;     // Whether entry is in the table_cache.
+  uint32_t refs;     // References, including table_cache reference, if present.
   uint32_t hash;     // Hash of key(); used for fast sharding and comparisons
   char key_data[1];  // Beginning of key
 
@@ -86,7 +86,7 @@ class HandleTable {
     if (old == nullptr) {
       ++elems_;
       if (elems_ > length_) {
-        // Since each cache entry is fairly large, we aim for a small
+        // Since each table_cache entry is fairly large, we aim for a small
         // average linked list length (<= 1).
         Resize();
       }
@@ -106,13 +106,13 @@ class HandleTable {
 
  private:
   // The table consists of an array of buckets where each bucket is
-  // a linked list of cache entries that hash into the bucket.
+  // a linked list of table_cache entries that hash into the bucket.
   uint32_t length_;
   uint32_t elems_;
   LRUHandle** list_;
 
-  // Return a pointer to slot that points to a cache entry that
-  // matches key/hash.  If there is no such cache entry, return a
+  // Return a pointer to slot that points to a table_cache entry that
+  // matches key/hash.  If there is no such table_cache entry, return a
   // pointer to the trailing slot in the corresponding linked list.
   LRUHandle** FindPointer(const Slice& key, uint32_t hash) {
     LRUHandle** ptr = &list_[hash & (length_ - 1)];
@@ -149,7 +149,7 @@ class HandleTable {
   }
 };
 
-// A single shard of sharded cache.
+// A single shard of sharded table_cache.
 class LRUCache {
  public:
   LRUCache();
@@ -287,17 +287,17 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
   std::memcpy(e->key_data, key.data(), key.size());
 
   if (capacity_ > 0) {
-    e->refs++;  // for the cache's reference. refer here and unrefer outside
+    e->refs++;  // for the table_cache's reference. refer here and unrefer outside
     e->in_cache = true;
     LRU_Append(&in_use_, e);// Finally it will be pushed into LRU list
     usage_ += charge;
     FinishErase(table_.Insert(e));//table_.Insert(e) will return LRUhandle with duplicate key as e, and then delete it by FinishErase
-  } else {  // don't cache. (capacity_==0 is supported and turns off caching.)
+  } else {  // don't table_cache. (capacity_==0 is supported and turns off caching.)
     // next is read by key() in an assert, so it must be initialized
     e->next = nullptr;
   }
 //  printf("Cache capacity is %zu, usage is %zu", capacity_, usage_);
-  // This will remove some entry from LRU if the cache over size.
+  // This will remove some entry from LRU if the table_cache over size.
   while (usage_ > capacity_ && lru_.next != &lru_) {
     LRUHandle* old = lru_.next;
     assert(old->refs == 1);
@@ -311,7 +311,7 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
   return reinterpret_cast<Cache::Handle*>(e);
 }
 
-// If e != nullptr, finish removing *e from the cache; it has already been
+// If e != nullptr, finish removing *e from the table_cache; it has already been
 // removed from the hash table.  Return whether e != nullptr.
 // Remove the handle from LRU and change the usage.
 bool LRUCache::FinishErase(LRUHandle* e) {

@@ -219,7 +219,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //        rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, DataChunk);
 //      }
 //    }
-    // Preallocate the RDMA local buffer. ADD extra 1GB to make sure covering all the cache.
+    // Preallocate the RDMA local buffer. ADD extra 1GB to make sure covering all the table_cache.
 
 //    ibv_mr contents = {};
 //    rdma_mg->Allocate_Local_RDMA_Slot(contents, "DataBlock");
@@ -693,7 +693,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   const uint64_t start_micros = env_->NowMicros();
   //Mark all memtable as FLUSHPROCESSING.
   job->SetAllMemStateProcessing();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0,versions_->table_cache_);
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
   DEBUG_arg("new file number for flushing is %lu\n", meta->number);
@@ -746,7 +746,7 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   //The program should never goes here.
   assert(false);
   const uint64_t start_micros = env_->NowMicros();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0);
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0, versions_->table_cache_);
   meta->number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = job->NewIterator();
@@ -1880,9 +1880,9 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 #endif
-  rdma_mg->post_send<RDMA_Request>(&send_mr, c->edit()->GetNodeID(), std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, target_node_id, std::string("main"));
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, c->edit()->GetNodeID())){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, target_node_id)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -1993,7 +1993,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 
 //  auto edit_files_vec = edit.GetNewFiles();
 //  for (auto iter : *edit_files_vec) {
-//    //load the table metadta into table cache
+//    //load the table metadta into table table_cache
 //    Iterator* it = table_cache_->NewIterator(ReadOptions(), iter.second);
 ////    s = it->status();
 //    delete it;
@@ -2133,7 +2133,7 @@ void DBImpl::client_message_polling_and_handling_thread(
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
 
 //    assert(!shutting_down_.load());
-    // try to reconnect the qp according to the cache in RDMA manager.
+    // try to reconnect the qp according to the table_cache in RDMA manager.
     if (q_id == "read_local"){
       assert(false);// Never comes to here
       qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(target_node_id)->Get());

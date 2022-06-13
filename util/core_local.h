@@ -16,7 +16,7 @@
 
 namespace TimberSaw {
 
-// An array of core-local values. Ideally the value type, T, is cache aligned to
+// An array of core-local values. Ideally the value type, T, is table_cache aligned to
 // prevent false sharing.
 template <typename T>
 class CoreLocalArray {
@@ -27,7 +27,7 @@ class CoreLocalArray {
   // returns pointer to the element corresponding to the core that the thread
   // currently runs on.
   T* Access() const;
-  // same as above, but also returns the core index, which the client can cache
+  // same as above, but also returns the core index, which the client can table_cache
   // to reduce how often core ID needs to be retrieved. Only do this if some
   // inaccuracy is tolerable, as the thread may migrate to a different core.
   std::pair<T*, size_t> AccessElementAndIndex() const;

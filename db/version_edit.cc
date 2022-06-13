@@ -19,21 +19,22 @@ namespace TimberSaw {
 /***************************************/
 // this_machine_type 0 means compute node, 1 means memory node
 // creater_node_id  odd means compute node, even means memory node
-RemoteMemTableMetaData::RemoteMemTableMetaData(int side, TableCache* cache)
-    : this_machine_type(side), allowed_seeks(1 << 30),cache_(cache) {
+RemoteMemTableMetaData::RemoteMemTableMetaData(int machine_type, TableCache* cache)
+    : this_machine_type(machine_type), allowed_seeks(1 << 30),
+      table_cache(cache) {
   // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   // Node_id is unique for every node, while the this_machine_type only distinguish
   // the compute node from the memory node.
-  if (side == 0){
+  if (machine_type == 0){
     rdma_mg = Env::Default()->rdma_mg;
-    creator_node_id = rdma_mg->node_id; // rdma_mg->node_id = side
+    creator_node_id = rdma_mg->node_id; // rdma_mg->node_id = machine_type
   }else{
     rdma_mg = Memory_Node_Keeper::rdma_mg;
     creator_node_id = rdma_mg->node_id;
   }
 }
 RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
-    : this_machine_type(side), allowed_seeks(1 << 30),cache_(nullptr) {
+    : this_machine_type(side), allowed_seeks(1 << 30), table_cache(nullptr) {
   // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   //  Node_id is unique for every node, while the this_machine_type only distinguish the compute node from the memory node.
   if (side == 0) {
@@ -52,8 +53,8 @@ RemoteMemTableMetaData::~RemoteMemTableMetaData() {
 //  assert(creator_node_id == 0 || creator_node_id == 1);
 
   if (this_machine_type == 0){
-    if (cache_ != nullptr){
-      cache_->Evict(number, 0);
+    if (table_cache != nullptr){
+      table_cache->Evict(number, creator_node_id);
     }
     if (creator_node_id == rdma_mg->node_id){
       //#ifndef NDEBUG

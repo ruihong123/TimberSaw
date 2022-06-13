@@ -126,7 +126,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   if (s.ok()) {
     BlockContents contents;
     if (block_cache != nullptr) {
-//      printf("There is a cache!!\n");
+//      printf("There is a table_cache!!\n");
       char cache_key_buffer[16];
       EncodeFixed64(cache_key_buffer, table->rep->cache_id);
       EncodeFixed64(cache_key_buffer + 8, handle.offset());
@@ -171,7 +171,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         }
       }
     } else {
-//      printf("NO cache found!!\n");
+//      printf("NO table_cache found!!\n");
       s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
@@ -185,7 +185,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
     if (cache_handle == nullptr) {
       iter->RegisterCleanup(&DeleteBlock, block, nullptr);
     } else {
-      // Realease the cache handle when we delete the block iterator
+      // Realease the table_cache handle when we delete the block iterator
       iter->RegisterCleanup(&ReleaseBlock, block_cache, cache_handle);
     }
   } else {

@@ -23,7 +23,7 @@ struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node
 // creater_node_id  odd means compute node, even means memory node
-  RemoteMemTableMetaData(int side, TableCache* cache);
+  RemoteMemTableMetaData(int machine_type, TableCache* cache);
   RemoteMemTableMetaData(int side);
   //TOTHINK: the garbage collection of the Remote table is not triggered!
   ~RemoteMemTableMetaData();
@@ -31,7 +31,7 @@ struct RemoteMemTableMetaData {
     std::map<uint32_t , ibv_mr*>::iterator it;
 
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr)){
+      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr, 0)){
         return false;
       }
       delete it->second;
@@ -84,13 +84,17 @@ struct RemoteMemTableMetaData {
   void mr_serialization(std::string* dst, ibv_mr* mr) const;
   std::shared_ptr<RDMA_Manager> rdma_mg;
   int this_machine_type;
-//  uint64_t refs;
+  uint8_t creator_node_id;// The node id who create this SSTable. This could be a compute node
+
+  // The memory node that store the shard for this SSTable, it has to be a memory node
+  uint8_t target_node_id;
+  //  uint64_t refs;
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction
   uint64_t number;
-  uint8_t creator_node_id;// The node id who create this SSTable.
+
   // The uint32_t is the offset within the file.
-  std::map<uint32_t , ibv_mr*> remote_data_mrs;
+  std::map<uint32_t, ibv_mr*> remote_data_mrs;
   std::map<uint32_t, ibv_mr*> remote_dataindex_mrs;
   std::map<uint32_t, ibv_mr*> remote_filter_mrs;
   //std::vector<ibv_mr*> remote_data_mrs
@@ -98,7 +102,7 @@ struct RemoteMemTableMetaData {
   size_t num_entries;
   InternalKey smallest;  // Smallest internal key served by table
   InternalKey largest;   // Largest internal key served by table
-  TableCache* cache_;
+  TableCache* table_cache = nullptr;
   bool UnderCompaction = false;
 };
 

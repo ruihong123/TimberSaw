@@ -117,8 +117,8 @@ struct TimberSaw_EXPORT Options {
   // Control over blocks (user data is stored in a set of blocks, and
   // a block is the unit of reading from disk).
 
-  // If non-null, use the specified cache for blocks.
-  // If null, TimberSaw will automatically create and use an 64MB internal cache.
+  // If non-null, use the specified table_cache for blocks.
+  // If null, TimberSaw will automatically create and use an 64MB internal table_cache.
   Cache* block_cache = nullptr;
 
   // Approximate size of user data packed per block.  Note that the
@@ -201,7 +201,7 @@ struct TimberSaw_EXPORT WriteOptions {
   WriteOptions() = default;
 
   // If true, the write will be flushed from the operating system
-  // buffer cache (by calling WritableFile::Sync()) before the write
+  // buffer table_cache (by calling WritableFile::Sync()) before the write
   // is considered complete.  If this flag is true, writes will be
   // slower.
   //
