@@ -208,7 +208,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     //Wait for the clearance of pending receive work request from the last DB open.
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      while (main_comm_thread_ready_num != 0) {
+      while (main_comm_thread_ready_num == 0) {
         printf("Start to sleep\n");
         write_stall_cv.wait(lck);
         printf("Waked up\n");
@@ -2347,7 +2347,7 @@ void DBImpl::Setup_target_id_create_handling_thread(uint8_t id) {
 void DBImpl::Wait_for_client_message_hanlding_setup() {
   {
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-    while (main_comm_thread_ready_num != 0) {
+    while (main_comm_thread_ready_num == 0) {
       printf("Start to sleep\n");
       write_stall_cv.wait(lck);
       printf("Waked up\n");
