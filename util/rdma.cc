@@ -1249,7 +1249,7 @@ ibv_qp* RDMA_Manager::create_qp(uint8_t target_node_id, bool seperated_cq,
 //    ((QP_Map*)qp_local_write_compact->Get())->insert({target_node_id, qp});
 //    qp_local_write_compact->Reset(qp);
   else
-    res->qp_map.at(target_node_id) = qp;
+    res->qp_map[target_node_id] = qp;
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
 //  uint8_t* p = qp->gid;
 //  fprintf(stdout,
