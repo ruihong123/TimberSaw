@@ -110,7 +110,10 @@ void WriteBatch::Delete(const Slice& key) {
   PutLengthPrefixedSlice(&rep_, key);
 }
 Slice WriteBatch::ParseFirst() {
-  return GetLengthPrefixedSlice(rep_.c_str()+1);
+  Slice input = Slice(rep_.c_str()+1, rep_.size());
+  Slice output;
+  GetLengthPrefixedSlice(&input,&output);
+  return output;
 }
 
 void WriteBatch::Append(const WriteBatch& source) {
