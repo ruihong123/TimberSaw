@@ -3961,6 +3961,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       assert(impl->mem_ != nullptr);
       *dbptr = impl;
     } else {
+      assert(false);
       delete impl;
     }
     return s;
@@ -4012,6 +4013,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
         assert(impl->mem_ != nullptr);
         *dbptr = impl;
       } else {
+        assert(false);
         delete impl;
       }
     }
