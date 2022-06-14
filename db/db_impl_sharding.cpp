@@ -45,7 +45,7 @@ Status DBImpl_Sharding::Put(const WriteOptions& options, const Slice& key,
   }else{
     // forward to other shards
     assert(false);
-    return Status();
+    return Status::Corruption("Shard not found\n");
   }
 
 }
@@ -58,17 +58,22 @@ Status DBImpl_Sharding::Delete(const WriteOptions& options, const Slice& key) {
   }else{
     // forward to other shards
     assert(false);
-    return Status();
+    return Status::Corruption("Shard not found\n");
   }
 
 }
 Status DBImpl_Sharding::Write(const WriteOptions& options,
                               WriteBatch* updates) {
   DBImpl* db;
-  assert(false);
+//  assert(false);
   //TODO: cross shard batch should be atomic.
-//  Get_Target_Shard(db, key);
-  return Status();
+  if(Get_Target_Shard(db, updates->ParseFirst())){
+    return db->Write(options, updates);
+  }else{
+    assert(false);
+    return Status::Corruption("Shard not found\n");
+  }
+
 }
 Status DBImpl_Sharding::Get(const ReadOptions& options, const Slice& key,
                             std::string* value) {
@@ -77,7 +82,7 @@ Status DBImpl_Sharding::Get(const ReadOptions& options, const Slice& key,
     return db->Get(options, key, value);
   }else{
     assert(false);
-    return Status();
+    return Status::Corruption("Shard not found\n");
   }
 
 }

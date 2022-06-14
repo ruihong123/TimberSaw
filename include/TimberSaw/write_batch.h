@@ -53,6 +53,7 @@ class TimberSaw_EXPORT WriteBatch {
   // If the database contains a mapping for "key", erase it.  Else do nothing.
   void Delete(const Slice& key);
 
+  Slice ParseFirst();
   // Clear all updates buffered in this batch.
   void Clear();
 

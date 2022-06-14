@@ -109,10 +109,14 @@ void WriteBatch::Delete(const Slice& key) {
   rep_.push_back(static_cast<char>(kTypeDeletion));
   PutLengthPrefixedSlice(&rep_, key);
 }
+Slice WriteBatch::ParseFirst() {
+  return GetLengthPrefixedSlice(rep_.c_str()+1);
+}
 
 void WriteBatch::Append(const WriteBatch& source) {
   WriteBatchInternal::Append(this, &source);
 }
+
 
 namespace {
 class MemTableInserter : public WriteBatch::Handler {
