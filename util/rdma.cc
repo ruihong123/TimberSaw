@@ -885,12 +885,13 @@ void RDMA_Manager::Client_Set_Up_Resources() {
               "failed to establish TCP connection to server %s, port %d\n",
               rdma_config.server_name, rdma_config.tcp_port);
     }
-    assert(memory_nodes.size() == 2);
+//    assert(memory_nodes.size() == 2);
     //TODO: use mulitple thread to initialize the queue pairs.
     threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
 //    Get_Remote_qp_Info_Then_Connect(target_node_id);
     threads.back().detach();
   }
+  while (connection_counter.load() != memory_nodes.size());
 //  for (auto & thread : threads) {
 //    thread.join();
 //  }
@@ -1119,7 +1120,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
   //    printf("The main qp not create correctly");
   //    return false;
   //  }
-
+  connection_counter.fetch_add(1);
   return false;
 }
 ibv_qp* RDMA_Manager::create_qp_Mside(bool seperated_cq,

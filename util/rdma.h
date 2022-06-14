@@ -459,6 +459,7 @@ class RDMA_Manager {
   std::condition_variable dealloc_cv;
   std::map<uint8_t, std::string> compute_nodes{};
   std::map<uint8_t, std::string> memory_nodes{};
+  std::atomic<uint64_t> connection_counter = 0;
   std::map<std::string, std::pair<ibv_cq*, ibv_cq*>> cq_map_Mside; /* CQ Map */
   std::map<std::string, ibv_qp*> qp_map_Mside; /* QP Map */
   std::map<std::string, registered_qp_config*> qp_main_connection_info_Mside;
