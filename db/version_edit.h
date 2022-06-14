@@ -29,9 +29,9 @@ struct RemoteMemTableMetaData {
   ~RemoteMemTableMetaData();
   bool Remote_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
     std::map<uint32_t , ibv_mr*>::iterator it;
-
+    assert(creator_node_id%2 == 0);
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr, 0)){
+      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr, creator_node_id)){
         return false;
       }
       delete it->second;
