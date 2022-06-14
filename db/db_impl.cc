@@ -4014,6 +4014,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       //    impl->RemoveObsoleteFiles();
       impl->MaybeScheduleFlushOrCompaction();
     }
+    impl->InstallSuperVersion();
     impl->undefine_mutex.Unlock();
     if (s.ok()) {
       assert(impl->mem_ != nullptr);
@@ -4028,17 +4029,17 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     uint8_t memory_node_num = Env::Default()->rdma_mg->memory_nodes.size();
     DBImpl_Sharding* impl_with_shards = new DBImpl_Sharding(options, dbname);
     *dbptr = impl_with_shards;
-    int i = 0;
-    uint8_t target_node_id = 2*i;
+//    int i = 0;
+//    uint8_t target_node_id = 2*i;
     for(auto iter : *impl_with_shards->GetShards_pool()){
 
       DBImpl* impl = iter.second;
       //The node id space are shared by both compute nodes and memory nodes.
       // we need to twice the id.
-      target_node_id = 2*i;
+//      target_node_id = 2*i;
       //TODO: the target node id should be set before we setup the client handling threads.
 //      impl->SetTargetnodeid(target_node_id);
-      i++;
+//      i++;
 //      impl->SetTargetnodeid()
       impl->undefine_mutex.Lock();
       VersionEdit edit(0);
@@ -4072,6 +4073,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
         //    impl->RemoveObsoleteFiles();
         impl->MaybeScheduleFlushOrCompaction();
       }
+      impl->InstallSuperVersion();
       impl->undefine_mutex.Unlock();
       if (s.ok()) {
           assert(impl->mem_ != nullptr);

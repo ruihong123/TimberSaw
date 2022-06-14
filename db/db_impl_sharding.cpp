@@ -64,10 +64,12 @@ Status DBImpl_Sharding::Delete(const WriteOptions& options, const Slice& key) {
 }
 Status DBImpl_Sharding::Write(const WriteOptions& options,
                               WriteBatch* updates) {
-  DBImpl* db;
+  DBImpl* db = nullptr;
 //  assert(false);
   //TODO: cross shard batch should be atomic.
-  if(Get_Target_Shard(db, updates->ParseFirst())){
+  Slice first_key = updates->ParseFirst();
+  assert(first_key.size() >0);
+  if(Get_Target_Shard(db, first_key)){
     return db->Write(options, updates);
   }else{
     assert(false);
