@@ -4082,6 +4082,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     }
     if (s.ok()) {
       //    assert(impl->mem_ != nullptr);
+      assert(false);
       *dbptr = impl_with_shards;
     } else {
       assert(false);
