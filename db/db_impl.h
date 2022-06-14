@@ -82,7 +82,7 @@ class DBImpl : public DB {
 
  public:
   DBImpl(const Options& options, const std::string& dbname);
-
+  DBImpl(const Options& options, const std::string& dbname, uint8_t target_node_id);
   DBImpl(const DBImpl&) = delete;
   DBImpl& operator=(const DBImpl&) = delete;
 
@@ -135,9 +135,12 @@ class DBImpl : public DB {
   void WaitforAllbgtasks(bool clear_mem) override;
   void SetTargetnodeid(uint8_t id){
     target_node_id = id;
-    imm_.SetTargetnodeid(id);
+//    imm_.SetTargetnodeid(id);
   }
 
+  void client_message_polling_and_handling_thread(std::string q_id);
+  void Setup_target_id_create_handling_thread(uint8_t id);
+  void Wait_for_client_message_hanlding_setup();
  private:
   friend class DB;
 //  struct CompactionState;
@@ -230,7 +233,6 @@ class DBImpl : public DB {
   }
   void sync_option_to_remote(uint8_t target_node_id);
   void remote_qp_reset(std::string& qp_type, uint8_t target_node_id);
-  void client_message_polling_and_handling_thread(std::string q_id);
   void install_version_edit_handler(RDMA_Request* request, std::string client_ip);
 #ifdef WITHPERSISTENCE
   static void SSTable_Unpin_Dispatch(void* thread_args);

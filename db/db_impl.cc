@@ -249,6 +249,46 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //      main_comm_threads.back().detach();
     printf("DBImpl finished\n");
 }
+//This functon does not contain the creation of the client message handling thread
+DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t id)
+    : env_(raw_options.env),
+      internal_comparator_(raw_options.comparator),
+      internal_filter_policy_(raw_options.filter_policy),
+      options_(SanitizeOptions(dbname, &internal_comparator_,
+                               &internal_filter_policy_, raw_options)),
+      owns_info_log_(options_.info_log != raw_options.info_log),
+      owns_cache_(options_.block_cache != raw_options.block_cache),
+      dbname_(dbname),
+      table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
+      db_lock_(nullptr),
+      shutting_down_(false),
+      //      write_stall_cv(&write_stall_mutex_),
+      mem_(nullptr),
+      imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger,
+           64 * 1024 * 1024 * config::Immutable_StopWritesTrigger),
+      has_imm_(false),
+      logfile_(nullptr),
+      logfile_number_(0),
+      log_(nullptr),
+      seed_(0),
+      tmp_batch_(new WriteBatch),
+      background_compaction_scheduled_(false),
+      manual_compaction_(nullptr),
+      versions_(new VersionSet(dbname_, &options_, table_cache_,
+                               &internal_comparator_, &superversion_memlist_mtx)),
+      super_version_number_(0),
+      super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)),
+      target_node_id(id)
+{
+
+
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
+  env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
+
+
+
+}
 
 DBImpl::~DBImpl() {
   // Wait for background work to finish.
@@ -2298,6 +2338,24 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
 //    }
 }
+void DBImpl::Setup_target_id_create_handling_thread(uint8_t id) {
+  target_node_id = id;
+  main_comm_threads.emplace_back(
+      &DBImpl::client_message_polling_and_handling_thread, this, "main");
+
+}
+void DBImpl::Wait_for_client_message_hanlding_setup() {
+  {
+    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+    while (main_comm_thread_ready_num != 0) {
+      printf("Start to sleep\n");
+      write_stall_cv.wait(lck);
+      printf("Waked up\n");
+    }
+  }
+  Unpin_bg_pool_.SetBackgroundThreads(1);
+
+}
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
                                  std::unique_lock<std::mutex>* version_mtx) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
@@ -3971,11 +4029,15 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     DBImpl_Sharding* impl_with_shards = new DBImpl_Sharding(options, dbname);
     *dbptr = impl_with_shards;
     int i = 0;
+    uint8_t target_node_id = 2*i;
     for(auto iter : *impl_with_shards->GetShards_pool()){
+
       DBImpl* impl = iter.second;
       //The node id space are shared by both compute nodes and memory nodes.
-      // we need to twice the id and plus 1.
-      impl->SetTargetnodeid((i%memory_node_num)*2 + 1);
+      // we need to twice the id.
+      target_node_id = 2*i;
+      //TODO: the target node id should be set before we setup the client handling threads.
+//      impl->SetTargetnodeid(target_node_id);
       i++;
 //      impl->SetTargetnodeid()
       impl->undefine_mutex.Lock();

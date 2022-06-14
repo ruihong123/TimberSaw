@@ -11,11 +11,22 @@ DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbna
     for (auto iter : *options.ShardInfo) {
       Shard_Info.emplace_back(iter.first.ToString(), iter.second.ToString());
     }
-    for(auto iter : Shard_Info) {
+    for(const auto& iter : Shard_Info) {
+      //We can not set the target node id in DBImpl because we don't know what should be
+      // the node id corresponding with this shard. (Is that true?) Probably not.
+      // Now the shards are assigned to target memory nodes in a strictly round robin manner
+      // according to the upper bound of shard.
       auto sharded_db = new DBImpl(options, dbname);
       shards_pool.insert({iter.second, sharded_db});
     }
-
+    int i = 0;
+    for(auto & iter : shards_pool){
+      iter.second->Setup_target_id_create_handling_thread(2*i);
+      i++;
+    }
+    for(auto & iter : shards_pool){
+      iter.second->Wait_for_client_message_hanlding_setup();
+    }
 }
 DBImpl_Sharding::~DBImpl_Sharding() {
   for(auto iter : shards_pool){

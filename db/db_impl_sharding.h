@@ -53,6 +53,9 @@ class DBImpl_Sharding : public DB {
     // In case that the shard key buffer get deleted outside the DB.
     // THe range of every shard is [lower bound, upper bound).
     std::vector<std::pair<std::string, std::string>> Shard_Info;
+//    std::vector<std::thread> Sharded_main_comm_threads;
+//    int main_comm_thread_ready_num = 0;
+//    std::condition_variable handler_threads_cv;
   };
 }
 #endif  // TIMBERSAW_DB_IMPL_SHARDING_H
