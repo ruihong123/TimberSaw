@@ -527,10 +527,10 @@ Status DBImpl::Recover(VersionEdit* edit, bool* save_manifest) {
   // may already exist from a previous failed creation attempt.
   env_->CreateDir(dbname_);
   assert(db_lock_ == nullptr);
-  Status s = env_->LockFile(LockFileName(dbname_), &db_lock_);
-  if (!s.ok()) {
-    return s;
-  }
+//  Status s = env_->LockFile(LockFileName(dbname_), &db_lock_);
+//  if (!s.ok()) {
+//    return s;
+//  }
 
   if (!env_->FileExists(CurrentFileName(dbname_))) {
     if (options_.create_if_missing) {
