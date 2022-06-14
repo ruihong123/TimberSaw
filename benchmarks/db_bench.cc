@@ -920,7 +920,7 @@ class Benchmark {
     options.reuse_logs = FLAGS_reuse_logs;
     //
     auto rdma_mg = Env::Default()->rdma_mg;
-    if (rdma_mg->compute_nodes.size()>1 || rdma_mg->memory_nodes.size()>1){
+    if (rdma_mg->compute_nodes.size()> 1 || rdma_mg->memory_nodes.size()> 1){
       options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
       number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
       number_of_key_per_compute =
@@ -948,7 +948,6 @@ class Benchmark {
 
 
     }
-
 
     Status s = DB::Open(options, FLAGS_db, &db_);
     if (!s.ok()) {

@@ -173,7 +173,7 @@ struct TimberSaw_EXPORT Options {
   const FilterPolicy* filter_policy = nullptr;
   int bloom_bits = 10;
 
-  std::vector<std::pair<Slice,Slice>>* ShardInfo;// [Lower bound, upper bound)
+  std::vector<std::pair<Slice,Slice>>* ShardInfo = nullptr;// [Lower bound, upper bound)
 };
 
 // Options that control read operations
