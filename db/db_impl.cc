@@ -3966,8 +3966,10 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     }
     return s;
   }else{// If it is sharded.
+    Status s;
     uint8_t memory_node_num = Env::Default()->rdma_mg->memory_nodes.size();
     DBImpl_Sharding* impl_with_shards = new DBImpl_Sharding(options, dbname);
+    *dbptr = impl_with_shards;
     int i = 0;
     for(auto iter : *impl_with_shards->GetShards_pool()){
       DBImpl* impl = iter.second;
@@ -3980,7 +3982,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       VersionEdit edit(0);
       // Recover handles create_if_missing, error_if_exists
       bool save_manifest = false;
-      Status s = impl->Recover(&edit, &save_manifest);
+      s = impl->Recover(&edit, &save_manifest);
       if (s.ok() && impl->mem_ == nullptr) {
         // Create new log and a corresponding memtable.
         uint64_t new_log_number = impl->versions_->NewFileNumber();
@@ -4010,12 +4012,17 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
       }
       impl->undefine_mutex.Unlock();
       if (s.ok()) {
-        assert(impl->mem_ != nullptr);
-        *dbptr = impl;
-      } else {
-        assert(false);
+          assert(impl->mem_ != nullptr);
+      }else{
         delete impl;
       }
+    }
+    if (s.ok()) {
+      //    assert(impl->mem_ != nullptr);
+      *dbptr = impl_with_shards;
+    } else {
+      assert(false);
+      delete impl_with_shards;
     }
   }
 
