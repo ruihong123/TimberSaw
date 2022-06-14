@@ -1078,7 +1078,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
 
   fprintf(stdout, "Remote QP number = 0x%x\n", remote_con_data->qp_num);
   fprintf(stdout, "Remote LID = 0x%x\n", remote_con_data->lid);
-  std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+  std::unique_lock<std::shared_mutex> l(qp_cq_map_mutex);
   if (qp_type == "read_local" ){
     assert(local_read_qp_info.at(target_node_id) != nullptr);
     local_read_qp_info.at(target_node_id)->Reset(remote_con_data);
@@ -1249,7 +1249,7 @@ ibv_qp* RDMA_Manager::create_qp(uint8_t target_node_id, bool seperated_cq,
 //    ((QP_Map*)qp_local_write_compact->Get())->insert({target_node_id, qp});
 //    qp_local_write_compact->Reset(qp);
   else
-    res->qp_map[target_node_id] = qp;
+    res->qp_map.at(target_node_id) = qp;
   fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
 //  uint8_t* p = qp->gid;
 //  fprintf(stdout,
