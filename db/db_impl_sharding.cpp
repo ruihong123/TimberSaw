@@ -15,8 +15,9 @@ DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbna
       //We can not set the target node id in DBImpl because we don't know what should be
       // the node id corresponding with this shard. (Is that true?) Probably not.
       // Now the shards are assigned to target memory nodes in a strictly round robin manner
-      // according to the upper bound of shard.
-      auto sharded_db = new DBImpl(options, dbname);
+      // according to the upper bound of shard. the third argument we set as 0,
+      // to overload the function
+      auto sharded_db = new DBImpl(options, dbname, 0);
       shards_pool.insert({iter.second, sharded_db});
     }
     int i = 0;
