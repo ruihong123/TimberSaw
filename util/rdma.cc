@@ -2687,7 +2687,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
     // begginning.
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
     if (Remote_Mem_Bitmap.at(target_node_id)->empty()) {
-      Remote_Memory_Register(1 * 1024 * 1024 * 1024, 0);
+      Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id);
       //      fs_meta_save();
     }
     mem_write_lock.unlock();
@@ -2718,7 +2718,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
   mem_read_lock.unlock();
   // If not find remote buffers are all used, allocate another remote memory region.
   std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
-  Remote_Memory_Register(1 * 1024 * 1024 * 1024, 0);
+  Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id);
   //  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
