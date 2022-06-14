@@ -3934,6 +3934,7 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
 //    impl->RemoveObsoleteFiles();
   impl->MaybeScheduleFlushOrCompaction();
   }
+  impl->InstallSuperVersion();
   impl->undefine_mutex.Unlock();
   if (s.ok()) {
     assert(impl->mem_ != nullptr);
