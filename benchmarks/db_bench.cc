@@ -986,9 +986,9 @@ class Benchmark {
       assert(key.size() == FLAGS_key_size);
       key.append(&to_be_append, 1);
 ////      batch.Put(key, gen.Generate(value_size_));
-      batch.Put(key, key);
+//      batch.Put(key, key);
 
-      s = db_->Write(write_options_, &batch);
+      s = db_->Put(write_options_, key, key);
       validation_keys.push_back(key.ToString());
     }
     printf("validation write finished\n");
