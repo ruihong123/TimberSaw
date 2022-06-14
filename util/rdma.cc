@@ -885,7 +885,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
               "failed to establish TCP connection to server %s, port %d\n",
               rdma_config.server_name, rdma_config.tcp_port);
     }
-    assert(target_node_id != 4);
+    assert(memory_nodes.size() == 2);
     //TODO: use mulitple thread to initialize the queue pairs.
     threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
 //    Get_Remote_qp_Info_Then_Connect(target_node_id);
