@@ -887,9 +887,9 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     }
     assert(memory_nodes.size() == 2);
     //TODO: use mulitple thread to initialize the queue pairs.
-//    threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
-    Get_Remote_qp_Info_Then_Connect(target_node_id);
-//    threads.back().join();
+    threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
+//    Get_Remote_qp_Info_Then_Connect(target_node_id);
+    threads.back().detach();
   }
   while (connection_counter.load() != memory_nodes.size());
 //  for (auto & thread : threads) {
