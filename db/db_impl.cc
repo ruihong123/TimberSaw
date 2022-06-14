@@ -195,17 +195,20 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
-    for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
-      main_comm_threads.emplace_back(
-          &DBImpl::client_message_polling_and_handling_thread, this, "main", 2*i);
-      main_comm_threads.back().detach();
-    }
+
+    main_comm_threads.emplace_back(
+        &DBImpl::client_message_polling_and_handling_thread, this, "main");
+//    for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
+//      main_comm_threads.emplace_back(
+//          &DBImpl::client_message_polling_and_handling_thread, this, "main");
+//      main_comm_threads.back().detach();
+//    }
 
     printf("communication thread created\n");
     //Wait for the clearance of pending receive work request from the last DB open.
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      while (main_comm_thread_ready_num != rdma_mg->memory_nodes.size()) {
+      while (main_comm_thread_ready_num != 0) {
         printf("Start to sleep\n");
         write_stall_cv.wait(lck);
         printf("Waked up\n");
@@ -2124,8 +2127,7 @@ void DBImpl::remote_qp_reset(std::string& qp_type, uint8_t target_node_id) {
 //  printf("polled reply buffer\n");
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
 }
-void DBImpl::client_message_polling_and_handling_thread(
-    std::string q_id, uint8_t target_node_id) {
+void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 
     ibv_qp* qp;
     int rc = 0;
