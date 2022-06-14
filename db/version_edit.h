@@ -31,7 +31,7 @@ struct RemoteMemTableMetaData {
     std::map<uint32_t , ibv_mr*>::iterator it;
     assert(creator_node_id%2 == 0);
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr, creator_node_id)){
+      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr, target_node_id)){
         return false;
       }
       delete it->second;
