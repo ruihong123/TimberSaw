@@ -889,10 +889,11 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     //TODO: use mulitple thread to initialize the queue pairs.
     threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
 //    Get_Remote_qp_Info_Then_Connect(target_node_id);
+    threads.back().detach();
   }
-  for (auto & thread : threads) {
-    thread.join();
-  }
+//  for (auto & thread : threads) {
+//    thread.join();
+//  }
 }
 void RDMA_Manager::Initialize_threadlocal_map(){
   uint8_t target_node_id;
