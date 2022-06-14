@@ -2261,8 +2261,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
       main_comm_thread_ready_num++;
-      write_stall_cv.notify_all();
-
+      write_stall_cv.notify_one();
     }
     printf("client handling thread\n");
     while (!shutting_down_.load()) {
