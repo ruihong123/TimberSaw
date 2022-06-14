@@ -3921,7 +3921,7 @@ DB::~DB() = default;
 Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
   *dbptr = nullptr;
 
-  if (options.ShardInfo->size() == 1){
+  if (options.ShardInfo == nullptr){
     //If it is not sharded
     DBImpl* impl = new DBImpl(options, dbname);
     impl->undefine_mutex.Lock();
