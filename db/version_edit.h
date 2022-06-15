@@ -39,13 +39,15 @@ struct RemoteMemTableMetaData {
     }
     return true;
   }
+  // TODO: sperate the deallocation buffer.
   bool Prepare_Batch_Deallocate(){
     std::map<uint32_t , ibv_mr*>::iterator it;
     uint64_t* ptr;
 //    assert(remote_dataindex_mrs.size() == 1);
     size_t chunk_num = remote_data_mrs.size() + remote_dataindex_mrs.size()
                        + remote_filter_mrs.size();
-    bool RPC = rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num);
+    bool RPC =
+        rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num, 0);
     size_t index = 0;
     for (it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++) {
       ptr[index] = (uint64_t)it->second->addr;

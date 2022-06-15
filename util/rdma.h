@@ -335,7 +335,8 @@ class RDMA_Manager {
       char** p2buffpointer, ibv_mr** p2mrpointer, size_t size,
       Chunk_type pool_name);  // register the memory on the local side
   // bulk deallocation preparation.
-  bool Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size);
+  bool Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size,
+                                             uint8_t target_node_id);
   // The RPC to bulk deallocation.
   void Memory_Deallocation_RPC(uint8_t target_node_id);
   //TODO: Make it register not per 1GB, allocate and register the memory all at once.
@@ -452,11 +453,13 @@ class RDMA_Manager {
   static uint8_t node_id;
   std::unordered_map<uint8_t, ibv_mr*> comm_thread_recv_mrs;
   std::unordered_map<uint8_t , int> comm_thread_buffer;
-  uint64_t deallocation_buffer[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)];
-  ibv_mr* dealloc_mr;
-  size_t top = 0;
-  std::mutex dealloc_mtx;
-  std::condition_variable dealloc_cv;
+  std::map<uint8_t, uint64_t*> deallocation_buffers;
+  std::map<uint8_t, std::mutex*> dealloc_mtx;
+  std::map<uint8_t, std::condition_variable*> dealloc_cv;
+//  uint64_t deallocation_buffers[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)];
+  std::map<uint8_t, ibv_mr*>  dealloc_mr;
+  std::map<uint8_t, size_t>  top;
+
   std::map<uint8_t, std::string> compute_nodes{};
   std::map<uint8_t, std::string> memory_nodes{};
   std::atomic<uint64_t> connection_counter = 0;
