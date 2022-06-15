@@ -21,9 +21,10 @@ namespace TimberSaw {
 // creater_node_id  odd means compute node, even means memory node
 RemoteMemTableMetaData::RemoteMemTableMetaData(int machine_type,
                                                TableCache* cache, uint8_t id)
-    : this_machine_type(machine_type), allowed_seeks(1 << 30),
-      table_cache(cache),
-      shard_target_node_id(id) {
+    : this_machine_type(machine_type), shard_target_node_id(id),
+      allowed_seeks(1 << 30),
+      table_cache(cache) {
+  assert(shard_target_node_id < 36);
   // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   // Node_id is unique for every node, while the this_machine_type only distinguish
   // the compute node from the memory node.
@@ -36,7 +37,7 @@ RemoteMemTableMetaData::RemoteMemTableMetaData(int machine_type,
   }
 }
 RemoteMemTableMetaData::RemoteMemTableMetaData(int side)
-    : this_machine_type(side), allowed_seeks(1 << 30), table_cache(nullptr) {
+    : this_machine_type(side), shard_target_node_id(99), allowed_seeks(1 << 30),table_cache(nullptr) {
   // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   //  Node_id is unique for every node, while the this_machine_type only distinguish the compute node from the memory node.
   if (side == 0) {
