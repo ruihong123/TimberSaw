@@ -278,7 +278,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t id
                                &internal_comparator_, &superversion_memlist_mtx)),
       super_version_number_(0),
       super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)),
-      target_node_id(id)
+      shard_target_node_id(id)
 {
 
 
@@ -738,7 +738,8 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   const uint64_t start_micros = env_->NowMicros();
   //Mark all memtable as FLUSHPROCESSING.
   job->SetAllMemStateProcessing();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0,versions_->table_cache_);
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0,versions_->table_cache_,
+                                               shard_target_node_id);
   job->sst = meta;
   meta->number = versions_->NewFileNumber();
   DEBUG_arg("new file number for flushing is %lu\n", meta->number);
@@ -751,7 +752,7 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   {
 //    undefine_mutex.Unlock();
     s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush,
-                    target_node_id);
+                    shard_target_node_id);
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -791,7 +792,8 @@ Status DBImpl::WriteLevel0Table(MemTable* job, VersionEdit* edit,
   //The program should never goes here.
   assert(false);
   const uint64_t start_micros = env_->NowMicros();
-  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0, versions_->table_cache_);
+  std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0, versions_->table_cache_,
+                                               shard_target_node_id);
   meta->number = versions_->NewFileNumber();
 //  pending_outputs_.insert(meta->number);
   Iterator* iter = job->NewIterator();
@@ -1428,7 +1430,7 @@ Status DBImpl::OpenCompactionOutputFile(SubcompactionState* compact) {
         options_, Compact, rdma_mg);
 #endif
 #ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BACS(options_, Compact, target_node_id);
+    compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
 #endif
   }
   return s;
@@ -1459,7 +1461,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
         options_, Compact, rdma_mg);
 #endif
 #ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BACS(options_, Compact, target_node_id);
+    compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
 #endif
   }
   return s;
@@ -1600,7 +1602,8 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
   if (compact->sub_compact_states.size() == 0){
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
-      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0,table_cache_);
+      std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(0,table_cache_,
+                                                   shard_target_node_id);
       //TODO make all the metadata written into out
       meta->number = out.number;
       meta->level = level+1;
@@ -1618,7 +1621,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
       for (size_t i = 0; i < subcompact.outputs.size(); i++) {
         const CompactionOutput& out = subcompact.outputs[i];
         std::shared_ptr<RemoteMemTableMetaData> meta =
-            std::make_shared<RemoteMemTableMetaData>(0,table_cache_);
+            std::make_shared<RemoteMemTableMetaData>(0,table_cache_,shard_target_node_id);
         // TODO make all the metadata written into out
         meta->number = out.number;
         meta->file_size = out.file_size;
@@ -1925,9 +1928,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 #endif
-  rdma_mg->post_send<RDMA_Request>(&send_mr, target_node_id, std::string("main"));
+  rdma_mg->post_send<RDMA_Request>(&send_mr, shard_target_node_id, std::string("main"));
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, target_node_id)){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
+                               shard_target_node_id)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
@@ -2180,54 +2184,54 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     // try to reconnect the qp according to the table_cache in RDMA manager.
     if (q_id == "read_local"){
       assert(false);// Never comes to here
-      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(target_node_id)->Get());
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(shard_target_node_id)->Get());
       if (qp == NULL) {
         //if qp not exist create a new qp
-        rdma_mg->Remote_Query_Pair_Connection(q_id,target_node_id);
-        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(target_node_id)->Get());
+        rdma_mg->Remote_Query_Pair_Connection(q_id, shard_target_node_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_read.at(shard_target_node_id)->Get());
       }else{
         // if the qp has already been existed re initialize the qp to clear the old WRQs.
-        assert(rdma_mg->local_read_qp_info.at(target_node_id)->Get() != nullptr);
+        assert(rdma_mg->local_read_qp_info.at(shard_target_node_id)->Get() != nullptr);
         //        rdma_mg->modify_qp_to_reset(qp);
         //        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_flush"){
-      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush.at(target_node_id)->Get());
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush.at(shard_target_node_id)->Get());
       if (qp == NULL) {
-        rdma_mg->Remote_Query_Pair_Connection(q_id, target_node_id);
-        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush.at(target_node_id)->Get());
+        rdma_mg->Remote_Query_Pair_Connection(q_id, shard_target_node_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_flush.at(shard_target_node_id)->Get());
       }else{
-        assert(rdma_mg->local_write_flush_qp_info.at(target_node_id)->Get() != nullptr);
+        assert(rdma_mg->local_write_flush_qp_info.at(shard_target_node_id)->Get() != nullptr);
         //        rdma_mg->modify_qp_to_reset(qp);
         //        rdma_mg->connect_qp(qp, q_id);
       }
     }else if (q_id == "write_local_compact"){
-      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact.at(target_node_id)->Get());
+      qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact.at(shard_target_node_id)->Get());
       if (qp == NULL) {
-        rdma_mg->Remote_Query_Pair_Connection(q_id, target_node_id);
-        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact.at(target_node_id)->Get());
+        rdma_mg->Remote_Query_Pair_Connection(q_id, shard_target_node_id);
+        qp = static_cast<ibv_qp*>(rdma_mg->qp_local_write_compact.at(shard_target_node_id)->Get());
       }else{
-        assert(rdma_mg->local_write_compact_qp_info.at(target_node_id)->Get() != nullptr);
+        assert(rdma_mg->local_write_compact_qp_info.at(shard_target_node_id)->Get() != nullptr);
         //        rdma_mg->modify_qp_to_reset(qp);
         //        rdma_mg->connect_qp(qp, q_id);
       }
     } else {
       std::shared_lock<std::shared_mutex> l(rdma_mg->qp_cq_map_mutex);
 
-      if (rdma_mg->res->qp_map.find(target_node_id) != rdma_mg->res->qp_map.end()){
+      if (rdma_mg->res->qp_map.find(shard_target_node_id) != rdma_mg->res->qp_map.end()){
 //        qp = rdma_mg->res->qp_map.at(q_id);
 //        printf("qp number before reset is %d\n", qp->qp_num);
 //        assert(rdma_mg->res->qp_main_connection_info.find(q_id)!= rdma_mg->res->qp_main_connection_info.end());
 //        l.unlock();
-          qp = rdma_mg->res->qp_map.at(target_node_id);
+          qp = rdma_mg->res->qp_map.at(shard_target_node_id);
 //        rdma_mg->modify_qp_to_reset(qp);
 //        rdma_mg->connect_qp(qp, q_id);
 //        printf("qp number after reset is %d\n", qp->qp_num);
       }else{
         l.unlock();
-        rdma_mg->Remote_Query_Pair_Connection(q_id, target_node_id);
+        rdma_mg->Remote_Query_Pair_Connection(q_id, shard_target_node_id);
         l.lock();
-        qp = rdma_mg->res->qp_map.at(target_node_id);
+        qp = rdma_mg->res->qp_map.at(shard_target_node_id);
         l.unlock();
       }
 
@@ -2237,9 +2241,9 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     int buffer_counter;
     //TODO: keep the recv mr in rdma manager so that next time we restart
     // the database we can retrieve from the rdma_mg.
-    if (rdma_mg->comm_thread_recv_mrs.find(target_node_id) != rdma_mg->comm_thread_recv_mrs.end()){
-      recv_mr = rdma_mg->comm_thread_recv_mrs.at(target_node_id);
-      buffer_counter = rdma_mg->comm_thread_buffer.at(target_node_id);
+    if (rdma_mg->comm_thread_recv_mrs.find(shard_target_node_id) != rdma_mg->comm_thread_recv_mrs.end()){
+      recv_mr = rdma_mg->comm_thread_recv_mrs.at(shard_target_node_id);
+      buffer_counter = rdma_mg->comm_thread_buffer.at(shard_target_node_id);
     }else{
       // Some where we need to delete the recv_mr in case of memory leak.
       ibv_mr* recv_mr = new ibv_mr[R_SIZE]();
@@ -2248,14 +2252,14 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
       }
 
       for(int i = 0; i<R_SIZE; i++) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], target_node_id, q_id);
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], shard_target_node_id, q_id);
       }
       buffer_counter = 0;
-      rdma_mg->comm_thread_recv_mrs.insert({target_node_id, recv_mr});
+      rdma_mg->comm_thread_recv_mrs.insert({shard_target_node_id, recv_mr});
     }
     printf("Start to sync options\n");
     //TODO: Sync option to all the memory servers.
-    sync_option_to_remote(target_node_id);
+    sync_option_to_remote(shard_target_node_id);
     ibv_wc wc[3] = {};
 //    RDMA_Request receive_msg_buf;
     {
@@ -2267,7 +2271,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     while (!shutting_down_.load()) {
       // we can only use try_poll... rather than poll_com.. because we need to
       // make sure the shutting down signal can work.
-      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false, target_node_id) >0){
+      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false,
+                                                    shard_target_node_id) >0){
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
           std::unique_lock<std::mutex> lck(mtx_temp);
@@ -2280,7 +2285,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
           while (imm_data != 0 || byte_len != 0 ){
             cv_temp.notify_one();
           }
-          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                              shard_target_node_id,
                                               "main");
           // increase the buffer index
           if (buffer_counter== R_SIZE-1 ){
@@ -2298,7 +2304,8 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         // it is the same with send buff pointer.
         if (receive_msg_buf->command == install_version_edit) {
           ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
-          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], target_node_id,
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                              shard_target_node_id,
                                               "main");
           install_version_edit_handler(receive_msg_buf, q_id);
 #ifdef WITHPERSISTENCE
@@ -2332,14 +2339,14 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     }
 
 //    remote_qp_reset(q_id);
-    rdma_mg->comm_thread_buffer.insert({target_node_id, buffer_counter});
+    rdma_mg->comm_thread_buffer.insert({shard_target_node_id, buffer_counter});
 //    sleep(1);
 //    for (int i = 0; i < R_SIZE; ++i) {
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
 //    }
 }
 void DBImpl::Setup_target_id_create_handling_thread(uint8_t id) {
-  target_node_id = id;
+  shard_target_node_id = id;
   main_comm_threads.emplace_back(
       &DBImpl::client_message_polling_and_handling_thread, this, "main");
 
@@ -2447,7 +2454,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
                       &send_mr_ve, serilized_ve.size() + 1, "main",
-                      IBV_SEND_SIGNALED, 1, target_node_id);
+                      IBV_SEND_SIGNALED, 1, shard_target_node_id);
   //TODO: implement a wait function for the received bit. THe problem is when to
   // reset the buffer to zero (we may need different buffer for the compaction reply)
   // and how to make sure that the reply will wake up this waiting thread. The
@@ -2519,7 +2526,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
                         sizeof(RDMA_Reply), std::move(client_ip),
-                        IBV_SEND_SIGNALED, 1, target_node_id);
+                        IBV_SEND_SIGNALED, 1, shard_target_node_id);
     DEBUG_arg("install non-trival version, version id is %lu\n", request->content.ive.version_id);
     size_t counter = 0;
     while (*(unsigned char*)polling_byte != check_byte){
@@ -4030,15 +4037,15 @@ Status DB::Open(const Options& options, const std::string& dbname, DB** dbptr) {
     DBImpl_Sharding* impl_with_shards = new DBImpl_Sharding(options, dbname);
     *dbptr = impl_with_shards;
 //    int i = 0;
-//    uint8_t target_node_id = 2*i;
+//    uint8_t shard_target_node_id = 2*i;
     for(auto iter : *impl_with_shards->GetShards_pool()){
 
       DBImpl* impl = iter.second;
       //The node id space are shared by both compute nodes and memory nodes.
       // we need to twice the id.
-//      target_node_id = 2*i;
+//      shard_target_node_id = 2*i;
       //TODO: the target node id should be set before we setup the client handling threads.
-//      impl->SetTargetnodeid(target_node_id);
+//      impl->SetTargetnodeid(shard_target_node_id);
 //      i++;
 //      impl->SetTargetnodeid()
       impl->undefine_mutex.Lock();

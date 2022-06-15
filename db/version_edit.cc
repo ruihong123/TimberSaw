@@ -19,9 +19,11 @@ namespace TimberSaw {
 /***************************************/
 // this_machine_type 0 means compute node, 1 means memory node
 // creater_node_id  odd means compute node, even means memory node
-RemoteMemTableMetaData::RemoteMemTableMetaData(int machine_type, TableCache* cache)
+RemoteMemTableMetaData::RemoteMemTableMetaData(int machine_type,
+                                               TableCache* cache, uint8_t id)
     : this_machine_type(machine_type), allowed_seeks(1 << 30),
-      table_cache(cache) {
+      table_cache(cache),
+      shard_target_node_id(id) {
   // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   // Node_id is unique for every node, while the this_machine_type only distinguish
   // the compute node from the memory node.
@@ -108,6 +110,8 @@ void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, number);
 //  printf("Node id is %u", creator_node_id);
   dst->append(reinterpret_cast<const char*>(&creator_node_id), sizeof(creator_node_id));
+  dst->append(reinterpret_cast<const char*>(&shard_target_node_id), sizeof(shard_target_node_id));
+
   PutFixed64(dst, file_size);
   PutLengthPrefixedSlice(dst, smallest.Encode());
   PutLengthPrefixedSlice(dst, largest.Encode());
@@ -164,7 +168,8 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
   memcpy(&creator_node_id, src.data(), sizeof(creator_node_id));
   src.remove_prefix(sizeof(creator_node_id));
 //  printf("Node id is %u", creator_node_id);
-
+  memcpy(&shard_target_node_id, src.data(), sizeof(shard_target_node_id));
+  src.remove_prefix(sizeof(shard_target_node_id));
   GetFixed64(&src, &file_size);
   Slice temp;
   GetLengthPrefixedSlice(&src, &temp);
@@ -471,7 +476,7 @@ Status VersionEdit::DecodeFrom(const Slice src, int this_machine_type,
 
       case kNewFile:
         if (GetLevel(&input, &level)) {
-          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(this_machine_type,cache);
+          std::shared_ptr<RemoteMemTableMetaData> f = std::make_shared<RemoteMemTableMetaData>(this_machine_type,cache, 999);
           f->DecodeFrom(input);
 //          assert(level == 0);
           new_files_.push_back(std::make_pair(level, f));

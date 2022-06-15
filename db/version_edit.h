@@ -23,7 +23,7 @@ struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node
 // creater_node_id  odd means compute node, even means memory node
-  RemoteMemTableMetaData(int machine_type, TableCache* cache);
+  RemoteMemTableMetaData(int machine_type, TableCache* cache, uint8_t id);
   RemoteMemTableMetaData(int side);
   //TOTHINK: the garbage collection of the Remote table is not triggered!
   ~RemoteMemTableMetaData();
@@ -31,7 +31,8 @@ struct RemoteMemTableMetaData {
     std::map<uint32_t , ibv_mr*>::iterator it;
 //    assert(creator_node_id%2 == 0);
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr, target_node_id)){
+      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr,
+                                                shard_target_node_id)){
         return false;
       }
       delete it->second;
@@ -87,7 +88,7 @@ struct RemoteMemTableMetaData {
   uint8_t creator_node_id;// The node id who create this SSTable. This could be a compute node
 
   // The memory node that store the shard for this SSTable, it has to be a memory node
-  uint8_t target_node_id;
+  uint8_t shard_target_node_id;
   //  uint64_t refs;
   uint64_t level;
   uint64_t allowed_seeks;  // Seeks allowed until compaction

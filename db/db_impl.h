@@ -134,7 +134,7 @@ class DBImpl : public DB {
   void InstallSuperVersion();
   void WaitforAllbgtasks(bool clear_mem) override;
   void SetTargetnodeid(uint8_t id){
-    target_node_id = id;
+    shard_target_node_id = id;
 //    imm_.SetTargetnodeid(id);
   }
 
@@ -316,7 +316,7 @@ class DBImpl : public DB {
 //  std::unique_ptr<ThreadLocalPtr> local_sv_;
   ThreadLocalPtr* local_sv_;
   std::vector<std::thread> main_comm_threads;
-  uint8_t target_node_id = 0;
+  uint8_t shard_target_node_id = 0;
 #ifdef PROCESSANALYSIS
   std::atomic<size_t> Total_time_elapse;
   std::atomic<size_t> flush_times;

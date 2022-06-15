@@ -1163,6 +1163,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
     for (size_t i = 0; i < compact->outputs.size(); i++) {
       const CompactionOutput& out = compact->outputs[i];
       std::shared_ptr<RemoteMemTableMetaData> meta = std::make_shared<RemoteMemTableMetaData>(1);
+      meta->shard_target_node_id = rdma_mg->node_id;
       //TODO make all the metadata written into out
       meta->number = out.number;
       meta->file_size = out.file_size;
@@ -1195,6 +1196,7 @@ compact->compaction->AddInputDeletions(compact->compaction->edit());
         const CompactionOutput& out = subcompact.outputs[i];
         std::shared_ptr<RemoteMemTableMetaData> meta =
             std::make_shared<RemoteMemTableMetaData>(1);
+        meta->shard_target_node_id = rdma_mg->node_id; //this id is important.
         // TODO make all the metadata written into out
         meta->number = out.number;
         meta->file_size = out.file_size;

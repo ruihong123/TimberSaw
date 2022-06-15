@@ -179,7 +179,7 @@ struct SST_Metadata {
   SST_Metadata* next_ptr = nullptr;
   unsigned int file_size = 0;
 };
-//TODO: The client ip and target_node_id can just keep one.
+//TODO: The client ip and shard_target_node_id can just keep one.
 struct Arg_for_handler{
   RDMA_Request* request;
   std::string client_ip;

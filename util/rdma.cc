@@ -602,8 +602,8 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string qp_type, int socket_fd,
       fprintf(stderr, "failed to create QP\n");
     }
     fprintf(stdout, "QP was created, QP number=0x%x\n", qp->qp_num);
-//  Used to be "ibv_qp* qp = create_qp(target_node_id, true, qp_type);", but the
-    // target_node_id is not available so we unwrap the function
+//  Used to be "ibv_qp* qp = create_qp(shard_target_node_id, true, qp_type);", but the
+    // shard_target_node_id is not available so we unwrap the function
   local_con_data.qp_num = htonl(qp->qp_num);
   local_con_data.lid = htons(res->port_attr.lid);
   memcpy(local_con_data.gid, &res->my_gid, 16);
@@ -629,13 +629,13 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string qp_type, int socket_fd,
   assert(qp_type != "write_local_compact");
   assert(qp_type != "write_local_flush");
 //  if (qp_type == "read_local" )
-//    ((QP_Info_Map*)local_read_qp_info->Get())->insert({target_node_id, remote_con_data});
+//    ((QP_Info_Map*)local_read_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
 //  //    local_read_qp_info->Reset(remote_con_data);
 //  else if(qp_type == "write_local_compact")
-//    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({target_node_id, remote_con_data});
+//    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
 ////    local_write_compact_qp_info->Reset(remote_con_data);
 //  else if(qp_type == "write_local_flush")
-//    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({target_node_id, remote_con_data});
+//    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
 ////    local_write_flush_qp_info->Reset(remote_con_data);
 //  else
     res->qp_main_connection_info.insert({target_node_id,remote_con_data});
@@ -890,7 +890,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     assert(memory_nodes.size() == 2);
     //TODO: use mulitple thread to initialize the queue pairs.
     threads.emplace_back(&RDMA_Manager::Get_Remote_qp_Info_Then_Connect,this,target_node_id);
-//    Get_Remote_qp_Info_Then_Connect(target_node_id);
+//    Get_Remote_qp_Info_Then_Connect(shard_target_node_id);
     threads.back().detach();
   }
   while (connection_counter.load() != memory_nodes.size());
@@ -1085,19 +1085,19 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
     assert(local_read_qp_info.at(target_node_id) != nullptr);
     local_read_qp_info.at(target_node_id)->Reset(remote_con_data);
   }
-//    ((QP_Info_Map*)local_read_qp_info->Get())->insert({target_node_id, remote_con_data});
+//    ((QP_Info_Map*)local_read_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
   //    local_read_qp_info->Reset(remote_con_data);
   else if(qp_type == "write_local_compact"){
     assert(local_write_compact_qp_info.at(target_node_id) != nullptr);
     local_write_compact_qp_info.at(target_node_id)->Reset(remote_con_data);
   }
-//    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({target_node_id, remote_con_data});
+//    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
   //    local_write_compact_qp_info->Reset(remote_con_data);
   else if(qp_type == "write_local_flush"){
     assert(local_write_flush_qp_info.at(target_node_id) != nullptr);
     local_write_flush_qp_info.at(target_node_id)->Reset(remote_con_data);
   }
-//    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({target_node_id, remote_con_data});
+//    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
   //    local_write_flush_qp_info->Reset(remote_con_data);
   else
     res->qp_main_connection_info.insert({target_node_id,remote_con_data});
@@ -1196,19 +1196,19 @@ ibv_qp* RDMA_Manager::create_qp(uint8_t target_node_id, bool seperated_cq,
     assert(cq_local_read[target_node_id]!= nullptr);
     cq_local_read[target_node_id]->Reset(cq1);
   }
-//    ((CQ_Map*)cq_local_read->Get())->insert({target_node_id, cq1});
+//    ((CQ_Map*)cq_local_read->Get())->insert({shard_target_node_id, cq1});
 //    cq_local_read->Reset(cq1);
   else if(qp_type == "write_local_compact"){
     assert(cq_local_write_compact[target_node_id]!= nullptr);
     cq_local_write_compact[target_node_id]->Reset(cq1);
   }
-//    ((CQ_Map*)cq_local_write_compact->Get())->insert({target_node_id, cq1});
+//    ((CQ_Map*)cq_local_write_compact->Get())->insert({shard_target_node_id, cq1});
 //    cq_local_write_compact->Reset(cq1);
   else if(qp_type == "write_local_flush"){
     assert(cq_local_write_flush[target_node_id]!= nullptr);
     cq_local_write_flush[target_node_id]->Reset(cq1);
     }
-//    ((CQ_Map*)cq_local_write_flush->Get())->insert({target_node_id, cq1});
+//    ((CQ_Map*)cq_local_write_flush->Get())->insert({shard_target_node_id, cq1});
   else if (seperated_cq)
     res->cq_map.insert({target_node_id, std::make_pair(cq1, cq2)});
   else
@@ -1236,19 +1236,19 @@ ibv_qp* RDMA_Manager::create_qp(uint8_t target_node_id, bool seperated_cq,
     assert(qp_local_read[target_node_id]!= nullptr);
     qp_local_read[target_node_id]->Reset(qp);
   }
-//    ((QP_Map*)qp_local_read->Get())->insert({target_node_id, qp});
+//    ((QP_Map*)qp_local_read->Get())->insert({shard_target_node_id, qp});
 //    qp_local_read->Reset(qp);
   else if(qp_type == "write_local_flush"){
     assert(qp_local_write_flush[target_node_id]!= nullptr);
     qp_local_write_flush[target_node_id]->Reset(qp);
     }
-//    ((QP_Map*)qp_local_write_flush->Get())->insert({target_node_id, qp});
+//    ((QP_Map*)qp_local_write_flush->Get())->insert({shard_target_node_id, qp});
 //    qp_local_write_flush->Reset(qp);
   else if(qp_type == "write_local_compact"){
       assert(qp_local_write_compact[target_node_id]!= nullptr);
       qp_local_write_compact[target_node_id]->Reset(qp);
   }
-//    ((QP_Map*)qp_local_write_compact->Get())->insert({target_node_id, qp});
+//    ((QP_Map*)qp_local_write_compact->Get())->insert({shard_target_node_id, qp});
 //    qp_local_write_compact->Reset(qp);
   else
     res->qp_map[target_node_id] = qp;
@@ -1356,13 +1356,13 @@ int RDMA_Manager::connect_qp(ibv_qp* qp, std::string& qp_type,
   if (qp_type == "read_local" )
     remote_con_data = (registered_qp_config*)local_read_qp_info[target_node_id]->Get();
 
-//    remote_con_data = ((QP_Info_Map*)local_read_qp_info->Get())->at(target_node_id);
+//    remote_con_data = ((QP_Info_Map*)local_read_qp_info->Get())->at(shard_target_node_id);
   else if(qp_type == "write_local_compact")
     remote_con_data = (registered_qp_config*)local_write_compact_qp_info[target_node_id]->Get();
-//    remote_con_data = ((QP_Info_Map*)local_write_compact_qp_info->Get())->at(target_node_id);
+//    remote_con_data = ((QP_Info_Map*)local_write_compact_qp_info->Get())->at(shard_target_node_id);
   else if(qp_type == "write_local_flush")
     remote_con_data = (registered_qp_config*)local_write_flush_qp_info[target_node_id]->Get();
-//    remote_con_data = ((QP_Info_Map*)local_write_flush_qp_info->Get())->at(target_node_id);
+//    remote_con_data = ((QP_Info_Map*)local_write_flush_qp_info->Get())->at(shard_target_node_id);
   else
     remote_con_data = res->qp_main_connection_info.at(target_node_id);
   l.unlock();
@@ -2368,13 +2368,13 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
     assert(cq != nullptr);
   }else if (qp_type == "write_local_compact"){
     cq = (ibv_cq*)cq_local_write_compact.at(target_node_id)->Get();
-//    cq = ((CQ_Map*)cq_local_write_compact->Get())->at(target_node_id);
+//    cq = ((CQ_Map*)cq_local_write_compact->Get())->at(shard_target_node_id);
 //    cq = static_cast<ibv_cq*>(cq_local_write_compact->Get());
     assert(cq != nullptr);
 
   }else if (qp_type == "read_local"){
     cq = (ibv_cq*)cq_local_read.at(target_node_id)->Get();
-//    cq = ((CQ_Map*)cq_local_read->Get())->at(target_node_id);
+//    cq = ((CQ_Map*)cq_local_read->Get())->at(shard_target_node_id);
 //    cq = static_cast<ibv_cq*>(cq_local_read->Get());
     assert(cq != nullptr);
   }
@@ -2441,13 +2441,13 @@ int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
     assert(cq != nullptr);
   }else if (qp_type == "write_local_compact"){
     cq = (ibv_cq*)cq_local_write_compact.at(target_node_id)->Get();
-    //    cq = ((CQ_Map*)cq_local_write_compact->Get())->at(target_node_id);
+    //    cq = ((CQ_Map*)cq_local_write_compact->Get())->at(shard_target_node_id);
     //    cq = static_cast<ibv_cq*>(cq_local_write_compact->Get());
     assert(cq != nullptr);
 
   }else if (qp_type == "read_local"){
     cq = (ibv_cq*)cq_local_read.at(target_node_id)->Get();
-    //    cq = ((CQ_Map*)cq_local_read->Get())->at(target_node_id);
+    //    cq = ((CQ_Map*)cq_local_read->Get())->at(shard_target_node_id);
     //    cq = static_cast<ibv_cq*>(cq_local_read->Get());
     assert(cq != nullptr);
   }
@@ -2650,15 +2650,15 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_type,
   std::shared_lock<std::shared_mutex> l1(qp_cq_map_mutex);
   if (qp_type == "read_local" )
     local_read_qp_info.at(target_node_id)->Reset(temp_buff);
-//    ((QP_Info_Map*)local_read_qp_info->Get())->insert({target_node_id, temp_buff});
+//    ((QP_Info_Map*)local_read_qp_info->Get())->insert({shard_target_node_id, temp_buff});
 //    local_read_qp_info->Reset(temp_buff);
   else if(qp_type == "write_local_compact")
     local_write_compact_qp_info.at(target_node_id)->Reset(temp_buff);
-//    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({target_node_id, temp_buff});
+//    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({shard_target_node_id, temp_buff});
 //    local_write_compact_qp_info->Reset(temp_buff);
   else if(qp_type == "write_local_flush")
     local_write_flush_qp_info.at(target_node_id)->Reset(temp_buff);
-//    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({target_node_id, temp_buff});
+//    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({shard_target_node_id, temp_buff});
 //    local_write_flush_qp_info->Reset(temp_buff);
   else
     res->qp_main_connection_info.insert({target_node_id,temp_buff});
