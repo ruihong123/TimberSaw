@@ -1164,7 +1164,7 @@ class Benchmark {
       const int k = thread->rand.Next()%(shard_number_among_computes);
       //
       //            key.Set(k);
-      GenerateKeyFromInt(k + shard_number_among_computes * shard_number_among_computes,
+      GenerateKeyFromInt(k + shard_number_among_computes * number_of_key_per_compute,
                          &key);
       //      if (db_->Get(options, key.slice(), &value).ok()) {
       //        found++;
