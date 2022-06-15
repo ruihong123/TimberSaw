@@ -2041,7 +2041,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   edit.DecodeFrom(Slice((char*)mr_c.addr, buffer_size), 0, table_cache_);
 #ifndef NDEBUG
   for(auto iter : *edit.GetNewFiles()){
-    assert(iter.second->shard_target_node_id = shard_target_node_id);
+    assert(iter.second->shard_target_node_id == shard_target_node_id);
   }
 #endif
 
