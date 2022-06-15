@@ -2,12 +2,14 @@
 // Created by ruihong on 7/29/21.
 //
 #include "memory_node/memory_node_keeper.h"
+
 #include "db/filename.h"
 #include "db/table_cache.h"
+#include <fstream>
 #include <list>
 
-#include "table/table_builder_memoryside.h"
 #include "table/table_builder_bams.h"
+#include "table/table_builder_memoryside.h"
 
 namespace TimberSaw {
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
@@ -52,6 +54,35 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
     Message_handler_pool_.SetBackgroundThreads(2);
     Persistency_bg_pool_.SetBackgroundThreads(1);
+
+    // Set up the connection information.
+    std::string connection_conf;
+    size_t pos = 0;
+    std::ifstream myfile;
+    myfile.open ("../connection_bigdata.conf", std::ios_base::in);
+    std::string space_delimiter = " ";
+
+    std::getline(myfile,connection_conf );
+    uint8_t i = 0;
+    uint8_t id;
+    while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
+      id = 2*i + 1;
+      rdma_mg->compute_nodes.insert({id, connection_conf.substr(0, pos)});
+      connection_conf.erase(0, pos + space_delimiter.length());
+      i++;
+    }
+    rdma_mg->compute_nodes.insert({2*i+1, connection_conf});
+    assert((rdma_mg->node_id - 1)/2 <  rdma_mg->compute_nodes.size());
+    i = 0;
+    std::getline(myfile,connection_conf );
+    while ((pos = connection_conf.find(space_delimiter)) != std::string::npos) {
+      id = 2*i;
+      rdma_mg->memory_nodes.insert({id, connection_conf.substr(0, pos)});
+      connection_conf.erase(0, pos + space_delimiter.length());
+      i++;
+    }
+    rdma_mg->memory_nodes.insert({2*i, connection_conf});
+    i++;
   }
 
   Memory_Node_Keeper::~Memory_Node_Keeper() {
@@ -1296,6 +1327,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     int rc = 0;
     uint8_t compute_node_id;
     rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd, compute_node_id);
+
     printf("The connected compute node's id is %d\n", compute_node_id);
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
 //    ibv_mr send_mr[32] = {};
@@ -1339,6 +1371,14 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //    close(socket_fd);
     //  post_send<int>(res->mr_send, client_ip);
     ibv_wc wc[3] = {};
+    rdma_mg->connection_counter.fetch_add(1);
+//    std::thread* thread_sync;
+    if (rdma_mg->connection_counter.load() == rdma_mg->compute_nodes.size()
+        && rdma_mg->node_id == 0){
+      std::thread thread_sync(&RDMA_Manager::sync_with_computes_Mside, rdma_mg.get());
+      //Need to be detached.
+      thread_sync.detach();
+    }
     //  if(poll_completion(wc, 2, client_ip))
     //    printf("The main qp not create correctly");
     //  else
@@ -1528,8 +1568,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
               this->server_communication_thread(client_ip, socketfd);
               },
               std::string(address.sa_data), sockfd);
-        // No detach!! we don't want the thread keep running after we exit the
-        // main thread.
+        // No need to detach, because the main_comm_threads will not be destroyed.
 //        main_comm_threads.back().detach();
       }
       usleep(1000);

@@ -135,6 +135,7 @@ namespace TimberSaw {
 
 namespace {
 TimberSaw::Env* g_env = nullptr;
+TimberSaw::RDMA_Manager* rdma_mg = nullptr;
 uint64_t number_of_key_total;
 uint64_t number_of_key_per_compute;
 uint64_t number_of_key_per_shard;
@@ -766,7 +767,7 @@ class Benchmark {
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
 //    printf("Bechmark start\n");
-    if (name.ToString() == "fillrandom")
+  if (method == &Benchmark::WriteRandom)
       Validation_Write();
 //    if (name.ToString() == "readrandom"){
 //    }
@@ -808,7 +809,8 @@ class Benchmark {
     while (shared.num_initialized < n) {
       shared.cv.Wait();
     }
-
+    //TODO: sync with all the other compute nodes here
+    rdma_mg->sync_with_computes_Cside();
     shared.start = true;
     shared.cv.SignalAll();
     while (shared.num_done < n) {
@@ -833,6 +835,9 @@ class Benchmark {
     db_->WaitforAllbgtasks(false);
     if (method == &Benchmark::WriteRandom)
       sleep(35); // wait for the last sstable disgestion.
+
+    if (method == &Benchmark::ReadRandom)
+      Validation_Read();
   }
 
   void Crc32c(ThreadState* thread) {
@@ -919,7 +924,7 @@ class Benchmark {
     options.filter_policy = filter_policy_;
     options.reuse_logs = FLAGS_reuse_logs;
     //
-    auto rdma_mg = Env::Default()->rdma_mg;
+    rdma_mg = Env::Default()->rdma_mg.get();
     if (rdma_mg->compute_nodes.size()> 1 || rdma_mg->memory_nodes.size()> 1){
       options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
       number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.

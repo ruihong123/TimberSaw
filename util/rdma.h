@@ -310,6 +310,13 @@ class RDMA_Manager {
   void Initialize_threadlocal_map();
   // Set up the socket connection to remote shared memory.
   bool Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id);
+
+  //Computes node sync compute sides (block function)
+  void sync_with_computes_Cside();
+
+  //Computes node sync memory sides (block function)
+  void sync_with_computes_Mside();
+  void broadcast_to_computes();
   // client function to retrieve serialized data.
   //  bool client_retrieve_serialized_data(const std::string& db_name, char*& buff,
   //                                       size_t& buff_size, ibv_mr*& local_data_mr,
@@ -462,7 +469,7 @@ class RDMA_Manager {
 
   std::map<uint8_t, std::string> compute_nodes{};
   std::map<uint8_t, std::string> memory_nodes{};
-  std::atomic<uint64_t> connection_counter = 0;
+  std::atomic<uint64_t> connection_counter = 0;// Reuse by both compute nodes and memory nodes
   std::map<std::string, std::pair<ibv_cq*, ibv_cq*>> cq_map_Mside; /* CQ Map */
   std::map<std::string, ibv_qp*> qp_map_Mside; /* QP Map */
   std::map<std::string, registered_qp_config*> qp_main_connection_info_Mside;

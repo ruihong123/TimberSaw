@@ -1151,6 +1151,52 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
   connection_counter.fetch_add(1);
   return false;
 }
+void RDMA_Manager::sync_with_computes_Cside() {
+  char temp_receive[2];
+  char temp_send[] = "Q";
+  //Node 0 is the coordinator server
+  sock_sync_data(res->sock_map[0], 1, temp_send,
+                 temp_receive);
+
+}
+
+void RDMA_Manager::sync_with_computes_Mside() {
+  char buffer[100];
+  int number_of_ready = 0;
+  uint64_t rc = 0;
+
+
+  while (1){
+    for(auto iter : res->sock_map){
+      rc =read(iter.second, buffer, 100);
+      if(rc != 0){
+        number_of_ready++;
+        if (number_of_ready == compute_nodes.size()){
+          //TODO: answer back.
+          broadcast_to_computes();
+          number_of_ready = 0;
+        }
+        rc = 0;
+      }
+    }
+
+  }
+
+
+}
+void RDMA_Manager::broadcast_to_computes(){
+  int rc = 0;
+  int read_bytes = 0;
+  int total_read_bytes = 0;
+  char local_data[] = "Q";
+  for(auto iter : res->sock_map){
+    rc = write(iter.second, local_data, 1);
+    assert(rc = 1);
+  }
+
+}
+
+
 ibv_qp* RDMA_Manager::create_qp_Mside(bool seperated_cq,
                                            std::string& qp_id) {
   struct ibv_qp_init_attr qp_init_attr;
