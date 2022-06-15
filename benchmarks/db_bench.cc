@@ -1161,7 +1161,7 @@ class Benchmark {
     uint64_t shard_number_among_computes = (RDMA_Manager::node_id - 1)/2;
     for (int i = 0; i < reads_; i++) {
       //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
-      const int k = thread->rand.Next()%(shard_number_among_computes);
+      const int k = thread->rand.Next()%(number_of_key_per_compute);
       //
       //            key.Set(k);
       GenerateKeyFromInt(k + shard_number_among_computes * number_of_key_per_compute,
