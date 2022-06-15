@@ -740,9 +740,9 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  post_send<RDMA_Request>(&send_mr, 0, std::string("main"));
+  post_send<RDMA_Request>(&send_mr, target_node_id, std::string("main"));
   ibv_wc wc[2] = {};
-  if (poll_completion(wc, 1, std::string("main"), true, 0)){
+  if (poll_completion(wc, 1, std::string("main"), true, target_node_id)){
     fprintf(stderr, "failed to poll send for edit version edit sync\n");
     return;
   }
@@ -768,7 +768,7 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
   asm volatile ("mfence\n" : : );
   RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
              dealloc_mr, top * sizeof(uint64_t), "main", IBV_SEND_SIGNALED, 1,
-             0);
+             target_node_id);
   //TODO: implement a wait function for the received bit. THe problem is when to
   // reset the buffer to zero (we may need different buffer for the compaction reply)
   // and how to make sure that the reply will wake up this waiting thread. The

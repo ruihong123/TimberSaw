@@ -64,7 +64,7 @@ struct RemoteMemTableMetaData {
     }
     assert(index == chunk_num);
     if (RPC){
-      rdma_mg->Memory_Deallocation_RPC(creator_node_id);
+      rdma_mg->Memory_Deallocation_RPC(shard_target_node_id);
     }
 
     return true;
