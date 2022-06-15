@@ -724,7 +724,7 @@ class Benchmark {
 
       }
     }
-    Validation_Read();
+//    Validation_Read();
   }
 
  private:
@@ -809,8 +809,9 @@ class Benchmark {
     while (shared.num_initialized < n) {
       shared.cv.Wait();
     }
-    //TODO: sync with all the other compute nodes here
+    //sync with all the other compute nodes here
     rdma_mg->sync_with_computes_Cside();
+
     shared.start = true;
     shared.cv.SignalAll();
     while (shared.num_done < n) {

@@ -1358,6 +1358,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //    rdma_mg_->post_receive(recv_mr, client_ip, sizeof(Computing_to_memory_msg));
     // sync after send & recv buffer creation and receive request posting.
     rdma_mg->local_mem_pool.reserve(100);
+    if(rdma_mg->pre_allocated_pool.size() < pr_size)
     {
       std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
       rdma_mg->Preregister_Memory(pr_size);
