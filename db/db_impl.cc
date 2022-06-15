@@ -2447,7 +2447,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(receive_pointer->buffer, receive_pointer->rkey,
                       &send_mr_ve, serilized_ve.size() + 1, "main",
-                      IBV_SEND_SIGNALED, 1, 0);
+                      IBV_SEND_SIGNALED, 1, target_node_id);
   //TODO: implement a wait function for the received bit. THe problem is when to
   // reset the buffer to zero (we may need different buffer for the compaction reply)
   // and how to make sure that the reply will wake up this waiting thread. The
@@ -2519,7 +2519,7 @@ void DBImpl::install_version_edit_handler(RDMA_Request* request,
     asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
                         sizeof(RDMA_Reply), std::move(client_ip),
-                        IBV_SEND_SIGNALED, 1, 0);
+                        IBV_SEND_SIGNALED, 1, target_node_id);
     DEBUG_arg("install non-trival version, version id is %lu\n", request->content.ive.version_id);
     size_t counter = 0;
     while (*(unsigned char*)polling_byte != check_byte){
