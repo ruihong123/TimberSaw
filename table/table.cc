@@ -38,8 +38,9 @@ Status Table::Open(const Options& options, Table** table,
   if (options.paranoid_checks) {
     opt.verify_checksums = true;
   }
-  s = ReadDataIndexBlock(Remote_table_meta->remote_dataindex_mrs.begin()->second,
-                         opt, &index_block_contents);
+  s = ReadDataIndexBlock(
+      Remote_table_meta->remote_dataindex_mrs.begin()->second, opt,
+      &index_block_contents, Remote_table_meta->shard_target_node_id);
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
@@ -80,8 +81,11 @@ void Table::ReadFilter() {
     opt.verify_checksums = true;
   }
   BlockContents block;
+  auto table_meta_data = rep->remote_table.lock();
   if (!ReadFilterBlock(
-           rep->remote_table.lock()->remote_filter_mrs.begin()->second, opt, &block).ok()) {
+           table_meta_data->remote_filter_mrs.begin()->second, opt,
+           &block, table_meta_data->shard_target_node_id)
+           .ok()) {
     return;
   }
 //  if (block.heap_allocated) {
@@ -110,6 +114,7 @@ static void ReleaseBlock(void* arg, void* h) {
 
 // Convert an index iterator value (i.e., an encoded BlockHandle)
 // into an iterator over the contents of the corresponding block.
+// Note the block reader no does not support muliti compute nodes.
 Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
@@ -211,8 +216,9 @@ Slice Table::KVReader(void* arg, const ReadOptions& options,
   // can add more features in the future.
   assert(s.ok());
   Slice result;
-  ReadKVPair(&table->rep->remote_table.lock()->remote_data_mrs, options,
-             handle, &result);
+  auto table_meta = table->rep->remote_table.lock();
+  ReadKVPair(&table->rep->remote_table.lock()->remote_data_mrs, options, handle,
+             &result, table_meta->shard_target_node_id);
   return result;
 }
 
@@ -363,7 +369,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       Slice KV;
       Slice key;
       Slice value;
-      s = ReadKVPair(&rep->remote_table.lock()->remote_data_mrs,options, bhandle,&KV);
+      auto table_meta = rep->remote_table.lock();
+      s = ReadKVPair(&table_meta->remote_data_mrs, options,
+                     bhandle, &KV, table_meta->shard_target_node_id);
 
       char* mr_addr = (char*)KV.data();
       uint32_t key_size, value_size;

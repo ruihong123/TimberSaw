@@ -229,9 +229,9 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //#endif
   return Status::OK();
 }
-Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
-                     const BlockHandle& handle,
-                  Slice* result) {
+Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                  const ReadOptions& options, const BlockHandle& handle,
+                  Slice* result, uint8_t target_node_id) {
   //#ifdef GETANALYSIS
   //  auto start = std::chrono::high_resolution_clock::now();
   //#endif
@@ -279,7 +279,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   rdma_mg->RDMA_Read(&remote_mr, &contents, n, "read_local", IBV_SEND_SIGNALED,
-                     1, 0);
+                     1, target_node_id);
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -301,7 +301,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOpt
   return Status::OK();
 }
 Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
-                          BlockContents* result) {
+                          BlockContents* result, uint8_t target_node_id) {
   result->data = Slice();
 //  result->cachable = false;
 //  result->heap_allocated = false;
@@ -315,7 +315,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk);
   rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local",
-                     IBV_SEND_SIGNALED, 1, 0);
+                     IBV_SEND_SIGNALED, 1, target_node_id);
 
 //  printf("Fetch a Index Block");
 
@@ -373,8 +373,8 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
 
   return Status::OK();
 }
-Status ReadFilterBlock(ibv_mr* remote_mr,
-                          const ReadOptions& options, BlockContents* result) {
+Status ReadFilterBlock(ibv_mr* remote_mr, const ReadOptions& options,
+                       BlockContents* result, uint8_t target_node_id) {
   result->data = Slice();
 //  result->cachable = false;
 //  result->heap_allocated = false;
@@ -387,7 +387,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr,
   ibv_mr contents = {};
   rdma_mg->Allocate_Local_RDMA_Slot(contents, FilterChunk);
   rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local",
-                     IBV_SEND_SIGNALED, 1, 0);
+                     IBV_SEND_SIGNALED, 1, target_node_id);
 
   // Check the crc of the type and the block contents
   const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
