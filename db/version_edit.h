@@ -47,7 +47,7 @@ struct RemoteMemTableMetaData {
     size_t chunk_num = remote_data_mrs.size() + remote_dataindex_mrs.size()
                        + remote_filter_mrs.size();
     bool RPC =
-        rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num, 0);
+        rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num, shard_target_node_id);
     size_t index = 0;
     for (it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++) {
       ptr[index] = (uint64_t)it->second->addr;
