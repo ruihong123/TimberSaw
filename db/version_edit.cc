@@ -24,7 +24,7 @@ RemoteMemTableMetaData::RemoteMemTableMetaData(int machine_type,
     : this_machine_type(machine_type), shard_target_node_id(id),
       allowed_seeks(1 << 30),
       table_cache(cache) {
-  assert(shard_target_node_id < 36);
+//  assert(shard_target_node_id < 36);
   // Tothink: Is this_machine_type the same as rdma_mg->node_id?
   // Node_id is unique for every node, while the this_machine_type only distinguish
   // the compute node from the memory node.
@@ -171,6 +171,8 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
 //  printf("Node id is %u", creator_node_id);
   memcpy(&shard_target_node_id, src.data(), sizeof(shard_target_node_id));
   src.remove_prefix(sizeof(shard_target_node_id));
+  assert(shard_target_node_id < 36);
+
   GetFixed64(&src, &file_size);
   Slice temp;
   GetLengthPrefixedSlice(&src, &temp);
