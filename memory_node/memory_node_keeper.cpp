@@ -1329,6 +1329,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     rdma_mg->ConnectQPThroughSocket(client_ip, socket_fd, compute_node_id);
 
     printf("The connected compute node's id is %d\n", compute_node_id);
+    rdma_mg->res->sock_map.insert({compute_node_id, socket_fd});
     //TODO: use Local_Memory_Allocation to bulk allocate, and assign within this function.
 //    ibv_mr send_mr[32] = {};
 //    for(int i = 0; i<32; i++){
