@@ -931,7 +931,7 @@ class Benchmark {
         number_of_key_total /rdma_mg->compute_nodes.size();
     number_of_key_per_shard = number_of_key_per_compute
                               /rdma_mg->memory_nodes.size();
-//    if (rdma_mg->compute_nodes.size()> 1 || rdma_mg->memory_nodes.size()> 1){
+    if (rdma_mg->compute_nodes.size()> 1 || rdma_mg->memory_nodes.size()> 1){
       options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
 
       for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
@@ -954,7 +954,7 @@ class Benchmark {
 
 
 
-//    }
+    }
 
     Status s = DB::Open(options, FLAGS_db, &db_);
     if (!s.ok()) {

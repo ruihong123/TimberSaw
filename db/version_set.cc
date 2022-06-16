@@ -903,6 +903,7 @@ VersionSet::~VersionSet() {
            VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
+  current_->print_version_content();
 }
 
 void VersionSet::AppendVersion(Version* v) {
