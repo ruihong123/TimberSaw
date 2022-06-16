@@ -39,7 +39,8 @@ static const int kL0_SlowdownWritesTrigger = 20;
 static const int kL0_StopWritesTrigger = 36;
 // We  can set it as 48*64 Mega byte for the first level, then there will
 // be two levels after the random file benchmark. 1-1 256.0
-// M-M compute nodes * this value = 1024.0
+// M-M still 256. ahigher number of this value can result in low write performance
+// decrease with the number of shards.
 static const double max_mega_bytes_for_level_base = 256.0;
 
 
