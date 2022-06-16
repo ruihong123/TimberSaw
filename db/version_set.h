@@ -227,7 +227,7 @@ class Version {
   int CompactionLevel(int i);
   void print_version_content(){
     for (int i = 0; i < config::kNumLevels; ++i) {
-      printf("Version level %d contain %zu files", i, levels_[i].size());
+      printf("Version level %d contain %zu files\n", i, levels_[i].size());
     }
   }
   std::shared_ptr<RemoteMemTableMetaData> FindFileByNumber(int level, uint64_t file_number, uint8_t node_id);
