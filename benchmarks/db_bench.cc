@@ -926,13 +926,14 @@ class Benchmark {
     options.reuse_logs = FLAGS_reuse_logs;
     //
     rdma_mg = Env::Default()->rdma_mg.get();
+    number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
+    number_of_key_per_compute =
+        number_of_key_total /rdma_mg->compute_nodes.size();
+    number_of_key_per_shard = number_of_key_per_compute
+                              /rdma_mg->memory_nodes.size();
     if (rdma_mg->compute_nodes.size()> 1 || rdma_mg->memory_nodes.size()> 1){
       options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
-      number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
-      number_of_key_per_compute =
-          number_of_key_total /rdma_mg->compute_nodes.size();
-      number_of_key_per_shard = number_of_key_per_compute
-                               /rdma_mg->memory_nodes.size();
+
       for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
         char* data_low = new char[FLAGS_key_size];
         char* data_up = new char[FLAGS_key_size];
