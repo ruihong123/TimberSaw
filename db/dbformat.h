@@ -27,7 +27,7 @@ static const int kNumLevels = 6;
 static const int MaxImmuNumPerFlush = 1;
 // Immutable flushing will be triggered when hit this number
 static const int Immutable_FlushTrigger = 1;
-// Maximum number of unflushed immutable files
+// Maximum number of unflushed immutable files 10 in 1-1, 16 in M-M
 static const int Immutable_StopWritesTrigger = 16;
 // Level-0 compaction is started when we hit this many files.
 static const int kL0_CompactionTrigger = 1;
