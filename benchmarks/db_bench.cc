@@ -767,7 +767,7 @@ class Benchmark {
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
 //    printf("Bechmark start\n");
-  if (method == &Benchmark::WriteRandom)
+  if (method == &Benchmark::WriteRandom || method == &Benchmark::WriteRandomSharded)
       Validation_Write();
 //    if (name.ToString() == "readrandom"){
 //    }
@@ -837,7 +837,7 @@ class Benchmark {
     if (method == &Benchmark::WriteRandom || method == &Benchmark::WriteRandomSharded)
       sleep(35); // wait for the last sstable disgestion.
 
-    if (method == &Benchmark::ReadRandom)
+    if (method == &Benchmark::ReadRandom || method == &Benchmark::ReadRandom_Sharded)
       Validation_Read();
   }
 
