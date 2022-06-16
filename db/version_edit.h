@@ -51,19 +51,19 @@ struct RemoteMemTableMetaData {
     size_t index = 0;
     for (it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++) {
       ptr[index] = (uint64_t)it->second->addr;
-      printf("deallocated data address is %p", ptr[index]);
+      DEBUG_arg("deallocated data address is %p", ptr[index]);
       index++;
       delete it->second;
     }
     for (it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++) {
       ptr[index] = (uint64_t)it->second->addr;
-      printf("deallocated data address is %p", ptr[index]);
+      DEBUG_arg("deallocated data address is %p", ptr[index]);
       index++;
       delete it->second;
     }
     for (it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++) {
       ptr[index] = (uint64_t)it->second->addr;
-      printf("deallocated data address is %p", ptr[index]);
+      DEBUG_arg("deallocated data address is %p", ptr[index]);
       index++;
       delete it->second;
     }
