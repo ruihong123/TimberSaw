@@ -12,6 +12,7 @@
 #include "table/table_builder_memoryside.h"
 
 namespace TimberSaw {
+
 std::shared_ptr<RDMA_Manager> Memory_Node_Keeper::rdma_mg = std::shared_ptr<RDMA_Manager>();
 TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
                                                   uint32_t tcp_port, int pr_s)
@@ -59,7 +60,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     std::string connection_conf;
     size_t pos = 0;
     std::ifstream myfile;
-    myfile.open ("../connection_bigdata.conf", std::ios_base::in);
+    myfile.open (config_file_name, std::ios_base::in);
     std::string space_delimiter = " ";
 
     std::getline(myfile,connection_conf );
