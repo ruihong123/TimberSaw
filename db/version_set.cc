@@ -1777,9 +1777,9 @@ Compaction* VersionSet::PickCompaction() {
     c->input_version_->Ref(2);
     //Recalculate the scores so that next time pick from a different level.
     Finalize(current_);
-    if (c->inputs_[1].size() == 1){
-      printf("mark here, first level file number is %lu\n", c->inputs_[1][0]->number);
-    }
+//    if (c->inputs_[1].size() == 1){
+//      printf("mark here, first level file number is %lu\n", c->inputs_[1][0]->number);
+//    }
     return c;
   }else{
     delete c;
