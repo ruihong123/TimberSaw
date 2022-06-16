@@ -66,12 +66,12 @@ struct TimberSaw_EXPORT Options {
   // comparator provided to previous open calls on the same DB.
   const Comparator* comparator;
 
-  int max_background_flushes = 8;// 1-1 setup is 4 M-M setup is 8
+  int max_background_flushes = 4;// 1-1 setup is 4 M-M setup is 8
 
 
 
   int max_background_compactions = 12;
-  int MaxSubcompaction = 6; // 1-1 setup is 12 M-M setup is 6
+  int MaxSubcompaction = 12; // 1-1 setup is 12 M-M setup is 6
   bool usesubcompaction = true;
   // If true, the database will be created if it is missing.
   bool create_if_missing = true;
