@@ -29,7 +29,7 @@ static const int MaxImmuNumPerFlush = 1;
 static const int Immutable_FlushTrigger = 1;
 // Maximum number of unflushed immutable files 10 in 1-1,
 // 16 totally across shards in M-M (include memtable)
-static const int Immutable_StopWritesTrigger = 7;
+static const int Immutable_StopWritesTrigger = 1;
 // Level-0 compaction is started when we hit this many files.
 static const int kL0_CompactionTrigger = 1;
 
