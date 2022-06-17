@@ -98,5 +98,5 @@ function run_bench() {
 #    n=$((n+1))
 ##    sleep 1
 #  done
-#	}
+	}
 	run_bench
