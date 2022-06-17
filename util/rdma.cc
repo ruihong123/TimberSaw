@@ -1154,10 +1154,13 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
 void RDMA_Manager::sync_with_computes_Cside() {
   char temp_receive[2];
   char temp_send[] = "Q";
+  auto start = std::chrono::high_resolution_clock::now();
   //Node 0 is the coordinator server
   sock_sync_data(res->sock_map[0], 1, temp_send,
                  temp_receive);
-
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+  printf("sync wait time is %ld", duration.count());
 }
 
 void RDMA_Manager::sync_with_computes_Mside() {
@@ -1173,6 +1176,7 @@ void RDMA_Manager::sync_with_computes_Mside() {
         number_of_ready++;
         if (number_of_ready == compute_nodes.size()){
           //TODO: answer back.
+          printf("compute node sync number is %d", number_of_ready );
           broadcast_to_computes();
           number_of_ready = 0;
         }
