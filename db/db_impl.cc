@@ -2269,7 +2269,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 //    RDMA_Request receive_msg_buf;
     {
       std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      main_comm_thread_ready_num++;
+      ++main_comm_thread_ready_num;
       write_stall_cv.notify_one();
     }
     printf("client handling thread\n");
