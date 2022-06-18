@@ -9,7 +9,7 @@ port=$((10000+RANDOM%1000))
 github_repo="https://github.com/ruihong123/TimberSaw"
 gitbranch="Multinodes_follow_nova"
 function run_bench() {
-  communication_port=()
+  communication_port="19843"
 #	memory_port=()
 	memory_server=()
   memory_shard=()
@@ -41,11 +41,11 @@ function run_bench() {
   echo memoryserver is ${memory_server[@]}
 #  echo ${machines[@]}
   n=0
-  while [ $n -lt $nshard ]
-  do
-    communication_port+=("$((port+n))")
-    n=$((n+1))
-  done
+#  while [ $n -lt $nshard ]
+#  do
+#    communication_port+=("$((port+n))")
+#    n=$((n+1))
+#  done
   n=0
   while [ $n -lt $nshard ]
   do
@@ -59,7 +59,7 @@ function run_bench() {
   done
   echo compute shards are ${compute_shard[@]}
   echo memory shards are ${memory_shard[@]}
-  echo communication ports are ${communication_port[@]}
+#  echo communication ports are ${communication_port[@]}
 #  test for dowload and compile the codes
 #  n=0
 #  while [ $n -lt $nshard ]
@@ -80,7 +80,7 @@ function run_bench() {
   do
     echo "Set up the ${memory_shard[n]}"
     ssh -o StrictHostKeyChecking=no ${memory_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build &&
-    numactl --cpunodebind=all --localalloc ./Server ${communication_port[n]} 56 $n" &
+    numactl --cpunodebind=all --localalloc ./Server ${communication_port} 56 $n" &
     #${numa_node[n%${#numa_node[@]}]}
     n=$((n+1))
 
@@ -92,7 +92,7 @@ function run_bench() {
   do
     echo "Set up the ${compute_shard[n]}"
     ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build &&
-    numactl --cpunodebind=all --localalloc ./db_bench --benchmarks=fillrandomshard,readrandomshard,readrandomshard --threads=16 --value_size=400 --block_size=8192 --num=3125000 --bloom_bits=10 --cache_size=67108864 --readwritepercent=50 --compute_node_id=$i > result_8M8C.txt" &
+    numactl --cpunodebind=all --localalloc ./db_bench --benchmarks=fillrandomshard,readrandomshard,readrandomshard --threads=16 --value_size=400 --block_size=8192 --num=3125000 --bloom_bits=10 --cache_size=67108864 --readwritepercent=50 --compute_node_id=$n > result_8M8C.txt" &
     #
     n=$((n+1))
 #    sleep 1
