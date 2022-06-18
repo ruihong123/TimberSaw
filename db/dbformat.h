@@ -28,20 +28,20 @@ static const int MaxImmuNumPerFlush = 1;
 // Immutable flushing will be triggered when hit this number
 static const int Immutable_FlushTrigger = 1;
 // Maximum number of unflushed immutable files 10 in 1-1,
-// 16 totally across shards in M-M (include memtable)
-static const int Immutable_StopWritesTrigger = 7;
+// 16 totally across shards in M-M (including memtable)
+static const int Immutable_StopWritesTrigger = 15;
 // Level-0 compaction is started when we hit this many files.
 static const int kL0_CompactionTrigger = 1;
 
 // Soft limit on number of level-0 files.  We slow down writes at this point.
 // in M-M the total number of kL0_SlowdownWritesTrigger accross shard is 24
 // in 1-1 this value is 20
-static const int kL0_SlowdownWritesTrigger = 12;
+static const int kL0_SlowdownWritesTrigger = 24;
 
 // Maximum number of level-0 files.  We stop writes at this point.
 // in M-M the total number of kL0_SlowdownWritesTrigger accross shard is 40
 // in 1-1 this value is 36
-static const int kL0_StopWritesTrigger =20;
+static const int kL0_StopWritesTrigger =40;
 // We  can set it as 48*64 Mega byte for the first level, then there will
 // be two levels after the random file benchmark. 1-1 256.0
 // M-M still 256. ahigher number of this value can result in low write performance
