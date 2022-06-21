@@ -904,7 +904,10 @@ VersionSet::~VersionSet() {
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
   current_->print_version_content();
+#ifndef NDEBUG
   printf("remained versuins number is %d", version_remain);
+#endif
+
 }
 
 void VersionSet::AppendVersion(Version* v) {
