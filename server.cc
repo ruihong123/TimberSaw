@@ -29,7 +29,7 @@ int main(int argc,char* argv[])
      TimberSaw::RDMA_Manager::node_id = 2* Memory_server_id;
   }else{
     mn_keeper = new TimberSaw::Memory_Node_Keeper(true, 19843, 88);
-    TimberSaw::RDMA_Manager::node_id = 1;
+    TimberSaw::RDMA_Manager::node_id = 0;
   }
 
   mn_keeper->SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);

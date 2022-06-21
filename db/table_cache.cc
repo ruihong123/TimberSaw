@@ -90,7 +90,7 @@ TableCache::~TableCache() {
 }
 
 Status TableCache::FindTable(
-    std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
+    const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,
     Cache::Handle** handle) {
   Status s = Status::OK();
 //  char buf[sizeof(Remote_memtable_meta->number) + sizeof(Remote_memtable_meta->creator_node_id)];
@@ -103,9 +103,9 @@ Status TableCache::FindTable(
 //  char buf[sizeof(Remote_memtable_meta->number)];
 //  EncodeFixed64(buf, Remote_memtable_meta->number);
   Slice key((char*)&Remote_memtable_meta->number, sizeof(uint64_t));
-  //TODO: implement a hash lock to reduce the contention here, otherwise multiple
+  // TODO: implement a hash lock to reduce the contention here, otherwise multiple
   // reader may get the same table and RDMA read the index block several times.
-  int hash_value = Remote_memtable_meta->number%32;
+  uint64_t hash_value = Remote_memtable_meta->number%32;
 
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
@@ -240,12 +240,12 @@ Iterator* TableCache::NewIterator_MemorySide(
   }
 
   Cache::Handle* handle = nullptr;
-#ifndef NDEBUG
-  void* p = remote_table.get();
-
-  if (reinterpret_cast<long>(p) == 0x7fff94151070)
-    printf("check for NewIterator_MemorySide\n");
-#endif
+//#ifndef NDEBUG
+//  void* p = remote_table.get();
+//
+//  if (reinterpret_cast<long>(p) == 0x7fff94151070)
+//    printf("check for NewIterator_MemorySide\n");
+//#endif
   Table_Memory_Side* table;
   Status s = FindTable_MemorySide(remote_table, table);
   if (!s.ok()) {
@@ -292,12 +292,11 @@ Status TableCache::Get(const ReadOptions& options,
 }
 
 void TableCache::Evict(uint64_t file_number, uint8_t creator_node_id) {
-  //TODO: Change it to erase filenumber and node id (shard id)
-  char buf[sizeof(uint64_t) + sizeof(uint8_t)];
-
+//  char buf[sizeof(uint64_t) + sizeof(uint8_t)];
+char buf[sizeof(file_number)];
   EncodeFixed64(buf, file_number);
-  memcpy(buf + sizeof(uint64_t), &creator_node_id,
-         sizeof(uint8_t));
+//  memcpy(buf + sizeof(uint64_t), &creator_node_id,
+//         sizeof(uint8_t));
   cache_->Erase(Slice(buf, sizeof(buf)));
 }
 

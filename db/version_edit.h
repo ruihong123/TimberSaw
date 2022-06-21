@@ -18,7 +18,6 @@ namespace TimberSaw {
 class VersionSet;
 class RDMA_Manager;
 class TableCache;
-//TODO: make
 struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node

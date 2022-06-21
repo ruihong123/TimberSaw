@@ -90,7 +90,7 @@ class TableCache {
   void Evict(uint64_t file_number, uint8_t creator_node_id);
 
  private:
-  Status FindTable(std::shared_ptr<RemoteMemTableMetaData> Remote_memtable_meta,
+  Status FindTable(const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,
                    Cache::Handle** handle);
   Status FindTable_MemorySide(
       const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,
