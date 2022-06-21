@@ -95,7 +95,10 @@ void Table::ReadFilter() {
       block.data, rep->remote_table.lock()->rdma_mg, Compute);
 }
 
-Table::~Table() { delete rep; }
+Table::~Table() {
+  printf("garbage collect the local cache of table %lu", rep->cache_id);
+  delete rep;
+}
 
 
 static void DeleteBlock(void* arg, void* ignored) {

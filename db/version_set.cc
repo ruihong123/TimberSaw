@@ -82,14 +82,14 @@ Version::~Version() {
 
   DEBUG("version garbage collected.\n");
   // Drop references to files
-#ifndef NDEBUG
-  for (int level = 0; level < config::kNumLevels; level++) {
-    for (size_t i = 0; i < levels_[level].size(); i++) {
-      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][i];
-//      printf("The file %zu in level %d 's use_count is %ld\n", i,level, f.use_count());
-    }
-  }
-#endif
+//#ifndef NDEBUG
+//  for (int level = 0; level < config::kNumLevels; level++) {
+//    for (size_t i = 0; i < levels_[level].size(); i++) {
+//      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][i];
+////      printf("The file %zu in level %d 's use_count is %ld\n", i,level, f.use_count());
+//    }
+//  }
+//#endif
 }
 
 int FindFile(const InternalKeyComparator& icmp,
@@ -904,6 +904,7 @@ VersionSet::~VersionSet() {
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
   current_->print_version_content();
+  printf("remained versuins number is %d", version_remain);
 }
 
 void VersionSet::AppendVersion(Version* v) {

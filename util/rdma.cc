@@ -2892,7 +2892,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
 }
 size_t RDMA_Manager::Calculate_size_of_pool(Chunk_type pool_name) {
   size_t Sum = 0;
-  Sum = name_to_mem_pool.at(pool_name).size()*name_to_allocated_size.at(pool_name);
+  Sum = name_to_mem_pool.at(pool_name).size();
+//        *name_to_allocated_size.at(pool_name);
   return Sum;
 }
 void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
