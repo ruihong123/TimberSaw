@@ -125,7 +125,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //#ifndef NDEBUG
 //  ibv_wc wc;
 //  int check_poll_number =
-//      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
+//      rdma_mg->try_poll_completions(&wc, 1, "read_local");
 //  assert( check_poll_number == 0);
 //#endif
 
@@ -168,7 +168,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //  }
 //#ifndef NDEBUG
 //  usleep(100);
-//  check_poll_number = rdma_mg->try_poll_this_thread_completions(&wc,1);
+//  check_poll_number = rdma_mg->try_poll_completions(&wc,1);
 //  assert( check_poll_number == 0);
 //#endif
   // Check the crc of the type and the block contents
@@ -250,7 +250,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
   //#ifndef NDEBUG
   //  ibv_wc wc;
   //  int check_poll_number =
-  //      rdma_mg->try_poll_this_thread_completions(&wc, 1, "read_local");
+  //      rdma_mg->try_poll_completions(&wc, 1, "read_local");
   //  assert( check_poll_number == 0);
   //#endif
 

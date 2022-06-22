@@ -195,7 +195,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
-
+    //TODO: Make client handling thread only 1 per compute node-memory node connection.
     main_comm_threads.emplace_back(
         &DBImpl::client_message_polling_and_handling_thread, this, "main");
 //    for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
@@ -2021,15 +2021,15 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("mfence\n" : : );
   // polling the finishing bit for the file number transmission.
   size_t counter = 0;
-  std::unique_lock<std::mutex> lck(mtx_temp);
-  while (imm_num != imm_data){
-    cv_temp.wait(lck);
+  std::unique_lock<std::mutex> lck(mtx_imme);
+  while (imm_num != imme_data){
+    cv_imme.wait(lck);
   }
   size_t buffer_size = byte_len;
   byte_len = 0;
-  imm_data = 0;
+  imme_data = 0;
   assert(*((unsigned char*)mr_c.addr + buffer_size - 1) == 1);
-  assert(imm_data == 0);
+  assert(imme_data == 0);
   lck.unlock();
 
 //  _mm_clflush(polling_size_2);
@@ -2276,19 +2276,19 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
     while (!shutting_down_.load()) {
       // we can only use try_poll... rather than poll_com.. because we need to
       // make sure the shutting down signal can work.
-      if(rdma_mg->try_poll_this_thread_completions(wc, 1, q_id, false,
-                                                    shard_target_node_id) >0){
+      if(rdma_mg->try_poll_completions(wc, 1, q_id, false,
+                                        shard_target_node_id) >0){
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
-          std::unique_lock<std::mutex> lck(mtx_temp);
-          assert(imm_data == 0);
+          std::unique_lock<std::mutex> lck(mtx_imme);
+          assert(imme_data == 0);
           assert(byte_len == 0);
-          imm_data = wc[0].imm_data;
+          imme_data = wc[0].imm_data;
           byte_len = wc[0].byte_len;
-          cv_temp.notify_all();
+          cv_imme.notify_all();
           lck.unlock();
-          while (imm_data != 0 || byte_len != 0 ){
-            cv_temp.notify_one();
+          while (imme_data != 0 || byte_len != 0 ){
+            cv_imme.notify_one();
           }
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
                                               shard_target_node_id,
@@ -2309,6 +2309,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
         // it is the same with send buff pointer.
         if (receive_msg_buf->command == install_version_edit) {
           ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
+          assert(false);
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
                                               shard_target_node_id,
                                               "main");

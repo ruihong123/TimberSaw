@@ -243,11 +243,14 @@ class DBImpl : public DB {
   Env* const env_;
   std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;
 //  unsigned int imm_temp = 1;
-  std::mutex mtx_temp;
+  // THose vairbale could be shared pointers from the out side.
+  std::mutex mtx_imme;
   std::atomic<uint32_t> imm_gen;
-  uint32_t imm_data = 0;
+  uint32_t imme_data = 0;
   uint32_t byte_len = 0;
-  std::condition_variable cv_temp;
+  std::condition_variable cv_imme;
+
+
   const InternalKeyComparator internal_comparator_;
   const InternalFilterPolicy internal_filter_policy_;
   Options options_;  // options_.comparator == &internal_comparator_

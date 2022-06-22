@@ -1396,33 +1396,50 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
     //  ibv_wc wc[3] = {};
     // TODO: implement a heart beat mechanism.
-    int buffer_counter = 0;
+    int buffer_position = 0;
+    int miss_poll_counter = 0;
     while (true) {
-      //TODO: change the polling here to a notification.
-      rdma_mg->poll_completion(wc, 1, client_ip, false, compute_node_id);
+//      rdma_mg->poll_completion(wc, 1, client_ip, false, compute_node_id);
+      if (rdma_mg->try_poll_completions(wc, 1, client_ip, false, compute_node_id) ==0){
+        // exponetial back off to save cpu cycles.
+        if(++miss_poll_counter > 256){
+          usleep(16);
+          continue ;
+        }
+        if(++miss_poll_counter > 512){
+          usleep(256);
+          continue ;
+        }
+        if(++miss_poll_counter > 1024){
+          usleep(1024);
+          continue ;
+        }
+
+      }
+      miss_poll_counter = 0;
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         cv_temp.notify_all();
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             "main");
 
         // increase the buffer index
-        if (buffer_counter== R_SIZE-1 ){
-          buffer_counter = 0;
+        if (buffer_position == R_SIZE-1 ){
+          buffer_position = 0;
         } else{
-          buffer_counter++;
+          buffer_position++;
         }
         continue;
       }
       RDMA_Request* receive_msg_buf = new RDMA_Request();
-      *receive_msg_buf = *(RDMA_Request*)recv_mr[buffer_counter].addr;
-//      memcpy(receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+      *receive_msg_buf = *(RDMA_Request*)recv_mr[buffer_position].addr;
+//      memcpy(receive_msg_buf, recv_mr[buffer_position].addr, sizeof(RDMA_Request));
 
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
       if (receive_msg_buf->command == create_mr_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
 
@@ -1430,14 +1447,14 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //        rdma_mg_->post_send<ibv_mr>(send_mr,client_ip);  // note here should be the mr point to the send buffer.
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == create_qp_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         create_qp_handler(receive_msg_buf, client_ip, compute_node_id);
         //        rdma_mg_->post_send<registered_qp_config>(send_mr, client_ip);
 //        rdma_mg_->poll_completion(wc, 1, client_ip, true);
       } else if (receive_msg_buf->command == install_version_edit) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         //TODO: implement a durable bg thread and make a shadow verison set if possible.
@@ -1445,7 +1462,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         install_version_edit_handler(receive_msg_buf, client_ip,
                                      compute_node_id);
       } else if (receive_msg_buf->command == near_data_compaction) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
@@ -1454,7 +1471,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
       } else if (receive_msg_buf->command == SSTable_gc) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
@@ -1464,19 +1481,19 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
             &Memory_Node_Keeper::RPC_Garbage_Collection_Dispatch, thread_pool_args);
 //TODO: add a handle function for the option value
       } else if (receive_msg_buf->command == version_unpin_) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         version_unpin_handler(receive_msg_buf, client_ip);
       } else if (receive_msg_buf->command == sync_option) {
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         sync_option_handler(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == qp_reset_) {// depracated functions
         //THis should not be called because the recevei mr will be reset and the buffer
         // counter will be reset as 0
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
         qp_reset_handler(receive_msg_buf, client_ip, socket_fd,
@@ -1490,10 +1507,10 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         break;
       }
       // increase the buffer index
-      if (buffer_counter== R_SIZE-1 ){
-        buffer_counter = 0;
+      if (buffer_position == R_SIZE-1 ){
+        buffer_position = 0;
       } else{
-        buffer_counter++;
+        buffer_position++;
       }
     }
     // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.

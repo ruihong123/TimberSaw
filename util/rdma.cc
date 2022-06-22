@@ -2501,7 +2501,7 @@ int RDMA_Manager::poll_completion(ibv_wc* wc_p, int num_entries,
   return rc;
 }
 
-int RDMA_Manager::try_poll_this_thread_completions(ibv_wc* wc_p,
+int RDMA_Manager::try_poll_completions(ibv_wc* wc_p,
                                                    int num_entries,
                                                    std::string& qp_type,
                                                    bool send_cq,
@@ -2714,7 +2714,7 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_type,
   //  assert(wc.opcode == IBV_WC_RECV);
   if (poll_completion(wc, 1, std::string("main"),
                       true, target_node_id)){
-//    assert(try_poll_this_thread_completions(wc, 1, std::string("main"),true) == 0);
+//    assert(try_poll_completions(wc, 1, std::string("main"),true) == 0);
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return false;
   }

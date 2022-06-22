@@ -393,7 +393,7 @@ class RDMA_Manager {
   bool CheckInsideRemoteBuff(void* p, uint8_t target_node_id);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
-  int try_poll_this_thread_completions(ibv_wc* wc_p, int num_entries,
+  int try_poll_completions(ibv_wc* wc_p, int num_entries,
                                        std::string& qp_type, bool send_cq,
                                        uint8_t target_node_id);
   void fs_serialization(

@@ -447,8 +447,8 @@ void TableBuilder_BACS::FlushData(){
     int maximum_poll_number = 5;
     auto* wc = new ibv_wc[maximum_poll_number];
     int poll_num = 0;
-    poll_num = rdma_mg->try_poll_this_thread_completions(wc,maximum_poll_number,
-             r->type_string_,true, rep_->target_node_id_);
+    poll_num = rdma_mg->try_poll_completions(
+        wc, maximum_poll_number, r->type_string_, true, rep_->target_node_id_);
     // move the start index
     r->data_inuse_start += poll_num;
     if(r->data_inuse_start >= r->local_data_mr.size()){
@@ -632,9 +632,8 @@ Status TableBuilder_BACS::Finish() {
       rep_->target_node_id_); //it does not matter whether it is true or false
 #ifndef NDEBUG
   usleep(10);
-  int check_poll_number =
-      r->options.env->rdma_mg->try_poll_this_thread_completions(
-          wc, 1, r->type_string_, true, rep_->target_node_id_);
+  int check_poll_number = r->options.env->rdma_mg->try_poll_completions(
+      wc, 1, r->type_string_, true, rep_->target_node_id_);
   assert( check_poll_number == 0);
 #endif
   //  printf("A table finsihed flushing\n");
