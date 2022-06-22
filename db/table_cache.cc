@@ -246,6 +246,8 @@ Iterator* TableCache::NewIterator_MemorySide(
 //  if (reinterpret_cast<long>(p) == 0x7fff94151070)
 //    printf("check for NewIterator_MemorySide\n");
 //#endif
+  // TODO: Shall we garbage collect the Table_Memory_Side since we will not put it
+  // into cache?
   Table_Memory_Side* table;
   Status s = FindTable_MemorySide(remote_table, table);
   if (!s.ok()) {
