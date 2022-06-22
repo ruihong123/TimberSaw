@@ -619,6 +619,11 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
         // why imme_data not zero?
         assert(*imme_data == 0);
         assert(*byte_len == 0);
+
+        if(wc[0].imm_data == 9){
+          printf("stop here");
+        }
+
         *imme_data = wc[0].imm_data;
         *byte_len = wc[0].byte_len;
         cv_imme->notify_all();
@@ -1054,9 +1059,9 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     dealloc_mr.insert({target_node_id, nullptr});
     top.insert({target_node_id,0});
     mtx_imme_map.insert({target_node_id, new std::mutex});
-    imm_gen_map.insert({target_node_id, new std::atomic<uint32_t>(0)});
-    imme_data_map.insert({target_node_id, new  uint32_t(0)});
-    byte_len_map.insert({target_node_id, new  uint32_t(0)});
+    imm_gen_map.insert({target_node_id, new std::atomic<uint32_t>{0}});
+    imme_data_map.insert({target_node_id, new  uint32_t{0}});
+    byte_len_map.insert({target_node_id, new  uint32_t{0}});
     cv_imme_map.insert({target_node_id, new std::condition_variable});
   }
 
