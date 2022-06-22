@@ -1214,12 +1214,11 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
       if (get_weight > 0) {
         // do all the gets first
         //TODO: remove the time print.
-        auto start = std::chrono::high_resolution_clock::now();
+//        auto start = std::chrono::high_resolution_clock::now();
         Status s = db_->Get(options, key, &value);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//        printf("This get time duration is %lu \n", duration.count());
-        time_elapse+=duration.count();
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//        time_elapse+=duration.count();
 
         if (!s.ok() && !s.IsNotFound()) {
           fprintf(stderr, "get error: %s\n", s.ToString().c_str());
@@ -1250,7 +1249,7 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
     snprintf(msg, sizeof(msg), "( reads:%" PRIu64 " writes:%" PRIu64 \
                                " total:%" PRIu64 " found:%" PRIu64 ")",
              reads_done, writes_done, FLAGS_num, found);
-    printf("Read average latency is %lu\n", time_elapse/reads_done);
+//    printf("Read average latency is %lu\n", time_elapse/reads_done);
     thread->stats.AddMessage(msg);
   }
   void ReadMissing(ThreadState* thread) {
