@@ -1213,6 +1213,7 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
       }
       if (get_weight > 0) {
         // do all the gets first
+        //TODO: remove the time print.
         auto start = std::chrono::high_resolution_clock::now();
         Status s = db_->Get(options, key, &value);
         auto stop = std::chrono::high_resolution_clock::now();
