@@ -603,8 +603,9 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
 //  }
   printf("client handling thread\n");
   std::mutex* mtx_imme = mtx_imme_map.at(shard_target_node_id);
-//  std::atomic<uint32_t>* imm_gen = ;
+  std::atomic<uint32_t>* imm_gen = imm_gen_map.at(shard_target_node_id);
   uint32_t* imme_data = imme_data_map.at(shard_target_node_id);
+  assert(*imme_data == 0);
   uint32_t* byte_len = byte_len_map.at(shard_target_node_id);
   std::condition_variable* cv_imme = cv_imme_map.at(shard_target_node_id);
   while (1) {
@@ -615,6 +616,7 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         std::unique_lock<std::mutex> lck(*mtx_imme);
+        // why imme_data not zero?
         assert(*imme_data == 0);
         assert(*byte_len == 0);
         *imme_data = wc[0].imm_data;
