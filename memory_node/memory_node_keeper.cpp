@@ -1400,21 +1400,24 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     int miss_poll_counter = 0;
     while (true) {
 //      rdma_mg->poll_completion(wc, 1, client_ip, false, compute_node_id);
-      if (rdma_mg->try_poll_completions(wc, 1, client_ip, false, compute_node_id) ==0){
+      if (rdma_mg->try_poll_completions(wc, 1, client_ip, false, compute_node_id) == 0){
         // exponetial back off to save cpu cycles.
-        if(++miss_poll_counter > 256){
-          usleep(16);
+        if(++miss_poll_counter < 256){
           continue;
         }
-        if(++miss_poll_counter > 512){
-          usleep(256);
+        if(++miss_poll_counter < 512){
+          usleep(16);
+
           continue ;
         }
-        if(++miss_poll_counter > 1024){
+        if(++miss_poll_counter < 1024){
+          usleep(256);
+
+          continue;
+        }else{
           usleep(1024);
           continue;
         }
-
       }
       miss_poll_counter = 0;
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
