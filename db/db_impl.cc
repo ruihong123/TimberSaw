@@ -322,14 +322,14 @@ DBImpl::~DBImpl() {
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
   }
-  if (shard_id == 0){
-    // in sharding mode, the first shard clear those shared variables.
-    delete mtx_imme;
-    delete imm_gen;
-    delete imme_data;
-    delete byte_len;
-    delete cv_imme;
-  }
+//  if (shard_id == 0){
+//    // in sharding mode, the first shard clear those shared variables.
+//    delete mtx_imme;
+//    delete imm_gen;
+//    delete imme_data;
+//    delete byte_len;
+//    delete cv_imme;
+//  }
 
 //  while (background_compaction_scheduled_) {
 //    env_->SleepForMicroseconds(10);

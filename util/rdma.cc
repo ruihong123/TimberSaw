@@ -616,14 +616,10 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
         wc[0].imm_data;// use this to find the correct condition variable.
         std::unique_lock<std::mutex> lck(*mtx_imme);
-        // why imme_data not zero?
+        // why imme_data not zero? some other thread has overwrite this function.
+        // buffer overflow?
         assert(*imme_data == 0);
         assert(*byte_len == 0);
-
-        if(wc[0].imm_data == 9){
-          printf("stop here");
-        }
-
         *imme_data = wc[0].imm_data;
         *byte_len = wc[0].byte_len;
         cv_imme->notify_all();
