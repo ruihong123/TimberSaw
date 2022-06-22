@@ -443,6 +443,8 @@ class RDMA_Manager {
   std::map<uint8_t, ThreadLocalPtr*> qp_local_read;
   std::map<uint8_t, ThreadLocalPtr*> cq_local_read;
   std::map<uint8_t, ThreadLocalPtr*> local_read_qp_info;
+
+
 //  ThreadLocalPtr* qp_local_write_flush;
 //  ThreadLocalPtr* cq_local_write_flush;
 //  ThreadLocalPtr* local_write_flush_qp_info;
@@ -466,9 +468,18 @@ class RDMA_Manager {
   std::map<uint8_t, uint64_t*> deallocation_buffers;
   std::map<uint8_t, std::mutex*> dealloc_mtx;
   std::map<uint8_t, std::condition_variable*> dealloc_cv;
+
+  std::atomic<uint64_t> main_comm_thread_ready_num = 0;
 //  uint64_t deallocation_buffers[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)];
   std::map<uint8_t, ibv_mr*>  dealloc_mr;
   std::map<uint8_t, size_t>  top;
+
+  // The variables for immutable notification RPC.
+  std::map<uint8_t, std::mutex*> mtx_imme_map;
+  std::map<uint8_t, std::atomic<uint32_t>*> imm_gen_map;
+  std::map<uint8_t, uint32_t*> imme_data_map;
+  std::map<uint8_t, uint32_t*> byte_len_map;
+  std::map<uint8_t, std::condition_variable* > cv_imme_map;
 
   std::map<uint8_t, std::string> compute_nodes{};
   std::map<uint8_t, std::string> memory_nodes{};

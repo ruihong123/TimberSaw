@@ -289,6 +289,7 @@ int RDMA_Manager::client_sock_connect(const char* servername, int port) {
 
       }
     }
+
     fprintf(stdout, "TCP connection was established\n");
   }
 sock_connect_exit:
@@ -566,178 +567,124 @@ sock_connect_exit:
 //  return;
 //  // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
 //}
-//void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t shard_target_node_id) {
-//
-//  ibv_qp* qp;
-//  int rc = 0;
-//
-//
-//  //    assert(!shutting_down_.load());
-//  // try to reconnect the qp according to the table_cache in RDMA manager.
-//  if (q_id == "read_local"){
-//    assert(false);// Never comes to here
-//    qp = static_cast<ibv_qp*>(qp_local_read.at(shard_target_node_id)->Get());
-//    if (qp == NULL) {
-//      //if qp not exist create a new qp
-//      Remote_Query_Pair_Connection(q_id, shard_target_node_id);
-//      qp = static_cast<ibv_qp*>(qp_local_read.at(shard_target_node_id)->Get());
-//    }else{
-//      // if the qp has already been existed re initialize the qp to clear the old WRQs.
-//      assert(local_read_qp_info.at(shard_target_node_id)->Get() != nullptr);
-//      //        rdma_mg->modify_qp_to_reset(qp);
-//      //        rdma_mg->connect_qp(qp, q_id);
-//    }
-//  }else if (q_id == "write_local_flush"){
-//    qp = static_cast<ibv_qp*>(qp_local_write_flush.at(shard_target_node_id)->Get());
-//    if (qp == NULL) {
-//      Remote_Query_Pair_Connection(q_id, shard_target_node_id);
-//      qp = static_cast<ibv_qp*>(qp_local_write_flush.at(shard_target_node_id)->Get());
-//    }else{
-//      assert(local_write_flush_qp_info.at(shard_target_node_id)->Get() != nullptr);
-//      //        rdma_mg->modify_qp_to_reset(qp);
-//      //        rdma_mg->connect_qp(qp, q_id);
-//    }
-//  }else if (q_id == "write_local_compact"){
-//    qp = static_cast<ibv_qp*>(qp_local_write_compact.at(shard_target_node_id)->Get());
-//    if (qp == NULL) {
-//      Remote_Query_Pair_Connection(q_id, shard_target_node_id);
-//      qp = static_cast<ibv_qp*>(qp_local_write_compact.at(shard_target_node_id)->Get());
-//    }else{
-//      assert(local_write_compact_qp_info.at(shard_target_node_id)->Get() != nullptr);
-//      //        rdma_mg->modify_qp_to_reset(qp);
-//      //        rdma_mg->connect_qp(qp, q_id);
-//    }
-//  } else {
-//    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
-//
-//    if (res->qp_map.find(shard_target_node_id) != res->qp_map.end()){
-//      //        qp = rdma_mg->res->qp_map.at(q_id);
-//      //        printf("qp number before reset is %d\n", qp->qp_num);
-//      //        assert(rdma_mg->res->qp_main_connection_info.find(q_id)!= rdma_mg->res->qp_main_connection_info.end());
-//      //        l.unlock();
-//      qp = res->qp_map.at(shard_target_node_id);
-//      //        rdma_mg->modify_qp_to_reset(qp);
-//      //        rdma_mg->connect_qp(qp, q_id);
-//      //        printf("qp number after reset is %d\n", qp->qp_num);
-//    }else{
-//      l.unlock();
-//      Remote_Query_Pair_Connection(q_id, shard_target_node_id);
-//      l.lock();
-//      qp = res->qp_map.at(shard_target_node_id);
-//      l.unlock();
-//    }
-//
-//  }
-//
-//  ibv_mr* recv_mr;
-//  int buffer_counter;
-//  //TODO: keep the recv mr in rdma manager so that next time we restart
-//  // the database we can retrieve from the rdma_mg.
-//  if (comm_thread_recv_mrs.find(shard_target_node_id) != comm_thread_recv_mrs.end()){
-//    recv_mr = comm_thread_recv_mrs.at(shard_target_node_id);
-//    buffer_counter = comm_thread_buffer.at(shard_target_node_id);
-//  }else{
-//    // Some where we need to delete the recv_mr in case of memory leak.
-//    ibv_mr* recv_mr = new ibv_mr[R_SIZE]();
-//    for(int i = 0; i<R_SIZE; i++){
-//      Allocate_Local_RDMA_Slot(recv_mr[i], Message);
-//    }
-//
-//    for(int i = 0; i<R_SIZE; i++) {
-//      post_receive<RDMA_Request>(&recv_mr[i], shard_target_node_id, q_id);
-//    }
-//    buffer_counter = 0;
-//    comm_thread_recv_mrs.insert({shard_target_node_id, recv_mr});
-//  }
-//  printf("Start to sync options\n");
-//  //TODO: Sync option to all the memory servers.
+void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t shard_target_node_id) {
+
+  ibv_qp* qp;
+  int rc = 0;
+
+  ibv_mr* recv_mr;
+  int buffer_counter;
+  //TODO: keep the recv mr in rdma manager so that next time we restart
+  // the database we can retrieve from the rdma_mg.
+  if (comm_thread_recv_mrs.find(shard_target_node_id) != comm_thread_recv_mrs.end()){
+    recv_mr = comm_thread_recv_mrs.at(shard_target_node_id);
+    buffer_counter = comm_thread_buffer.at(shard_target_node_id);
+  }else{
+    // Some where we need to delete the recv_mr in case of memory leak.
+    recv_mr = new ibv_mr[R_SIZE]();
+    for(int i = 0; i<R_SIZE; i++){
+      Allocate_Local_RDMA_Slot(recv_mr[i], Message);
+    }
+
+    for(int i = 0; i<R_SIZE; i++) {
+      post_receive<RDMA_Request>(&recv_mr[i], shard_target_node_id, q_id);
+    }
+    buffer_counter = 0;
+    comm_thread_recv_mrs.insert({shard_target_node_id, recv_mr});
+  }
+  printf("Start to sync options\n");
 //  sync_option_to_remote(shard_target_node_id);
-//  ibv_wc wc[3] = {};
-//  //    RDMA_Request receive_msg_buf;
+  ibv_wc wc[3] = {};
+  //    RDMA_Request receive_msg_buf;
 //  {
 //    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-//    ++main_comm_thread_ready_num;
+    main_comm_thread_ready_num.fetch_add(1);
 //    write_stall_cv.notify_one();
 //  }
-//  printf("client handling thread\n");
-//  while (!shutting_down_.load()) {
-//    // we can only use try_poll... rather than poll_com.. because we need to
-//    // make sure the shutting down signal can work.
-//    if(rdma_mg->try_poll_completions(wc, 1, q_id, false,
-//                                      shard_target_node_id) >0){
-//      if(wc[0].wc_flags & IBV_WC_WITH_IMM){
-//        wc[0].imm_data;// use this to find the correct condition variable.
-//        std::unique_lock<std::mutex> lck(mtx_imme);
-//        assert(imme_data == 0);
-//        assert(byte_len == 0);
-//        imme_data = wc[0].imm_data;
-//        byte_len = wc[0].byte_len;
-//        cv_imme.notify_all();
-//        lck.unlock();
-//        while (imme_data != 0 || byte_len != 0 ){
-//          cv_imme.notify_one();
-//        }
-//        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
-//                                            shard_target_node_id,
-//                                            "main");
-//        // increase the buffer index
-//        if (buffer_counter== R_SIZE-1 ){
-//          buffer_counter = 0;
-//        } else{
-//          buffer_counter++;
-//        }
-//        continue;
-//      }
-//      RDMA_Request* receive_msg_buf = new RDMA_Request();
-//      memcpy(receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
-//      //        printf("Buffer counter %d has been used!\n", buffer_counter);
-//
-//      // copy the pointer of receive buf to a new place because
-//      // it is the same with send buff pointer.
-//      if (receive_msg_buf->command == install_version_edit) {
-//        ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
-//        assert(false);
-//        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
-//                                            shard_target_node_id,
-//                                            "main");
+  printf("client handling thread\n");
+  std::mutex* mtx_imme = mtx_imme_map.at(shard_target_node_id);
+//  std::atomic<uint32_t>* imm_gen = ;
+  uint32_t* imme_data = imme_data_map.at(shard_target_node_id);
+  uint32_t* byte_len = byte_len_map.at(shard_target_node_id);
+  std::condition_variable* cv_imme = cv_imme_map.at(shard_target_node_id);
+  while (1) {
+    // we can only use try_poll... rather than poll_com.. because we need to
+    // make sure the shutting down signal can work.
+    if(try_poll_completions(wc, 1, q_id, false,
+                                      shard_target_node_id) >0){
+      if(wc[0].wc_flags & IBV_WC_WITH_IMM){
+        wc[0].imm_data;// use this to find the correct condition variable.
+        std::unique_lock<std::mutex> lck(*mtx_imme);
+        assert(*imme_data == 0);
+        assert(*byte_len == 0);
+        *imme_data = wc[0].imm_data;
+        *byte_len = wc[0].byte_len;
+        cv_imme->notify_all();
+        lck.unlock();
+        while (*imme_data != 0 || *byte_len != 0 ){
+          cv_imme->notify_one();
+        }
+        post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            shard_target_node_id,
+                                            "main");
+        // increase the buffer index
+        if (buffer_counter== R_SIZE-1 ){
+          buffer_counter = 0;
+        } else{
+          buffer_counter++;
+        }
+        continue;
+      }
+      RDMA_Request* receive_msg_buf = new RDMA_Request();
+      memcpy(receive_msg_buf, recv_mr[buffer_counter].addr, sizeof(RDMA_Request));
+      //        printf("Buffer counter %d has been used!\n", buffer_counter);
+
+      // copy the pointer of receive buf to a new place because
+      // it is the same with send buff pointer.
+      if (receive_msg_buf->command == install_version_edit) {
+        ((RDMA_Request*) recv_mr[buffer_counter].addr)->command = invalid_command_;
+        assert(false);
+        post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                            shard_target_node_id,
+                                            "main");
 //        install_version_edit_handler(receive_msg_buf, q_id);
-//#ifdef WITHPERSISTENCE
-//      } else if(receive_msg_buf->command == persist_unpin_) {
-//        //TODO: implement the persistent unpin dispatch machenism
-//        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
-//        auto start = std::chrono::high_resolution_clock::now();
-//        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
-//        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
-//        Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch, thread_pool_args);
-//        auto stop = std::chrono::high_resolution_clock::now();
-//        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//        printf("unpin for %lu files time elapse is %ld",
-//               (receive_msg_buf->content.psu.buffer_size-1)/sizeof(uint64_t),
-//               duration.count());
-//#endif
-//      } else {
-//        printf("corrupt message from client.");
-//        break;
-//      }
-//      // increase the buffer index
-//      if (buffer_counter== R_SIZE-1 ){
-//        buffer_counter = 0;
-//      } else{
-//        buffer_counter++;
-//      }
-//    }
-//    //        rdma_mg->poll_completion(wc, 1, q_id, false);
-//
-//
-//  }
-//
-//  //    remote_qp_reset(q_id);
-//  comm_thread_buffer.insert({shard_target_node_id, buffer_counter});
-//  //    sleep(1);
-//  //    for (int i = 0; i < R_SIZE; ++i) {
-//  //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
-//  //    }
-//}
+#ifdef WITHPERSISTENCE
+      } else if(receive_msg_buf->command == persist_unpin_) {
+        //TODO: implement the persistent unpin dispatch machenism
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+        auto start = std::chrono::high_resolution_clock::now();
+        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
+        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
+        Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch, thread_pool_args);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        printf("unpin for %lu files time elapse is %ld",
+               (receive_msg_buf->content.psu.buffer_size-1)/sizeof(uint64_t),
+               duration.count());
+#endif
+      } else {
+        printf("corrupt message from client.");
+        break;
+      }
+      // increase the buffer index
+      if (buffer_counter== R_SIZE-1 ){
+        buffer_counter = 0;
+      } else{
+        buffer_counter++;
+      }
+    }
+    //        rdma_mg->poll_completion(wc, 1, q_id, false);
+
+
+  }
+
+  //    remote_qp_reset(q_id);
+  comm_thread_buffer.insert({shard_target_node_id, buffer_counter});
+  //    sleep(1);
+  //    for (int i = 0; i < R_SIZE; ++i) {
+  //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
+  //    }
+}
 void RDMA_Manager::ConnectQPThroughSocket(std::string qp_type, int socket_fd,
                                           uint8_t& target_node_id) {
 
@@ -1104,6 +1051,11 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     dealloc_cv.insert({target_node_id, new std::condition_variable});
     dealloc_mr.insert({target_node_id, nullptr});
     top.insert({target_node_id,0});
+    mtx_imme_map.insert({target_node_id, new std::mutex});
+    imm_gen_map.insert({target_node_id, new std::atomic<uint32_t>(0)});
+    imme_data_map.insert({target_node_id, new  uint32_t(0)});
+    byte_len_map.insert({target_node_id, new  uint32_t(0)});
+    cv_imme_map.insert({target_node_id, new std::condition_variable});
   }
 
 
@@ -1320,6 +1272,7 @@ bool RDMA_Manager::Get_Remote_qp_Info_Then_Connect(uint8_t target_node_id) {
   //    return false;
   //  }
   connection_counter.fetch_add(1);
+  compute_message_handling_thread(qp_type, target_node_id);
   return false;
 }
 void RDMA_Manager::sync_with_computes_Cside() {

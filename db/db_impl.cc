@@ -192,17 +192,28 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //  }
 //  versions_pool = options_.ShardInfo
 //        main_comm_threads.emplace_back(Clientmessagehandler());
-    mtx_imme = new std::mutex;
-    imm_gen = new std::atomic<uint32_t>(0);
-    imme_data = new uint32_t(0);
-    byte_len = new uint32_t(0);
-    cv_imme = new std::condition_variable;
-    std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+    mtx_imme = rdma_mg->mtx_imme_map.at(shard_target_node_id);
+    imm_gen = rdma_mg->imm_gen_map.at(shard_target_node_id);
+    imme_data = rdma_mg->imme_data_map.at(shard_target_node_id);
+    byte_len = rdma_mg->byte_len_map.at(shard_target_node_id);
+    cv_imme = rdma_mg->cv_imme_map.at(shard_target_node_id);
+
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
     //TODO: Make client handling thread only 1 per compute node-memory node connection.
-    main_comm_threads.emplace_back(
-        &DBImpl::client_message_polling_and_handling_thread, this, "main");
+//    main_comm_threads.emplace_back(
+//        &DBImpl::client_message_polling_and_handling_thread, this, "main");
+    while(rdma_mg->main_comm_thread_ready_num.load() != rdma_mg->memory_nodes.size());
+
+    if (RDMA_Manager::node_id == 1){
+      // every memory ndoe only get synced option one time from compute node 1
+      for (int i = 0; i <  rdma_mg->memory_nodes.size(); ++i) {
+        sync_option_to_remote(2*i);
+      }
+
+    }
+
 //    for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
 //      main_comm_threads.emplace_back(
 //          &DBImpl::client_message_polling_and_handling_thread, this, "main");
@@ -211,14 +222,14 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 
     printf("communication thread created\n");
     //Wait for the clearance of pending receive work request from the last DB open.
-    {
-      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-      while (main_comm_thread_ready_num == 0) {
-        printf("Start to sleep\n");
-        write_stall_cv.wait(lck);
-        printf("Waked up\n");
-      }
-    }
+//    {
+//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+//      while (main_comm_thread_ready_num == 0) {
+//        printf("Start to sleep\n");
+//        write_stall_cv.wait(lck);
+//        printf("Waked up\n");
+//      }
+//    }
     Unpin_bg_pool_.SetBackgroundThreads(1);
 //    if (options_.block_cache != nullptr){
 //      size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1 +1;
@@ -284,7 +295,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t sh
       super_version_number_(0),
       super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)),
       shard_target_node_id(0),
-      compute_shard_id(shard_id)
+      shard_id(shard_id)
 {
 
 
@@ -311,7 +322,7 @@ DBImpl::~DBImpl() {
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
   }
-  if (compute_shard_id == 0){
+  if (shard_id == 0){
     // in sharding mode, the first shard clear those shared variables.
     delete mtx_imme;
     delete imm_gen;

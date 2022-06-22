@@ -321,7 +321,7 @@ class DBImpl : public DB {
   ThreadLocalPtr* local_sv_;
   std::vector<std::thread> main_comm_threads;
   uint8_t shard_target_node_id = 0;
-  uint8_t compute_shard_id = 0;
+  uint8_t shard_id = 0;
 #ifdef PROCESSANALYSIS
   std::atomic<size_t> Total_time_elapse;
   std::atomic<size_t> flush_times;
