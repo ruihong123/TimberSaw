@@ -120,6 +120,10 @@ static int FLAGS_key_prefix = 0;
 // flag and also specify a benchmark that wants a fresh database, that
 // benchmark will fail.
 static bool FLAGS_use_existing_db = false;
+
+// if true, the compute node will always have 16 shards no matter how many memory
+//nodes are there
+static int FLAGS_fixed_compute_shards_num = 1;
 // whether the writer threads aware of the NUMA archetecture.
 static bool FLAGS_enable_numa = false;
 // If true, reuse existing log/MANIFEST files when re-opening a database.
@@ -929,11 +933,31 @@ class Benchmark {
     number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
     number_of_key_per_compute =
         number_of_key_total /rdma_mg->compute_nodes.size();
-    number_of_key_per_shard = number_of_key_per_compute
-                              /rdma_mg->memory_nodes.size();
-    if (rdma_mg->compute_nodes.size()> 1 || rdma_mg->memory_nodes.size()> 1){
-      options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
 
+    if (FLAGS_fixed_compute_shards_num > 0){
+      options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
+      number_of_key_per_shard = number_of_key_per_compute
+                                /FLAGS_fixed_compute_shards_num;
+      for (int i = 0; i < FLAGS_fixed_compute_shards_num; ++i) {
+        char* data_low = new char[FLAGS_key_size];
+        char* data_up = new char[FLAGS_key_size];
+        Slice key_low  = Slice(data_low, FLAGS_key_size);
+        Slice key_up  = Slice(data_up, FLAGS_key_size);
+        uint64_t lower_bound = number_of_key_per_compute*(rdma_mg->node_id -1)/2
+                               + i*number_of_key_per_shard;
+        uint64_t upper_bound = number_of_key_per_compute*(rdma_mg->node_id -1)/2
+                               + (i+1)*number_of_key_per_shard;
+        if (i == rdma_mg->memory_nodes.size()-1){
+          upper_bound = number_of_key_per_compute*(rdma_mg->node_id + 1)/2;
+        }
+        GenerateKeyFromInt(lower_bound, &key_low);
+        GenerateKeyFromInt(upper_bound, &key_up);
+        options.ShardInfo->emplace_back(key_low,key_up);
+      }
+    }else if (rdma_mg->memory_nodes.size()> 1){
+      options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
+      number_of_key_per_shard = number_of_key_per_compute
+                                /rdma_mg->memory_nodes.size();
       for (int i = 0; i < rdma_mg->memory_nodes.size(); ++i) {
         char* data_low = new char[FLAGS_key_size];
         char* data_up = new char[FLAGS_key_size];
@@ -944,6 +968,7 @@ class Benchmark {
         uint64_t upper_bound = number_of_key_per_compute*(rdma_mg->node_id -1)/2
                                + (i+1)*number_of_key_per_shard;
         if (i == rdma_mg->memory_nodes.size()-1){
+          // in case that the number_of_key_pershard round down.
           upper_bound = number_of_key_per_compute*(rdma_mg->node_id + 1)/2;
         }
         GenerateKeyFromInt(lower_bound, &key_low);
@@ -1428,6 +1453,10 @@ int main(int argc, char** argv) {
     } else if (sscanf(argv[i], "--use_existing_db=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_use_existing_db = n;
+    } else if (sscanf(argv[i], "--fixed_compute_shards_num=%d%c", &n, &junk) == 1) {
+      // if it is zero allocate shard number according to the memory node number
+      // if larger than 0 this number should larger than meory node number
+      FLAGS_fixed_compute_shards_num = n;
     } else if (sscanf(argv[i], "--reuse_logs=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_reuse_logs = n;

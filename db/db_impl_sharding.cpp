@@ -14,17 +14,23 @@ DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbna
     for(const auto& iter : Shard_Info) {
       //We can not set the target node id in DBImpl because we don't know what should be
       // the node id corresponding with this shard. (Is that true?) Probably not.
+
       // Now the shards are assigned to target memory nodes in a strictly round robin manner
       // according to the upper bound of shard. the third argument we set as 0,
-      // to overload the function
+      // to overload the function. The overloaded initial function will not create message
+      // handling thread.
       auto sharded_db = new DBImpl(options, dbname, 0);
       shards_pool.insert({iter.second, sharded_db});
     }
     int i = 0;
+    int memory_node_num = Env::Default()->rdma_mg->memory_nodes.size();
+    int target_mem_node_id;
     for(auto & iter : shards_pool){
-      iter.second->Setup_target_id_create_handling_thread(2*i);
+      target_mem_node_id = 2*i%memory_node_num;
+      iter.second->Setup_target_id_create_handling_thread(target_mem_node_id);
       i++;
     }
+    // you should not combine this two loops together because there is a wait function.
     for(auto & iter : shards_pool){
       iter.second->Wait_for_client_message_hanlding_setup();
     }
