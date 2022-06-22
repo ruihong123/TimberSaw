@@ -82,7 +82,7 @@ class DBImpl : public DB {
 
  public:
   DBImpl(const Options& options, const std::string& dbname);
-  DBImpl(const Options& options, const std::string& dbname, uint8_t target_node_id);
+  DBImpl(const Options& options, const std::string& dbname, uint8_t shard_id);
   DBImpl(const DBImpl&) = delete;
   DBImpl& operator=(const DBImpl&) = delete;
 
@@ -244,11 +244,11 @@ class DBImpl : public DB {
   std::unordered_map<unsigned int, std::pair<std::mutex, std::condition_variable>> imm_notifier_pool;
 //  unsigned int imm_temp = 1;
   // THose vairbale could be shared pointers from the out side.
-  std::mutex mtx_imme;
-  std::atomic<uint32_t> imm_gen;
-  uint32_t imme_data = 0;
-  uint32_t byte_len = 0;
-  std::condition_variable cv_imme;
+  std::mutex* mtx_imme;
+  std::atomic<uint32_t>* imm_gen;
+  uint32_t* imme_data;
+  uint32_t* byte_len;
+  std::condition_variable* cv_imme;
 
 
   const InternalKeyComparator internal_comparator_;
@@ -321,6 +321,7 @@ class DBImpl : public DB {
   ThreadLocalPtr* local_sv_;
   std::vector<std::thread> main_comm_threads;
   uint8_t shard_target_node_id = 0;
+  uint8_t compute_shard_id = 0;
 #ifdef PROCESSANALYSIS
   std::atomic<size_t> Total_time_elapse;
   std::atomic<size_t> flush_times;

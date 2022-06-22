@@ -328,6 +328,7 @@ class RDMA_Manager {
   //                                   size_t buff_size, file_type type,
   //                                   ibv_mr* local_data_mr);
 //  void client_message_polling_thread();
+  void compute_message_handling_thread(std::string q_id, uint8_t shard_target_node_id);
   void ConnectQPThroughSocket(std::string qp_type, int socket_fd,
                               uint8_t& target_node_id);
   // Local memory register will register RDMA memory in local machine,

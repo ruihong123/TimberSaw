@@ -192,6 +192,11 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //  }
 //  versions_pool = options_.ShardInfo
 //        main_comm_threads.emplace_back(Clientmessagehandler());
+    mtx_imme = new std::mutex;
+    imm_gen = new std::atomic<uint32_t>(0);
+    imme_data = new uint32_t(0);
+    byte_len = new uint32_t(0);
+    cv_imme = new std::condition_variable;
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
     env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
@@ -250,7 +255,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     printf("DBImpl finished\n");
 }
 //This functon does not contain the creation of the client message handling thread
-DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t id)
+DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t shard_id)
     : env_(raw_options.env),
       internal_comparator_(raw_options.comparator),
       internal_filter_policy_(raw_options.filter_policy),
@@ -278,7 +283,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t id
                                &internal_comparator_, &superversion_memlist_mtx)),
       super_version_number_(0),
       super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)),
-      shard_target_node_id(id)
+      shard_target_node_id(0),
+      compute_shard_id(shard_id)
 {
 
 
@@ -305,6 +311,15 @@ DBImpl::~DBImpl() {
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
   }
+  if (compute_shard_id == 0){
+    // in sharding mode, the first shard clear those shared variables.
+    delete mtx_imme;
+    delete imm_gen;
+    delete imme_data;
+    delete byte_len;
+    delete cv_imme;
+  }
+
 //  while (background_compaction_scheduled_) {
 //    env_->SleepForMicroseconds(10);
 //  }
@@ -1911,10 +1926,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   send_pointer->buffer_large = mr_c.addr;
   send_pointer->rkey_large = mr_c.rkey;
   //Todo: modify this.
-  uint32_t imm_num = imm_gen.fetch_add(1);
+  uint32_t imm_num = imm_gen->fetch_add(1);
   // avoid imm_num == 0
   if (imm_num == 0){
-    imm_num = imm_gen.fetch_add(1);
+    imm_num = imm_gen->fetch_add(1);
   }
   send_pointer->imm_num = imm_num;
   // Without persistency we don' need to reply to the remote memory after the compute node
@@ -2021,15 +2036,15 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("mfence\n" : : );
   // polling the finishing bit for the file number transmission.
   size_t counter = 0;
-  std::unique_lock<std::mutex> lck(mtx_imme);
-  while (imm_num != imme_data){
-    cv_imme.wait(lck);
+  std::unique_lock<std::mutex> lck(*mtx_imme);
+  while (imm_num != *imme_data){
+    cv_imme->wait(lck);
   }
-  size_t buffer_size = byte_len;
-  byte_len = 0;
-  imme_data = 0;
+  size_t buffer_size = *byte_len;
+  *byte_len = 0;
+  *imme_data = 0;
   assert(*((unsigned char*)mr_c.addr + buffer_size - 1) == 1);
-  assert(imme_data == 0);
+  assert(*imme_data == 0);
   lck.unlock();
 
 //  _mm_clflush(polling_size_2);
@@ -2280,15 +2295,15 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
                                         shard_target_node_id) >0){
         if(wc[0].wc_flags & IBV_WC_WITH_IMM){
           wc[0].imm_data;// use this to find the correct condition variable.
-          std::unique_lock<std::mutex> lck(mtx_imme);
-          assert(imme_data == 0);
-          assert(byte_len == 0);
-          imme_data = wc[0].imm_data;
-          byte_len = wc[0].byte_len;
-          cv_imme.notify_all();
+          std::unique_lock<std::mutex> lck(*mtx_imme);
+          assert(*imme_data == 0);
+          assert(*byte_len == 0);
+          *imme_data = wc[0].imm_data;
+          *byte_len = wc[0].byte_len;
+          cv_imme->notify_all();
           lck.unlock();
-          while (imme_data != 0 || byte_len != 0 ){
-            cv_imme.notify_one();
+          while (*imme_data != 0 || *byte_len != 0 ){
+            cv_imme->notify_one();
           }
           rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
                                               shard_target_node_id,
