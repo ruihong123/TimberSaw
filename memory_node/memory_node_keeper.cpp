@@ -1404,7 +1404,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         // exponetial back off to save cpu cycles.
         if(++miss_poll_counter > 256){
           usleep(16);
-          continue ;
+          continue;
         }
         if(++miss_poll_counter > 512){
           usleep(256);
@@ -1412,7 +1412,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         }
         if(++miss_poll_counter > 1024){
           usleep(1024);
-          continue ;
+          continue;
         }
 
       }
@@ -1513,6 +1513,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         buffer_position++;
       }
     }
+    assert(false);
     // TODO: Build up a exit method for shared memory side, don't forget to destroy all the RDMA resourses.
   }
   void Memory_Node_Keeper::Server_to_Client_Communication() {
