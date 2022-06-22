@@ -121,9 +121,10 @@ static int FLAGS_key_prefix = 0;
 // benchmark will fail.
 static bool FLAGS_use_existing_db = false;
 
-// if true, the compute node will always have 16 shards no matter how many memory
-//nodes are there
-static int FLAGS_fixed_compute_shards_num = 1;
+// if larger than 0, the compute node will always have this number of shards no matter how many memory
+//nodes are there. THe shards will be distributed to the memory nodes in a round robin
+// manner.
+static int FLAGS_fixed_compute_shards_num = 0;
 // whether the writer threads aware of the NUMA archetecture.
 static bool FLAGS_enable_numa = false;
 // If true, reuse existing log/MANIFEST files when re-opening a database.
