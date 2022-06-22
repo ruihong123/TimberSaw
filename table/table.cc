@@ -96,7 +96,7 @@ void Table::ReadFilter() {
 }
 
 Table::~Table() {
-  printf("garbage collect the local cache of table %lu", rep->cache_id);
+//  printf("garbage collect the local cache of table %lu", rep->cache_id);
   delete rep;
 }
 
