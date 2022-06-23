@@ -2380,7 +2380,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 void DBImpl::WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
                                                     uint8_t shard_id_) {
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-  assert(target_memory_id = 2*(shard_id_%rdma_mg->memory_nodes.size()));
+  assert(target_memory_id == 2*(shard_id_%rdma_mg->memory_nodes.size()));
   shard_target_node_id = target_memory_id;
   shard_id = shard_id_;
 
