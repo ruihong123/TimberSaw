@@ -11,6 +11,7 @@ namespace TimberSaw {
 
 Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
   if (!env->initialized){
+    std::unique_lock<std::shared_mutex> lck(env->rdma_mg->local_mem_mutex);
     env->rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK, 0);
     env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
     env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
@@ -19,7 +20,7 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     env->rdma_mg->Mempool_initialize(DataChunk, block_size, 0);
     ibv_mr* mr;
     char* buff;
-    std::unique_lock<std::shared_mutex> lck(env->rdma_mg->local_mem_mutex);
+
     env->rdma_mg->Local_Memory_Register(&buff, &mr, 1024*1024*1024, DataChunk);
 
   }
