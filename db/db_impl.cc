@@ -2377,24 +2377,44 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
 //    }
 }
-void DBImpl::Setup_target_id_create_handling_thread(uint8_t id) {
-  shard_target_node_id = id;
-  main_comm_threads.emplace_back(
-      &DBImpl::client_message_polling_and_handling_thread, this, "main");
+void DBImpl::WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
+                                                    uint8_t shard_id_) {
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  assert(target_memory_id = 2*(shard_id_%rdma_mg->memory_nodes.size()));
+  shard_target_node_id = target_memory_id;
+  shard_id = shard_id_;
 
-}
-void DBImpl::Wait_for_client_message_hanlding_setup() {
-  {
-    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-    while (main_comm_thread_ready_num == 0) {
-      printf("Start to sleep\n");
-      write_stall_cv.wait(lck);
-      printf("Waked up\n");
+  mtx_imme = rdma_mg->mtx_imme_map.at(shard_target_node_id);
+  imm_gen = rdma_mg->imm_gen_map.at(shard_target_node_id);
+  imme_data = rdma_mg->imme_data_map.at(shard_target_node_id);
+  byte_len = rdma_mg->byte_len_map.at(shard_target_node_id);
+  cv_imme = rdma_mg->cv_imme_map.at(shard_target_node_id);
+
+  while(rdma_mg->main_comm_thread_ready_num.load() != rdma_mg->memory_nodes.size());
+
+  if (RDMA_Manager::node_id == 1 && shard_id == 0){
+    // every memory ndoe only get synced option one time from compute node 1
+    for (int i = 0; i <  rdma_mg->memory_nodes.size(); ++i) {
+      sync_option_to_remote(2*i);
     }
-  }
-  Unpin_bg_pool_.SetBackgroundThreads(1);
 
+  }
+//  main_comm_threads.emplace_back(
+//      &DBImpl::client_message_polling_and_handling_thread, this, "main");
+  Unpin_bg_pool_.SetBackgroundThreads(1);
 }
+//void DBImpl::Wait_for_client_message_hanlding_setup() {
+//  {
+//    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+//    while (main_comm_thread_ready_num == 0) {
+//      printf("Start to sleep\n");
+//      write_stall_cv.wait(lck);
+//      printf("Waked up\n");
+//    }
+//  }
+//  Unpin_bg_pool_.SetBackgroundThreads(1);
+//
+//}
 void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
                                  std::unique_lock<std::mutex>* version_mtx) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);

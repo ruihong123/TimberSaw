@@ -140,8 +140,9 @@ class DBImpl : public DB {
   // TODO: If there are two shards connected to the same memory node, what shall we
   // we do?
   void client_message_polling_and_handling_thread(std::string q_id);
-  void Setup_target_id_create_handling_thread(uint8_t id);
-  void Wait_for_client_message_hanlding_setup();
+  void WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
+                                              uint8_t shard_id_);
+//  void Wait_for_client_message_hanlding_setup();
  private:
   friend class DB;
 //  struct CompactionState;

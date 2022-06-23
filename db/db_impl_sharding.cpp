@@ -24,16 +24,17 @@ DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbna
     }
     int i = 0;
     int memory_node_num = Env::Default()->rdma_mg->memory_nodes.size();
-    int target_mem_node_id;
+    int target_mem_node_id = 0;
     for(auto & iter : shards_pool){
-      target_mem_node_id = 2*i%memory_node_num;
-      iter.second->Setup_target_id_create_handling_thread(target_mem_node_id);
+      target_mem_node_id = 2*(i%memory_node_num);
+      assert(i < 256);
+      iter.second->WaitForComputeMessageHandlingThread(target_mem_node_id, i);
       i++;
     }
     // you should not combine this two loops together because there is a wait function.
-    for(auto & iter : shards_pool){
-      iter.second->Wait_for_client_message_hanlding_setup();
-    }
+//    for(auto & iter : shards_pool){
+//      iter.second->Wait_for_client_message_hanlding_setup();
+//    }
 }
 DBImpl_Sharding::~DBImpl_Sharding() {
   for(auto iter : shards_pool){
