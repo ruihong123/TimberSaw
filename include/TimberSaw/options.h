@@ -21,9 +21,9 @@ class Snapshot;
 // The size for one SStable chunk
 //static size_t RDMA_WRITE_BLOCK = 2*1024*1024;
 // default 8 8  1
-#define RDMA_WRITE_BLOCK  (16*1024*1024)
-#define INDEX_BLOCK  (16*1024*1024)
-#define FILTER_BLOCK  (2*1024*1024)
+#define RDMA_WRITE_BLOCK  (64*1024*1024)
+#define INDEX_BLOCK  (64*1024*1024)
+#define FILTER_BLOCK  (8*1024*1024)
 //static size_t RDMA_WRITE_BLOCK = 1*1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
 // sequence of key,value pairs.  Each block may be compressed before
@@ -109,7 +109,7 @@ struct TimberSaw_EXPORT Options {
   // Also, a larger write buffer will result in a longer recovery time
   // the next time the database is opened.
   // before 64MB
-  size_t write_buffer_size = 128 * 1024 * 1024;
+  size_t write_buffer_size = 512 * 1024 * 1024;
 
   // Number of open files that can be used by the DB.  You may need to
   // increase this if your database has a large working set (budget
@@ -145,7 +145,7 @@ struct TimberSaw_EXPORT Options {
   // Another reason to increase this parameter might be when you are
   // initially populating a large database.
   //default 64MB
-  size_t max_file_size = 128 * 1024 * 1024;
+  size_t max_file_size = 512 * 1024 * 1024;
 
   // Compress blocks using the specified compression algorithm.  This
   // parameter can be changed dynamically.
