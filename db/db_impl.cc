@@ -422,12 +422,11 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
     lck.unlock();
   }
   // Reset the trigger
-  int temp = config::Immutable_FlushTrigger;
-  config::Immutable_FlushTrigger = 1;
-  MaybeScheduleFlushOrCompaction();
+//  int temp = config::Immutable_FlushTrigger;
+
   while (imm_.current_memtable_num() != 0){
     usleep(10);
-    MaybeScheduleFlushOrCompaction();
+    ForceCompactMemTable();
   };
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
@@ -442,7 +441,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
 
-  config::Immutable_FlushTrigger = temp;
+//  config::Immutable_FlushTrigger = temp;
 }
 Status DBImpl::NewDB() {
   VersionEdit new_db(0);
@@ -1012,7 +1011,56 @@ void DBImpl::CompactMemTable() {
     s = Status::IOError("Deleting DB during memtable compaction");
   }
 }
+void DBImpl::ForceCompactMemTable() {
+  //  undefine_mutex.AssertHeld();
+  //TOTHINK What will happen if we remove the mutex in the future?
 
+  // Save the contents of the memtable as a new Table
+  VersionEdit edit(0);
+  //  Version* base = versions_->current();
+  // wait for the ongoing writes for 1 millisecond.
+  size_t counter = 0;
+  // wait for the immutable to get ready to flush. the signal here is prepare for
+  // the case that the thread this immutable is under the control of conditional
+  // variable.
+  FlushJob f_job(&write_stall_cv, &internal_comparator_);
+  { //This code should synchronized outside the superversion mutex, since nothing
+    // has been changed for superversion.
+    std::unique_lock<std::mutex> l(FlushPickMTX);
+    if (imm_.IsFlushDoable()){
+      imm_.PickMemtablesToFlush(&f_job.mem_vec);
+    }else{
+      return ;
+    }
+
+  }
+  DEBUG_arg("picked metable number is %lu", f_job.mem_vec.size());
+  f_job.Waitforpendingwriter();
+
+//  imm->SetFlushState(MemTable::FLUSH_PROCESSING);
+//  base->Ref();
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
+  Status s = WriteLevel0Table(&f_job, &edit);
+#ifdef PROCESSANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+  Total_time_elapse.fetch_add(duration.count());
+  flush_times.fetch_add(1);
+  //#ifndef NDEBUG
+  printf("memtable flushing time elapse (%ld) us, immutable num is %lu\n", duration.count(), f_job.mem_vec.size());
+//#endif
+#endif
+  //  base->Unref();
+  //  assert(edit.GetNewFilesNum()==1);
+
+  TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
+  //  MaybeScheduleFlushOrCompaction();
+  if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
+    s = Status::IOError("Deleting DB during memtable compaction");
+  }
+}
 //NOte: deprecated function
 void DBImpl::CompactRange(const Slice* begin, const Slice* end) {
   int max_level_with_files = 1;

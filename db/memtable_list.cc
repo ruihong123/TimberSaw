@@ -346,6 +346,10 @@ bool MemTableList::IsFlushPending() const {
   int num = num_flush_not_started_.load();
   return num >= config::Immutable_FlushTrigger;
 }
+bool MemTableList::IsFlushDoable() const {
+  int num = num_flush_not_started_.load();
+  return num > 0;
+}
 bool MemTableList::AllFlushNotFinished() const {
   return this->current_memtable_num_.load() >= config::Immutable_FlushTrigger;
 }
