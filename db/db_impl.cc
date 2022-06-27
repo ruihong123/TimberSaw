@@ -314,9 +314,9 @@ DBImpl::~DBImpl() {
   WaitforAllbgtasks(false);
   //TODO: recycle all the
 
-
-  env_->JoinAllThreads(true);
-  Unpin_bg_pool_.JoinThreads(true);
+// No need to exit the background threads.
+//  env_->JoinAllThreads(true);
+//  Unpin_bg_pool_.JoinThreads(true);
   shutting_down_.store(true);
   // wait for communicaiton thread to finish
   for(int i = 0; i < main_comm_threads.size(); i++){
