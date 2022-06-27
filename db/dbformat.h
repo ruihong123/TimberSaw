@@ -24,9 +24,9 @@ namespace TimberSaw {
 // parameters set via options.
 namespace config {
 static const int kNumLevels = 6;
-static const int MaxImmuNumPerFlush = 8;
+static int MaxImmuNumPerFlush = 8;
 // Immutable flushing will be triggered when hit this number
-static const int Immutable_FlushTrigger = 8;
+static int Immutable_FlushTrigger = 8;
 // Maximum number of unflushed immutable files 10 in 1-1,
 // 16 totally across shards in M-M (including memtable)
 // with 8 fixed shard per compute node this equals 2 or 1

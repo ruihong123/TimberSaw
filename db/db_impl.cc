@@ -420,8 +420,10 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
 
     lck.unlock();
   }
-
-
+  // Reset the trigger
+  int temp = config::Immutable_FlushTrigger;
+  config::Immutable_FlushTrigger = 1;
+  MaybeScheduleFlushOrCompaction();
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
@@ -433,6 +435,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
+  config::Immutable_FlushTrigger = temp;
 }
 Status DBImpl::NewDB() {
   VersionEdit new_db(0);
