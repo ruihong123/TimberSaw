@@ -423,16 +423,17 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   // Reset the trigger
 //  int temp = config::Immutable_FlushTrigger;
 
-  while (imm_.current_memtable_num() != 0){
+  while (imm_.IsFlushDoable()){
     usleep(10);
     ForceCompactMemTable();
   };
+  MaybeScheduleFlushOrCompaction();
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
   // conditions are both false.
   while( version_not_ready || immutable_list_not_ready){
-//    MaybeScheduleFlushOrCompaction();
+    MaybeScheduleFlushOrCompaction();
     //TODO: we can implement a wait here.
     usleep(1000);
     version_not_ready = versions_->AllCompactionNotFinished();
