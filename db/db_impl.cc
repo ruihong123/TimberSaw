@@ -435,7 +435,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   while( version_not_ready || immutable_list_not_ready){
     MaybeScheduleFlushOrCompaction();
     //TODO: we can implement a wait here.
-    usleep(1000);
+    usleep(100000);
     version_not_ready = versions_->AllCompactionNotFinished();
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
