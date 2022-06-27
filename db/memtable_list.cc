@@ -343,7 +343,8 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
 // Returns true if there is at least one memtable on which flush has
 // not yet started.
 bool MemTableList::IsFlushPending() const {
-  return this->num_flush_not_started_.load() >= config::Immutable_FlushTrigger;
+  int num = num_flush_not_started_.load();
+  return num >= config::Immutable_FlushTrigger;
 }
 bool MemTableList::AllFlushNotFinished() const {
   return this->current_memtable_num_.load() >= config::Immutable_FlushTrigger;
