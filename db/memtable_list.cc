@@ -789,11 +789,13 @@ void MemTableList::InstallNewVersion() {
 void FlushJob::Waitforpendingwriter() {
   size_t counter = 0;
   for (auto iter: mem_vec) {
+    // why not manually set able_to_flush when we want a non full_table_flush
     while (iter->full_table_flush && !iter->able_to_flush.load()) {
       counter++;
       if (counter == 500) {
 //        printf("signal all the wait threads\n");
         usleep(10);
+        // wake up all front-end threads in case of false wait thread.
         write_stall_cv_->notify_all();
         counter = 0;
       }
