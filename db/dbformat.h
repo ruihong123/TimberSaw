@@ -24,13 +24,13 @@ namespace TimberSaw {
 // parameters set via options.
 namespace config {
 static const int kNumLevels = 6;
-static const int MaxImmuNumPerFlush = 8;
+static const int MaxImmuNumPerFlush = 4;
 // Immutable flushing will be triggered when hit this number
-static const int Immutable_FlushTrigger = 8;
+static const int Immutable_FlushTrigger = 4;
 // Maximum number of unflushed immutable files 10 in 1-1,
 // 16 totally across shards in M-M (including memtable)
 // with 8 fixed shard per compute node this equals 2 or 1
-static const int Immutable_StopWritesTrigger = 15;
+static const int Immutable_StopWritesTrigger = 7;
 // Level-0 compaction is started when we hit this many files.
 static const int kL0_CompactionTrigger = 1;
 

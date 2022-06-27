@@ -4,8 +4,9 @@
 
 #ifndef STORAGE_TimberSaw_DB_MEMTABLE_H_
 #define STORAGE_TimberSaw_DB_MEMTABLE_H_
-//#define MEMTABLE_SEQ_SIZE 153846 //Make the in memory buffer close to 64MB 1 shard
-#define MEMTABLE_SEQ_SIZE 19231 //Make the in memory buffer close to 64MB
+//#define MEMTABLE_SEQ_SIZE 153846 //Make the in memory buffer close to 64MB 1 shard origin
+//#define MEMTABLE_SEQ_SIZE 19231 //Make the in memory buffer close to 64MB
+#define MEMTABLE_SEQ_SIZE 38462
 // 8 shard's memtable size X 8  should be a little larger that the memtable of 64MB,
 // because of the merge
 // #define MEMTABLE_SEQ_SIZE 610081
