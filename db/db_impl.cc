@@ -383,6 +383,7 @@ DBImpl::~DBImpl() {
            Total_time_elapse.load()/flush_times.load());
 #endif
 }
+extern int config::Immutable_FlushTrigger;
 // put the memtable to immutable table and flush all immutable to remote memory if the
 // immutable trigger is 1. Wait for all the background task to finish.
 void DBImpl::WaitforAllbgtasks(bool clear_mem) {
