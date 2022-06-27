@@ -432,7 +432,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   // Note there could be ongoing compaction thread unfinished, even if the two
   // conditions are both false.
   while( version_not_ready || immutable_list_not_ready){
-    MaybeScheduleFlushOrCompaction();
+//    MaybeScheduleFlushOrCompaction();
     //TODO: we can implement a wait here.
     usleep(1000);
     version_not_ready = versions_->AllCompactionNotFinished();
