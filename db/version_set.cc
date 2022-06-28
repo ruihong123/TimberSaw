@@ -798,6 +798,7 @@ class VersionSet::Builder {
   }
 
   void MaybeAddFile(Version* v, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
+
     std::pair <std::multimap<uint64_t, uint8_t>::iterator, std::multimap<uint64_t ,uint8_t>::iterator>
         ret = levels_[level].deleted_files.equal_range(f->number);
     bool file_number_deleted = false;
