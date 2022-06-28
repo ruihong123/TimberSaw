@@ -2946,8 +2946,8 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
                                             Chunk_type pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
   size_t chunk_size;
-  chunk_size = name_to_chunksize.at(pool_name);
   std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
+  chunk_size = name_to_chunksize.at(pool_name);
   if (name_to_mem_pool.at(pool_name).empty()) {
     mem_read_lock.unlock();
     std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
