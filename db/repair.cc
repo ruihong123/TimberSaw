@@ -305,7 +305,8 @@ class Repairer {
     if (!s.ok()) {
       return;
     }
-    TableBuilder_ComputeSide* builder = new TableBuilder_ComputeSide(options_, Flush);
+    TableBuilder_ComputeSide* builder =
+        new TableBuilder_ComputeSide(options_, Flush, 0);
 
     // Copy data.
     Iterator* iter = NewTableIterator(t.meta);

@@ -40,7 +40,8 @@ class TimberSaw_EXPORT TableBuilder_ComputeSide : public TableBuilder{
   // Create a builder that will store the contents of the table it is
   // building in *file.  Does not close the file.  It is up to the
   // caller to close the file after calling Finish().
-  TableBuilder_ComputeSide(const Options& options, IO_type type);
+  TableBuilder_ComputeSide(const Options& options, IO_type type,
+                           uint8_t target_node_id);
 //  TableBuilder_ComputeSide() = default;
   TableBuilder_ComputeSide(const TableBuilder_ComputeSide&) = delete;
   TableBuilder_ComputeSide& operator=(const TableBuilder_ComputeSide&) = delete;

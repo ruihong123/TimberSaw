@@ -17,7 +17,8 @@ Status BuildTable(const std::string& dbname, Env* env, const Options& options,
 
   std::string fname = TableFileName(dbname, meta->number);
   if (iter->Valid()) {
-    TableBuilder_ComputeSide* builder = new TableBuilder_ComputeSide(options, type);
+    TableBuilder_ComputeSide* builder =
+        new TableBuilder_ComputeSide(options, type, 0);
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {

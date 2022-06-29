@@ -111,7 +111,9 @@ struct TableBuilder_ComputeSide::Rep {
 
   std::string compressed_output;
 };
-TableBuilder_ComputeSide::TableBuilder_ComputeSide(const Options& options, IO_type type)
+TableBuilder_ComputeSide::TableBuilder_ComputeSide(const Options& options,
+                                                   IO_type type,
+                                                   uint8_t target_node_id)
     : rep_(new Rep(options, type)) {
   if (rep_->filter_block != nullptr) {
     rep_->filter_block->RestartBlock(0);

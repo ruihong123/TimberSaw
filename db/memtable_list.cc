@@ -835,7 +835,7 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
   bool has_current_user_key = false;
   if (iter->Valid()) {
 #ifndef BYTEADDRESSABLE
-    auto* builder = new TableBuilder_ComputeSide(options, type);
+    auto* builder = new TableBuilder_ComputeSide(options, type, target_node_id);
 #endif
 #ifdef BYTEADDRESSABLE
     auto* builder = new TableBuilder_BACS(options, type, target_node_id);
