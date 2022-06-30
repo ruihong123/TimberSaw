@@ -266,8 +266,11 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     printf("DBImpl finished\n");
 }
 //This functon does not contain the creation of the client message handling thread
-DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t shard_id)
-    : env_(raw_options.env),
+DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
+               const std::string& ub, const std::string& lb)
+    : upper_bound(ub),
+      lower_bound(lb),
+      env_(raw_options.env),
       internal_comparator_(raw_options.comparator),
       internal_filter_policy_(raw_options.filter_policy),
       options_(SanitizeOptions(dbname, &internal_comparator_,
@@ -294,8 +297,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname, uint8_t sh
                                &internal_comparator_, &superversion_memlist_mtx)),
       super_version_number_(0),
       super_version(nullptr), local_sv_(new ThreadLocalPtr(&SuperVersionUnrefHandle)),
-      shard_target_node_id(0),
-      shard_id(shard_id)
+      shard_target_node_id(0)
 {
 
 

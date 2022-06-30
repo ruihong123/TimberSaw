@@ -82,7 +82,8 @@ class DBImpl : public DB {
 
  public:
   DBImpl(const Options& options, const std::string& dbname);
-  DBImpl(const Options& options, const std::string& dbname, uint8_t shard_id);
+  DBImpl(const Options& raw_options, const std::string& dbname,
+         const std::string& ub, const std::string& lb);
   DBImpl(const DBImpl&) = delete;
   DBImpl& operator=(const DBImpl&) = delete;
 
@@ -142,6 +143,8 @@ class DBImpl : public DB {
   void client_message_polling_and_handling_thread(std::string q_id);
   void WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
                                               uint8_t shard_id_);
+  std::string upper_bound;
+  std::string lower_bound;
 //  void Wait_for_client_message_hanlding_setup();
  private:
   friend class DB;

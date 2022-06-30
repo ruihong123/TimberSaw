@@ -42,6 +42,10 @@ class DBImpl_Sharding : public DB {
     auto iter = shards_pool.upper_bound(key);
     if(iter != shards_pool.end()){
       db_ptr = iter->second;
+//#ifndef NDEBUG
+//      Shard_Info.f
+//      assert(key.compare());
+//#endif
 //      db_ptr->
       return true;
       // TODO: Also remember to check the lower bound if not return false.

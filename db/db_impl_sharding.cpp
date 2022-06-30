@@ -19,7 +19,8 @@ DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbna
       // according to the upper bound of shard. the third argument we set as 0,
       // to overload the function. The overloaded initial function will not create message
       // handling thread.
-      auto sharded_db = new DBImpl(options, dbname, 0);
+      auto sharded_db =
+          new DBImpl(options, dbname, iter.second, iter.first);
       shards_pool.insert({iter.second, sharded_db});
     }
     int i = 0;
@@ -48,6 +49,8 @@ Status DBImpl_Sharding::Put(const WriteOptions& options, const Slice& key,
   if(Get_Target_Shard(db, key)){
     WriteBatch batch;
     batch.Put(key, value);
+    assert(key.compare(db->lower_bound) >= 0);
+    assert(key.compare(db->upper_bound) < 0);
     return db->Write(options, &batch);
   }else{
     // forward to other shards
