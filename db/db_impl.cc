@@ -1512,8 +1512,8 @@ Status DBImpl::OpenCompactionOutputFile(SubcompactionState* compact) {
   Status s = Status::OK();
   if (s.ok()) {
 #ifndef BYTEADDRESSABLE
-    compact->builder = new TableBuilder(
-        options_, Compact, rdma_mg);
+    compact->builder = new TableBuilder_ComputeSide(
+        options_, Compact, shard_target_node_id);
 #endif
 #ifdef BYTEADDRESSABLE
     compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
@@ -1543,8 +1543,8 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   Status s = Status::OK();
   if (s.ok()) {
 #ifndef BYTEADDRESSABLE
-    compact->builder = new TableBuilder(
-        options_, Compact, rdma_mg);
+    compact->builder = new TableBuilder_ComputeSide(
+        options_, Compact, shard_target_node_id);
 #endif
 #ifdef BYTEADDRESSABLE
     compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
