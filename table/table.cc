@@ -25,7 +25,7 @@
 namespace TimberSaw {
 
 //thread_local ibv_mr*  Table::Rep::mr_addr = nullptr;
-
+//TODO: Make it compatible with multi-node setup.
 Status Table::Open(const Options& options, Table** table,
                    const std::shared_ptr<RemoteMemTableMetaData>& Remote_table_meta) {
   *table = nullptr;
