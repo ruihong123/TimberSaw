@@ -201,7 +201,12 @@ Iterator* TableCache::NewIterator(
   }
 
   Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
+#ifndef BYTEADDRESSABLE
   Iterator* result = table->NewIterator(options);
+#endif
+#ifdef BYTEADDRESSABLE
+  Iterator* result = table->NewSEQIterator(options);
+#endif
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
     *tableptr = table;
