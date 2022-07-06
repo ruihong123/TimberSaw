@@ -287,7 +287,8 @@ Status TableCache::Get(const ReadOptions& options,
   if (s.ok()) {
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
     s = t->InternalGet(options, k, arg, handle_result);
-    cache_->Release(handle);
+    //if you want to bypass the lock in cache then commet the code below
+//    cache_->Release(handle);
   }
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
