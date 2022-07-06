@@ -103,12 +103,13 @@ Status TableCache::FindTable(
 //  char buf[sizeof(Remote_memtable_meta->number)];
 //  EncodeFixed64(buf, Remote_memtable_meta->number);
   Slice key((char*)&Remote_memtable_meta->number, sizeof(uint64_t));
-  // TODO: implement a hash lock to reduce the contention here, otherwise multiple
-  // reader may get the same table and RDMA read the index block several times.
-  uint64_t hash_value = Remote_memtable_meta->number%32;
+
 
   *handle = cache_->Lookup(key);
   if (*handle == nullptr) {
+    // TODO: implement a hash lock to reduce the contention here, otherwise multiple
+    // readers may get the same table and RDMA read the index block several times.
+    uint64_t hash_value = Remote_memtable_meta->number%32;
     hash_mtx[hash_value].lock();
     *handle = cache_->Lookup(key);
     if (*handle == nullptr) {
