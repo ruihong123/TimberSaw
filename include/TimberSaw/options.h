@@ -109,6 +109,7 @@ struct TimberSaw_EXPORT Options {
   // Also, a larger write buffer will result in a longer recovery time
   // the next time the database is opened.
   // before 64MB
+  // deprecated: This should be revised as number of key value per memtable.
   size_t write_buffer_size = 64 * 1024 * 1024;
 
   // Number of open files that can be used by the DB.  You may need to
@@ -145,7 +146,7 @@ struct TimberSaw_EXPORT Options {
   // Another reason to increase this parameter might be when you are
   // initially populating a large database.
   //default 64MB
-  size_t max_file_size = 64 * 1024 * 1024;
+  size_t max_file_size = 32 * 1024 * 1024;
 
   // Compress blocks using the specified compression algorithm.  This
   // parameter can be changed dynamically.
@@ -175,7 +176,7 @@ struct TimberSaw_EXPORT Options {
   // NewBloomFilterPolicy() here.
   const FilterPolicy* filter_policy = nullptr;
   // default : 10
-  int bloom_bits = 15;
+  int bloom_bits = 10;
 
   std::vector<std::pair<Slice,Slice>>* ShardInfo = nullptr;// [Lower bound, upper bound)
 };
