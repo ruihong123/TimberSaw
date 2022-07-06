@@ -260,9 +260,9 @@ Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash) {
   //  Answer: Ref will refer this key and later, the outer function has to call
   // Unref or release which will update the lRU list.
   LRUHandle* e = table_.Lookup(key, hash);
-  if (e != nullptr) {
-    Ref(e);
-  }
+//  if (e != nullptr) {
+//    Ref(e);
+//  }
   return reinterpret_cast<Cache::Handle*>(e);
 }
 
