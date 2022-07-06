@@ -146,7 +146,7 @@ struct TimberSaw_EXPORT Options {
   // Another reason to increase this parameter might be when you are
   // initially populating a large database.
   //default 64MB
-  size_t max_file_size = 32 * 1024 * 1024;
+  size_t max_file_size = 64 * 1024 * 1024;
 
   // Compress blocks using the specified compression algorithm.  This
   // parameter can be changed dynamically.
@@ -187,7 +187,7 @@ struct TimberSaw_EXPORT ReadOptions {
 
   // If true, all data read from underlying storage will be
   // verified against corresponding checksums.
-  bool verify_checksums = true;
+  bool verify_checksums = false;
 
   // Should the data read for this iteration be cached in memory?
   // Callers may wish to set this field to false for bulk scans.
