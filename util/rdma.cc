@@ -1303,6 +1303,7 @@ ibv_mr* RDMA_Manager::Get_local_read_mr() {
         IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
     //  auto start = std::chrono::high_resolution_clock::now();
     ret = ibv_reg_mr(res->pd, buffer, name_to_allocated_size.at(DataChunk), mr_flags);
+    read_buffer->Reset(ret);
   }
   return ret;
 }
