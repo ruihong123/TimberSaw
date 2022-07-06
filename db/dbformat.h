@@ -49,8 +49,8 @@ static const int kL0_StopWritesTrigger = 32;
 // be two levels after the random file benchmark. 1-1 256.0
 // M-M still 256. ahigher number of this value can result in low write performance
 // decrease with the number of shards.
-// with 8 fixed shard per compute node this equals 256.0
-static const double max_mega_bytes_for_level_base = 3200.0;
+// with 8 fixed shard per compute node this equals 256.0, 3200.0
+static const double max_mega_bytes_for_level_base = 256.0;
 
 
 // Maximum level to which a new compacted memtable is pushed if it

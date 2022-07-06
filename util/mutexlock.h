@@ -39,6 +39,58 @@ class MutexLock {
  private:
   port::Mutex *const mu_;
 };
+//
+// SpinMutex has very low overhead for low-contention cases.  Method names
+// are chosen so you can use std::unique_lock or std::lock_guard with it.
+//
+class SpinMutex {
+ public:
+  SpinMutex() : locked_(false) {}
+  //TODO this spinmutex have problem, some time 2 thread can walk into the protected code.
+  bool try_lock() {
+    auto currently_locked = locked_.load(std::memory_order_relaxed);
+    return !currently_locked &&
+           locked_.compare_exchange_weak(currently_locked, true,
+                                         std::memory_order_acquire,
+                                         std::memory_order_relaxed);
+  }
+
+  void lock() {
+    for (size_t tries = 0;; ++tries) {
+      if (try_lock()) {
+        // success
+        break;
+      }
+      port::AsmVolatilePause();
+      if (tries > 100) {
+        //        printf("I tried so many time I got yield\n");
+        std::this_thread::yield();
+      }
+    }
+  }
+
+  void unlock() {
+    locked_.store(false, std::memory_order_release);
+    //    printf("spin mutex unlocked. \n");
+  }
+
+  // private:
+  std::atomic<bool> locked_;
+};
+class SpinLock {
+ public:
+  explicit SpinLock(SpinMutex *mu) : mu_(mu) {
+    this->mu_->lock();
+  }
+  // No copying allowed
+  SpinLock(const SpinLock &) = delete;
+  void operator=(const SpinLock &) = delete;
+
+  ~SpinLock() { this->mu_->unlock(); }
+
+ private:
+  SpinMutex *const mu_;
+};
 
 //
 // Acquire a ReadLock on the specified RWMutex.
@@ -96,44 +148,7 @@ class WriteLock {
   port::RWMutex *const mu_;
 };
 
-//
-// SpinMutex has very low overhead for low-contention cases.  Method names
-// are chosen so you can use std::unique_lock or std::lock_guard with it.
-//
-class SpinMutex {
- public:
-  SpinMutex() : locked_(false) {}
-  //TODO this spinmutex have problem, some time 2 thread can walk into the protected code.
-  bool try_lock() {
-    auto currently_locked = locked_.load(std::memory_order_relaxed);
-    return !currently_locked &&
-           locked_.compare_exchange_weak(currently_locked, true,
-                                         std::memory_order_acquire,
-                                         std::memory_order_relaxed);
-  }
 
-  void lock() {
-    for (size_t tries = 0;; ++tries) {
-      if (try_lock()) {
-        // success
-        break;
-      }
-      port::AsmVolatilePause();
-      if (tries > 100) {
-//        printf("I tried so many time I got yield\n");
-        std::this_thread::yield();
-      }
-    }
-  }
-
-  void unlock() {
-    locked_.store(false, std::memory_order_release);
-//    printf("spin mutex unlocked. \n");
-  }
-
-// private:
-  std::atomic<bool> locked_;
-};
 //TODO: implement a spin read wirte lock to control some short synchronization more
 // efficiently.
 

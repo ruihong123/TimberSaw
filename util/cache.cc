@@ -167,7 +167,8 @@ class LRUCache {
   void Erase(const Slice& key, uint32_t hash);
   void Prune();
   size_t TotalCharge() const {
-    MutexLock l(&mutex_);
+//    MutexLock l(&mutex_);
+    SpinLock l(&mutex_);
     return usage_;
   }
 
@@ -182,7 +183,7 @@ class LRUCache {
   size_t capacity_;
 
   // mutex_ protects the following state.
-  mutable port::Mutex mutex_;
+  mutable SpinMutex mutex_;
   size_t usage_ GUARDED_BY(mutex_);
 
   // Dummy head of LRU list.
@@ -253,7 +254,8 @@ void LRUCache::LRU_Append(LRUHandle* list, LRUHandle* e) {
 }
 
 Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash) {
-  MutexLock l(&mutex_);
+//  MutexLock l(&mutex_);
+  SpinLock l(&mutex_);
   //TOTHINK(ruihong): shoul we update the lru list after look up a key?
   //  Answer: Ref will refer this key and later, the outer function has to call
   // Unref or release which will update the lRU list.
@@ -265,7 +267,8 @@ Cache::Handle* LRUCache::Lookup(const Slice& key, uint32_t hash) {
 }
 
 void LRUCache::Release(Cache::Handle* handle) {
-  MutexLock l(&mutex_);
+//  MutexLock l(&
+  SpinLock l(&mutex_);
   Unref(reinterpret_cast<LRUHandle*>(handle));
 }
 
@@ -273,8 +276,8 @@ Cache::Handle* LRUCache::Insert(const Slice& key, uint32_t hash, void* value,
                                 size_t charge,
                                 void (*deleter)(const Slice& key,
                                                 void* value)) {
-  MutexLock l(&mutex_);
-
+//  MutexLock l(&mutex_);
+  SpinLock l(&mutex_);
   LRUHandle* e =
       reinterpret_cast<LRUHandle*>(malloc(sizeof(LRUHandle) - 1 + key.size()));
   e->value = value;
@@ -326,12 +329,14 @@ bool LRUCache::FinishErase(LRUHandle* e) {
 }
 
 void LRUCache::Erase(const Slice& key, uint32_t hash) {
-  MutexLock l(&mutex_);
+//  MutexLock l(&mutex_);
+  SpinLock l(&mutex_);
   FinishErase(table_.Remove(key, hash));
 }
 
 void LRUCache::Prune() {
-  MutexLock l(&mutex_);
+//  MutexLock l(&mutex_);
+  SpinLock l(&mutex_);
   while (lru_.next != &lru_) {
     LRUHandle* e = lru_.next;
     assert(e->refs == 1);
