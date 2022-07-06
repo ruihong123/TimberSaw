@@ -353,6 +353,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
 //    Iterator* iter = NewIterator(options);
 //    iter->Seek(k);
+    // todo: Can we directly search by the index block without create a iterator?
     Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
     iiter->Seek(k);
 #ifdef PROCESSANALYSIS

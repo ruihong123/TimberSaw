@@ -264,16 +264,16 @@ FullFilterBlockReader::FullFilterBlockReader(
 //  return true;  // Errors are treated as potential matches
 //}
 bool FullFilterBlockReader::KeyMayMatch(const Slice& key) {
-  auto start = std::chrono::high_resolution_clock::now();
+//  auto start = std::chrono::high_resolution_clock::now();
   uint32_t hash = BloomHash(key);
   uint32_t byte_offset;
   LegacyBloomImpl::PrepareHashMayMatch(
       hash, num_lines_, data_, /*out*/ &byte_offset, log2_cache_line_size_);
   bool ret = LegacyBloomImpl::HashMayMatchPrepared(
       hash, num_probes_, data_ + byte_offset, log2_cache_line_size_);
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-      std::printf("bloom filter check time elapse is %zu\n",  duration.count());
+//  auto stop = std::chrono::high_resolution_clock::now();
+//  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//      std::printf("bloom filter check time elapse is %zu\n",  duration.count());
   return ret;
 
 

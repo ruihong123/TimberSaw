@@ -1890,9 +1890,9 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
 //    }
 //    rc = ibv_post_send(qp, &sr, &bad_wr);
   } else {
-    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+//    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
     rc = ibv_post_send(res->qp_map.at(target_node_id), &sr, &bad_wr);
-    l.unlock();
+//    l.unlock();
   }
   //    std::cout << " " << msg_size << "time elapse :" <<  << std::endl;
   //  start = std::chrono::high_resolution_clock::now();
