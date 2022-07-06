@@ -243,7 +243,7 @@ Iterator* Table::NewSEQIterator(const ReadOptions& options) const {
 
   return new ByteAddressableSEQIterator(
       rep->index_block->NewIterator(rep->options.comparator),
-      &Table::KVReader, const_cast<Table*>(this), options, true);
+      const_cast<Table*>(this), options, true);
 
 }
 #endif
@@ -389,7 +389,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       assert(KV.size() == value_size);
       value = KV;
       (*handle_result)(arg, key, value);
-      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
+//      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
     }
 
 //    if (iter->Valid()) {

@@ -9,14 +9,12 @@
 #include "port/likely.h"
 namespace TimberSaw {
 //Note: the memory side KVReader should be passed as block function
-ByteAddressableSEQIterator::ByteAddressableSEQIterator(Iterator* index_iter,
-                                                     KVFunction kv_function,
-                                                     void* arg,
-                                                     const ReadOptions& options,
-                                                     bool compute_side)
+ByteAddressableSEQIterator::ByteAddressableSEQIterator(
+    Iterator* index_iter, void* arg, const ReadOptions& options,
+    bool compute_side)
     : compute_side_(compute_side),
 //      mr_addr(nullptr),
-      kv_function_(kv_function),
+//      kv_function_(kv_function),
       arg_(arg),
       options_(options),
       status_(Status::OK()),

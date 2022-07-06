@@ -218,7 +218,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
     default:
       assert(data[n] != kNoCompression);
       assert(false);
-      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
+//      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
       DEBUG("Data block illegal compression type\n");
       return Status::Corruption("bad block type");
   }
@@ -245,7 +245,8 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 
   size_t n = static_cast<size_t>(handle.size());
   assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
-  ibv_mr contents = {};
+//  ibv_mr contents = {};
+  ibv_mr* contents;
   ibv_mr remote_mr = {};
   //#ifndef NDEBUG
   //  ibv_wc wc;
@@ -268,7 +269,12 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 #ifdef GETANALYSIS
   start1 = std::chrono::high_resolution_clock::now();
 #endif
-  rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+//  rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+  contents = rdma_mg->Get_local_read_mr();
+//  contents = (ibv_mr*)rdma_mg->read_buffer->Get();
+//  if (contents == nullptr){
+//
+//  }
 #ifdef GETANALYSIS
   stop1 = std::chrono::high_resolution_clock::now();
   duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
@@ -278,7 +284,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 #ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
-  rdma_mg->RDMA_Read(&remote_mr, &contents, n, "read_local", IBV_SEND_SIGNALED,
+  rdma_mg->RDMA_Read(&remote_mr, contents, n, "read_local", IBV_SEND_SIGNALED,
                      1, target_node_id);
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
@@ -288,7 +294,7 @@ Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
   RDMA_Manager::ReadCount.fetch_add(1);
 #endif
 
-  const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
+  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
 
   result->Reset(data, n);
 
@@ -366,7 +372,7 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
 //      break;
 //    }
     default:
-      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
+//      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
       DEBUG("index block illegal compression type\n");
       return Status::Corruption("bad block type");
   }
@@ -431,7 +437,7 @@ Status ReadFilterBlock(ibv_mr* remote_mr, const ReadOptions& options,
 //      break;
 //    }
     default:
-      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
+//      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
       DEBUG("Filter illegal compression type\n");
       return Status::Corruption("bad block type");
   }

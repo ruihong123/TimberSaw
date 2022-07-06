@@ -217,6 +217,7 @@ class In_Use_Array {
 //        in_use_(in_use),
         mr_ori_(mr_ori) {}
   int allocate_memory_slot() {
+    //maybe the conflict comes from here
     std::unique_lock<SpinMutex> lck(mtx);
     if (free_list.empty())
       return -1;  // Not find the empty memory chunk.
@@ -315,7 +316,7 @@ class RDMA_Manager {
 
   //Computes node sync compute sides (block function)
   void sync_with_computes_Cside();
-
+  ibv_mr* Get_local_read_mr();
   //Computes node sync memory sides (block function)
   void sync_with_computes_Mside();
   void broadcast_to_computes();
@@ -443,7 +444,7 @@ class RDMA_Manager {
   std::map<uint8_t, ThreadLocalPtr*> qp_local_read;
   std::map<uint8_t, ThreadLocalPtr*> cq_local_read;
   std::map<uint8_t, ThreadLocalPtr*> local_read_qp_info;
-
+  ThreadLocalPtr* read_buffer;
 
 //  ThreadLocalPtr* qp_local_write_flush;
 //  ThreadLocalPtr* cq_local_write_flush;

@@ -32,6 +32,11 @@ void UnrefHandle_cq(void* ptr) {
     printf("thread local cq destroy successfully!");
   }
 }
+void Destroy_mr(void* ptr) {
+  if (ptr == nullptr) return;
+  ibv_dereg_mr((ibv_mr*)ptr);
+  delete (char*)((ibv_mr*)ptr)->addr;
+}
 template<typename T>
 void General_Destroy(void* ptr){
   delete (T) ptr;
@@ -50,7 +55,7 @@ void General_Destroy(void* ptr){
 RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
     : total_registered_size(0),
       Table_Size(remote_block_size),
-      //      t_local_1(new ThreadLocalPtr(&UnrefHandle_rdma)),
+      read_buffer(new ThreadLocalPtr(&Destroy_mr)),
 //      qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
 //      cq_local_write_flush(new ThreadLocalPtr(&UnrefHandle_cq)),
 //      local_write_flush_qp_info(new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)),
@@ -1289,7 +1294,18 @@ void RDMA_Manager::sync_with_computes_Cside() {
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   printf("sync wait time is %ld", duration.count());
 }
-
+ibv_mr* RDMA_Manager::Get_local_read_mr() {
+  ibv_mr* ret;
+  ret = (ibv_mr*)read_buffer->Get();
+  if (ret == nullptr){
+    char* buffer = new char[name_to_allocated_size.at(DataChunk)];
+    auto mr_flags =
+        IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
+    //  auto start = std::chrono::high_resolution_clock::now();
+    ret = ibv_reg_mr(res->pd, buffer, name_to_allocated_size.at(DataChunk), mr_flags);
+  }
+  return ret;
+}
 void RDMA_Manager::sync_with_computes_Mside() {
   char buffer[100];
   int number_of_ready = 0;

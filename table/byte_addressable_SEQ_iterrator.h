@@ -21,9 +21,8 @@ typedef Slice (*KVFunction)(void*, const ReadOptions&, const Slice&);
 //The seq iterator only support forward searching
 class ByteAddressableSEQIterator :public Iterator{
  public:
-  ByteAddressableSEQIterator(Iterator* index_iter, KVFunction kv_function,
-                            void* arg, const ReadOptions& options,
-                            bool compute_side);
+  ByteAddressableSEQIterator(Iterator* index_iter, void* arg,
+                             const ReadOptions& options, bool compute_side);
 
   ~ByteAddressableSEQIterator() override;
 
@@ -70,7 +69,7 @@ class ByteAddressableSEQIterator :public Iterator{
   size_t cur_prefetch_status = 0;
   char* iter_ptr = nullptr;
 //  int8_t poll_number = 0;
-  KVFunction kv_function_;
+//  KVFunction kv_function_;
   //Some thoughts: We don't have to pin the remote table metadata in the iterator, before we
   // create the iterator we have to creat a snapshot for all the LSM tree which can pin the table.
   void* arg_;
