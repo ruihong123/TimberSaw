@@ -1298,11 +1298,11 @@ ibv_mr* RDMA_Manager::Get_local_read_mr() {
   ibv_mr* ret;
   ret = (ibv_mr*)read_buffer->Get();
   if (ret == nullptr){
-    char* buffer = new char[name_to_allocated_size.at(DataChunk)];
+    char* buffer = new char[name_to_chunksize.at(DataChunk)];
     auto mr_flags =
         IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
     //  auto start = std::chrono::high_resolution_clock::now();
-    ret = ibv_reg_mr(res->pd, buffer, name_to_allocated_size.at(DataChunk), mr_flags);
+    ret = ibv_reg_mr(res->pd, buffer, name_to_chunksize.at(DataChunk), mr_flags);
     read_buffer->Reset(ret);
   }
   return ret;
