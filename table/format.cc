@@ -106,6 +106,8 @@ bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 // the same as data index block and filter block.
 Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result) {
+
+  //TODO: Make it use thread local read buffer rather than allocate one every time.
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
