@@ -122,7 +122,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 
   size_t n = static_cast<size_t>(handle.size());
   assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
-  ibv_mr contents = {};
+  ibv_mr* contents;
   ibv_mr remote_mr = {};
 //#ifndef NDEBUG
 //  ibv_wc wc;
@@ -145,7 +145,8 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef GETANALYSIS
   start1 = std::chrono::high_resolution_clock::now();
 #endif
-    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+//    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+    contents = rdma_mg->Get_local_read_mr();
 #ifdef GETANALYSIS
   stop1 = std::chrono::high_resolution_clock::now();
   duration1 = std::chrono::duration_cast<std::chrono::nanoseconds>(stop1 - start1);
@@ -155,7 +156,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 #ifdef PROCESSANALYSIS
   auto start = std::chrono::high_resolution_clock::now();
 #endif
-  rdma_mg->RDMA_Read(&remote_mr, &contents, n + kBlockTrailerSize, "read_local",
+  rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local",
                      IBV_SEND_SIGNALED, 1, 0);
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
@@ -177,7 +178,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
-  const char* data = static_cast<char*>(contents.addr);  // Pointer to where Read put the data
+  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);
