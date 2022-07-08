@@ -178,7 +178,11 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //#ifdef GETANALYSIS
 //  auto start = std::chrono::high_resolution_clock::now();
 //#endif
-  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
+  // create a new buffer and copy to the new buffer. However, there could still
+  // be a contention at the c++ allocator.
+  char* data = new char[rdma_mg->name_to_chunksize.at(DataChunk)];
+  memcpy(data, contents->addr, rdma_mg->name_to_chunksize.at(DataChunk));
+//  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
     const uint32_t actual = crc32c::Value(data, n + 1);

@@ -27,7 +27,6 @@
 #include "util/thread_local.h"
 #include "port/port_posix.h"
 #include "mutexlock.h"
-//#include "TimberSaw/env.h"
 #include <atomic>
 #include <chrono>
 #include <iostream>
@@ -36,6 +35,7 @@
 #include <shared_mutex>
 #include <vector>
 #include <list>
+//#include <boost/lockfree/spsc_queue.hpp>
 #define _mm_clflush(addr)\
 	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -201,7 +201,7 @@ struct atomwrapper {
     _a.store(other._a.load());
   }
 };
-
+#define ALLOCATOR_SHARD_NUM 16
 class In_Use_Array {
  public:
   In_Use_Array(size_t size, size_t chunk_size, ibv_mr* mr_ori)
@@ -246,11 +246,15 @@ class In_Use_Array {
   //
   //  }
  private:
+
   size_t element_size_;
   size_t chunk_size_;
+//  uint32_t shard_number = 16;
+//  std::list<int> free_list[ALLOCATOR_SHARD_NUM];
   std::list<int> free_list;
   SpinMutex mtx;
   ibv_mr* mr_ori_;
+
   //  int type_;
 };
 /* structure of system resources */

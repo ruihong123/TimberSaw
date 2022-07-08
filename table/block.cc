@@ -44,9 +44,10 @@ Block::Block(const BlockContents& contents, BlockType type)
 Block::~Block() {
   if (RDMA_Regiested) {
 //    DEBUG("Block garbage collected!\n");
-//    No need to deallocate the data block since it is thread local.
+//    No need to deallocate the data block from RDMA memory allocator since it is thread local.
     if (type_ == DataBlock){
 //      printf("Block RDMA registered memory deallocated successfull\n");
+      delete data_;
       return;
     }
 
