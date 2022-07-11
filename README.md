@@ -152,6 +152,26 @@ The "readseq" benchmarks scan the whole data range by a single thread and report
 <!-- ![TableScan]() -->
 <img src="Figures/scan_git.png" alt="drawing" width="600"/>
 
+### Multi-nodes scalability
+
+We run the benchmarks of "randomfill" and "randomread" in RocksDB, with minor modifications to support the multi-node setup. We vary the number of compute nodes and memory nodes from 1 to 8 and each compute node executes 100 millions of operations. The LSM tree is configured with 8 shards per compute node.
+
+randomfill:
+
+    | Thread number | 1            | 2            | 4            | 8            |
+    | Throughput    | 2.88Mops/sec | 6.10Mops/sec | 13.3Mops/sec | 28.7Mops/sec |
+
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ |-->
+randomread:
+
+    | Thread number | 1            | 2            | 4            | 8            |
+    | Throughput    | 1.56Mops/sec | 2.74Mops/sec | 5.19Mops/sec | 10.8Mops/sec |
+
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | -->
+    
+<!-- ![TableScan]() -->
+<img src="Figures/multi_git.png" alt="drawing" width="600"/>
+
 ## Repository contents
 
 Guide to header files:
