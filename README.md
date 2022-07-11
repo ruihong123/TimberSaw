@@ -44,7 +44,7 @@ YourCodeOverdLSM
 ## Performance
 
 Here is a performance report from the run of the
-"fillrandom", "readrandom" and "readseq" included in the "db_bench" under benchmarks folder.  
+"fillrandom", "readrandom", "readrandomwriterandom"(mixed) and "readseq" included in the "db_bench" under benchmarks folder.  
 
 ### Setup
 
