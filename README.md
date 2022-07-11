@@ -109,24 +109,28 @@ The "readrandom" benchmarks run 100 million random key-value queries and report 
 ### Mixed Performance
 The "readrandomwriterandom" benchmarks run 100 million random key-value queries with 16 threads. We change the read ratio to see the impact of mixed workload.
 1 Shard:
+
     | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
     | Throughput    | 2.64Mops/sec | 1.86Mops/sec | 1.43Mops/sec | 1.84Mops/sec | 2.43Mops/sec |
     
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 2 Shard:
+
     | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
     | Throughput    | 3.47Mops/sec | 2.53Mops/sec | 1.93Mops/sec | 1.95Mops/sec | 2.12Mops/sec |
     
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 4 Shard:
+
     | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
     | Throughput    | 3.80Mops/sec | 2.81Mops/sec | 2.32Mops/sec | 2.01Mops/sec | 2.07Mops/sec |
     
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 8 Shard:
+
     | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
     | Throughput    | 3/37Mops/sec | 2.82Mops/sec | 2.39Mops/sec | 2.09Mops/sec | 2.18Mops/sec |
     
