@@ -145,7 +145,7 @@ The "readrandomwriterandom" benchmarks run 100 million random key-value queries 
 
 The "readseq" benchmarks scan the whole data range by a single thread and report the throughput as below.
 
-7.24Mops/sec
+dLSM: 7.24Mops/sec
 
 * Compared to baselines:
     
@@ -173,6 +173,16 @@ randomread:
 <img src="Figures/multi_git.png" alt="drawing" width="600"/>
 
 ## Repository contents
+
+Guide to folders:
+* **benchmarks**: The file for benchmarking tools.
+* **db**: The main implementation for DB functions.
+* **include**: The folder for the header files targeting to the users.
+* **memory_node**: The implementation for memory nodes.
+* **port**: The files defining macro for turning on and off optimizations.
+* **script**: The bash scripts for mulitple node setup.
+* **table**: Different SSTable implementations.
+* **util**: Some low level implementations such as RDMA in dLSM.
 
 Guide to header files:
 
