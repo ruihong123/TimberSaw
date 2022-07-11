@@ -3,13 +3,10 @@
 dLSM is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. dLSM develops a series of optimizations to address the performance challenges. dLSM significantly reduces the software overhead (e.g., the overhead of synchronizing the in-memory write and flushing), to unlock the full potential of the fast RDMA networking. dLSM offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., RPC and garbage collection) to significantly reduce the data movement. dLSM is tuned to deprecate the concept of block structures to leverage the byte-addressability in RDMA-enabled disaggregated memory. Finally, dLSM optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
 
-## New Features
-* Write queue removal
-* Optimistic Memtable switching.
-* Asynchronous flushing.
-* Near-data compaction.
-* Byte-addressable SSTable
-* RDMA specific optimizations.
+## Highlights 
+* 1.8× ∼ 11.7× faster than disaggregated b-tree in pure write workload.
+* 1.6× ∼ 3.9× faster than adaptations of existing LSM-tree indexes over disaggregated memory in pure write workload.
+* Comparable performance to disaggregated b-tree in pure read and read intensive workloads.
 
 ## Usage
 * Keys and values are arbitrary byte arrays.
@@ -32,16 +29,16 @@ cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
 ### How to run
 * Memory node side: 
 ```bash
-./Server
+./Server TCPIPPORT MEMORYSIZE NODEID 
 ```
 * Compute node side: 
 To run the benchmark:
 ```bash
-./db_bench --benchmarks=fillrandom,readrandom,readseq --threads=1 --value_size=400 --key_size=20 --num=100000000 < MemoryNodeIP
+./db_bench --benchmarks=fillrandom,readrandom,readrandom,readrandomwriterandom --threads=1 --value_size=400 --num=100000000 --bloom_bits=10 --readwritepercent=5 --compute_node_id=0 --fixed_compute_shards_num=0
 ```
 To utilize dLSM in your code, you need refer to public interface in **include/dLSM/\*.h** .
 ```bash
-YourCodeOverdLSM < MemoryNodeIP
+YourCodeOverdLSM
 ```
 ## Performance
 
