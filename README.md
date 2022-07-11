@@ -159,13 +159,14 @@ dLSM: 7.24Mops/sec
 
 We run the benchmarks of "randomfill" and "randomread" in RocksDB, with minor modifications to support the multi-node setup. We vary the number of compute nodes and memory nodes from 1 to 8 and each compute node executes 100 millions of operations. The LSM tree is configured with 8 shards per compute node.
 
-randomfill:
+"randomfill":
 
     | Thread number | 1            | 2            | 4            | 8            |
     | Throughput    | 2.88Mops/sec | 6.10Mops/sec | 13.3Mops/sec | 28.7Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ |-->
-randomread:
+
+"randomread":
 
     | Thread number | 1            | 2            | 4            | 8            |
     | Throughput    | 1.56Mops/sec | 2.74Mops/sec | 5.19Mops/sec | 10.8Mops/sec |
