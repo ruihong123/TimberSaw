@@ -27,7 +27,7 @@ mkdir -p build && cd build
 cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
 ```
 ### How to run
-Config the connection.conf under the main directory. The first line contains the compute nodes' IP addresses, and the second line contains the memory nodes' IP addresses.
+First, you should config the connection.conf under the main directory. The first line of that file represents the compute nodes' IP addresses, and the second line represents the memory nodes' IP addresses.
 * Memory node side: 
 ```bash
 ./Server TCPIPPORT MEMORYSIZE NODEID 
