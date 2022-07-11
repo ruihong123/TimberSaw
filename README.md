@@ -69,18 +69,19 @@ The "fillrandom" benchmarks create a brand new database, in a random order.
 
 The throughput of the system is shown as below.
 
-Bigdata:
+Normal:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
     | Throughput    | 1.03Mops/sec | 1.61Mops/sec | 2.34Mops/sec | 2.52Mops/sec | 2.75Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
-CloudLab:
+Bulkload:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.86Mops/sec | 1.22Mops/sec | 1.34Mops/sec | 1.47Mops/sec | 1.69Mops/sec |
+    | Throughput    | 1.03Mops/sec | 1.61Mops/sec | 2.34Mops/sec | 2.52Mops/sec | 2.75Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
+
 
 * Compared to baselines
 
@@ -93,19 +94,10 @@ CloudLab:
 
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
 
-Bigdata:
-
     | Thread number | 1            | 2            | 4            | 8            | 16           |
     | Throughput    | 0.22Mops/sec | 0.39Mops/sec | 0.74Mops/sec | 1.34Mops/sec | 1.97Mops/sec |
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
-
-CloudLab:
-
-    | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.21Mops/sec | 0.34Mops/sec | 0.53Mops/sec | 0.85Mops/sec | 1.27Mops/sec |
-
-<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 
 * Compared to baselines:
@@ -113,13 +105,26 @@ CloudLab:
 <!-- ![RandomRead]() -->
 <img src="Figures/read_git.png" alt="drawing" width="600"/>
 
-### Table scan performance
+### Mixed Performance
+The "readrandomwriterandom" benchmarks run 100 million random key-value queries with 16 threads. We change the read ratio to see the impact of mixed workload.
+
+    | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
+    | Throughput    | 0.22Mops/sec | 0.39Mops/sec | 0.74Mops/sec | 1.34Mops/sec | 1.97Mops/sec |
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
+
+<!-- ![RandomRead]() -->
+<img src="Figures/mixed_git.png" alt="drawing" width="600"/>
+
+* Compared to baselines:
+    
+<!-- ![RandomRead]() -->
+<img src="Figures/read_git.png" alt="drawing" width="600"/>
+
+### Table Scan Performance
 
 The "readseq" benchmarks scan the whole data range by a single thread and report the throughput as below.
 
-Bigdata: 7.24Mops/sec
-
-CloudLab: 4.12Mops/sec
+7.24Mops/sec
 
 * Compared to baselines:
     
