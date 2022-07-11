@@ -4,8 +4,8 @@ dLSM is the first purpose-built LSM-based indexing system for the emerging disag
 
 
 ## Highlights 
-* 1.8× ∼ 11.7× faster than disaggregated b-tree in pure write workload.
-* 1.6× ∼ 3.9× faster than adaptations of existing LSM-tree indexes over disaggregated memory in pure write workload.
+* 1.8× ∼ 11.7× faster than disaggregated b-tree with pure write workload.
+* 1.6× ∼ 3.9× faster than adaptations of existing LSM-tree indexes over disaggregated memory with pure write workload.
 * Comparable performance to disaggregated b-tree in pure read and read intensive workloads.
 
 ## Usage
