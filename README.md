@@ -57,11 +57,14 @@ key, and a 400 byte value.  We conduct the experiments mostly on a platform cons
 * RocksDB-RDMA (2KB): To better leverage the byte-addressability of the remote memory, we configure the block size as 2KB to illustrate the impact of block size.
 * Memory-RocksDB-RDMA: We further shrink the block size to the size of a key-value pair, making the SSTable byte-addressable.
 * Nova-LSM: Nova-LSM is an optimized LSM-tree for storage disaggregation (instead ofmemory disaggregation).  We make it running on tmpfs to make the comparison fair.
-* Sherman
+* Sherman is a highly optimized B-tree for the memory disaggregated architecture. We use the source code available in [Sherman: A Write-Optimized Distributed B+Tree Index on Disaggregated Memory ](https://github.com/thustorage/Sherman).
 
 
 ### Parameter Configurations
-We set the same parameters of dLSM and other baseline solutions. The SSTable file size is set to 64MB andthe bloom filters key size is set to 10 bits. For in-memory buffers,the MemTable size is set to 64MB. We set 12 and 4 backgroundthreads for compaction and flushing, respectively. The number of immutable tables is set to 10 to fully utilize the background flushing threads. To accelerate compaction further, subcompaction is enabled with 12 workers. These parameters are largely consistent with RocksDB’s settings. For Nova-LSM, the subrange is set to 64 to maximize concurrency in background compaction.
+We set the same parameters of dLSM and other baseline solutions. The SSTable file size is set to 64MB and the bloom filters key size is set to 10 bits.
+For in-memory buffers, the MemTable size is set to 64MB. We set 12 and 4 background threads for compaction and flushing, respectively. 
+The number of immutable tables is set to 16 to fully utilize the background flushing threads. To accelerate  compaction further, subcompaction is enabled with 12 workers. These parameters are largely consistent with RocksDB's settings. Unless otherwise stated, dLSM is configured to have 1 shard. 
+For Nova-LSM, the subrange is set to 64 to maximize concurrency in background compaction. For Sherman, we follow the default block size (1KB) in the source code. To minimize the RDMA remote accesses, we follow to cache all the internal nodes of the B-tree in local memory.
 
 ### Write Performance
 
