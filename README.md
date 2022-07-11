@@ -89,7 +89,7 @@ Bulkload:
 * Compared to baselines
 
 <!-- ![RandomWrite]() -->
-<img src="Figures/write_git.png" alt="drawing" width="600"/>
+<img src="Figures/write_git-1.png" alt="drawing" width="600"/>
 
 
 
