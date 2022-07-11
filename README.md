@@ -72,13 +72,13 @@ The throughput of the system is shown as below.
 Normal:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 1.03Mops/sec | 1.61Mops/sec | 2.34Mops/sec | 2.52Mops/sec | 2.75Mops/sec |
+    | Throughput    | 1.01Mops/sec | 1.61Mops/sec | 2.29Mops/sec | 2.52Mops/sec | 2.64Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 Bulkload:
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 1.03Mops/sec | 1.61Mops/sec | 2.34Mops/sec | 2.52Mops/sec | 2.75Mops/sec |
+    | Throughput    | 1.01Mops/sec | 1.61Mops/sec | 2.91Mops/sec | 4.60Mops/sec | 5.59Mops/sec |
 
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
@@ -95,7 +95,7 @@ Bulkload:
 The "readrandom" benchmarks run 100 million random key-value queries and report the throughput as below.
 
     | Thread number | 1            | 2            | 4            | 8            | 16           |
-    | Throughput    | 0.22Mops/sec | 0.39Mops/sec | 0.74Mops/sec | 1.34Mops/sec | 1.97Mops/sec |
+    | Throughput    | 0.20Mops/sec | 0.37Mops/sec | 0.77Mops/sec | 1.46Mops/sec | 2.43Mops/sec |
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 
@@ -107,18 +107,27 @@ The "readrandom" benchmarks run 100 million random key-value queries and report 
 
 ### Mixed Performance
 The "readrandomwriterandom" benchmarks run 100 million random key-value queries with 16 threads. We change the read ratio to see the impact of mixed workload.
-
+1 Shard:
     | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
-    | Throughput    | 0.22Mops/sec | 0.39Mops/sec | 0.74Mops/sec | 1.34Mops/sec | 1.97Mops/sec |
+    | Throughput    | 2.64Mops/sec | 1.86Mops/sec | 1.43Mops/sec | 1.84Mops/sec | 2.43Mops/sec |
 <!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
-
-<!-- ![RandomRead]() -->
-<img src="Figures/mixed_git.png" alt="drawing" width="600"/>
+2 Shard:
+    | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
+    | Throughput    | 3.47Mops/sec | 2.53Mops/sec | 1.93Mops/sec | 1.95Mops/sec | 2.12Mops/sec |
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
+4 Shard:
+    | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
+    | Throughput    | 3.80Mops/sec | 2.81Mops/sec | 2.32Mops/sec | 2.01Mops/sec | 2.07Mops/sec |
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
+8 Shard:
+    | read ratio | 0%            | 25%            | 50%            | 95%            | 100%           |
+    | Throughput    | 3/37Mops/sec | 2.82Mops/sec | 2.39Mops/sec | 2.09Mops/sec | 2.18Mops/sec |
+<!-- | :------------ | :------------ | :------------ | :------------ | :------------ | :------------ | -->
 
 * Compared to baselines:
     
 <!-- ![RandomRead]() -->
-<img src="Figures/read_git.png" alt="drawing" width="600"/>
+<img src="Figures/mixed_git.png" alt="drawing" width="600"/>
 
 ### Table Scan Performance
 
@@ -129,7 +138,7 @@ The "readseq" benchmarks scan the whole data range by a single thread and report
 * Compared to baselines:
     
 <!-- ![TableScan]() -->
-<img src="Figures/ReadSeq.png" alt="drawing" width="600"/>
+<img src="Figures/scan_git.png" alt="drawing" width="600"/>
 
 ## Repository contents
 
