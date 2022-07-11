@@ -89,7 +89,7 @@ Bulkload:
 * Compared to baselines
 
 <!-- ![RandomWrite]() -->
-<img src="Figures/write_git-1.png" alt="drawing" width="600"/>
+<img src="Figures/write_git.png" alt="drawing" width="600"/>
 
 
 
@@ -107,7 +107,7 @@ The "readrandom" benchmarks run 100 million random key-value queries and report 
 * Compared to baselines:
     
 <!-- ![RandomRead]() -->
-<img src="Figures/read_git.png" alt="drawing" width="600"/>
+<img src="Figures/read_git-1.png" alt="drawing" width="600"/>
 
 ### Mixed Performance
 The "readrandomwriterandom" benchmarks run 100 million random key-value queries with 16 threads. We change the read ratio to see the impact of mixed workload.
