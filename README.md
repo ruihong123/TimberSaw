@@ -1,19 +1,19 @@
-# dLSM: An LSM-Based Index for Memory Disaggregation
+# dLSM: An LSM-Based Index for RDMA-Enabled Memory Disaggregation
 
 dLSM is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. dLSM develops a series of optimizations to address the performance challenges. dLSM significantly reduces the software overhead (e.g., the overhead of synchronizing the in-memory write and flushing), to unlock the full potential of the fast RDMA networking. dLSM offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., RPC and garbage collection) to significantly reduce the data movement. dLSM is tuned to deprecate the concept of block structures to leverage the byte-addressability in RDMA-enabled disaggregated memory. Finally, dLSM optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
 
 ## Highlights 
-* 1.8× ∼ 11.7× faster than disaggregated b-tree with pure write workload.
-* 1.6× ∼ 3.9× faster than adaptations of existing LSM-tree indexes over disaggregated memory with pure write workload.
-* Comparable performance to disaggregated b-tree in pure read and read intensive workloads.
+* 1.8x ∼ 11.7x faster than disaggregated B-tree with pure write workload.
+* 1.6x ∼ 3.9x faster than adaptations of existing LSM-tree indexes (e.g. RocksDB) over disaggregated memory with pure write workload.
+* Comparable performance to disaggregated B-tree in pure read and read intensive workloads.
 
 ## Usage
 * Keys and values are arbitrary byte arrays.
 * Data is stored sorted by key.
 * The basic operations are `Put(key,value)`, `Get(key)`, `Delete(key)`.
 * Users can create a transient snapshot to get a consistent view of data.
-* Forward iteration is supported over the data.
+* Forward iteration (range query) is supported over the data.
 ## Getting the Source
 ```bash
 git clone --recurse-submodules https://github.com/ruihong123/dLSM
@@ -44,7 +44,7 @@ YourCodeOverdLSM
 ## Performance
 
 Here is a performance report from the run of the
-"fillrandom", "readrandom", "readrandomwriterandom"(mixed) and "readseq" included in the "db_bench" under benchmarks folder.  
+"fillrandom", "readrandom", "readrandomwriterandom"(mixed) and "readseq" included in the RocksDB's "db_bench", which is under the benchmarks folder.  
 
 ### Setup
 
@@ -53,11 +53,11 @@ key, and a 400 byte value.  We conduct the experiments mostly on a platform cons
 
 ### Baseline
 
-* RocksDB-RDMA (8KB)：We implement a baseline solutions that directly port RocksDB to the RDMA-extended remote memory. The block size is set as 8KB by default.
-* RocksDB-RDMA (2KB): To better leverage the byte-addressability of the remote memory, we configure the block size as 2KB to illustrate the impact of block size.
-* Memory-RocksDB-RDMA: We further shrink the block size to the size of a key-value pair, making the SSTable byte-addressable.
-* Nova-LSM: Nova-LSM is an optimized LSM-tree for storage disaggregation (instead ofmemory disaggregation).  We make it running on tmpfs to make the comparison fair.
-* Sherman is a highly optimized B-tree for the memory disaggregated architecture. We use the source code available in [Sherman: A Write-Optimized Distributed B+Tree Index on Disaggregated Memory ](https://github.com/thustorage/Sherman).
+* **RocksDB-RDMA (8KB)**：We implement a baseline solutions that directly port RocksDB to the RDMA-extended remote memory. The block size is set as 8KB by default.
+* **RocksDB-RDMA (2KB)**: To better leverage the byte-addressability of the remote memory, we configure the block size as 2KB to illustrate the impact of block size.
+* **Memory-RocksDB-RDMA**: We further shrink the block size to the size of a key-value pair, making the SSTable byte-addressable.
+* **Nova-LSM**: Nova-LSM is an optimized LSM-tree for storage disaggregation (instead ofmemory disaggregation).  We make it running on tmpfs to make the comparison fair.
+* **Sherman**: Sherman is a highly optimized B-tree for the memory disaggregated architecture. We use the source code available in [Sherman: A Write-Optimized Distributed B+Tree Index on Disaggregated Memory ](https://github.com/thustorage/Sherman) (SIGMOD 22).
 
 
 ### Parameter Configurations
