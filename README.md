@@ -32,6 +32,7 @@ First, you should config the connection.conf under the main directory. The first
 ```bash
 ./Server TCPIPPORT MEMORYSIZE NODEID 
 ```
+
 * Compute node side: 
 To run the benchmark:
 ```bash
