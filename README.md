@@ -18,13 +18,16 @@ dLSM is the first purpose-built LSM-based indexing system for the emerging disag
 ```bash
 git clone --recurse-submodules https://github.com/ruihong123/dLSM
 ```
+
 ## Building
 This project supports CMake out of the box.
+
 ### Build for POSIX
 ```bash
 mkdir -p build && cd build
 cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
 ```
+
 ### How to run
 First, you should config the connection.conf under the main directory. The first line of that file represents the compute nodes' IP addresses, and the second line represents the memory nodes' IP addresses.
 * Memory node side: 
@@ -40,6 +43,7 @@ To utilize dLSM in your code, you need refer to public interface in **include/dL
 ```bash
 YourCodeOverdLSM
 ```
+
 ## Performance
 
 Here is a performance report from the run of the
