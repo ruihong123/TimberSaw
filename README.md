@@ -2,7 +2,6 @@
 
 dLSM is the first purpose-built LSM-based indexing system for the emerging disaggregated memory DBMSs. dLSM develops a series of optimizations to address the performance challenges. dLSM significantly reduces the software overhead (e.g., the overhead of synchronizing the in-memory write and flushing), to unlock the full potential of the fast RDMA networking. dLSM offloads the LSM-tree compaction to the remote memory node, and addresses a number of follow-up issues (e.g., RPC and garbage collection) to significantly reduce the data movement. dLSM is tuned to deprecate the concept of block structures to leverage the byte-addressability in RDMA-enabled disaggregated memory. Finally, dLSM optimizes the RDMA communication channel including customized RPC, asynchronous RDMA I/O, and optimized thread local queue pairs.
 
-
 ## Highlights 
 * 1.8x ∼ 11.7x faster than disaggregated B-tree with pure write workload.
 * 1.6x ∼ 3.9x faster than adaptations of existing LSM-tree indexes (e.g. RocksDB) over disaggregated memory with pure write workload.
@@ -14,6 +13,7 @@ dLSM is the first purpose-built LSM-based indexing system for the emerging disag
 * The basic operations are `Put(key,value)`, `Get(key)`, `Delete(key)`.
 * Users can create a transient snapshot to get a consistent view of data.
 * Forward iteration (range query) is supported over the data.
+
 ## Getting the Source
 ```bash
 git clone --recurse-submodules https://github.com/ruihong123/dLSM
@@ -21,7 +21,6 @@ git clone --recurse-submodules https://github.com/ruihong123/dLSM
 ## Building
 This project supports CMake out of the box.
 ### Build for POSIX
-
 ```bash
 mkdir -p build && cd build
 cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
@@ -32,7 +31,6 @@ First, you should config the connection.conf under the main directory. The first
 ```bash
 ./Server TCPIPPORT MEMORYSIZE NODEID 
 ```
-
 * Compute node side: 
 To run the benchmark:
 ```bash
