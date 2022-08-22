@@ -215,6 +215,8 @@ class DBImpl : public DB {
   Status DoCompactionWork(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
+  //TODO: We could probably use corotine to do the compaction because the compaction for
+  // large key value size can have large cpu stall time for memroy copy.
   Status DoCompactionWorkWithSubcompaction(CompactionState* compact);
   Status OpenCompactionOutputFile(SubcompactionState* compact);
   Status OpenCompactionOutputFile(CompactionState* compact);
