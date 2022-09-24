@@ -35,6 +35,8 @@
 #include <shared_mutex>
 #include <vector>
 #include <list>
+#include <condition_variable>
+
 //#include <boost/lockfree/spsc_queue.hpp>
 #define _mm_clflush(addr)\
 	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
