@@ -927,9 +927,9 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
 bool RDMA_Manager::Preregister_Memory(int gb_number) {
   int mr_flags = 0;
   size_t size = 1024*1024*1024;
-  if (node_id == 2){
-    void* dummy = malloc(size*2);
-  }
+//  if (node_id == 2){
+//    void* dummy = malloc(size*2);
+//  }
   for (int i = 0; i < gb_number; ++i) {
     total_registered_size = total_registered_size + size;
     std::fprintf(stderr, "Pre allocate registered memory %d GB %30s\r", i, "");
@@ -951,6 +951,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
           stderr,
           "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
           mr_flags, size, local_mem_pool.size());
+      assert(false);
       return false;
     }
     local_mem_pool.push_back(mrpointer);
