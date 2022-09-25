@@ -123,7 +123,7 @@ endif(BUILD_SHARED_LIBS)
 # Must be included before CMAKE_INSTALL_INCLUDEDIR is used.
 include(GNUInstallDirs)
 
-add_library(TimberSaw          )
+add_library(TimberSaw)
 target_sources(TimberSaw
   PRIVATE
     "${PROJECT_BINARY_DIR}/${TimberSaw_PORT_CONFIG_DIR}/port_config.h"
@@ -234,6 +234,8 @@ target_sources(TimberSaw
     "util/random.h"
     "util/rdma.cc"
     "util/rdma.h"
+    "util/Resource_Printer_Plan.h"
+    "util/Resource_Printer_Plan.cpp"
     "util/thread_local.cc"
     "util/thread_local.h"
     "util/status.cc"

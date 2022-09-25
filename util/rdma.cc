@@ -1313,7 +1313,7 @@ void RDMA_Manager::sync_with_computes_Mside() {
   int number_of_ready = 0;
   uint64_t rc = 0;
 
-
+  int consecutive_miss_receive_data = 0;
   while (1){
     for(auto iter : res->sock_map){
       rc =read(iter.second, buffer, 100);
@@ -1326,6 +1326,25 @@ void RDMA_Manager::sync_with_computes_Mside() {
           number_of_ready = 0;
         }
         rc = 0;
+        consecutive_miss_receive_data = 0;
+      }else{
+//        consecutive_miss_receive_data++;
+        if(++consecutive_miss_receive_data < 256){
+          continue;
+        }
+        if(++consecutive_miss_receive_data < 512){
+          usleep(16);
+
+          continue ;
+        }
+        if(++consecutive_miss_receive_data < 1024){
+          usleep(256);
+
+          continue;
+        }else{
+          usleep(1024);
+          continue;
+        }
       }
     }
 

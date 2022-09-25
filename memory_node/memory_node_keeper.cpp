@@ -1414,8 +1414,12 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
           usleep(256);
 
           continue;
-        }else{
+        }else if (++miss_poll_counter < 8192){
           usleep(1024);
+          continue;
+        }else{
+          printf("CPU utilization is %Lf", rdma_mg->rpter.getCurrentValue());
+          sleep(1);
           continue;
         }
       }

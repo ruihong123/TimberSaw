@@ -3,39 +3,41 @@
 
 
 #define REMOTE_DEALLOC_BUFF_SIZE (128 + 128) * sizeof(uint64_t)
+#include <algorithm>
+#include <arpa/inet.h>
+#include <atomic>
+#include <byteswap.h>
+#include <cassert>
+#include <chrono>
+#include <condition_variable>
+#include <endian.h>
+#include <infiniband/verbs.h>
+#include <inttypes.h>
+#include <iostream>
+#include <list>
+#include <map>
+#include <memory>
+#include <netdb.h>
+#include <shared_mutex>
+#include <sstream>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <stdint.h>
-#include <inttypes.h>
-#include <endian.h>
-#include <byteswap.h>
-#include <cassert>
-#include <algorithm>
-
-#include <thread>
-#include <chrono>
-#include <memory>
-#include <sstream>
-#include <arpa/inet.h>
-#include <infiniband/verbs.h>
-#include <netdb.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include "util/thread_local.h"
-#include "port/port_posix.h"
-#include "mutexlock.h"
-#include <atomic>
-#include <chrono>
-#include <iostream>
-#include <map>
+#include <thread>
+#include <unistd.h>
 #include <unordered_map>
-#include <shared_mutex>
 #include <vector>
-#include <list>
-#include <condition_variable>
+
+#include "port/port_posix.h"
+#include "util/Resource_Printer_Plan.h"
+#include "util/thread_local.h"
+
+//#include "Resource_Printer_Plan.h"
+#include "mutexlock.h"
 
 //#include <boost/lockfree/spsc_queue.hpp>
 #define _mm_clflush(addr)\
@@ -72,7 +74,7 @@ enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, Da
 static const char * EnumStrings[] = { "Message", "Version_edit",
       "IndexChunk", "FilterChunk", "FlushBuffer", "Default" };
 
-static char config_file_name[100] = "../connection_dbservers.conf";
+static char config_file_name[100] = "../connection_bigdata.conf";
 
 struct config_t {
   const char* dev_name;    /* IB device name */
@@ -408,6 +410,8 @@ class RDMA_Manager {
       char*& buff, size_t& size, std::string& db_name,
       std::unordered_map<std::string, SST_Metadata*>& file_to_sst_meta,
       std::map<void*, In_Use_Array>& remote_mem_bitmap);
+
+
   // Deserialization for linked file is problematic because different file may link to the same SSTdata
   void fs_deserilization(
       char*& buff, size_t& size, std::string& db_name,
@@ -494,6 +498,7 @@ class RDMA_Manager {
   std::map<std::string, std::pair<ibv_cq*, ibv_cq*>> cq_map_Mside; /* CQ Map */
   std::map<std::string, ibv_qp*> qp_map_Mside; /* QP Map */
   std::map<std::string, registered_qp_config*> qp_main_connection_info_Mside;
+  Resource_Printer_PlanA rpter;
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
