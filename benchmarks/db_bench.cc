@@ -1199,9 +1199,10 @@ class Benchmark {
     std::string value;
     int found = 0;
     //    KeyBuffer key;
-    std::unique_ptr<const char[]> key_guard;
-    Slice key_start = AllocateKey(&key_guard);
-    Slice key_end = AllocateKey(&key_guard);
+    std::unique_ptr<const char[]> key_guard1;
+    std::unique_ptr<const char[]> key_guard2;
+    Slice key_start = AllocateKey(&key_guard1);
+    Slice key_end = AllocateKey(&key_guard2);
     int i = 0;
     int range_length = 1000*1000;
     char value_buff[FLAGS_value_size];
