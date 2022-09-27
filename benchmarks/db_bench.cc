@@ -358,6 +358,38 @@ class Stats {
       std::fflush(stderr);
     }
   }
+  void FinishedMultipleOp(int num) {
+    if (FLAGS_histogram) {
+      double now = g_env->NowMicros();
+      double micros = now - last_op_finish_;
+      hist_.Add(micros);
+      if (micros > 20000) {
+        std::fprintf(stderr, "long op: %.1f micros%30s\r", micros, "");
+        std::fflush(stderr);
+      }
+      last_op_finish_ = now;
+    }
+
+    done_ = done_ + num;
+    if (done_ >= next_report_) {
+      if (next_report_ < 1000)
+        next_report_ += 100;
+      else if (next_report_ < 5000)
+        next_report_ += 500;
+      else if (next_report_ < 10000)
+        next_report_ += 1000;
+      else if (next_report_ < 50000)
+        next_report_ += 5000;
+      else if (next_report_ < 100000)
+        next_report_ += 10000;
+      else if (next_report_ < 500000)
+        next_report_ += 50000;
+      else
+        next_report_ += 100000;
+      std::fprintf(stderr, "... finished %d ops%30s\r", done_, "");
+      std::fflush(stderr);
+    }
+  }
 
   void AddBytes(int64_t n) { bytes_ += n; }
 
@@ -660,6 +692,8 @@ class Benchmark {
         method = &Benchmark::ReadReverse;
       } else if (name == Slice("readrandom")) {
         method = &Benchmark::ReadRandom;
+      } else if (name == Slice("readrandomrange")) {
+        method = &Benchmark::RangeReadRandom;
       } else if (name == Slice("readrandomshard")) {
         method = &Benchmark::ReadRandom_Sharded;
       } else if (name == Slice("readrandomwriterandom")) {
@@ -931,9 +965,13 @@ class Benchmark {
     options.reuse_logs = FLAGS_reuse_logs;
     //
     rdma_mg = Env::Default()->rdma_mg.get();
-    number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
-    number_of_key_per_compute =
-        number_of_key_total /rdma_mg->compute_nodes.size();
+    //TODO: Keep every compute node have 100 million key range
+        number_of_key_total = FLAGS_num*FLAGS_threads*rdma_mg->compute_nodes.size(); // whole range.
+        number_of_key_per_compute = FLAGS_num*FLAGS_threads;
+
+//    number_of_key_total = FLAGS_num*FLAGS_threads; // whole range.
+//    number_of_key_per_compute =
+//        number_of_key_total /rdma_mg->compute_nodes.size();
 
     if (FLAGS_fixed_compute_shards_num > 0){
       options.ShardInfo = new std::vector<std::pair<Slice,Slice>>();
@@ -1155,7 +1193,52 @@ class Benchmark {
     delete iter;
     thread->stats.AddBytes(bytes);
   }
+  void RangeReadRandom(ThreadState* thread) {
+    ReadOptions options;
+    //TODO(ruihong): specify the table_cache option.
+    std::string value;
+    int found = 0;
+    //    KeyBuffer key;
+    std::unique_ptr<const char[]> key_guard;
+    Slice key_start = AllocateKey(&key_guard);
+    Slice key_end = AllocateKey(&key_guard);
+    int i = 0;
+    int range_length = 1000*1000;
+    char value_buff[FLAGS_value_size];
+    Iterator* iter = db_->NewSEQIterator(options);
+    while(i < reads_){
+      //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+      int k_start = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+//      int k_end = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+      int k_end = k_start + range_length;
+      //TODO: directly use k_start + some value as k_end;
+//      if (k_end < k_start){
+//        int temp = k_start;
+//        k_start = k_end;
+//        k_end = temp;
+//      }
+      //
+      //            key.Set(k);
+      GenerateKeyFromInt(k_start, &key_start);
+      GenerateKeyFromInt(k_end, &key_end);
+      //      if (db_->Get(options, key.slice(), &value).ok()) {
+      //        found++;
+      //      }
 
+      iter->Seek(key_start);
+      while(iter->key().compare(key_end) <= 0 ){
+        memcpy(value_buff, iter->value().data(), FLAGS_value_size);
+
+        found++;
+      }
+      thread->stats.FinishedMultipleOp(range_length);
+      i = i+ range_length;
+
+    }
+    char msg[100];
+    std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+    thread->stats.AddMessage(msg);
+  }
   void ReadRandom(ThreadState* thread) {
     ReadOptions options;
     //TODO(ruihong): specify the table_cache option.

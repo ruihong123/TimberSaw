@@ -1418,7 +1418,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
           usleep(1024);
           continue;
         }else{
-          printf("CPU utilization is %Lf", rdma_mg->rpter.getCurrentValue());
+          printf("CPU utilization is %Lf\n", rdma_mg->rpter.getCurrentValue());
           sleep(1);
           continue;
         }
