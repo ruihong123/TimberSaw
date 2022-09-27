@@ -170,10 +170,12 @@ void DBIter::Next() {
       return;
     }
   }
-
+  // In case that if there are mulitple version of this key this function below
+  // can skip all the old version of keys. if there is no mulitple version, the
+  // iterator will not be moved.
   FindNextUserEntry(true, &saved_key_);
 }
-
+//if skipping, skip all the userkey which is the same as skip.
 void DBIter::FindNextUserEntry(bool skipping, std::string* skip) {
   // Loop until we hit an acceptable entry to yield
   assert(iter_->Valid());
@@ -283,6 +285,8 @@ void DBIter::Seek(const Slice& target) {
                     ParsedInternalKey(target, sequence_, kValueTypeForSeek));
   iter_->Seek(saved_key_);
   if (iter_->Valid()) {
+    // the function below will check whether the find key is deleted, if yes
+    // move to the next key which is not the deleted key.
     FindNextUserEntry(false, &saved_key_ /* temporary storage */);
   } else {
     DEBUG("seek failed\n");

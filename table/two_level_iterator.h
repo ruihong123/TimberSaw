@@ -29,6 +29,7 @@ class FileIteratorWrapper {
     delete iter_;
     iter_ = iter;
     if (iter_ == nullptr) {
+      DEBUG("File iterator invalid\n");
       valid_ = false;
     } else {
       Update();

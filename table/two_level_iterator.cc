@@ -31,8 +31,8 @@ void TwoLevelIterator::Seek(const Slice& target) {
     data_iter_.Seek(target);
     valid_ = true;
   }
-  // if the target is in the middle of two block, then iter should stop at the
-  // beggining of the nex block.
+  // if the target is in the middle of two blocks, then iter should stop at the
+  // beggining of the next block.
   SkipEmptyDataBlocksForward();
 }
 
@@ -86,6 +86,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     // Move to next block
     if (!index_iter_.Valid()) {
 //      SetDataIterator(nullptr);
+      DEBUG("Two level iterator invalidated 1\n");
       valid_ = false;
       return;
     }
