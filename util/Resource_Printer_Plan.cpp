@@ -76,7 +76,7 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
 
 Resource_Printer_PlanB::Resource_Printer_PlanB() {
 
-
+getCurrentValue();
 
 
 
