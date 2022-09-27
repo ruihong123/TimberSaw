@@ -38,8 +38,9 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
 
   for (int i = 0; i < NUMA_CORE_NUM; ++i) {
     file = fopen("/proc/stat", "r");
-    fscanf(file, "cpu %llu %llu %llu %llu", &totalUser, &totalUserLow,
-           &totalSys, &totalIdle);
+    int ret = fscanf(file, "cpu %llu %llu %llu %llu", &totalUser[i], &totalUserLow[i],
+           &totalSys[i], &totalIdle[i]);
+    assert(ret != 0);
     if (totalUser[i] < lastTotalUser[i] || totalUserLow[i] < lastTotalUserLow[i] ||
         totalSys[i] < lastTotalSys[i] || totalIdle[i] < lastTotalIdle[i]){
       //Overflow detection. Just skip this value.
