@@ -285,6 +285,7 @@ void DBIter::Seek(const Slice& target) {
   if (iter_->Valid()) {
     FindNextUserEntry(false, &saved_key_ /* temporary storage */);
   } else {
+    DEBUG("seek failed\n");
     valid_ = false;
   }
 }
