@@ -1226,6 +1226,7 @@ class Benchmark {
       //      }
 
       iter->Seek(key_start);
+      // iter not valid after seek, why?
       while(iter->key().compare(key_end) <= 0 ){
         memcpy(value_buff, iter->value().data(), FLAGS_value_size);
 
