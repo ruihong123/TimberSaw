@@ -897,7 +897,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
 
 VersionSet::~VersionSet() {
   current_->Unref(0);
-  assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
+//  assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log;
   delete descriptor_file;
 #ifdef PROCESSANALYSIS
