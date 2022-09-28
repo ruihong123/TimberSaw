@@ -196,7 +196,7 @@ void TwoLevelFileIterator::SeekToLast() {
   InitDataBlock();
   // valid_ means data_iter_.iter() != nullpt
   //TODO: replace all the data_iter_.iter() != nullptr as valid_
-  if (data_iter_.iter() != nullptr ){
+  if (valid_){
     assert(data_iter_.iter() != nullptr  );
     data_iter_.SeekToLast();
 //    valid_ = true;

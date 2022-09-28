@@ -1209,7 +1209,7 @@ class Benchmark {
     Iterator* iter = db_->NewSEQIterator(options);
     while(i < reads_){
       //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
-      int k_start = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
+      int k_start = thread->rand.Next()%(FLAGS_num*FLAGS_threads - range_length); //do not go out of bound
 //      int k_end = thread->rand.Next()%(FLAGS_num*FLAGS_threads);
       int k_end = k_start + range_length;
       //TODO: directly use k_start + some value as k_end;
