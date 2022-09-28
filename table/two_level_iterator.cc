@@ -18,7 +18,7 @@ TwoLevelIterator::TwoLevelIterator(Iterator* index_iter,
       arg_(arg),
       options_(options),
       index_iter_(index_iter),
-      data_iter_(nullptr), valid_(false) {}
+      data_iter_(nullptr) {}
 
 TwoLevelIterator::~TwoLevelIterator() {
 //  DEBUG_arg("TWOLevelIterator destructing, this pointer is %p\n", this);
@@ -29,7 +29,7 @@ void TwoLevelIterator::Seek(const Slice& target) {
   InitDataBlock();
   if (data_iter_.iter() != nullptr) {
     data_iter_.Seek(target);
-    valid_ = true;
+//    valid_ = true;
   }
   // if the target is in the middle of two blocks, then iter should stop at the
   // beggining of the next block.
@@ -41,7 +41,7 @@ void TwoLevelIterator::SeekToFirst() {
   InitDataBlock();
   if (data_iter_.iter() != nullptr) {
     data_iter_.SeekToFirst();
-    valid_ = true;
+//    valid_ = true;
   } else{
     assert(false);
   }
@@ -54,7 +54,7 @@ void TwoLevelIterator::SeekToLast() {
   InitDataBlock();
   if (data_iter_.iter() != nullptr){
     data_iter_.SeekToLast();
-    valid_ = true;
+//    valid_ = true;
   }
   SkipEmptyDataBlocksBackward();
 }
@@ -87,7 +87,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     if (!index_iter_.Valid()) {
       SetDataIterator(nullptr);
       DEBUG("Two level iterator invalidated 1\n");
-      valid_ = false;
+//      valid_ = false;
       return;
     }
 #ifndef NDEBUG
@@ -97,7 +97,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
     index_iter_.Next();
 //    printf("Move to next block\n");
     InitDataBlock();
-    if (valid_) data_iter_.SeekToFirst();
+    if (data_iter_.iter() != nullptr) data_iter_.SeekToFirst();
   }
 //  printf("Move to next data, key is %s", data_iter_.key().ToString().c_str());
 //  printf("Iterator pointer is %p\n", this);
@@ -108,12 +108,12 @@ void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
     // Move to next block
     if (!index_iter_.Valid()) {
       SetDataIterator(nullptr);
-      valid_ = false;
+//      valid_ = false;
       return;
     }
     index_iter_.Prev();
     InitDataBlock();
-    if (valid_) data_iter_.SeekToLast();
+    if (data_iter_.iter() != nullptr) data_iter_.SeekToLast();
   }
 }
 
@@ -125,7 +125,7 @@ void TwoLevelIterator::SetDataIterator(Iterator* data_iter) {
 void TwoLevelIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
     SetDataIterator(nullptr);
-    valid_ = false;
+//    valid_ = false;
     DEBUG_arg("TwoLevelIterator Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
 //    DEBUG("Index block valid\n");
@@ -136,7 +136,7 @@ void TwoLevelIterator::InitDataBlock() {
     bhandle.DecodeFrom(&test_handle);
 //    printf("Iterator pointer is %p, Offset is %lu, this data block size is %lu\n", this, bhandle.offset(), bhandle.size());
 #endif
-    if (valid_ &&
+    if (data_iter_.iter() != nullptr &&
         handle.compare(data_block_handle_) == 0) {
       // data_iter_ is already constructed with this iterator, so
       // no need to change anything
@@ -160,7 +160,7 @@ TwoLevelFileIterator::TwoLevelFileIterator(Version::LevelFileNumIterator* index_
       arg_(arg),
       options_(options),
       index_iter_(index_iter),
-      data_iter_(nullptr), valid_(false) {}
+      data_iter_(nullptr) {}
 
 TwoLevelFileIterator::~TwoLevelFileIterator() {
     DEBUG_arg("TWOLevelFileIterator destructing, this pointer is %p\n", this);
@@ -169,8 +169,8 @@ TwoLevelFileIterator::~TwoLevelFileIterator() {
 void TwoLevelFileIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
   InitDataBlock();
-  if (valid_) {
-    assert(data_iter_.iter() != nullptr);
+  if (data_iter_.iter() != nullptr ) {
+//    assert(data_iter_.iter() != nullptr);
     data_iter_.Seek(target);
 //    valid_ = true;
   }
@@ -180,8 +180,8 @@ void TwoLevelFileIterator::Seek(const Slice& target) {
 void TwoLevelFileIterator::SeekToFirst() {
   index_iter_.SeekToFirst();
   InitDataBlock();
-  if (valid_) {
-    assert(data_iter_.iter() != nullptr );
+  if (data_iter_.iter() != nullptr ) {
+//    assert(data_iter_.iter() != nullptr );
     data_iter_.SeekToFirst();
 //    valid_ = true;
   } else{
@@ -196,8 +196,8 @@ void TwoLevelFileIterator::SeekToLast() {
   InitDataBlock();
   // valid_ means data_iter_.iter() != nullpt
   //TODO: replace all the data_iter_.iter() != nullptr as valid_
-  if (valid_){
-    assert(data_iter_.iter() != nullptr  );
+  if (data_iter_.iter() != nullptr ){
+//    assert(data_iter_.iter() != nullptr  );
     data_iter_.SeekToLast();
 //    valid_ = true;
   }
@@ -220,15 +220,15 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-//      SetDataIterator(nullptr);
+      SetDataIterator(nullptr);
       DEBUG("index block becomes invalid\n");
-      valid_ = false;
+//      valid_ = false;
       return;
     }
     DEBUG_arg("two level file iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Next();
     InitDataBlock();
-    if (valid_) data_iter_.SeekToFirst();
+    if (data_iter_.iter() != nullptr ) data_iter_.SeekToFirst();
   }
 }
 
@@ -237,13 +237,13 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksBackward() {
     // Move to next block
     if (!index_iter_.Valid()) {
       // set as nullptr?
-//      SetDataIterator(nullptr);
-      valid_ = false;
+      SetDataIterator(nullptr);
+//      valid_ = false;
       return;
     }
     index_iter_.Prev();
     InitDataBlock();
-    if (valid_) data_iter_.SeekToLast();
+    if (data_iter_.iter() != nullptr ) data_iter_.SeekToLast();
   }
 }
 
@@ -256,20 +256,20 @@ void TwoLevelFileIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
     // Not set the iter as nullptr when reaching the end,
     // why not?
-//    SetDataIterator(nullptr);
+    SetDataIterator(nullptr);
     DEBUG_arg("TwoLevelFileIterator Index block invalid, this pointer: %p\n", this);
 
-    valid_ = false;
+//    valid_ = false;
   } else {
     std::shared_ptr<RemoteMemTableMetaData> remote_table = index_iter_.value();
-    if (valid_ && remote_table == this_remote_table) {
+    if (data_iter_.iter() != nullptr  && remote_table == this_remote_table) {
       // data_iter_ is already constructed with this iterator, so
       // no need to change anything
     } else {
       Iterator* iter = (*file_function_)(arg_, options_, remote_table);
       this_remote_table = remote_table;
       SetDataIterator(iter);
-      valid_ = true;
+//      valid_ = true;
     }
   }
 
