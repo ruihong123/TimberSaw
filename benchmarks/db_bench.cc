@@ -1227,13 +1227,16 @@ class Benchmark {
       //      }
 
       iter->Seek(key_start);
+      int move_forward_counter = 0;
       // iter not valid after seek, why?
       while(iter->key().compare(key_end) <= 0 ){
         memcpy(value_buff, iter->value().data(), FLAGS_value_size);
 
         found++;
+        move_forward_counter++;
         iter->Next();
       }
+
       thread->stats.FinishedMultipleOp(range_length);
       i = i+ range_length;
 
