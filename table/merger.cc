@@ -59,6 +59,7 @@ class MergingIterator : public Iterator {
     }
     FindSmallest();
     direction_ = kForward;
+    assert(current_!= nullptr);
 #ifndef NDEBUG
       last_key = current_->key().ToString();
 #endif
