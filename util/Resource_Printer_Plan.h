@@ -11,7 +11,7 @@
 #include "stdlib.h"
 #include "string.h"
 #include "sys/times.h"
-#include "sys/vtimes.h"
+//#include "sys/vtimes.h"
 #include "cassert"
 
 #define NUMA_CORE_NUM 24
