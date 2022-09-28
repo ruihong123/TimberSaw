@@ -85,7 +85,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksForward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-//      SetDataIterator(nullptr);
+      SetDataIterator(nullptr);
       DEBUG("Two level iterator invalidated 1\n");
       valid_ = false;
       return;
@@ -107,7 +107,7 @@ void TwoLevelIterator::SkipEmptyDataBlocksBackward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-//      SetDataIterator(nullptr);
+      SetDataIterator(nullptr);
       valid_ = false;
       return;
     }
@@ -124,7 +124,7 @@ void TwoLevelIterator::SetDataIterator(Iterator* data_iter) {
 
 void TwoLevelIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
-//    SetDataIterator(nullptr);
+    SetDataIterator(nullptr);
     valid_ = false;
     DEBUG_arg("TwoLevelIterator Index block invalid, error: %s\n", status().ToString().c_str());
   } else {
