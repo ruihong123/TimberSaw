@@ -1237,7 +1237,7 @@ class Benchmark {
         iter->Next();
       }
 
-      thread->stats.FinishedMultipleOp(range_length);
+      thread->stats.FinishedSingleOp();
       i = i+ range_length;
 
     }
