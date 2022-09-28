@@ -71,7 +71,7 @@ class IteratorWrapper {
     assert(iter_);
     iter_->Seek(k);
     Update();
-    assert(valid_);
+//    assert(valid_);
   }
   void SeekToFirst() {
     assert(iter_);
