@@ -37,6 +37,9 @@ class MergingIterator : public Iterator {
     if (!Valid()) assert(false);
 #endif
     direction_ = kForward;
+#ifndef NDEBUG
+    last_key = current_->key().ToString();
+#endif
   }
 
   void SeekToLast() override {
@@ -45,6 +48,9 @@ class MergingIterator : public Iterator {
     }
     FindLargest();
     direction_ = kReverse;
+#ifndef NDEBUG
+    last_key = current_->key().ToString();
+#endif
   }
 
   void Seek(const Slice& target) override {
@@ -53,6 +59,9 @@ class MergingIterator : public Iterator {
     }
     FindSmallest();
     direction_ = kForward;
+#ifndef NDEBUG
+      last_key = current_->key().ToString();
+#endif
   }
 
   void Next() override {
@@ -67,7 +76,7 @@ class MergingIterator : public Iterator {
       for (int i = 0; i < n_; i++) {
         IteratorWrapper* child = &children_[i];
         if (child != current_) {
-          //TODO(ruihong): Make the iterator not seek again, it should suppose to stay at the old position.
+          // we seek the key again because we want to reverse the order.
           child->Seek(key());
           if (child->Valid() &&
               comparator_->Compare(key(), child->key()) == 0) {
