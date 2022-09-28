@@ -1232,6 +1232,7 @@ class Benchmark {
         memcpy(value_buff, iter->value().data(), FLAGS_value_size);
 
         found++;
+        iter->Next();
       }
       thread->stats.FinishedMultipleOp(range_length);
       i = i+ range_length;

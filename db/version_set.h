@@ -191,6 +191,11 @@ class Version {
     void Next() override {
       assert(Valid());
       index_++;
+#ifndef NDEBUG
+      if (index_ >= flist_->size()){
+        printf("file iterator invalid\n");
+      }
+#endif
     }
     void Prev() override {
       assert(Valid());

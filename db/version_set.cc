@@ -99,6 +99,7 @@ int FindFile(const InternalKeyComparator& icmp,
   while (left < right) {
     uint32_t mid = (left + right) / 2;
     const std::shared_ptr<RemoteMemTableMetaData> f = files[mid];
+    assert(f->largest.user_key().size() > 0);
     if (icmp.InternalKeyComparator::Compare(f->largest.Encode(), key) < 0) {
       // Key at "mid.largest" is < "target".  Therefore all
       // files at or before "mid" are uninteresting.

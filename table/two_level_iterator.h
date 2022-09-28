@@ -213,11 +213,11 @@ class TwoLevelFileIterator : public Iterator {
   std::shared_ptr<RemoteMemTableMetaData> this_remote_table;
   bool valid_;
 };
-Iterator* NewTwoLevelIterator(
-    Iterator* index_iter,
-    Iterator* (*block_function)(void* arg, const ReadOptions& options,
-                                const Slice& index_value),
-    void* arg, const ReadOptions& options);
+//Iterator* NewTwoLevelIterator(
+//    Iterator* index_iter,
+//    Iterator* (*block_function)(void* arg, const ReadOptions& options,
+//                                const Slice& index_value),
+//    void* arg, const ReadOptions& options);
 
 Iterator* NewTwoLevelFileIterator(
     Version::LevelFileNumIterator* index_iter,

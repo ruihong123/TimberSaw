@@ -216,6 +216,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
     // Move to next block
     if (!index_iter_.Valid()) {
 //      SetDataIterator(nullptr);
+      printf("index block becomes invalid\n");
       valid_ = false;
       return;
     }
@@ -267,11 +268,11 @@ void TwoLevelFileIterator::InitDataBlock() {
 
 
 }  // namespace
-Iterator* NewTwoLevelIterator(Iterator* index_iter,
-                              BlockFunction block_function, void* arg,
-                              const ReadOptions& options) {
-  return new TwoLevelIterator(index_iter, block_function, arg, options);
-}
+//Iterator* NewTwoLevelIterator(Iterator* index_iter,
+//                              BlockFunction block_function, void* arg,
+//                              const ReadOptions& options) {
+//  return new TwoLevelIterator(index_iter, block_function, arg, options);
+//}
 Iterator* NewTwoLevelFileIterator(Version::LevelFileNumIterator* index_iter,
                                   FileFunction file_function, void* arg,
                               const ReadOptions& options) {
