@@ -169,9 +169,10 @@ TwoLevelFileIterator::~TwoLevelFileIterator() {
 void TwoLevelFileIterator::Seek(const Slice& target) {
   index_iter_.Seek(target);
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) {
+  if (valid_) {
+    assert(data_iter_.iter() != nullptr);
     data_iter_.Seek(target);
-    valid_ = true;
+//    valid_ = true;
   }
   SkipEmptyDataBlocksForward();
 }
@@ -179,9 +180,10 @@ void TwoLevelFileIterator::Seek(const Slice& target) {
 void TwoLevelFileIterator::SeekToFirst() {
   index_iter_.SeekToFirst();
   InitDataBlock();
-  if (data_iter_.iter() != nullptr) {
+  if (valid_) {
+    assert(data_iter_.iter() != nullptr );
     data_iter_.SeekToFirst();
-    valid_ = true;
+//    valid_ = true;
   } else{
     assert(false);
   }
@@ -192,9 +194,12 @@ void TwoLevelFileIterator::SeekToFirst() {
 void TwoLevelFileIterator::SeekToLast() {
   index_iter_.SeekToLast();
   InitDataBlock();
-  if (data_iter_.iter() != nullptr){
+  // valid_ means data_iter_.iter() != nullpt
+  //TODO: replace all the data_iter_.iter() != nullptr as valid_
+  if (data_iter_.iter() != nullptr ){
+    assert(data_iter_.iter() != nullptr  );
     data_iter_.SeekToLast();
-    valid_ = true;
+//    valid_ = true;
   }
   SkipEmptyDataBlocksBackward();
 }
@@ -231,7 +236,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksBackward() {
   while (data_iter_.iter() == nullptr || !data_iter_.Valid()) {
     // Move to next block
     if (!index_iter_.Valid()) {
-      // Not set as nullptr
+      // set as nullptr?
 //      SetDataIterator(nullptr);
       valid_ = false;
       return;
@@ -249,7 +254,8 @@ void TwoLevelFileIterator::SetDataIterator(Iterator* data_iter) {
 
 void TwoLevelFileIterator::InitDataBlock() {
   if (!index_iter_.Valid()) {
-    // Not set the iter as nullptr when reaching the end
+    // Not set the iter as nullptr when reaching the end,
+    // why not?
 //    SetDataIterator(nullptr);
     DEBUG_arg("TwoLevelFileIterator Index block invalid, this pointer: %p\n", this);
 
