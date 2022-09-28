@@ -221,7 +221,7 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
     // Move to next block
     if (!index_iter_.Valid()) {
 //      SetDataIterator(nullptr);
-      printf("index block becomes invalid\n");
+      DEBUG("index block becomes invalid\n");
       valid_ = false;
       return;
     }
