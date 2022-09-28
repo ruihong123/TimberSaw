@@ -269,6 +269,7 @@ void TwoLevelFileIterator::InitDataBlock() {
       Iterator* iter = (*file_function_)(arg_, options_, remote_table);
       this_remote_table = remote_table;
       SetDataIterator(iter);
+      valid_ = true;
     }
   }
 
