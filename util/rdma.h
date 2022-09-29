@@ -498,7 +498,7 @@ class RDMA_Manager {
   std::map<std::string, std::pair<ibv_cq*, ibv_cq*>> cq_map_Mside; /* CQ Map */
   std::map<std::string, ibv_qp*> qp_map_Mside; /* QP Map */
   std::map<std::string, registered_qp_config*> qp_main_connection_info_Mside;
-  Resource_Printer_PlanA rpter;
+  Resource_Printer_PlanB rpter;
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
