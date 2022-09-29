@@ -181,8 +181,8 @@ class Version {
         : icmp_(icmp), flist_(flist), index_(flist->size()) {  // Marks as invalid
     }
     bool Valid() const override {
-      if ( index_ >= flist_->size())
-        printf("Pause here\n");
+//      if ( index_ >= flist_->size())
+//        printf("Pause here\n");
       return index_ < flist_->size();
     }
     void Seek(const Slice& target) override {
