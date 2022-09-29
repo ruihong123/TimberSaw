@@ -1234,10 +1234,11 @@ class Benchmark {
 
         found++;
         move_forward_counter++;
+        thread->stats.FinishedSingleOp();
         iter->Next();
       }
 
-      thread->stats.FinishedSingleOp();
+
       i = i+ range_length;
 
     }

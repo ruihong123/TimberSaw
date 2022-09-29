@@ -135,6 +135,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
     //TODO: reset all the relevent metadata such as iter_ptr, cur_prefetch_status.
   }
   if (!valid_){
+    DEBUG("Get next KV invalid\n");
     return;
   }
   //TODO: The Get KV need to wait if the data has not been fetched already, need to Poll completion
