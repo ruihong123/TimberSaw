@@ -180,7 +180,11 @@ class Version {
                          const std::vector<std::shared_ptr<RemoteMemTableMetaData>>* flist)
         : icmp_(icmp), flist_(flist), index_(flist->size()) {  // Marks as invalid
     }
-    bool Valid() const override { return index_ < flist_->size(); }
+    bool Valid() const override {
+      if ( index_ >= flist_->size())
+        printf("Pause here\n");
+      return index_ < flist_->size();
+    }
     void Seek(const Slice& target) override {
       index_ = FindFile(icmp_, *flist_, target);
     }
