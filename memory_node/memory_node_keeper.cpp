@@ -1399,7 +1399,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     int buffer_position = 0;
     int miss_poll_counter = 0;
     while (true) {
-      ++miss_poll_counter
+      ++miss_poll_counter;
 //      rdma_mg->poll_completion(wc, 1, client_ip, false, compute_node_id);
       if (rdma_mg->try_poll_completions(wc, 1, client_ip, false, compute_node_id) == 0){
         // exponetial back off to save cpu cycles.
