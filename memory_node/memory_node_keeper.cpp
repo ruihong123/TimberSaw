@@ -1415,14 +1415,15 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
           usleep(256);
 
           continue;
-        }else if (miss_poll_counter < 8192){
+        }else{
           usleep(1024);
           continue;
-        }else{
-
-          sleep(1);
-          continue;
         }
+//        else{
+//
+//          sleep(1);
+//          continue;
+//        }
       }
       miss_poll_counter = 0;
       if(wc[0].wc_flags & IBV_WC_WITH_IMM){
