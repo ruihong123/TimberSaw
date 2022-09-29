@@ -176,12 +176,14 @@ void DBIter::Next() {
   FindNextUserEntry(true, &saved_key_);
 }
 //if skipping, skip all the userkey which is the same as skip.
+
 void DBIter::FindNextUserEntry(bool skipping, std::string* skip) {
   // Loop until we hit an acceptable entry to yield
   assert(iter_->Valid());
   assert(direction_ == kForward);
   do {
     ParsedInternalKey ikey;
+    //TODO: why the sequence here is zero?
     if (ParseKey(&ikey) && ikey.sequence <= sequence_) {
       switch (ikey.type) {
         case kTypeDeletion:

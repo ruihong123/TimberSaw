@@ -3252,6 +3252,7 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
                                       SequenceNumber* latest_snapshot,
                                       uint32_t* seed) {
   SequenceNumber snapshot;
+  *latest_snapshot = versions_->LastSequence();
   // TODO: make the user defined snapshot work. THe superversion should be confirmed when
   // creating the snapshot.
   SuperVersion* sv;
@@ -3316,6 +3317,7 @@ Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
                                       SequenceNumber* latest_snapshot,
                                       uint32_t* seed) {
   SequenceNumber snapshot;
+  *latest_snapshot = versions_->LastSequence();
   // TODO: make the user defined snapshot work. THe superversion should be confirmed when
   // creating the snapshot.
   SuperVersion* sv;
