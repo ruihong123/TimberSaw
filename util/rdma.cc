@@ -106,6 +106,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
 * Cleanup and deallocate all resources used for RDMA
 ******************************************************************************/
 RDMA_Manager::~RDMA_Manager() {
+  printf("CPU utilization is %Lf\n", rpter.getCurrentValue());
   if (!res->qp_map.empty())
     for (auto it = res->qp_map.begin(); it != res->qp_map.end(); it++) {
       if (ibv_destroy_qp(it->second)) {
@@ -1328,20 +1329,20 @@ void RDMA_Manager::sync_with_computes_Mside() {
         rc = 0;
         consecutive_miss_receive_data = 0;
       }else{
-//        consecutive_miss_receive_data++;
-        if(++consecutive_miss_receive_data < 256){
+        consecutive_miss_receive_data++;
+        if(consecutive_miss_receive_data < 256){
           continue;
         }
-        if(++consecutive_miss_receive_data < 512){
+        if(consecutive_miss_receive_data < 512){
           usleep(16);
 
           continue ;
         }
-        if(++consecutive_miss_receive_data < 1024){
+        if(consecutive_miss_receive_data < 1024){
           usleep(256);
 
           continue;
-        }else if (++consecutive_miss_receive_data < 8192){
+        }else if (consecutive_miss_receive_data < 8192){
           usleep(1024);
           continue;
         }else{
