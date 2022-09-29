@@ -159,7 +159,8 @@ class TwoLevelIterator : public Iterator {
 #endif
 //  bool valid_;
 };
-
+//TODO: there are bugs when there are mulitple concurrent iterator seeking.
+// not sure why the concurrent iterator becomes invalid.
 class TwoLevelFileIterator : public Iterator {
  public:
   TwoLevelFileIterator(Version::LevelFileNumIterator* index_iter, FileFunction file_function,
