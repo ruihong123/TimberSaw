@@ -1418,7 +1418,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
           usleep(1024);
           continue;
         }else{
-          printf("CPU utilization is %Lf\n", rdma_mg->rpter.getCurrentValue());
+
           sleep(1);
           continue;
         }
@@ -1598,8 +1598,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
               std::string(address.sa_data), sockfd);
         // No need to detach, because the main_comm_threads will not be destroyed.
 //        main_comm_threads.back().detach();
+
+
+
       }
       usleep(1000);
+
     }
   }
   sock_connect_exit:
