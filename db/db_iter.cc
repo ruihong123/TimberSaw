@@ -289,7 +289,7 @@ void DBIter::Seek(const Slice& target) {
     // move to the next key which is not the deleted key.
     FindNextUserEntry(false, &saved_key_ /* temporary storage */);
   } else {
-    DEBUG("seek failed\n");
+    printf("seek failed\n");
     valid_ = false;
   }
 }
