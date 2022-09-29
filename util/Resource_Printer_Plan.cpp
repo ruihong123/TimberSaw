@@ -55,6 +55,7 @@ std::vector<std::string> words{};
       lastTotalUserLow[cpu_list_index] = std::stoi(words[2]);
       lastTotalSys[cpu_list_index] = std::stoi(words[3]);
       lastTotalIdle[cpu_list_index] = std::stoi(words[4]);
+      printf("CPU %d get its intial value %llu\n", cpu_id_arr[cpu_list_index], lastTotalUser[cpu_list_index]);
 
       cpu_list_index++;
       if (cpu_list_index == NUMA_CORE_NUM)
