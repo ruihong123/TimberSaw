@@ -257,7 +257,7 @@ void TwoLevelFileIterator::InitDataBlock() {
     // Not set the iter as nullptr when reaching the end,
     // why not?
     SetDataIterator(nullptr);
-    DEBUG_arg("TwoLevelFileIterator Index block invalid, this pointer: %p\n", this);
+    printf("TwoLevelFileIterator Index block invalid at initing the data block, this pointer: %p\n", this);
 
 //    valid_ = false;
   } else {
