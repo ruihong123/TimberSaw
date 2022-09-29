@@ -204,6 +204,7 @@ void DBIter::FindNextUserEntry(bool skipping, std::string* skip) {
     }
     iter_->Next();
   } while (iter_->Valid());
+  printf("failed when moving next\n");
   saved_key_.clear();
   valid_ = false;
 }
