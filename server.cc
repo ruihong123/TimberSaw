@@ -35,11 +35,13 @@ int main(int argc,char* argv[])
   }
 
   mn_keeper->SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);
-  mn_keeper->Server_to_Client_Communication();
   std::thread CPU_utilization_heartbeat([&](){
     sleep(2);
     printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
   });
+  CPU_utilization_heartbeat.detach();
+  mn_keeper->Server_to_Client_Communication();
+
   delete mn_keeper;
 
   return 0;
