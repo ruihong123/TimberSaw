@@ -50,7 +50,7 @@ std::vector<std::string> words{};
         words.push_back(line.substr(0, pos));
         line.erase(0, pos + space_delimiter.length());
       }
-      assert(words.size() == 11);
+//      assert(words.size() == 11);
       lastTotalUser[cpu_list_index] = std::stoi(words[1]);
       lastTotalUserLow[cpu_list_index] = std::stoi(words[2]);
       lastTotalSys[cpu_list_index] = std::stoi(words[3]);
@@ -95,7 +95,7 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
         words.push_back(line.substr(0, pos));
         line.erase(0, pos + space_delimiter.length());
       }
-      assert(words.size() == 11);
+//      assert(words.size() == 11);
       totalUser[cpu_list_index] = std::stoi(words[1]);
       totalUserLow[cpu_list_index] = std::stoi(words[2]);
       totalSys[cpu_list_index] = std::stoi(words[3]);
