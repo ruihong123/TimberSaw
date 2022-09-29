@@ -221,11 +221,11 @@ void TwoLevelFileIterator::SkipEmptyDataBlocksForward() {
     // Move to next block
     if (!index_iter_.Valid()) {
       SetDataIterator(nullptr);
-      DEBUG("index block becomes invalid\n");
+      printf("index block becomes invalid\n");
 //      valid_ = false;
       return;
     }
-    DEBUG_arg("two level file iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
+    printf("two level file iterator index iterator move forward. the data iter to be replaced is %p\n", data_iter_.iter());
     index_iter_.Next();
     InitDataBlock();
     if (data_iter_.iter() != nullptr ) data_iter_.SeekToFirst();
