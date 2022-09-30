@@ -1880,7 +1880,6 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     RDMA_Request* request = ((Arg_for_handler*) arg)->request;
     std::string client_ip = ((Arg_for_handler*) arg)->client_ip;
     uint8_t target_node_id = ((Arg_for_handler*) arg)->target_node_id;
-    printf("near data compaction\n");
     void* remote_prt = request->buffer;
     void* remote_large_prt = request->buffer_large;
     uint32_t remote_rkey = request->rkey;
@@ -1955,6 +1954,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     //Decode compaction
     c.DecodeFrom(
         Slice((char*)large_recv_mr.addr, request->content.sstCompact.buffer_size), 1);
+    printf("near data compaction at level %d\n", c.level());
+
     // Note need to check whether the code below is correct.
 //    void* remote_large_recv_ptr =  *(void**)new_pos.data();
 //    uint32_t remote_large_recv_rkey = *(uint32_t*)(new_pos.data() + sizeof(void*));
