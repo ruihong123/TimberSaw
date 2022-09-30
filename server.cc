@@ -1,8 +1,8 @@
+#include <fstream>
 #include <iostream>
 #include <memory_node/memory_node_keeper.h>
 
 #include "util/rdma.h"
-
 
 //namespace TimberSaw{
 int main(int argc,char* argv[])
@@ -36,9 +36,12 @@ int main(int argc,char* argv[])
 
   mn_keeper->SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);
   std::thread CPU_utilization_heartbeat([&](){
+    std::ofstream myfile("CPU_Utilization.txt");
     while (1){
+//      myfile.open ("example.txt");
+      myfile << TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue() <<"\n";
       sleep(2);
-      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+//      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
     }
   });
   CPU_utilization_heartbeat.detach();
