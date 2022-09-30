@@ -38,12 +38,12 @@ int main(int argc,char* argv[])
   std::thread CPU_utilization_heartbeat([&](){
     std::ofstream myfile;
     while (1){
-      myfile.open ("CPU_Utilization.txt",std::ios_base::app);
-      myfile << TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue() ;
-      myfile <<"\n";
-      myfile.close();
+//      myfile.open ("CPU_Utilization.txt",std::ios_base::app);
+//      myfile << TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue() ;
+//      myfile <<"\n";
+//      myfile.close();
       sleep(2);
-//      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
     }
   });
   CPU_utilization_heartbeat.detach();
