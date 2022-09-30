@@ -36,10 +36,12 @@ int main(int argc,char* argv[])
 
   mn_keeper->SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);
   std::thread CPU_utilization_heartbeat([&](){
-    std::ofstream myfile("CPU_Utilization.txt");
+    std::ofstream myfile;
     while (1){
-//      myfile.open ("example.txt");
-      myfile << TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue() <<"\n";
+      myfile.open ("CPU_Utilization.txt",std::ios_base::app);
+      myfile << TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue() ;
+      myfile <<"\n";
+      myfile.close();
       sleep(2);
 //      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
     }
