@@ -52,7 +52,7 @@ static double MaxBytesForLevel(const Options* options, int level) {
   // Result for both level-0 and level-1
   double result = config::max_mega_bytes_for_level_base * 1048576.0;
   while (level > 1) {
-    result *= 40;
+    result *= 100;
     level--;
   }
   return result;
