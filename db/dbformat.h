@@ -38,13 +38,13 @@ static const int kL0_CompactionTrigger = 1;
 // in M-M the total number of kL0_SlowdownWritesTrigger accross shard is 24
 // in 1-1 (0 shard) this value is 16
 // with 8 fixed shard per compute node this equals 2
-static const int kL0_SlowdownWritesTrigger = 16384;
+static const int kL0_SlowdownWritesTrigger = 16;
 
 // Maximum number of level-0 files.  We stop writes at this point.
 // in M-M the total number of kL0_SlowdownWritesTrigger accross shard is 40
 // in 1-1 (0 shard) this value is 32
 // with 8 fixed shard per compute node this equals 4
-static const int kL0_StopWritesTrigger = 16384;
+static const int kL0_StopWritesTrigger = 32;
 // We  can set it as 48*64 Mega byte for the first level, then there will
 // be two levels after the random file benchmark. 1-1 256.0
 // M-M still 256. ahigher number of this value can result in low write performance
