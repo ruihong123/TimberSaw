@@ -12,6 +12,7 @@ DBImpl_Sharding::DBImpl_Sharding(const Options& options, const std::string& dbna
       Shard_Info.emplace_back(iter.first.ToString(), iter.second.ToString());
     }
     for(const auto& iter : Shard_Info) {
+      std::cout << "shard range :" << iter.second << "~" << iter.first << std::endl;
       //We can not set the target node id in DBImpl because we don't know what should be
       // the node id corresponding with this shard. (Is that true?) Probably not.
 

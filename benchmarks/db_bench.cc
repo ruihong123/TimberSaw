@@ -986,6 +986,7 @@ class Benchmark {
                                + i*number_of_key_per_shard;
         uint64_t upper_bound = number_of_key_per_compute*(rdma_mg->node_id -1)/2
                                + (i+1)*number_of_key_per_shard;
+        //in case that the number_of_key_per_shard is rounded down.
         if (i == FLAGS_fixed_compute_shards_num-1){
           upper_bound = number_of_key_per_compute*(rdma_mg->node_id + 1)/2;
         }
