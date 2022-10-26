@@ -1025,7 +1025,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     uint8_t target_node_id =  2*i;
     res->sock_map[target_node_id] =
         client_sock_connect(memory_nodes[target_node_id].c_str(), rdma_config.tcp_port);
-    printf("connect to node id %d", target_node_id);
+    printf("connect to node id %d\n", target_node_id);
     if (res->sock_map[target_node_id] < 0) {
       fprintf(stderr,
               "failed to establish TCP connection to server %s, port %d\n",
@@ -1187,14 +1187,14 @@ int RDMA_Manager::resources_create() {
 
   fprintf(stdout, "SST buffer, send&receive buffer were registered with a\n");
   rc = ibv_query_device(res->ib_ctx, &(res->device_attr));
-  std::cout << "maximum outstanding wr number is"  << res->device_attr.max_qp_wr <<std::endl;
-  std::cout << "maximum query pair number is" << res->device_attr.max_qp
+  std::cout << "maximum outstanding wr number is "  << res->device_attr.max_qp_wr <<std::endl;
+  std::cout << "maximum query pair number is " << res->device_attr.max_qp
             << std::endl;
-  std::cout << "maximum completion queue number is" << res->device_attr.max_cq
+  std::cout << "maximum completion queue number is " << res->device_attr.max_cq
             << std::endl;
-  std::cout << "maximum memory region number is" << res->device_attr.max_mr
+  std::cout << "maximum memory region number is " << res->device_attr.max_mr
             << std::endl;
-  std::cout << "maximum memory region size is" << res->device_attr.max_mr_size
+  std::cout << "maximum memory region size is " << res->device_attr.max_mr_size
             << std::endl;
 
   return rc;

@@ -85,7 +85,7 @@ TableCache::~TableCache() {
            TableCache::cache_miss.load(),TableCache::cache_miss_block_fetch_time.load()/TableCache::cache_miss.load());
   }
 #endif
-  printf("Total number of entries within the cahce is %zu", cache_->TotalCharge());
+  printf("Total number of entries within the cache is %zu\n", cache_->TotalCharge());
   delete cache_;
 }
 
