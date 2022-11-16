@@ -25,7 +25,7 @@ This project supports CMake out of the box.
 ### Build for POSIX
 ```bash
 mkdir -p build && cd build
-cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench dLSM
+cmake -DWITH_GFLAGS=1 -DCMAKE_BUILD_TYPE=Release .. && make Server db_bench TimberSaw
 ```
 
 ### How to run
