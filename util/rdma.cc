@@ -21,7 +21,7 @@ void UnrefHandle_qp(void* ptr) {
   if (ibv_destroy_qp(static_cast<ibv_qp*>(ptr))) {
     fprintf(stderr, "Thread local qp failed to destroy QP\n");
   } else {
-    printf("thread local qp destroy successfully!");
+    printf("thread local qp destroy successfully!\n");
   }
 }
 void UnrefHandle_cq(void* ptr) {
@@ -29,7 +29,7 @@ void UnrefHandle_cq(void* ptr) {
   if (ibv_destroy_cq(static_cast<ibv_cq*>(ptr))) {
     fprintf(stderr, "Thread local cq failed to destroy QP\n");
   } else {
-    printf("thread local cq destroy successfully!");
+    printf("thread local cq destroy successfully!\n");
   }
 }
 void Destroy_mr(void* ptr) {
