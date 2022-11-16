@@ -1294,7 +1294,7 @@ void RDMA_Manager::sync_with_computes_Cside() {
                  temp_receive);
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-  printf("sync wait time is %ld", duration.count());
+  printf("sync wait time is %ld\n", duration.count());
 }
 ibv_mr* RDMA_Manager::Get_local_read_mr() {
   ibv_mr* ret;
@@ -1850,11 +1850,11 @@ int RDMA_Manager::sock_sync_data(int sock, int xfer_size, char* local_data,
   rc = write(sock, local_data, xfer_size);
   if (rc < xfer_size)
     fprintf(stderr,
-            "Failed writing data during sock_sync_data, total bytes are %d\n",
+            "\033[31m[err]\033[0m Failed writing data during sock_sync_data, total bytes are %d\n",
             rc);
   else
     rc = 0;
-  printf("total bytes: %d", xfer_size);
+  printf("total bytes: %d\n", xfer_size);
   while (!rc && total_read_bytes < xfer_size) {
     read_bytes = read(sock, remote_data, xfer_size);
     printf("read byte: %d", read_bytes);

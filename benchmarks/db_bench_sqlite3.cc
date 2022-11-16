@@ -301,7 +301,7 @@ class Benchmark {
       }
     }
 
-    std::fprintf(stdout, "%-12s : %11.3f micros/op;%s%s\n",
+    std::fprintf(stdout, "\033[33m%-12s\033[0m : %11.3f micros/op;%s%s\n",
                  name.ToString().c_str(), (finish - start_) * 1e6 / done_,
                  (message_.empty() ? "" : " "), message_.c_str());
     if (FLAGS_histogram) {

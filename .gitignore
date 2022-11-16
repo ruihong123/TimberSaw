@@ -11,3 +11,6 @@ release/
 debug/
 out/
 /cmake-build-debug/include/
+
+# some useless things 
+mydemo*
