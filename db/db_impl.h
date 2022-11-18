@@ -88,7 +88,7 @@ class DBImpl : public DB {
   DBImpl& operator=(const DBImpl&) = delete;
 
   ~DBImpl() override;
-
+  // Chuqing: Dbimpl外可以封装一层sharding那个文件里的
   // Implementations of the DB interface
   Status Put(const WriteOptions&, const Slice& key,
              const Slice& value) override;
@@ -102,6 +102,7 @@ class DBImpl : public DB {
 #endif
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;
+  // Chuqing: 
   bool GetProperty(const Slice& property, std::string* value) override;
   void GetApproximateSizes(const Range* range, int n, uint64_t* sizes) override;
   void CompactRange(const Slice* begin, const Slice* end) override;
@@ -210,6 +211,7 @@ class DBImpl : public DB {
   void BackgroundCall();
   void BackgroundFlush(void* p);
   void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
+  bool CheckWhetherPushDownorNot();
   void CleanupCompaction(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status DoCompactionWork(CompactionState* compact)

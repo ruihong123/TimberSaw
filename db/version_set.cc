@@ -1757,6 +1757,7 @@ Compaction* VersionSet::PickCompaction() {
         // If L0->L1 compaction is pending, don't schedule further
         // compaction from base level. Otherwise L0->base_level compaction
         // may starve.
+        // Chuqing:level 0 满了，level1正在工作。。。。？给level 0更高的priority
         continue;
       }
       if (PickFileToCompact(level,c)) {
