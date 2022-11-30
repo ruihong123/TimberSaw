@@ -37,7 +37,7 @@ First, you should config the connection.conf under the main directory. The first
 * Compute node side: 
 To run the benchmark:
 ```bash
-./db_bench --benchmarks=fillrandom,readrandom,readrandom,readrandomwriterandom --threads=1 --value_size=400 --num=100000000 --bloom_bits=10 --readwritepercent=5 --compute_node_id=0 --fixed_compute_shards_num=0
+./db_bench --benchmarks=fillrandom,readrandom,readrandom,readrandomwriterandom --threads=16 --value_size=400 --num=100000000 --bloom_bits=10 --readwritepercent=5 --compute_node_id=0 --fixed_compute_shards_num=0
 ```
 To utilize dLSM in your code, you need refer to public interface in **include/dLSM/\*.h** .
 ```bash

@@ -125,7 +125,8 @@ enum RDMA_Command_Type {
   save_fs_serialized_data,
   retrieve_fs_serialized_data,
   save_log_serialized_data,
-  retrieve_log_serialized_data
+  retrieve_log_serialized_data,
+  request_cpu_utilization
 };
 enum file_type { log_type, others };
 struct fs_sync_command {

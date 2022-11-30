@@ -14,7 +14,8 @@
 //#include "sys/vtimes.h"
 #include "cassert"
 
-#define NUMA_CORE_NUM 12
+#define NUMA_CORE_NUM 8
+#define COMPUTE_NUMA_CORE_NUM 152
 
 class Resource_Printer_PlanA {
   unsigned long long lastTotalUser[NUMA_CORE_NUM], lastTotalUserLow[NUMA_CORE_NUM], lastTotalSys[NUMA_CORE_NUM], lastTotalIdle[NUMA_CORE_NUM];
@@ -31,6 +32,7 @@ class Resource_Printer_PlanB {
   Resource_Printer_PlanB();
 
   long double getCurrentValue();
+  std::string getCurrentHost();
 };
 
 #endif  // TIMBERSAW_RESOURCE_PRINTER_PLAN_H

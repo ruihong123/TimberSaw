@@ -9,7 +9,8 @@
 #include <limits>
 #include <vector>
 // int cpu_id_arr[NUMA_CORE_NUM] = {84,85,86,87,88,89,90,91,92,93,94,95,180,181,182,183,184,185,186,187,188,189,190,191};
-int cpu_id_arr[NUMA_CORE_NUM] = {84,85,86,87,88,89,90,91,92,93,94,95};
+int cpu_id_arr[NUMA_CORE_NUM] = {0,1,2,3,4,5,6,7};
+
 
 
 std::fstream& GotoLine(std::fstream& file, unsigned int num){
@@ -34,10 +35,10 @@ Resource_Printer_PlanA::Resource_Printer_PlanA() {
 //      assert(ret != 0);
 //      fclose(file);
 //    }
-std::string line;
-std::string space_delimiter = " ";
-size_t pos = 0;
-std::vector<std::string> words{};
+  std::string line;
+  std::string space_delimiter = " ";
+  size_t pos = 0;
+  std::vector<std::string> words{};
   std::ifstream input("/proc/stat");
   int line_num = 0;
   int cpu_list_index = 0;
@@ -180,16 +181,28 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
 
 Resource_Printer_PlanB::Resource_Printer_PlanB() {
 
-getCurrentValue();
-
-
+  getCurrentValue();
 
 }
+
+
+std::string Resource_Printer_PlanB::getCurrentHost() {
+  std::string hostname;
+  std::ifstream infile("/proc/sys/kernel/hostname");
+	std::getline(infile, hostname);
+  infile.close();
+  return hostname;
+}
+
+
 long double Resource_Printer_PlanB::getCurrentValue() {
   struct tms timeSample;
   clock_t now;
   long double percent;
-
+  int coreNumber = NUMA_CORE_NUM;
+  if (getCurrentHost() == "dbserver3"){
+    coreNumber = COMPUTE_NUMA_CORE_NUM;
+  }
   now = times(&timeSample);
   if (now <= lastCPU || timeSample.tms_stime < lastSysCPU ||
       timeSample.tms_utime < lastUserCPU){
@@ -200,7 +213,7 @@ long double Resource_Printer_PlanB::getCurrentValue() {
     percent = (timeSample.tms_stime - lastSysCPU) +
               (timeSample.tms_utime - lastUserCPU);
     percent /= (now - lastCPU);
-    percent /= NUMA_CORE_NUM;
+    percent /= coreNumber;
     percent *= 100;
   }
   lastCPU = now;

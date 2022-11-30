@@ -1347,10 +1347,62 @@ void DBImpl::BackgroundCompaction(void* p) {
 }
 #endif   
 
+long double DBImpl::RequestRemoteUtilization(){
+  long double mn_percent = 0;
+
+  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // register the memory block from the remote memory
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+  ibv_mr mr_c = {};
+  ibv_mr receive_mr = {};
+  rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+  rdma_mg->Allocate_Local_RDMA_Slot(mr_c, Version_edit);
+  rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
+
+  std::string cpu_request="cpu utilization";
+  memcpy(mr_c.addr, cpu_request.c_str(), cpu_request.size());
+  memset((char*)mr_c.addr + cpu_request.size(), 1, 1);
+  
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = request_cpu_utilization;
+  // send_pointer->content.sstCompact.buffer_size = serilized_c.size() + 1;
+  send_pointer->buffer = receive_mr.addr;
+  // send_pointer->rkey = receive_mr.rkey;
+  send_pointer->buffer_large = mr_c.addr;
+  // send_pointer->rkey_large = mr_c.rkey;
+
+  uint32_t imm_num = imm_gen->fetch_add(1);
+  // avoid imm_num == 0
+  if (imm_num == 0){
+    imm_num = imm_gen->fetch_add(1);
+  }
+  send_pointer->imm_num = imm_num;
+  // send rdma message
+  rdma_mg->post_send<RDMA_Request>(&send_mr, shard_target_node_id, std::string("main"));
+  ibv_wc wc[2] = {};
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
+                               shard_target_node_id)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return -1.0;
+  }
+
+  return mn_percent;
+}
+
 bool DBImpl::CheckWhetherPushDownorNot(){
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-  long double mn_percent = rdma_mg->rpter.getCurrentValue();
-  if (mn_percent > 0.05) {
+  long double cn_percent = rdma_mg->rpter.getCurrentValue();
+  std::string currenthost = rdma_mg->rpter.getCurrentHost();
+
+  std::cout << currenthost << std::endl;
+  printf("CPU utilization is %Lf\n", cn_percent);
+  std::fprintf(stdout, "\033[36m%s\033[0m CPU utilization: %Lf \n",
+                 currenthost.c_str(), cn_percent);
+  
+  // Placeholder for cpu utilization on compute node
+
+  if (cn_percent > 0.05) {
     return false;
   }
   else {
@@ -1363,7 +1415,7 @@ bool DBImpl::CheckWhetherPushDownorNot(){
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
-  bool push_down = CheckWhetherPushDownorNot();
+  bool adaptive_compaction = CheckWhetherPushDownorNot();
 // Chuqing: 这里todo是加个checkwhether pushdown ornot，所以同时要检测remote和cpu端的利用率，
 // 实际在neardata compaction那边，这里是做个演示
   if (shutting_down_.load(std::memory_order_acquire)) {
@@ -1436,7 +1488,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           static_cast<unsigned long long>(f->file_size),
           status.ToString().c_str(), versions_->LevelSummary(&tmp));
       DEBUG("Trival compaction\n");
-    } else if (options_.near_data_compaction && push_down) {
+    } else if (options_.near_data_compaction && adaptive_compaction) {
       // Chuqing: is it possible to have NEARDATACOMPACTION but
       // this option near_data_compaction is false?
       // Chuqing:真正执行compaction
