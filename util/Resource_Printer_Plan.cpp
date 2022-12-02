@@ -181,8 +181,17 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
 
 Resource_Printer_PlanB::Resource_Printer_PlanB() {
 
-  getCurrentValue();
+  // getCurrentValue();
+  paramInit();
 
+}
+
+void Resource_Printer_PlanB::paramInit(){
+  struct tms timeSample;
+
+  lastCPU = times(&timeSample);
+  lastSysCPU = timeSample.tms_stime;
+  lastUserCPU = timeSample.tms_utime;
 }
 
 

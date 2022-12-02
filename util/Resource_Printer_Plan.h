@@ -30,7 +30,7 @@ class Resource_Printer_PlanB {
   clock_t lastCPU, lastSysCPU, lastUserCPU;
  public:
   Resource_Printer_PlanB();
-
+  void paramInit();
   long double getCurrentValue();
   std::string getCurrentHost();
 };
