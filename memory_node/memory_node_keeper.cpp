@@ -1479,18 +1479,14 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
-//       } else if (receive_msg_buf->command == request_cpu_utilization ) {
-//         //TODO: add process function for that 
-//         long double mn_percent = rdma_mg->rpter.getCurrentValue();
-//         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
-//                                             compute_node_id,
-//                                             client_ip);
-//         long double mn_percent = rdma_mg->rpter.getCurrentValue();
-//         // Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,
-//         //                    .client_ip = client_ip,.target_node_id = compute_node_id};
-//         // BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
-//         // Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
-// //        sst_compaction_handler(nullptr);
+      } else if (receive_msg_buf->command == request_cpu_utilization ) {
+        //TODO: add process function for that 
+        // ChuqingAdd: 
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
+                                            compute_node_id,
+                                            client_ip);
+        
+        return_cpu_utilization(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == SSTable_gc) {
 
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
@@ -1670,6 +1666,24 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                       sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   delete request;
+  }
+  // Return the cpu utilization of memory node in the RDMA_Reply
+  void Memory_Node_Keeper::return_cpu_utilization(RDMA_Request* request,
+                                             std::string& client_ip,
+                                             uint8_t target_node_id) {
+    DEBUG("Return cpu utilization\n");
+    //TODO: consider the edianess of the RDMA request and reply.
+    ibv_mr send_mr;
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+    RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+
+    send_pointer->content.cpu_percent = rdma_mg->rpter.getCurrentValue();
+    send_pointer->received = true;
+
+    rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
+                        sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
+    rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+    delete request;
   }
   // the client ip can by any string differnt from read_local write_local_flush
   // and write_local_compact

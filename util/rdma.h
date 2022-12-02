@@ -154,6 +154,7 @@ union RDMA_Reply_Content {
   ibv_mr mr;
   registered_qp_config qp_config;
   install_versionedit ive;
+  long double cpu_percent;
 };
 struct RDMA_Request {
   RDMA_Command_Type command;
@@ -581,7 +582,7 @@ class RDMA_Manager {
         qp = static_cast<ibv_qp*>(qp_local_write_compact.at(target_node_id)->Get());
       }
       rc = ibv_post_send(qp, &sr, &bad_wr);
-    } else {
+    } else {   // default: qp_type=main
       std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
       rc = ibv_post_send(res->qp_map.at(target_node_id), &sr, &bad_wr);
       l.unlock();

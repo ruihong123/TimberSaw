@@ -181,6 +181,8 @@ class Memory_Node_Keeper {
                          uint8_t target_node_id);
   void create_qp_handler(RDMA_Request* request, std::string& client_ip,
                          uint8_t target_node_id);
+  void return_cpu_utilization(RDMA_Request* request, std::string& client_ip,
+                         uint8_t target_node_id);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }

@@ -1354,30 +1354,19 @@ long double DBImpl::RequestRemoteUtilization(){
   // register the memory block from the remote memory
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
-  ibv_mr mr_c = {};
   ibv_mr receive_mr = {};
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
-  rdma_mg->Allocate_Local_RDMA_Slot(mr_c, Version_edit);
   rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
-
-  std::string cpu_request="cpu utilization";
-  memcpy(mr_c.addr, cpu_request.c_str(), cpu_request.size());
-  memset((char*)mr_c.addr + cpu_request.size(), 1, 1);
   
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = request_cpu_utilization;
-  // send_pointer->content.sstCompact.buffer_size = serilized_c.size() + 1;
   send_pointer->buffer = receive_mr.addr;
-  // send_pointer->rkey = receive_mr.rkey;
-  send_pointer->buffer_large = mr_c.addr;
-  // send_pointer->rkey_large = mr_c.rkey;
+  send_pointer->rkey = receive_mr.rkey;
+  
+  RDMA_Reply* receive_pointer;
+  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  *receive_pointer = {};
 
-  uint32_t imm_num = imm_gen->fetch_add(1);
-  // avoid imm_num == 0
-  if (imm_num == 0){
-    imm_num = imm_gen->fetch_add(1);
-  }
-  send_pointer->imm_num = imm_num;
   // send rdma message
   rdma_mg->post_send<RDMA_Request>(&send_mr, shard_target_node_id, std::string("main"));
   ibv_wc wc[2] = {};
@@ -1386,6 +1375,9 @@ long double DBImpl::RequestRemoteUtilization(){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return -1.0;
   }
+  // wait until remote (mn) write the cpu utilization to the buffer
+  rdma_mg->poll_reply_buffer(receive_pointer);
+  mn_percent = receive_pointer->content.cpu_percent;
 
   return mn_percent;
 }
@@ -1395,12 +1387,11 @@ bool DBImpl::CheckWhetherPushDownorNot(){
   long double cn_percent = rdma_mg->rpter.getCurrentValue();
   std::string currenthost = rdma_mg->rpter.getCurrentHost();
 
-  std::cout << currenthost << std::endl;
-  printf("CPU utilization is %Lf\n", cn_percent);
-  std::fprintf(stdout, "\033[36m%s\033[0m CPU utilization: %Lf \n",
+  long double mn_percent = RequestRemoteUtilization();
+
+  std::fprintf(stdout, "%s CPU utilization: %Lf \n",
                  currenthost.c_str(), cn_percent);
-  
-  // Placeholder for cpu utilization on compute node
+  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   if (cn_percent > 0.05) {
     return false;
