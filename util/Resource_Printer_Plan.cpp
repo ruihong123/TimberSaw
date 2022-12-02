@@ -216,9 +216,10 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   if (now <= lastCPU || timeSample.tms_stime < lastSysCPU ||
       timeSample.tms_utime < lastUserCPU){
     //Overflow detection. Just skip this value.
-    printf("%s", getCurrentHost());
+    std::cout << getCurrentHost() << " : ";
     if(now <= lastCPU){
       printf("now <= lastCPU\n");
+      std::cout << "now: " << now << "; lastCPU: " << lastCPU << std::endl;
     } else if (timeSample.tms_stime < lastSysCPU) {
       printf("timeSample.tms_stime < lastSysCPU\n");
     } else {
