@@ -8,6 +8,8 @@
 #include <iostream>
 #include <limits>
 #include <vector>
+#include <unistd.h>
+#include <sys/syscall.h>
 // int cpu_id_arr[NUMA_CORE_NUM] = {84,85,86,87,88,89,90,91,92,93,94,95,180,181,182,183,184,185,186,187,188,189,190,191};
 int cpu_id_arr[NUMA_CORE_NUM] = {0,1,2,3,4,5,6,7};
 
@@ -182,6 +184,8 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
 Resource_Printer_PlanB::Resource_Printer_PlanB() {
 
   // getCurrentValue();
+  int tid = syscall(SYS_gettid);
+  std::cout << "rpter init in thread " << tid << std::endl;
   paramInit();
 
 }
@@ -237,6 +241,10 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   lastCPU = now;
   lastSysCPU = timeSample.tms_stime;
   lastUserCPU = timeSample.tms_utime;
+  
+  int tid = syscall(SYS_gettid);
+  std::cout << "last value updated in thread " << tid \
+            << ", now lastCPU is " << lastCPU << std::endl;
 
   return percent;
 
