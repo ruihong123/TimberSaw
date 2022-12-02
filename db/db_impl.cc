@@ -1373,7 +1373,7 @@ long double DBImpl::RequestRemoteUtilization(){
   if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
                                shard_target_node_id)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
-    return -1.0;
+    return -2.0;
   }
   // wait until remote (mn) write the cpu utilization to the buffer
   rdma_mg->poll_reply_buffer(receive_pointer);

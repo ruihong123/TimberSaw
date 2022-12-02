@@ -207,6 +207,14 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   if (now <= lastCPU || timeSample.tms_stime < lastSysCPU ||
       timeSample.tms_utime < lastUserCPU){
     //Overflow detection. Just skip this value.
+    printf("%s", getCurrentHost());
+    if(now <= lastCPU){
+      printf("now <= lastCPU\n");
+    } else if (timeSample.tms_stime < lastSysCPU) {
+      printf("timeSample.tms_stime < lastSysCPU\n");
+    } else {
+      printf("timeSample.tms_utime < lastUserCPU\n");
+    }
     percent = -1.0;
   }
   else{
