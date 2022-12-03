@@ -184,8 +184,11 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
 Resource_Printer_PlanB::Resource_Printer_PlanB() {
 
   // getCurrentValue();
-  int tid = syscall(SYS_gettid);
-  std::cout << "rpter init in thread " << tid << std::endl;
+  // int tid = syscall(SYS_gettid);
+  // std::cout << "rpter init in thread " << pthread_self() << std::endl;
+  printf("????????????????????????????\n");
+  std::cout << "rpter init. addr is " << std::endl;
+  std::cout << "rpter init. addr is " << long(this) << std::endl;
   paramInit();
 
 }
@@ -242,11 +245,11 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   lastSysCPU = timeSample.tms_stime;
   lastUserCPU = timeSample.tms_utime;
   
-  int tid = syscall(SYS_gettid);
-  std::cout << "last value updated in thread " << tid \
+  // int tid = syscall(SYS_gettid);
+  std::cout << "last value updated in class addr " << long(this) \
             << ", now lastCPU is " << lastCPU << std::endl;
   std::cout << "HIHIHIHIHIHIHIHIHIHI" << std::endl;
-  printf("ttttttttttttttttttttttttttttttttttt");
+  // printf("ttttttttttttttttttttttttttttttttttt");
   return percent;
 
 }
