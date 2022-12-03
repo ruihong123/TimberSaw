@@ -245,7 +245,8 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   int tid = syscall(SYS_gettid);
   std::cout << "last value updated in thread " << tid \
             << ", now lastCPU is " << lastCPU << std::endl;
-
+  std::cout << "HIHIHIHIHIHIHIHIHIHI" << std::endl;
+  printf("ttttttttttttttttttttttttttttttttttt");
   return percent;
 
 }
