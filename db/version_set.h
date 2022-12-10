@@ -245,7 +245,7 @@ class Version {
         total_file_memory_usage = total_file_memory_usage + file->file_size + file->remote_dataindex_mrs[0]->length + file->remote_filter_mrs[0]->length;
       }
     }
-    printf("Total file size is %lu\n", total_file_memory_usage);
+    printf("Total file size is %Lf\n", total_file_memory_usage/ (1024.0L*1024.0L*1024.0L));
   }
   std::shared_ptr<RemoteMemTableMetaData> FindFileByNumber(int level, uint64_t file_number, uint8_t node_id);
  private:
