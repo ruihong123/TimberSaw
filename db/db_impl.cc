@@ -1292,6 +1292,11 @@ void DBImpl::BackgroundCompaction(void* p) {
           status.ToString().c_str(), versions_->LevelSummary(&tmp));
       DEBUG("Trival compaction\n");
     } else {
+//      if(CheckwhetherPushdownorNOt){
+//        NearDataCompaction()
+//      }else{
+//
+//      }
       CompactionState* compact = new CompactionState(c);
 
       auto start = std::chrono::high_resolution_clock::now();
@@ -3155,6 +3160,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
+
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
 //        assert(key.data()[0] == '0');

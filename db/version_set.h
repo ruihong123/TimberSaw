@@ -238,6 +238,14 @@ class Version {
     for (int i = 0; i < config::kNumLevels; ++i) {
       printf("Version level %d contain %zu files\n", i, levels_[i].size());
     }
+    size_t total_file_memory_usage = 0;
+    printf("an example for index block size is %lu, an example for filter blck size is %lu\n",levels_[2][0]->remote_dataindex_mrs[0]->length, levels_[2][0]->remote_filter_mrs[0]->length);
+    for (int i = 0; i < config::kNumLevels; ++i) {
+      for (auto file : levels_[i]) {
+        total_file_memory_usage = total_file_memory_usage + file->file_size + file->remote_dataindex_mrs[0]->length + file->remote_filter_mrs[0]->length;
+      }
+    }
+    printf("Total file size is %lu\n", total_file_memory_usage);
   }
   std::shared_ptr<RemoteMemTableMetaData> FindFileByNumber(int level, uint64_t file_number, uint8_t node_id);
  private:
@@ -532,7 +540,9 @@ class Compaction {
   std::shared_ptr<RemoteMemTableMetaData> input(int which, int i) const { return inputs_[which][i]; }
 
   // Maximum size of files to build during this compaction.
-  uint64_t MaxOutputFileSize() const { return max_output_file_size_; }
+  // NOte 420 is a measure to guarantee the Data of SSTable is strictly less than 64MB.
+  //TODO: change the 420 if it have impact to the performance.
+  uint64_t MaxOutputFileSize() const { return max_output_file_size_ - 420; }
 
   // Is this a trivial compaction that can be implemented by just
   // moving a single mem_vec file to the next level (no merging or splitting)

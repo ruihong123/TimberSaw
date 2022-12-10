@@ -1441,6 +1441,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         }
         continue;
       }
+      // TOFIX: memory leak for new RDMA request()
       RDMA_Request* receive_msg_buf = new RDMA_Request();
       *receive_msg_buf = *(RDMA_Request*)recv_mr[buffer_position].addr;
 //      memcpy(receive_msg_buf, recv_mr[buffer_position].addr, sizeof(RDMA_Request));

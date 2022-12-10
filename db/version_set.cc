@@ -896,6 +896,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
 //}
 
 VersionSet::~VersionSet() {
+  current_->print_version_content();
   current_->Unref(0);
 //  assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log;
@@ -906,7 +907,6 @@ VersionSet::~VersionSet() {
            VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
 #endif
-//  current_->print_version_content();
 #ifndef NDEBUG
   printf("remained versuins number is %d", version_remain);
 #endif
