@@ -873,6 +873,7 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
 }
 void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id,
                                            Chunk_type c_type) {
+  printf("Send garbage collection RPC\n");
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
 //  ibv_mr send_mr_ve = {};
