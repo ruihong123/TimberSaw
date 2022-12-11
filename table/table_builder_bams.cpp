@@ -125,9 +125,14 @@ TableBuilder_BAMS::~TableBuilder_BAMS() {
   if (rep_->filter_block != nullptr){
     delete rep_->filter_block;
   }
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, FlushBuffer);
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, FlushBuffer);
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, FilterChunk);
+  bool successful_dealloc;
+  successful_dealloc = rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, FlushBuffer);
+  assert(successful_dealloc);
+  successful_dealloc = rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, FlushBuffer);
+  assert(successful_dealloc);
+
+  successful_dealloc = rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, FilterChunk);
+  assert(successful_dealloc);
 
   //  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->rdma_mg;
   //  for(auto iter : rep_->local_data_mr){
