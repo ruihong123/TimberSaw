@@ -860,12 +860,12 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
                                                          Chunk_type c_type) {
   std::unique_lock<std::mutex> lck(*dealloc_mtx.at(c_type)->at(target_node_id));
 //  memcpy(deallocation_buffers + top * sizeof(uint64_t), ptr, size);
-  while(top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 64){
+  while(top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
     dealloc_cv.at(c_type)->at(target_node_id)->wait(lck);
   }
   *ptr = deallocation_buffers.at(c_type)->at(target_node_id) + top.at(c_type)->at(target_node_id);
   (*top.at(c_type))[target_node_id] += size;
-  if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 64)
+  if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128)
     return true;
   else
     return false;
