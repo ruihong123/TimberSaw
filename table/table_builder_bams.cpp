@@ -28,7 +28,7 @@ struct TableBuilder_BAMS::Rep {
     //first create two buffer for each slot.
     rdma_mg->Allocate_Local_RDMA_Slot(*local_data_mr, FlushBuffer);
     rdma_mg->Allocate_Local_RDMA_Slot(*local_index_mr, FlushBuffer);
-    rdma_mg->Allocate_Local_RDMA_Slot(*local_filter_mr, FlushBuffer);
+    rdma_mg->Allocate_Local_RDMA_Slot(*local_filter_mr, FilterChunk);
     memset(local_filter_mr->addr, 0, local_filter_mr->length);
 
     //    temp_data_mr = new ibv_mr();
