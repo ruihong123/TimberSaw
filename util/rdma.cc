@@ -53,7 +53,7 @@ void General_Destroy(void* ptr){
 * Initialize the resource for RDMA.
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
-    : total_registered_size(0),
+    : total_assigned_memory_size(0),
 //      Table_Size(remote_block_size),
       read_buffer(new ThreadLocalPtr(&Destroy_mr)),
 //      qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
@@ -845,11 +845,13 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
   }
     else
       printf("Register memory at memory node for computing node\n");
-  total_registered_size = total_registered_size + (*p2mrpointer)->length;
+  total_assigned_memory_size =
+      total_assigned_memory_size + (*p2mrpointer)->length;
   fprintf(stdout,
           "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %Lf\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-          mr_flags, size, total_registered_size/(1024.0L*1024.0L*1024.0L));
+          mr_flags, size,
+          total_assigned_memory_size /(1024.0L*1024.0L*1024.0L));
 
 
   return true;
@@ -886,7 +888,7 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
 }
 void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id,
                                            Chunk_type c_type) {
-  printf("Send garbage collection RPC\n");
+//  printf("Send garbage collection RPC\n");
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
 //  ibv_mr send_mr_ve = {};
@@ -959,7 +961,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
 //    void* dummy = malloc(size*2);
 //  }
   for (int i = 0; i < gb_number; ++i) {
-    total_registered_size = total_registered_size + size;
+//    total_registered_size = total_registered_size + size;
     std::fprintf(stderr, "Pre allocate registered memory %d GB %30s\r", i, "");
     std::fflush(stderr);
     char* buff_pointer = new char[size];

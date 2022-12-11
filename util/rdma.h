@@ -436,7 +436,7 @@ class RDMA_Manager {
 //  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap;
   std::map<Chunk_type, std::map<uint8_t, std::map<void*, In_Use_Array*>*>*> Remote_Mem_Bitmap;
   std::map<uint8_t, std::map<void*, In_Use_Array*>*> Remote_Mem_Bitmap_filter_blocks;
-  uint64_t total_registered_size;
+  uint64_t total_assigned_memory_size;
   //  std::shared_mutex remote_pool_mutex;
   //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
   ////  std::shared_mutex write_pool_mutex;
