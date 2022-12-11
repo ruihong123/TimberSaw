@@ -128,7 +128,7 @@ TableBuilder_Memoryside::~TableBuilder_Memoryside() {
   }
   rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_data_mr->addr, FlushBuffer);
   rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_index_mr->addr, FlushBuffer);
-  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, FlushBuffer);
+  rep_->rdma_mg->Deallocate_Local_RDMA_Slot(rep_->local_filter_mr->addr, FilterChunk);
 
 //  std::shared_ptr<RDMA_Manager> rdma_mg = rep_->rdma_mg;
 //  for(auto iter : rep_->local_data_mr){
