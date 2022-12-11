@@ -240,11 +240,11 @@ class Version {
     }
     size_t total_file_memory_usage = 0;
     if(levels_[2].size() != 0){
-      printf("an example for index block size is %lu, an example for filter blck size is %lu\n",levels_[2][0]->remote_dataindex_mrs[0]->length, levels_[2][0]->remote_filter_mrs[0]->length);
+      printf("an example for index block size is %lu, an example for filter blck size is %lu\n",levels_[2][0]->remote_dataindex_mrs.begin()->second->length, levels_[2][0]->remote_filter_mrs.begin()->second->length);
     }
     for (int i = 0; i < config::kNumLevels; ++i) {
       for (auto file : levels_[i]) {
-        total_file_memory_usage = total_file_memory_usage + file->file_size + file->remote_dataindex_mrs[0]->length + file->remote_filter_mrs[0]->length;
+        total_file_memory_usage = total_file_memory_usage + file->file_size + file->remote_dataindex_mrs.begin()->second->length + file->remote_filter_mrs.begin()->second->length;
       }
     }
     printf("Total file size is %Lf\n", total_file_memory_usage/ (1024.0L*1024.0L*1024.0L));
