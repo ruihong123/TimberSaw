@@ -867,8 +867,9 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
   (*top.at(c_type))[target_node_id] += size;
   if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
 #ifndef NDEBUG
+    uint64_t * interested_buffer = deallocation_buffers.at(c_type)->at(target_node_id);
     for (int i = 0; i < (*top.at(c_type))[target_node_id] - size; ++i) {
-      assert(deallocation_buffers.at(c_type)->at(target_node_id)[i] != 0);
+      assert(interested_buffer[i] != 0);
     }
 
 #endif
