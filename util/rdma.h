@@ -70,7 +70,7 @@
 #endif
 namespace TimberSaw {
 
-enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, DataChunk};
+enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, DataChunk, No_Use_Default_chunk};
 static const char * EnumStrings[] = { "Message", "Version_edit",
       "IndexChunk", "FilterChunk", "FlushBuffer", "Default" };
 

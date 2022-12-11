@@ -828,7 +828,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
         mr_flags, size, local_mem_pool.size());
     return false;
-  } else if(pool_name!= FlushBuffer) {
+    //TODO:
+  } else if(pool_name!= No_Use_Default_chunk) {
     // if pool name == Default, then no bit map will be created. The registered memory is used for remote compute node RDMA read and write
     // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
 
@@ -843,7 +844,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     name_to_mem_pool.at(pool_name).insert({(*p2mrpointer)->addr, in_use_array});
   }
     else
-      printf("Register memory for computing node\n");
+      printf("Register memory at memory node for computing node\n");
   total_registered_size = total_registered_size + (*p2mrpointer)->length;
   fprintf(stdout,
           "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %Lf\n",
