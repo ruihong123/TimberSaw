@@ -865,11 +865,13 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
   }
   *ptr = deallocation_buffers.at(c_type)->at(target_node_id) + top.at(c_type)->at(target_node_id);
   (*top.at(c_type))[target_node_id] += size;
+
   if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
 #ifndef NDEBUG
+    size_t current_index = (*top.at(c_type))[target_node_id];
     if (c_type == FilterChunk){
       uint64_t * interested_buffer = deallocation_buffers.at(c_type)->at(target_node_id);
-      for (int i = 0; i < (*top.at(c_type))[target_node_id] - size; ++i) {
+      for (int i = 0; i < current_index - size; ++i) {
         assert(interested_buffer[i] != 0);
       }
     }
@@ -1106,7 +1108,7 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     dealloc_cv.at(FilterChunk)->insert({target_node_id, new std::condition_variable});
     dealloc_mr.at(FilterChunk)->insert({target_node_id, nullptr});
     top.at(FilterChunk)->insert({target_node_id,0});
-    top.insert({target_node_id,0});
+//    top.insert({target_node_id,0});
     mtx_imme_map.insert({target_node_id, new std::mutex});
     imm_gen_map.insert({target_node_id, new std::atomic<uint32_t>{0}});
     imme_data_map.insert({target_node_id, new  uint32_t{0}});
