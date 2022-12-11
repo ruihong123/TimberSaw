@@ -26,12 +26,13 @@ struct RemoteMemTableMetaData {
   RemoteMemTableMetaData(int side);
   //TOTHINK: the garbage collection of the Remote table is not triggered!
   ~RemoteMemTableMetaData();
-  bool Remote_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){
+  bool Remote_blocks_deallocate(std::map<uint32_t, ibv_mr*> map,
+                                Chunk_type c_type) {
     std::map<uint32_t , ibv_mr*>::iterator it;
 //    assert(creator_node_id%2 == 0);
     for (it = map.begin(); it != map.end(); it++){
-      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(it->second->addr,
-                                                shard_target_node_id)){
+      if(!rdma_mg->Deallocate_Remote_RDMA_Slot(
+              it->second->addr, shard_target_node_id, c_type)){
         return false;
       }
       delete it->second;
@@ -41,36 +42,43 @@ struct RemoteMemTableMetaData {
   // TODO: sperate the deallocation buffer.
   bool Prepare_Batch_Deallocate(){
     std::map<uint32_t , ibv_mr*>::iterator it;
-    uint64_t* ptr;
+    uint64_t* ptr_flush;
+    uint64_t* ptr_filter;
 //    assert(remote_dataindex_mrs.size() == 1);
-    size_t chunk_num = remote_data_mrs.size() + remote_dataindex_mrs.size()
-                       + remote_filter_mrs.size();
-    bool RPC =
-        rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(&ptr, chunk_num, shard_target_node_id);
-    size_t index = 0;
+    size_t chunk_num_flush = remote_data_mrs.size() + remote_dataindex_mrs.size();
+    size_t chunk_num_filter = remote_filter_mrs.size();
+    bool RPC_flush = rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(
+        &ptr_flush, chunk_num_flush, shard_target_node_id, FlushBuffer);
+    bool RPC_filter = rdma_mg->Remote_Memory_Deallocation_Fetch_Buff(
+        &ptr_filter, chunk_num_filter, shard_target_node_id, FilterChunk);
+    size_t index_flush = 0;
+    size_t index_filter = 0;
     for (it = remote_data_mrs.begin(); it != remote_data_mrs.end(); it++) {
-      ptr[index] = (uint64_t)it->second->addr;
+      ptr_flush[index_flush] = (uint64_t)it->second->addr;
 //      DEBUG_arg("deallocated data address is %p", ptr[index]);
-      index++;
+      index_flush++;
       delete it->second;
     }
     for (it = remote_dataindex_mrs.begin(); it != remote_dataindex_mrs.end(); it++) {
-      ptr[index] = (uint64_t)it->second->addr;
+      ptr_flush[index_flush] = (uint64_t)it->second->addr;
 //      DEBUG_arg("deallocated data address is %p", ptr[index]);
-      index++;
+      index_flush++;
       delete it->second;
     }
     for (it = remote_filter_mrs.begin(); it != remote_filter_mrs.end(); it++) {
-      ptr[index] = (uint64_t)it->second->addr;
+      ptr_filter[index_filter] = (uint64_t)it->second->addr;
 //      DEBUG_arg("deallocated data address is %p", ptr[index]);
-      index++;
+      index_filter++;
       delete it->second;
     }
-    assert(index == chunk_num);
-    if (RPC){
-      rdma_mg->Memory_Deallocation_RPC(shard_target_node_id);
+    assert(index_flush == chunk_num_flush);
+    assert(index_filter == chunk_num_filter);
+    if (RPC_flush){
+      rdma_mg->Memory_Deallocation_RPC(shard_target_node_id, FlushBuffer);
     }
-
+    if (RPC_filter){
+      rdma_mg->Memory_Deallocation_RPC(shard_target_node_id, FilterChunk);
+    }
     return true;
   }
   bool Local_blocks_deallocate(std::map<uint32_t , ibv_mr*> map){

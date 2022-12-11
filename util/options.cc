@@ -15,6 +15,7 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     env->rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK, 0);
     env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
     env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
+//    env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
 //    env->rdma_mg->Mempool_initialize(std::string("Prefetch"),
 //                                     RDMA_WRITE_BLOCK);
     env->rdma_mg->Mempool_initialize(DataChunk, block_size, 0);

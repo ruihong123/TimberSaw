@@ -70,7 +70,7 @@
 #endif
 namespace TimberSaw {
 
-enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, DataChunk, Default};
+enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, DataChunk};
 static const char * EnumStrings[] = { "Message", "Version_edit",
       "IndexChunk", "FilterChunk", "FlushBuffer", "Default" };
 
@@ -134,6 +134,7 @@ struct fs_sync_command {
 };
 struct sst_gc {
   size_t buffer_size;
+  Chunk_type c_type;
 //  file_type type;
 };
 //TODO (ruihong): add the reply message address to avoid request&response conflict for the same queue pair.
@@ -355,13 +356,15 @@ class RDMA_Manager {
       Chunk_type pool_name);  // register the memory on the local side
   // bulk deallocation preparation.
   bool Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr, size_t size,
-                                             uint8_t target_node_id);
+                                             uint8_t target_node_id,
+                                             Chunk_type c_type);
   // The RPC to bulk deallocation.
-  void Memory_Deallocation_RPC(uint8_t target_node_id);
+  void Memory_Deallocation_RPC(uint8_t target_node_id, Chunk_type c_type);
   //TODO: Make it register not per 1GB, allocate and register the memory all at once.
   bool Preregister_Memory(int gb_number); //Pre register the memroy do not allocate bit map
   // Remote Memory registering will call RDMA send and receive to the remote memory it also push the new SST bit map to the Remote_Mem_Bitmap
-  bool Remote_Memory_Register(size_t size, uint8_t target_node_id);
+  bool Remote_Memory_Register(size_t size, uint8_t target_node_id,
+                              Chunk_type c_type = FlushBuffer);
   int Remote_Memory_Deregister();
   // new query pair creation and connection to remote Memory by RDMA send and receive
   bool Remote_Query_Pair_Connection(std::string& qp_type,
@@ -384,15 +387,17 @@ class RDMA_Manager {
   // For a thread-local queue pair, the send_cq does not matter.
   int poll_completion(ibv_wc* wc_p, int num_entries, std::string qp_type,
                       bool send_cq, uint8_t target_node_id);
-  void BatchGarbageCollection(uint64_t* ptr, size_t size);
+  void BatchGarbageCollection(uint64_t* ptr, size_t size, Chunk_type c_type);
   bool Deallocate_Local_RDMA_Slot(ibv_mr* mr, ibv_mr* map_pointer,
                                   Chunk_type buffer_type);
   bool Deallocate_Local_RDMA_Slot(void* p, Chunk_type buff_type);
   //  bool Deallocate_Remote_RDMA_Slot(SST_Metadata* sst_meta);
-  bool Deallocate_Remote_RDMA_Slot(void* p, uint8_t target_node_id);
+  bool Deallocate_Remote_RDMA_Slot(void* p, uint8_t target_node_id,
+                                   Chunk_type c_type);
   //TOFIX: There will be memory leak for the remote_mr and mr_input for local/remote memory
   // allocation.
-  void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr, uint8_t target_node_id);
+  void Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr, uint8_t target_node_id,
+                                 Chunk_type c_type = FlushBuffer);
   void Allocate_Local_RDMA_Slot(ibv_mr& mr_input, Chunk_type pool_name);
   size_t Calculate_size_of_pool(Chunk_type pool_name);
   // this function will determine whether the pointer is with in the registered memory
@@ -400,7 +405,8 @@ class RDMA_Manager {
       void* p,
       std::_Rb_tree_iterator<std::pair<void* const, In_Use_Array>>& mr_iter,
       std::map<void*, In_Use_Array>* Bitmap);
-  bool CheckInsideRemoteBuff(void* p, uint8_t target_node_id);
+  bool CheckInsideRemoteBuff(void* p, uint8_t target_node_id,
+                             Chunk_type c_type);
   void mr_serialization(char*& temp, size_t& size, ibv_mr* mr);
   void mr_deserialization(char*& temp, size_t& size, ibv_mr*& mr);
   int try_poll_completions(ibv_wc* wc_p, int num_entries,
@@ -428,7 +434,8 @@ class RDMA_Manager {
       local_mem_pool; /* a vector for all the local memory regions.*/
   std::list<ibv_mr*> pre_allocated_pool;
 //  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap;
-  std::map<uint8_t, std::map<void*, In_Use_Array*>*> Remote_Mem_Bitmap;
+  std::map<Chunk_type, std::map<uint8_t, std::map<void*, In_Use_Array*>*>*> Remote_Mem_Bitmap;
+  std::map<uint8_t, std::map<void*, In_Use_Array*>*> Remote_Mem_Bitmap_filter_blocks;
   uint64_t total_registered_size;
   //  std::shared_mutex remote_pool_mutex;
   //  std::map<void*, In_Use_Array>* Write_Local_Mem_Bitmap = nullptr;
@@ -437,7 +444,7 @@ class RDMA_Manager {
   //  std::shared_mutex read_pool_mutex;
   //  size_t Read_Block_Size;
   //  size_t Write_Block_Size;
-  uint64_t Table_Size;
+//  uint64_t Table_Size;
   std::shared_mutex remote_mem_mutex;
 
   std::shared_mutex rw_mutex;
@@ -476,14 +483,15 @@ class RDMA_Manager {
   static uint8_t node_id;
   std::unordered_map<uint8_t, ibv_mr*> comm_thread_recv_mrs;
   std::unordered_map<uint8_t , int> comm_thread_buffer;
-  std::map<uint8_t, uint64_t*> deallocation_buffers;
-  std::map<uint8_t, std::mutex*> dealloc_mtx;
-  std::map<uint8_t, std::condition_variable*> dealloc_cv;
-
+  std::map<Chunk_type, std::map<uint8_t,uint64_t*>*> deallocation_buffers;
+  std::map<Chunk_type, std::map<uint8_t,std::mutex*>*> dealloc_mtx;
+  std::map<Chunk_type, std::map<uint8_t,std::condition_variable*>*> dealloc_cv;
+  std::map<Chunk_type, std::map<uint8_t,ibv_mr*>*>  dealloc_mr;
   std::atomic<uint64_t> main_comm_thread_ready_num = 0;
+  std::map<uint8_t, std::map<uint8_t,size_t>*>  top;
 //  uint64_t deallocation_buffers[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)];
-  std::map<uint8_t, ibv_mr*>  dealloc_mr;
-  std::map<uint8_t, size_t>  top;
+
+
 
   // The variables for immutable notification RPC.
   std::map<uint8_t, std::mutex*> mtx_imme_map;

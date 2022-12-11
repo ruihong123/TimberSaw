@@ -43,6 +43,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
     rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK, 0);
+//    rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     //TODO: actually we don't need Prefetch buffer.
 //    rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
@@ -1643,7 +1644,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
     assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
       if (!rdma_mg->Local_Memory_Register(&buff, &mr, request->content.mem_size,
-                                          Default)) {
+                                        FlushBuffer)) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(request->content.mem_size));
       }
@@ -1825,6 +1826,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       void* remote_prt = request->buffer;
       uint32_t remote_rkey = request->rkey;
       unsigned int imm_num = request->imm_num;
+      Chunk_type c_type = request->content.gc.c_type;
       ibv_mr send_mr;
 //      ibv_mr recv_mr;
       ibv_mr large_recv_mr;
@@ -1868,7 +1870,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         counter++;
       }
       assert(request->content.gc.buffer_size%sizeof(uint64_t) == 0);
-      rdma_mg->BatchGarbageCollection((uint64_t*)large_recv_mr.addr, request->content.gc.buffer_size);
+      rdma_mg->BatchGarbageCollection((uint64_t*)large_recv_mr.addr,
+                                      request->content.gc.buffer_size,
+                                      c_type);
       rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
       rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, Version_edit);

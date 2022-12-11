@@ -447,7 +447,7 @@ void TableBuilder_BAMS::FlushFilter(size_t& msg_size) {
   //TOFIX: the index may overflow and need to create a new index write buffer, otherwise
   // it would be overwrited.
   r->local_filter_mr = new ibv_mr();
-  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_filter_mr, FlushBuffer);
+  r->rdma_mg->Allocate_Local_RDMA_Slot(*r->local_filter_mr, FilterChunk);
   r->filter_block->Move_buffer((char*)r->local_filter_mr->addr);
 
 }
