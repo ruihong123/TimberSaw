@@ -865,8 +865,15 @@ bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
   }
   *ptr = deallocation_buffers.at(c_type)->at(target_node_id) + top.at(c_type)->at(target_node_id);
   (*top.at(c_type))[target_node_id] += size;
-  if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128)
+  if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
+#ifndef NDEBUG
+    for (int i = 0; i < (*top.at(c_type))[target_node_id] - size; ++i) {
+      assert(deallocation_buffers.at(c_type)->at(target_node_id)[i] != 0);
+    }
+
+#endif
     return true;
+  }
   else
     return false;
 
@@ -935,7 +942,7 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id,
   Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
   // Notify all the other deallocation threads that the buffer has been cleared.
   std::unique_lock<std::mutex> lck(*dealloc_mtx.at(c_type)->at(target_node_id));
-  assert(top.find(target_node_id) != top.end());
+  assert((*top.at(c_type)).find(target_node_id) != (*top.at(c_type)).end());
   (*top.at(c_type))[target_node_id] = 0;
   dealloc_cv.at(c_type)->at(target_node_id)->notify_all();
 }
