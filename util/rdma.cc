@@ -1220,7 +1220,7 @@ int RDMA_Manager::resources_create() {
   // Register the deallocation buffers.
   for(auto iter : deallocation_buffers){
     for (auto iter1 : *iter.second) {
-      (*dealloc_mr.at(iter.first))[iter1.first] = ibv_reg_mr(res->pd, iter.second,
+      (*dealloc_mr.at(iter.first))[iter1.first] = ibv_reg_mr(res->pd, iter1.second,
                                           REMOTE_DEALLOC_BUFF_SIZE, mr_flags);
       if ( (*dealloc_mr.at(iter.first))[iter1.first] == nullptr){
         fprintf(stdout, "dealloc_mr registration failed\n");
