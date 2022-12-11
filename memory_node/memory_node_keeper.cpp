@@ -1848,6 +1848,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       //TODO: how to check whether the version edit message is ready, we need to know the size of the
       // version edit in the first REQUEST from compute node.
       volatile uint64_t * polling_byte = (uint64_t*)((char*)large_recv_mr.addr + request->content.gc.buffer_size - sizeof(uint64_t));
+      //TODO: delete the code below
+      memset((char*)large_recv_mr.addr,  0, large_recv_mr.length);
       *polling_byte = 0;
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
