@@ -954,6 +954,7 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id,
   (*top.at(c_type))[target_node_id] = 0;
   dealloc_cv.at(c_type)->at(target_node_id)->notify_all();
 }
+
 bool RDMA_Manager::Preregister_Memory(int gb_number) {
   int mr_flags = 0;
   size_t size = 1024*1024*1024;
@@ -2884,6 +2885,36 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id,
   //  l.unlock();
   Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
+  return true;
+}
+
+bool RDMA_Manager::Print_Remote_CPU_RPC(uint8_t target_node_id) {
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+//  ibv_mr receive_mr = {};
+  Allocate_Local_RDMA_Slot(send_mr, Message);
+//  Allocate_Local_RDMA_Slot(receive_mr, Message);
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = print_cpu_util;
+//  send_pointer->buffer = receive_mr.addr;
+//  send_pointer->rkey = receive_mr.rkey;
+//  RDMA_Reply* receive_pointer;
+//  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+//  *receive_pointer = {};
+  post_send<RDMA_Request>(&send_mr, target_node_id, std::string("main"));
+  ibv_wc wc[2] = {};
+
+
+  if (poll_completion(wc, 1, std::string("main"), true, target_node_id)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return false;
+  }
+  //  asm volatile ("sfence\n" : : );
+  //  asm volatile ("lfence\n" : : );
+  //  asm volatile ("mfence\n" : : );
+  Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+//  Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_type,

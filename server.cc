@@ -43,7 +43,7 @@ int main(int argc,char* argv[])
 //      myfile <<"\n";
 //      myfile.close();
       sleep(2);
-      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+//      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
     }
   });
   CPU_utilization_heartbeat.detach();

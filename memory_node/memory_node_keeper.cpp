@@ -1512,6 +1512,14 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         DEBUG("QP has been reconnect from the memory node side\n");
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
+      } else if (receive_msg_buf->command == print_cpu_util) {// depracated functions
+        //THis should not be called because the recevei mr will be reset and the buffer
+        // counter will be reset as 0
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
+                                            compute_node_id,
+                                            client_ip);
+        printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+
       } else {
         printf("corrupt message from client. %d\n", receive_msg_buf->command);
         assert(false);
@@ -1679,12 +1687,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       std::to_string(request->content.qp_config.lid) +
       std::to_string(request->content.qp_config.qp_num);
 
-  std::cout << "create query pair command receive for" << client_ip
-  << std::endl;
-  fprintf(stdout, "Remote QP number=0x%x\n",
-          request->content.qp_config.qp_num);
-  fprintf(stdout, "Remote LID = 0x%x\n",
-          request->content.qp_config.lid);
+//  std::cout << "create query pair command receive for" << client_ip
+//  << std::endl;
+//  fprintf(stdout, "Remote QP number=0x%x\n",
+//          request->content.qp_config.qp_num);
+//  fprintf(stdout, "Remote LID = 0x%x\n",
+//          request->content.qp_config.lid);
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;

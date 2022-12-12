@@ -852,6 +852,7 @@ class Benchmark {
     rdma_mg->sync_with_computes_Cside();
 
     shared.start = true;
+    rdma_mg->Print_Remote_CPU_RPC(0);
     shared.cv.SignalAll();
     while (shared.num_done < n) {
       shared.cv.Wait();
@@ -872,6 +873,7 @@ class Benchmark {
       delete arg[i].thread;
     }
     delete[] arg;
+    rdma_mg->Print_Remote_CPU_RPC(0);
     db_->WaitforAllbgtasks(false);
     if (method == &Benchmark::WriteRandom || method == &Benchmark::WriteRandomSharded)
       sleep(3); // wait for the last sstable disgestion.
