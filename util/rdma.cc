@@ -1400,7 +1400,7 @@ void RDMA_Manager::sync_with_computes_Mside() {
           usleep(1024);
           continue;
         }else{
-          printf("CPU utilization is %Lf\n", rpter.getCurrentValue());
+//          printf("CPU utilization is %Lf\n", rpter.getCurrentValue());
           sleep(2);
           continue;
         }
