@@ -67,7 +67,7 @@ struct TimberSaw_EXPORT Options {
   // comparator provided to previous open calls on the same DB.
   const Comparator* comparator;
 
-  int max_background_flushes = 4;// 1-1 setup is 8 M-M setup is 8, fixed shard is also 8
+  int max_background_flushes = 8;// 1-1 setup is 8 M-M setup is 8, fixed shard is also 8
 
 
 
