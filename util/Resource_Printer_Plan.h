@@ -14,7 +14,7 @@
 //#include "sys/vtimes.h"
 #include "cassert"
 
-#define NUMA_CORE_NUM 24
+#define NUMA_CORE_NUM 3
 
 class Resource_Printer_PlanA {
   unsigned long long lastTotalUser[NUMA_CORE_NUM], lastTotalUserLow[NUMA_CORE_NUM], lastTotalSys[NUMA_CORE_NUM], lastTotalIdle[NUMA_CORE_NUM];
