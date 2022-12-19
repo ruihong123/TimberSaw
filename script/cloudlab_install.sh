@@ -1,13 +1,13 @@
 #!/bin/bash
 home_dir="/users/Ruihong/TimberSaw"
-nmemory="9"
-ncompute="9"
-nmachines="18"
+nmemory="10"
+ncompute="10"
+nmachines="20"
 nshard="9"
 numa_node=("0" "1")
 port=$((10000+RANDOM%1000))
 github_repo="https://github.com/ruihong123/TimberSaw"
-gitbranch="Multinodes_follow_nova"
+gitbranch="different_block_types"
 function run_bench() {
   communication_port=()
 #	memory_port=()
@@ -65,11 +65,11 @@ function run_bench() {
   while [ $n -lt $nshard ]
   do
     echo "Set up the ${compute_shard[n]}"
-#    ssh -o StrictHostKeyChecking=no ${compute_shard[n]}  "screen -d -m pwd && cd /users/Ruihong && git clone --recurse-submodules $github_repo && cd TimberSaw/ && mkdir build &&  cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && sudo apt-get install -y libnuma-dev  && make db_bench -j 32 && make Server -j 32" &
-    ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build && git checkout $gitbranch && git pull && make db_bench -j 32 && make Server -j 32 && sudo apt install numactl -y" &
+    ssh -o StrictHostKeyChecking=no ${compute_shard[n]}  "screen -d -m pwd && cd /users/Ruihong && git clone --recurse-submodules $github_repo && cd TimberSaw/ && mkdir build &&  cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && sudo apt-get install -y libnuma-dev  && make db_bench -j 32 && make Server -j 32" &
+#    ssh -o StrictHostKeyChecking=no ${compute_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build && git checkout $gitbranch && git pull && make db_bench -j 32 && make Server -j 32 && sudo apt install numactl -y" &
     echo "Set up the ${memory_shard[n]}"
-    ssh -o StrictHostKeyChecking=no ${memory_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build && git checkout $gitbranch && git pull && make db_bench -j 32 && make Server -j 32 && sudo apt install numactl -y" &
-#    ssh -o StrictHostKeyChecking=no ${memory_shard[n]}  "screen -d -m pwd && cd /users/Ruihong && git clone --recurse-submodules $github_repo && cd TimberSaw/ && mkdir build &&  cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && sudo apt-get install -y libnuma-dev  && make db_bench -j 32 && make Server -j 32" &
+    ssh -o StrictHostKeyChecking=no ${memory_shard[n]}  "screen -d -m pwd && cd /users/Ruihong && git clone --recurse-submodules $github_repo && cd TimberSaw/ && mkdir build &&  cd build && cmake -DCMAKE_BUILD_TYPE=Release .. && sudo apt-get install -y libnuma-dev  && make db_bench -j 32 && make Server -j 32" &
+#    ssh -o StrictHostKeyChecking=no ${memory_shard[n]} "screen -d -m pwd && cd /users/Ruihong/TimberSaw/build && git checkout $gitbranch && git pull && make db_bench -j 32 && make Server -j 32 && sudo apt install numactl -y" &
     n=$((n+1))
     sleep 1
   done
