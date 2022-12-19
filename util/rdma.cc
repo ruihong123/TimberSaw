@@ -3122,22 +3122,24 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   // pick up one buffer from the new Local memory region.
   // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
   // TODO:: Because there are two many thread going on at the same time.
-  ibv_mr* mr_to_allocate = new ibv_mr();
-  char* buff = new char[chunk_size];
+
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
   // The other threads may have already allocate a large chunk of memory. first check
   // the last chunk bit mapm and if it is full then allocate new big chunk of memory.
-  int block_index = (name_to_mem_pool.at(pool_name).end()--)->second->allocate_memory_slot();
+  auto last_element = name_to_mem_pool.at(pool_name).end()--;
+  int block_index = last_element->second->allocate_memory_slot();
   if( block_index>=0){
 
-    mr_input = *(mr_to_allocate);
+    mr_input = *((last_element->second)->get_mr_ori());
     mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
                                        block_index * chunk_size);
     mr_input.length = chunk_size;
 
     return;
   }else{
+    ibv_mr* mr_to_allocate = new ibv_mr();
+    char* buff = new char[chunk_size];
     Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
                                                                                             1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
     if (node_id%2 == 1)
