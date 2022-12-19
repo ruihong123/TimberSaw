@@ -3127,7 +3127,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
   // The other threads may have already allocate a large chunk of memory. first check
   // the last chunk bit mapm and if it is full then allocate new big chunk of memory.
-  auto last_element = name_to_mem_pool.at(pool_name).end()--;
+  auto last_element = --name_to_mem_pool.at(pool_name).end();
   int block_index = last_element->second->allocate_memory_slot();
   if( block_index>=0){
 
