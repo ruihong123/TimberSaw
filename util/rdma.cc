@@ -3126,29 +3126,42 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   char* buff = new char[chunk_size];
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
+  // The other threads may have already allocate a large chunk of memory. first check
+  // the last chunk bit mapm and if it is full then allocate new big chunk of memory.
+  int block_index = (name_to_mem_pool.at(pool_name).end()--)->second->allocate_memory_slot();
+  if( block_index>=0){
 
-  Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
-      1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
-  if (node_id%2 == 1)
-    printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
-           EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
-           Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)
-           + Calculate_size_of_pool(FlushBuffer)+ Calculate_size_of_pool(Version_edit));
-  int block_index = name_to_mem_pool.at(pool_name)
-                        .at(mr_to_allocate->addr)
-                        ->allocate_memory_slot();
-  mem_write_lock.unlock();
-  if (block_index >= 0) {
-//    mr_input = new ibv_mr();
-    //    map_pointer = mr_to_allocate;
     mr_input = *(mr_to_allocate);
     mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
-                                        block_index * chunk_size);
+                                       block_index * chunk_size);
     mr_input.length = chunk_size;
-//    DEBUG_arg("Allocate pointer %p", mr_input.addr);
-    //  mr_input.fname = file_name;
+
     return;
+  }else{
+    Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
+                                                                                            1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
+    if (node_id%2 == 1)
+      printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
+             EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
+                                         Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)
+                                         + Calculate_size_of_pool(FlushBuffer)+ Calculate_size_of_pool(Version_edit));
+    block_index = name_to_mem_pool.at(pool_name)
+                          .at(mr_to_allocate->addr)
+                          ->allocate_memory_slot();
+    mem_write_lock.unlock();
+    assert(block_index >= 0);
+      //    mr_input = new ibv_mr();
+      //    map_pointer = mr_to_allocate;
+      mr_input = *(mr_to_allocate);
+      mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
+                                         block_index * chunk_size);
+      mr_input.length = chunk_size;
+      //    DEBUG_arg("Allocate pointer %p", mr_input.addr);
+      //  mr_input.fname = file_name;
+      return;
+
   }
+
 }
 size_t RDMA_Manager::Calculate_size_of_pool(Chunk_type pool_name) {
   size_t Sum = 0;
