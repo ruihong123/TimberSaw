@@ -25,10 +25,12 @@ std::atomic<uint64_t> MemTable::foundNum = 0;
 //}
 
 MemTable::MemTable(const InternalKeyComparator& cmp)
-    : comparator(cmp), refs_(0), table_(comparator, &arena_) {}
+    : comparator(cmp), refs_(0), table_(comparator, &arena_) {
+  DEBUG_arg("Memtable %p  get created\n", this);
+}
 
 MemTable::~MemTable() {
-  DEBUG_arg("Memtable %p deallocated\n", this);
+  DEBUG_arg("Memtable %p  get deallocated\n", this);
   assert(refs_ == 0);
 }
 

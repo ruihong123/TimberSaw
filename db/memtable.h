@@ -79,7 +79,6 @@ class MemTable {
       }
 
 #endif
-      DEBUG("Memtable get deleted\n");
       delete this;
     }
   }
