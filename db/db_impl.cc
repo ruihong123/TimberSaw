@@ -324,6 +324,7 @@ DBImpl::~DBImpl() {
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
   }
+delete local_sv_;
 //  if (shard_id == 0){
 //    // in sharding mode, the first shard clear those shared variables.
 //    delete mtx_imme;
