@@ -81,6 +81,7 @@ void MemTableListVersion::Ref() { ++refs_; }
 void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
   assert(refs_ >= 1);
   --refs_;
+  assert(memlist_.size() <= 32);
   if (refs_ == 0) {
     //Unref all the memtable in the memtable list.
     for (const auto& m : memlist_) {
@@ -278,6 +279,7 @@ void MemTableListVersion::Remove(MemTable* m) {
 //  m->MarkFlushed();
   if (max_write_buffer_size_to_maintain_ > 0 ||
       max_write_buffer_number_to_maintain_ > 0) {
+    assert(memlist_history_.size() < 32);
     memlist_history_.push_front(m);
     // Unable to get size of mutable memtable at this point, pass 0 to
     // TrimHistory as a best effort.
