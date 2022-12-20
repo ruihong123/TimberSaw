@@ -85,6 +85,7 @@ Options SanitizeOptions(const std::string& dbname,
 //  ClipToRange(&result.write_buffer_size, 64 << 10, 1 << 30);
 //  ClipToRange(&result.max_file_size, 1 << 20, 1 << 30);
 //  ClipToRange(&result.block_size, 1 << 10, 4 << 20);
+  //TODO: recover the info log below try to understand why it will fail.
 //  if (result.info_log == nullptr) {
 //    // Open a log file in the same directory as the db
 //    src.env->CreateDir(dbname);  // In case it does not exist
@@ -324,7 +325,7 @@ DBImpl::~DBImpl() {
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
   }
-delete local_sv_;
+//delete local_sv_;
 //  if (shard_id == 0){
 //    // in sharding mode, the first shard clear those shared variables.
 //    delete mtx_imme;
