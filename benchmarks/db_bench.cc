@@ -1301,7 +1301,7 @@ class Benchmark {
       thread->stats.FinishedSingleOp();
     }
     char msg[100];
-    std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+    std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, reads_);
     thread->stats.AddMessage(msg);
   }
   // This is different from ReadWhileWriting because it does not use
