@@ -74,7 +74,7 @@ enum Chunk_type {Message, Version_edit, IndexChunk, FilterChunk, FlushBuffer, Da
 static const char * EnumStrings[] = { "Message", "Version_edit",
       "IndexChunk", "FilterChunk", "FlushBuffer", "Default" };
 
-static char config_file_name[100] = "../connection_cloudlab_1-2.conf";
+static char config_file_name[100] = "../connection_cloudlab_1-M.conf";
 
 struct config_t {
   const char* dev_name;    /* IB device name */
