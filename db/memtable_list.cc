@@ -337,6 +337,9 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
 
     *parent_memtable_list_memory_usage_ -= x->ApproximateMemoryUsage();
     ret = true;
+#ifndef NDEBUG
+    x->assert_refs(1);
+#endif
     x->Unref();
   }
   return ret;
