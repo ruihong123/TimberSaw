@@ -23,15 +23,21 @@ std::atomic<uint64_t> MemTable::foundNum = 0;
 //  p = GetVarint32Ptr(p, p + 5, &len);  // +5: we assume "p" is not corrupted
 //  return Slice(p, len);
 //}
-
+std::atomic_int64_t Memtable_created = 0;
+std::atomic_int64_t Memtable_deallocated = 0;
 MemTable::MemTable(const InternalKeyComparator& cmp)
     : comparator(cmp), refs_(0), table_(comparator, &arena_) {
-  DEBUG_arg("Memtable %p  get created\n", this);
+#ifndef NDEBUG
+  printf("Memtable %p  get created, total created %lu\n", this, Memtable_created.fetch_add(1));
+#endif
 }
 
 MemTable::~MemTable() {
-  DEBUG_arg("Memtable %p  get deallocated\n", this);
+#ifndef NDEBUG
+  printf("Memtable %p  get deallocated,total deallocated %lu\n", this, Memtable_deallocated.fetch_add(1));
   assert(refs_ == 0);
+#endif
+
 }
 
 size_t MemTable::ApproximateMemoryUsage() { return arena_.ApproximateMemoryUsage(); }
