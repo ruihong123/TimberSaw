@@ -689,8 +689,8 @@ Status DBImpl::RecoverLogFile(uint64_t log_number, bool last_log,
   // to be skipped instead of propagating bad information (like overly
   // large sequence numbers).
   log::Reader reader(file, &reporter, true /*checksum*/, 0 /*initial_offset*/);
-  Log(options_.info_log, "Recovering log #%llu",
-      (unsigned long long)log_number);
+//  Log(options_.info_log, "Recovering log #%llu",
+//      (unsigned long long)log_number);
 
   // Read all the records and add to a memtable
   std::string scratch;
