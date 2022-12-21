@@ -433,8 +433,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   };
   MaybeScheduleFlushOrCompaction();
   // Trim all the immutable histories
-  imm_.TrimHistory(nullptr, config::Immutable_StopWritesTrigger* 64ull*1024*1024);
-  InstallSuperVersion();
+
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
@@ -447,6 +446,9 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
+  imm_.TrimHistory(nullptr, config::Immutable_StopWritesTrigger* 64ull*1024*1024);
+  InstallSuperVersion();
+  return ;
 
 //  config::Immutable_FlushTrigger = temp;
 }
