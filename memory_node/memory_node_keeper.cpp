@@ -1829,7 +1829,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       RDMA_Request* request = ((Arg_for_handler*)arg)->request;
       std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
       uint8_t target_node_id = ((Arg_for_handler*)arg)->target_node_id;
-//      printf("Garbage collection\n");
+      printf("Garbage collection\n");
 
       void* remote_prt = request->buffer;
       uint32_t remote_rkey = request->rkey;

@@ -1359,7 +1359,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
   if (slow_down_compaction.load()){
-    usleep(500);
+    usleep(5000);
   }
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
