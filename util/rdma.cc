@@ -849,10 +849,10 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
   total_assigned_memory_size =
       total_assigned_memory_size + (*p2mrpointer)->length;
   fprintf(stdout,
-          "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %Lf\n",
+          "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %Lf, chunk type is %d\n",
           (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
           mr_flags, size,
-          total_assigned_memory_size /(1024.0L*1024.0L*1024.0L));
+          total_assigned_memory_size /(1024.0L*1024.0L*1024.0L), pool_name);
 
 
   return true;
