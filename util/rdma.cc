@@ -3177,6 +3177,10 @@ void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size,
   for (int i = 0; i < size/ sizeof(uint64_t); ++i) {
 //    assert()
     bool result = Deallocate_Local_RDMA_Slot((void*)ptr[i], c_type);
+    if (!result){
+      printf("wrong garbage collection\n");
+      exit(0);
+    }
     assert(result);
 //#ifndef NDEBUG
 //    printf("Sucessfully delete a SSTable %p", (void*)ptr[i]);

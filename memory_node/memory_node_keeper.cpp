@@ -1968,7 +1968,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     //Decode compaction
     c.DecodeFrom(
         Slice((char*)large_recv_mr.addr, request->content.sstCompact.buffer_size), 1);
-    printf("near data compaction at level %d\n", c.level());
+    printf("near data compaction at level %d, first level of file%d, second level of file %d\n", c.level(), c.num_input_files(0), c.num_input_files(1));
 
     // Note need to check whether the code below is correct.
 //    void* remote_large_recv_ptr =  *(void**)new_pos.data();
