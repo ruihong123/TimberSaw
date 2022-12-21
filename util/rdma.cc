@@ -34,8 +34,9 @@ void UnrefHandle_cq(void* ptr) {
 }
 void Destroy_mr(void* ptr) {
   if (ptr == nullptr) return;
+  auto target_add = (char*)((ibv_mr*)ptr)->addr;
   ibv_dereg_mr((ibv_mr*)ptr);
-  delete (char*)((ibv_mr*)ptr)->addr;
+  delete target_add;
 }
 template<typename T>
 void General_Destroy(void* ptr){
