@@ -432,6 +432,8 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
     ForceCompactMemTable();
   };
   MaybeScheduleFlushOrCompaction();
+  // Trim all the immutable histories
+  imm_.TrimHistory(nullptr, config::Immutable_StopWritesTrigger* 64ull*1024*1024);
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
