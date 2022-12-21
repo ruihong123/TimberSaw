@@ -311,7 +311,7 @@ class DBImpl : public DB {
   bool background_compaction_scheduled_;
 
   ManualCompaction* manual_compaction_;
-
+  std::atomic<bool> slow_down_compaction;
   VersionSet* const versions_;
 //  std::map<Slice, VersionSet*, cmpBySlice> const versions_pool;
   // Have we encountered a background error in paranoid mode?

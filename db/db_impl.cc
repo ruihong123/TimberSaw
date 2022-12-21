@@ -390,6 +390,7 @@ DBImpl::~DBImpl() {
 // put the memtable to immutable table and flush all immutable to remote memory if the
 // immutable trigger is 1. Wait for all the background task to finish.
 void DBImpl::WaitforAllbgtasks(bool clear_mem) {
+  slow_down_compaction.store(false);
   if (clear_mem){
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
     MemTable* mem = mem_.load();
@@ -433,7 +434,8 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
   };
   MaybeScheduleFlushOrCompaction();
   // Trim all the immutable histories
-
+  imm_.TrimHistory(nullptr, config::Immutable_StopWritesTrigger* 64ull*1024*1024);
+  InstallSuperVersion();
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
@@ -446,8 +448,7 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
-  imm_.TrimHistory(nullptr, config::Immutable_StopWritesTrigger* 64ull*1024*1024);
-  InstallSuperVersion();
+
   return ;
 
 //  config::Immutable_FlushTrigger = temp;
@@ -1357,6 +1358,9 @@ void DBImpl::BackgroundCompaction(void* p) {
 #endif
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
+  if (slow_down_compaction.load()){
+    usleep(500);
+  }
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
   if (shutting_down_.load(std::memory_order_acquire)) {
