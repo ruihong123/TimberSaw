@@ -962,7 +962,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
 //  if (node_id == 2){
 //    void* dummy = malloc(size*2);
 //  }
-  for (int i = 0; i < gb_number/(1024.0*1024*1024/size); ++i) {
+  for (int i = 0; i < gb_number; ++i) {
 //    total_registered_size = total_registered_size + size;
     std::fprintf(stderr, "Pre allocate registered memory %d GB %30s\r", i, "");
     std::fflush(stderr);
