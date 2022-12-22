@@ -66,8 +66,11 @@ static const char* FLAGS_benchmarks =
     "snappycomp,"
     "snappyuncomp,";
 
-// Number of key/values to place in database
+// A argument setting the range of key-value pair generated
+// Real inserted number per thread = FLAGS_num by default.
 static int FLAGS_num = 1000000;
+
+static int FLAGS_loads = -1;
 
 // Number of read operations to do.  If negative, do FLAGS_num reads.
 static int FLAGS_reads = -1;
@@ -1561,6 +1564,8 @@ int main(int argc, char** argv) {
       FLAGS_num = n;
     } else if (sscanf(argv[i], "--reads=%d%c", &n, &junk) == 1) {
       FLAGS_reads = n;
+    } else if (sscanf(argv[i], "--loads=%d%c", &n, &junk) == 1) {
+      FLAGS_loads = n;
     } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
       FLAGS_threads = n;
     } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
