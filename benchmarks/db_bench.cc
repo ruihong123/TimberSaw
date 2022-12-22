@@ -72,6 +72,8 @@ static int FLAGS_num = 1000000;
 
 static int FLAGS_loads = -1;
 
+static int FLAGS_load_vs_num = 1;
+
 // Number of read operations to do.  If negative, do FLAGS_num reads.
 static int FLAGS_reads = -1;
 
@@ -1145,7 +1147,7 @@ class Benchmark {
     Slice key = AllocateKey(&key_guard);
 //    int total_number_of_inserted_key = FLAGS_num*FLAGS_threads;
     uint64_t shard_number_among_computes = (RDMA_Manager::node_id - 1)/2;
-    for (int i = 0; i < num_; i += entries_per_batch_) {
+    for (int i = 0; i < num_*FLAGS_load_vs_num; i += entries_per_batch_) {
       batch.Clear();
       for (int j = 0; j < entries_per_batch_; j++) {
         //The key range should be adjustable.
@@ -1566,6 +1568,8 @@ int main(int argc, char** argv) {
       FLAGS_reads = n;
     } else if (sscanf(argv[i], "--loads=%d%c", &n, &junk) == 1) {
       FLAGS_loads = n;
+    } else if (sscanf(argv[i], "--load_vs_num=%d%c", &n, &junk) == 1) {
+      FLAGS_load_vs_num = n;
     } else if (sscanf(argv[i], "--threads=%d%c", &n, &junk) == 1) {
       FLAGS_threads = n;
     } else if (sscanf(argv[i], "--value_size=%d%c", &n, &junk) == 1) {
