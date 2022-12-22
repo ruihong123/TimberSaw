@@ -2,7 +2,7 @@
 #define RDMA_H
 
 
-#define REMOTE_DEALLOC_BUFF_SIZE (128 + 128) * sizeof(uint64_t)
+#define REMOTE_DEALLOC_BUFF_SIZE (192 + 128) * sizeof(uint64_t)
 #include <algorithm>
 #include <arpa/inet.h>
 #include <atomic>
