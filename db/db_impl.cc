@@ -390,7 +390,7 @@ DBImpl::~DBImpl() {
 // put the memtable to immutable table and flush all immutable to remote memory if the
 // immutable trigger is 1. Wait for all the background task to finish.
 void DBImpl::WaitforAllbgtasks(bool clear_mem) {
-  slow_down_compaction.store(false);
+//  slow_down_compaction.store(false);
   if (clear_mem){
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
     MemTable* mem = mem_.load();
