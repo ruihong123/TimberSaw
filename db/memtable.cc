@@ -28,13 +28,13 @@ std::atomic_int64_t Memtable_deallocated = 0;
 MemTable::MemTable(const InternalKeyComparator& cmp)
     : comparator(cmp), refs_(0), table_(comparator, &arena_) {
 //#ifndef NDEBUG
-  printf("Memtable %p  get created, total created %lu\n", this, Memtable_created.fetch_add(1));
+//  printf("Memtable %p  get created, total created %lu\n", this, Memtable_created.fetch_add(1));
 //#endif
 }
 
 MemTable::~MemTable() {
 //#ifndef NDEBUG
-  printf("Memtable %p  get deallocated,total deallocated %lu\n", this, Memtable_deallocated.fetch_add(1));
+//  printf("Memtable %p  get deallocated,total deallocated %lu\n", this, Memtable_deallocated.fetch_add(1));
   assert(refs_ == 0);
 //#endif
 
