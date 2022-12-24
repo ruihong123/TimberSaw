@@ -71,8 +71,8 @@ struct TimberSaw_EXPORT Options {
 
 
 
-  int max_background_compactions = 12;//
-  int MaxSubcompaction = 12; // 1-1 setup is 12; M-M  12 as well
+  int max_background_compactions = 24;//
+  int MaxSubcompaction = 24; // 1-1 setup is 12; M-M  12 as well
   bool usesubcompaction = true;
   // If true, the database will be created if it is missing.
   bool create_if_missing = true;
