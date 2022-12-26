@@ -326,7 +326,7 @@ class VersionSet {
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
   static std::atomic<uint64_t> GetNum;
-
+  size_t metadata_install_counter = 0;
 #endif
 #ifdef WITHPERSISTENCE
   void Persistency_pin(VersionEdit* edit);

@@ -906,6 +906,7 @@ VersionSet::~VersionSet() {
     printf("LSM Version GET time statistics is %zu, %zu, %zu\n",
            VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
+  printf("version set install times is %lu\n", metadata_install_counter);
 #endif
 #ifndef NDEBUG
   printf("remained versuins number is %d", version_remain);
@@ -978,7 +979,9 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //        if (iter.second->table_cache == nullptr)
 //          iter.second->table_cache = table_cache_;
 //  }
-
+#ifdef PROCESSANALYSIS
+  metadata_install_counter++;
+#endif
   edit->SetLastSequence(last_sequence_);
   Version* v;
   v = new Version(this);
