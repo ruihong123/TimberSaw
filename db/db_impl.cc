@@ -304,8 +304,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
   env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
-
-
+  
+  //TODO(chuqing): here to initialize?
+  ActivateRemoteCPURefresh();
 
 }
 
@@ -1347,6 +1348,52 @@ void DBImpl::BackgroundCompaction(void* p) {
 }
 #endif   
 
+void DBImpl::ActivateRemoteCPURefresh(){
+  /**
+  Keep updating a DB public variable 'server_cpu_utilization' by receive 
+  the RDMA_Write from compute nodes, 100ms once
+  **/
+
+  //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
+  //TODO(Chuqing): where to initialize?
+
+  std::thread keep_refresh_remote_cpu_utilizaton([&](){
+    std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+    // register the memory block from the remote memory
+    RDMA_Request* send_pointer;
+    ibv_mr send_mr = {};
+    ibv_mr receive_mr = {};
+    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+    rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
+
+    send_pointer = (RDMA_Request*)send_mr.addr;
+    send_pointer->command = create_cpu_refresher;
+    send_pointer->buffer = receive_mr.addr;
+    send_pointer->rkey = receive_mr.rkey;
+
+    RDMA_Reply* receive_pointer;
+    receive_pointer = (RDMA_Reply*)receive_mr.addr;
+    *receive_pointer = {};
+
+    rdma_mg->post_send<RDMA_Request>(&send_mr, shard_target_node_id, std::string("main"));
+    ibv_wc wc[2] = {};
+    if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
+                                 shard_target_node_id)){
+      fprintf(stderr, "failed to poll send for remote memory register\n");
+      return ;
+    }
+    // wait until remote (mn) write the cpu utilization to the buffer
+    rdma_mg->poll_reply_buffer(receive_pointer);
+
+    while(1){
+      server_cpu_percent = receive_pointer->content.cpu_percent;
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+  });
+  keep_refresh_remote_cpu_utilizaton.detach();
+  return;
+}
+
 long double DBImpl::RequestRemoteUtilization(){
   long double mn_percent = 0;
 
@@ -1383,16 +1430,22 @@ long double DBImpl::RequestRemoteUtilization(){
 }
 
 bool DBImpl::CheckWhetherPushDownorNot(){
+  //TODO(chuqing): decide whether pushdown, now we get the mn_perecnt by 
+  // heartbeat, to be more accurate for compute node itself, should also 
+  // change to heartbeat instead of on demand 
+  
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   long double cn_percent = rdma_mg->rpter.getCurrentValue();
   std::string currenthost = rdma_mg->rpter.getCurrentHost();
 
-  long double mn_percent = RequestRemoteUtilization();
+  // long double mn_percent = RequestRemoteUtilization();
+  long double mn_percent = server_cpu_percent;
 
   std::fprintf(stdout, "%s CPU utilization: %Lf \n",
                  currenthost.c_str(), cn_percent);
   std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
+  //TODO(chuqing): a dynamic strategy here
   if (cn_percent > 0.05) {
     return false;
   }
@@ -1401,14 +1454,12 @@ bool DBImpl::CheckWhetherPushDownorNot(){
   }
 }
 
-// Chuqing: neardata compaction
+//TODO(Chuqing): neardata compaction
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
   bool adaptive_compaction = CheckWhetherPushDownorNot();
-// Chuqing: 这里todo是加个checkwhether pushdown ornot，所以同时要检测remote和cpu端的利用率，
-// 实际在neardata compaction那边，这里是做个演示
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {

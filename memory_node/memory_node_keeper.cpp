@@ -1479,9 +1479,15 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
+      } else if (receive_msg_buf->command == create_cpu_refresher) {
+        //TODO: (chuqing)
+        // receive a new remote cpu keeper request from compute node
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
+                                            compute_node_id,
+                                            client_ip);
+        
+        create_cpu_util_sender(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == request_cpu_utilization ) {
-        //TODO: add process function for that 
-        // ChuqingAdd: 
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
@@ -1672,7 +1678,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                                              std::string& client_ip,
                                              uint8_t target_node_id) {
     DEBUG("Return cpu utilization\n");
-    //TODO: consider the edianess of the RDMA request and reply.
+    
     ibv_mr send_mr;
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
@@ -1684,6 +1690,39 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                         sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
     rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
     delete request;
+  }
+
+  void Memory_Node_Keeper::create_cpu_util_sender(RDMA_Request* request,
+                                             std::string& client_ip,
+                                             uint8_t target_node_id){
+    //TODO: (chuqing)
+    DEBUG("Create cpu utilization sender\n");
+    
+    std::thread CPU_utilization_heartbeat([&](){
+      //backup the function arguments
+      uint8_t target_node_id_local = target_node_id;
+      void* request_buffer = malloc(sizeof(ibv_mr));
+      memcpy(request_buffer, request->buffer, sizeof(ibv_mr));
+      uint32_t request_rkey = request->rkey;
+      std::string client_ip_local = std::string(client_ip.c_str());
+      // client_ip_local.copy(client_ip, client_ip.length(), 0);
+
+      ibv_mr send_mr;
+      rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+      RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+    
+      send_pointer->received = true;
+      while (1){
+        send_pointer->content.cpu_percent = rdma_mg->rpter.current_percent;
+        rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
+                        sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+    });
+    CPU_utilization_heartbeat.detach();
+    // wait for the deepcopy
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+  
   }
   // the client ip can by any string differnt from read_local write_local_flush
   // and write_local_compact

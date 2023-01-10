@@ -12,6 +12,7 @@
 #include <sys/syscall.h>
 // int cpu_id_arr[NUMA_CORE_NUM] = {84,85,86,87,88,89,90,91,92,93,94,95,180,181,182,183,184,185,186,187,188,189,190,191};
 int cpu_id_arr[NUMA_CORE_NUM] = {0,1,2,3,4,5,6,7};
+int cpu_id_arr_compute[COMPUTE_NUMA_CORE_NUM] = {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99,100,101,102,103,104,105,106,107,108,109,110,111,112,113,114,115,116,117,118,119,120,121,122,123,124,125,126,127,128,129,130,131,132,133,134,135,136,137,138,139,140,141,142,143,144,145,146,147,148,149,150,151};
 
 
 
@@ -24,19 +25,7 @@ std::fstream& GotoLine(std::fstream& file, unsigned int num){
 }
 Resource_Printer_PlanA::Resource_Printer_PlanA() {
 
-
-//    std::string prefix = "cpu";
-//    std::string str;
-//    std::string suffix = " %llu %llu %llu %llu";
-//    for (int i = 0; i < NUMA_CORE_NUM; ++i) {
-//      FILE* file = fopen("/proc/stat", "r");
-//      std::string s = std::to_string(cpu_id_arr[i]);
-//      str = prefix + s +suffix;
-//      int ret = fscanf(file, str.c_str(), &lastTotalUser[i], &lastTotalUserLow[i],
-//                       &lastTotalSys[i], &lastTotalIdle[i]);
-//      assert(ret != 0);
-//      fclose(file);
-//    }
+  bool is_compute = false; 
   std::string line;
   std::string space_delimiter = " ";
   size_t pos = 0;
@@ -45,6 +34,14 @@ Resource_Printer_PlanA::Resource_Printer_PlanA() {
   int line_num = 0;
   int cpu_list_index = 0;
   int target_line = cpu_id_arr[cpu_list_index] + 1;
+  int coreNumber = NUMA_CORE_NUM;
+
+  // decide whether is compute node 
+  if (getCurrentHost() == "dbserver3"){
+    is_compute = true;
+    coreNumber = COMPUTE_NUMA_CORE_NUM;
+    target_line = cpu_id_arr_compute[cpu_list_index] + 1;
+  }
 
   while( std::getline( input, line ) ) {
 
@@ -59,28 +56,48 @@ Resource_Printer_PlanA::Resource_Printer_PlanA() {
       lastTotalUserLow[cpu_list_index] = std::stoi(words[2]);
       lastTotalSys[cpu_list_index] = std::stoi(words[3]);
       lastTotalIdle[cpu_list_index] = std::stoi(words[4]);
-      printf("CPU %d get its intial value %llu\n", cpu_id_arr[cpu_list_index], lastTotalUser[cpu_list_index]);
-
+      
       cpu_list_index++;
-      if (cpu_list_index == NUMA_CORE_NUM)
-        break ;
-      target_line=cpu_id_arr[cpu_list_index+1];
+      if (is_compute){
+        printf("CPU %d get its intial value %llu\n", cpu_id_arr_compute[cpu_list_index], lastTotalUser[cpu_list_index]);
+        if (cpu_list_index == COMPUTE_NUMA_CORE_NUM)
+          break;
+        target_line=cpu_id_arr_compute[cpu_list_index+1];
+      } else{
+        printf("CPU %d get its intial value %llu\n", cpu_id_arr[cpu_list_index], lastTotalUser[cpu_list_index]);
+        if (cpu_list_index == NUMA_CORE_NUM)
+          break;
+        target_line=cpu_id_arr[cpu_list_index+1];
+      }
+
       pos = 0;
 
     }
 
-
     line_num++;
 
   }
-  assert(cpu_list_index == NUMA_CORE_NUM);
-
+  std::cout << "cpu_list_index:" << cpu_list_index << "; coreNumber:" << coreNumber << std::endl;
+  // assert(cpu_list_index == coreNumber);
 
 }
-long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA_CORE_NUM] = {};
+
+std::string Resource_Printer_PlanA::getCurrentHost() {
+  std::string hostname;
+  std::ifstream infile("/proc/sys/kernel/hostname");
+	std::getline(infile, hostname);
+  infile.close();
+  return hostname;
+}
+
+
+long double Resource_Printer_PlanA::getCurrentValue() { 
+  // long double percent[NUMA_CORE_NUM] = {};
   long double aggre_percent = 0;
   FILE* file;
-  unsigned long long totalUser[NUMA_CORE_NUM], totalUserLow[NUMA_CORE_NUM], totalSys[NUMA_CORE_NUM], totalIdle[NUMA_CORE_NUM], total[NUMA_CORE_NUM];
+  // unsigned long long totalUser[NUMA_CORE_NUM], totalUserLow[NUMA_CORE_NUM], totalSys[NUMA_CORE_NUM], totalIdle[NUMA_CORE_NUM], total[NUMA_CORE_NUM];
+  bool is_compute = false;
+  int coreNumber = NUMA_CORE_NUM;
 
   std::string line;
   std::string space_delimiter = " ";
@@ -90,6 +107,16 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
   int line_num = 0;
   int cpu_list_index = 0;
   int target_line = cpu_id_arr[cpu_list_index] + 1;
+
+  if (getCurrentHost() == "dbserver3"){
+    is_compute = true;
+    coreNumber = COMPUTE_NUMA_CORE_NUM;
+    target_line = cpu_id_arr_compute[cpu_list_index] + 1;
+  }
+
+  long double percent[coreNumber] = {};
+  unsigned long long totalUser[coreNumber], totalUserLow[coreNumber], \
+                      totalSys[coreNumber], totalIdle[coreNumber], total[coreNumber];
 
   while( std::getline( input, line ) ) {
 
@@ -127,56 +154,32 @@ long double Resource_Printer_PlanA::getCurrentValue() { long double percent[NUMA
       lastTotalIdle[cpu_list_index] = totalIdle[cpu_list_index];
 
       cpu_list_index++;
-      if (cpu_list_index == NUMA_CORE_NUM)
-        break ;
-      target_line=cpu_id_arr[cpu_list_index+1];
+      
+      if (is_compute){
+        if (cpu_list_index == COMPUTE_NUMA_CORE_NUM)
+          break;
+        target_line=cpu_id_arr_compute[cpu_list_index+1];
+      } else{
+        if (cpu_list_index == NUMA_CORE_NUM)
+          break;
+        target_line=cpu_id_arr[cpu_list_index+1];
+      }
       pos = 0;
 
     }
 
-
     line_num++;
 
   }
-  assert(cpu_list_index == NUMA_CORE_NUM);
+  assert(cpu_list_index == coreNumber);
 
-
-
-//
-//  for (int i = 0; i < NUMA_CORE_NUM; ++i) {
-//    file = fopen("/proc/stat", "r");
-//    int ret = fscanf(file, "cpu %llu %llu %llu %llu", &totalUser[i], &totalUserLow[i],
-//           &totalSys[i], &totalIdle[i]);
-//    assert(ret != 0);
-//    if (totalUser[i] < lastTotalUser[i] || totalUserLow[i] < lastTotalUserLow[i] ||
-//        totalSys[i] < lastTotalSys[i] || totalIdle[i] < lastTotalIdle[i]){
-//      //Overflow detection. Just skip this value.
-//      percent[i] = -1.0;
-//      fclose(file);
-//      break ;
-//    }
-//    else{
-//      total[i] = (totalUser[i] - lastTotalUser[i]) + (totalUserLow[i] - lastTotalUserLow[i]) +
-//                 (totalSys[i] - lastTotalSys[i]);
-//      percent[i] = total[i];
-//      total[i] += (totalIdle[i] - lastTotalIdle[i]);
-//      percent[i] /= total[i];
-//      percent[i] *= 100;
-//    }
-//
-//    lastTotalUser[i] = totalUser[i];
-//    lastTotalUserLow[i] = totalUserLow[i];
-//    lastTotalSys[i] = totalSys[i];
-//    lastTotalIdle[i] = totalIdle[i];
-//    fclose(file);
-//  }
-  for (int i = 0; i < NUMA_CORE_NUM; ++i) {
+  for (int i = 0; i < coreNumber; ++i) {
     aggre_percent += percent[i];
     if (percent[i] == -1.0){
       return -1.0;
     }
   }
-  aggre_percent = aggre_percent/NUMA_CORE_NUM;
+  aggre_percent = aggre_percent/coreNumber;
   return aggre_percent;
 }
 
@@ -217,6 +220,7 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   clock_t now;
   long double percent;
   int coreNumber = NUMA_CORE_NUM;
+  //TODO: generalize the compute node identification by read file
   if (getCurrentHost() == "dbserver3"){
     coreNumber = COMPUTE_NUMA_CORE_NUM;
   }
@@ -248,11 +252,15 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   lastUserCPU = timeSample.tms_utime;
   
   // int tid = syscall(SYS_gettid);
-  std::fprintf(stdout, "last value updated in class addr %Ld: now %Ld \n", long(this), lastCPU);
-  // std::cout << "last value updated in class addr " << long(this) \
-  //           << ", now lastCPU is " << lastCPU << std::endl;
+  // std::fprintf(stdout, "%Ld: now %Ld \n", long(this), lastCPU);
+  std::cout << "last value updated in class addr " << long(this) \
+            << ", now lastCPU is " << lastCPU << std::endl;
   // std::cout << "HIHIHIHIHIHIHIHIHIHI" << std::endl;
+  std::flush(std::cout);
   // printf("ttttttttttttttttttttttttttttttttttt");
+  // in case time interval is too short
+  if (percent > 0.0)
+    current_percent = percent;
   return percent;
 
 }

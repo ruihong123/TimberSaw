@@ -146,6 +146,7 @@ class DBImpl : public DB {
                                               uint8_t shard_id_);
   std::string upper_bound;
   std::string lower_bound;
+  // long double server_cpu_percent = 0.0;
 //  void Wait_for_client_message_hanlding_setup();
  private:
   friend class DB;
@@ -213,6 +214,7 @@ class DBImpl : public DB {
   void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   bool CheckWhetherPushDownorNot();
   long double RequestRemoteUtilization();
+  void ActivateRemoteCPURefresh();
   void CleanupCompaction(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status DoCompactionWork(CompactionState* compact)
@@ -331,6 +333,11 @@ class DBImpl : public DB {
   std::vector<std::thread> main_comm_threads;
   uint8_t shard_target_node_id = 0;
   uint8_t shard_id = 0;
+
+  // Add for cpu utilization refreshing
+  //TODO: (chuqing) if multiple servers
+  long double server_cpu_percent = 0.0;
+
 #ifdef PROCESSANALYSIS
   std::atomic<size_t> Total_time_elapse;
   std::atomic<size_t> flush_times;

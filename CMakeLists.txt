@@ -42,6 +42,12 @@ check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
 check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+if(uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
+  SET(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
+  SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g2 -ggdb")
+endif()
+
 include(CheckCXXSymbolExists)
 # Using check_cxx_symbol_exists() instead of check_c_symbol_exists() because
 # we're including the header from C++, and feature detection should use the same

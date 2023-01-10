@@ -214,3 +214,8 @@ Guide to header files:
 
 * **include/dLSM/table.h, include/dLSM/table_builder.h**: Lower-level modules that most
   clients probably won't use directly.
+
+
+```bash
+numactl --cpunodebind=1 --localalloc ./db_bench --benchmarks=fillrandom --threads=16 --value_size=400 --num=6250000 --bloom_bits=10 --readwritepercent=5 --compute_node_id=0 --fixed_compute_shards_num=0 > benchout.txt
+```

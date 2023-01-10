@@ -24,6 +24,7 @@ class Resource_Printer_PlanA {
   Resource_Printer_PlanA();
 
   long double getCurrentValue();
+  std::string getCurrentHost();
 };
 
 class Resource_Printer_PlanB {
@@ -31,6 +32,7 @@ class Resource_Printer_PlanB {
  public:
   Resource_Printer_PlanB();
   void paramInit();
+  long double current_percent;
   long double getCurrentValue();
   std::string getCurrentHost();
 };
