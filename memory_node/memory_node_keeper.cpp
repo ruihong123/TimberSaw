@@ -1713,6 +1713,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     
       send_pointer->received = true;
       while (1){
+        std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
         send_pointer->content.cpu_percent = rdma_mg->rpter.current_percent;
         rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
                         sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);

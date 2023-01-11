@@ -228,16 +228,17 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   if (now <= lastCPU || timeSample.tms_stime < lastSysCPU ||
       timeSample.tms_utime < lastUserCPU){
     //Overflow detection. Just skip this value.
-    std::cout << getCurrentHost() << " : ";
-    if(now <= lastCPU){
-      printf("now <= lastCPU\n");
-      std::fprintf(stdout, "now: %Ld; lastCPU: %Ld \n", now, lastCPU);
-      // std::cout << "now: " << now << "; lastCPU: " << lastCPU << std::endl;
-    } else if (timeSample.tms_stime < lastSysCPU) {
-      printf("timeSample.tms_stime < lastSysCPU\n");
-    } else {
-      printf("timeSample.tms_utime < lastUserCPU\n");
-    }
+    // // for debug, ignore it 
+    // std::cout << getCurrentHost() << " : ";
+    // if(now <= lastCPU){
+    //   printf("now <= lastCPU\n");
+    //   std::fprintf(stdout, "now: %Ld; lastCPU: %Ld \n", now, lastCPU);
+    //   // std::cout << "now: " << now << "; lastCPU: " << lastCPU << std::endl;
+    // } else if (timeSample.tms_stime < lastSysCPU) {
+    //   printf("timeSample.tms_stime < lastSysCPU\n");
+    // } else {
+    //   printf("timeSample.tms_utime < lastUserCPU\n");
+    // }
     percent = -1.0;
   }
   else{
@@ -253,10 +254,10 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   
   // int tid = syscall(SYS_gettid);
   // std::fprintf(stdout, "%Ld: now %Ld \n", long(this), lastCPU);
-  std::cout << "last value updated in class addr " << long(this) \
-            << ", now lastCPU is " << lastCPU << std::endl;
-  // std::cout << "HIHIHIHIHIHIHIHIHIHI" << std::endl;
-  std::flush(std::cout);
+  // std::cout << "last value updated in class addr " << long(this) \
+  //           << ", now lastCPU is " << lastCPU << std::endl;
+  // // std::cout << "HIHIHIHIHIHIHIHIHIHI" << std::endl;
+  // std::flush(std::cout);
   // printf("ttttttttttttttttttttttttttttttttttt");
   // in case time interval is too short
   if (percent > 0.0)
