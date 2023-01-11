@@ -19,6 +19,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstdio>
+#include <fstream>
 #include <set>
 #include <string>
 #include <utility>
