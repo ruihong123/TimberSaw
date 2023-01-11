@@ -13,4 +13,4 @@ out/
 /cmake-build-debug/include/
 
 # some useless things 
-mydemo*
+demo*

@@ -1492,7 +1492,8 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
                                             compute_node_id,
                                             client_ip);
         
-        return_cpu_utilization(receive_msg_buf, client_ip, compute_node_id);
+        //TODO(chuqing): don't know why this branch are called 
+        // return_cpu_utilization(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == SSTable_gc) {
 
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
@@ -1711,19 +1712,19 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
       RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 
-      std::ofstream outfile;
-      outfile.open("senderout.txt");
+      // std::ofstream outfile;
+      // outfile.open("senderout.txt", ios::out);
     
       send_pointer->received = true;
       while (1){
         // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
-        outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
+        // outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
         send_pointer->content.cpu_percent = rdma_mg->rpter.current_percent;
         rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
                         sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
-      outfile.close();
+      // outfile.close();
     });
     CPU_utilization_heartbeat.detach();
     // wait for the deepcopy
