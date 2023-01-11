@@ -1684,7 +1684,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 
-    send_pointer->content.cpu_percent = rdma_mg->rpter.getCurrentValue();
+    //TODO(chuqing): don't know whether this sentence had influence on result
+    // send_pointer->content.cpu_percent = rdma_mg->rpter.getCurrentValue();
     send_pointer->received = true;
 
     rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
