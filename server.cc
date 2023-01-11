@@ -45,7 +45,7 @@ int main(int argc,char* argv[])
       // sleep(2);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       long double new_percent = TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue();
-      printf("Heartbeat generate new CPU utilization is %Lf\n", new_percent);
+      printf("Heartbeat generate new CPU utilization is %.4Lf(%.4Lf)\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.current_percent, new_percent);
     }
   });
   CPU_utilization_heartbeat.detach();
