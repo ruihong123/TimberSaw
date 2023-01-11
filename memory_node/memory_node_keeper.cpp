@@ -1713,11 +1713,11 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 
       std::ofstream outfile;
-      outfile.open("senderout.txt", ios::out);
+      outfile.open("senderout.txt", std::ios::out);
     
       send_pointer->received = true;
       while (1){
-        std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
+        // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
         outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
         send_pointer->content.cpu_percent = rdma_mg->rpter.current_percent;
         rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
