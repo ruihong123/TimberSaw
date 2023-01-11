@@ -1390,7 +1390,10 @@ void DBImpl::ActivateRemoteCPURefresh(){
     outfile.open("cn_refresh.txt", std::ios::out);
 
     while(1){
-      server_cpu_percent = receive_pointer->content.cpu_percent;
+      //TODO(chuqing): don't know why server_cpu will become negative
+      // maybe because the content is a union
+      if(receive_pointer->content.cpu_percent > 0.0)
+        server_cpu_percent = receive_pointer->content.cpu_percent;
       // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
       outfile << "in refresher:" << server_cpu_percent << std::endl;
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
