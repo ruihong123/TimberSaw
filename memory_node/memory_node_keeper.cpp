@@ -1710,15 +1710,19 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       ibv_mr send_mr;
       rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
       RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
+
+      std::ofstream outfile;
+      outfile.open("senderout.txt");
     
       send_pointer->received = true;
       while (1){
-        std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
+        std::fprintf(outfile, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
         send_pointer->content.cpu_percent = rdma_mg->rpter.current_percent;
         rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
                         sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
+      outfile.close();
     });
     CPU_utilization_heartbeat.detach();
     // wait for the deepcopy
