@@ -1386,18 +1386,20 @@ void DBImpl::ActivateRemoteCPURefresh(){
     // wait until remote (mn) write the cpu utilization to the buffer
     rdma_mg->poll_reply_buffer(receive_pointer);
 
-    // std::ofstream outfile;
-    // outfile.open("cn_refresh.txt", ios::out);
+    std::ofstream outfile;
+    outfile.open("cn_refresh.txt", ios::out);
 
     while(1){
       server_cpu_percent = receive_pointer->content.cpu_percent;
-      // std::fprintf(outfile, "in refresher: %.4lf\n", server_cpu_percent);
-      // outfile << "in refresher:" << server_cpu_percent << std::endl;
+      std::fprintf(outfile, "in refresher: %.4lf\n", server_cpu_percent);
+      outfile << "in refresher:" << server_cpu_percent << std::endl;
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    // outfile.close();
+    outfile.close();
   });
   keep_refresh_remote_cpu_utilizaton.detach();
+  //a random wait, just a try
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   return;
 }
 

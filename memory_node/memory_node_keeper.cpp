@@ -1707,29 +1707,28 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       memcpy(request_buffer, request->buffer, sizeof(ibv_mr));
       uint32_t request_rkey = request->rkey;
       std::string client_ip_local = std::string(client_ip.c_str());
-      // client_ip_local.copy(client_ip, client_ip.length(), 0);
 
       ibv_mr send_mr;
       rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
       RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 
-      // std::ofstream outfile;
-      // outfile.open("senderout.txt", ios::out);
+      std::ofstream outfile;
+      outfile.open("senderout.txt", ios::out);
     
       send_pointer->received = true;
       while (1){
-        // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
-        // outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
+        std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
+        outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
         send_pointer->content.cpu_percent = rdma_mg->rpter.current_percent;
         rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
                         sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
-      // outfile.close();
+      outfile.close();
     });
     CPU_utilization_heartbeat.detach();
     // wait for the deepcopy
-    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   
   }
   // the client ip can by any string differnt from read_local write_local_flush
