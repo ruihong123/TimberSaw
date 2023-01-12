@@ -1402,7 +1402,7 @@ void DBImpl::ActivateRemoteCPURefresh(){
     // if(receive_pointer->cpu_util > 0.0)
     //   server_cpu_percent = receive_pointer->cpu_util;
       // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
-    outfile << "in refresher:" << server_cpu_percent << std::endl;
+    // outfile << "in refresher:" << server_cpu_percent << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
     outfile.close();
   });
@@ -1461,7 +1461,7 @@ bool DBImpl::CheckWhetherPushDownorNot(){
 
   std::fprintf(stdout, "%s CPU utilization: %Lf \n",
                  currenthost.c_str(), cn_percent);
-  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", DBImpl::server_cpu_percent);
+  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", this->server_cpu_percent);
 
   //TODO(chuqing): a dynamic strategy here
   if (cn_percent > 0.05) {
