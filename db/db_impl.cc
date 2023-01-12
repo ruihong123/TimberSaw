@@ -1358,7 +1358,7 @@ void DBImpl::ActivateRemoteCPURefresh(){
   //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
   //TODO(Chuqing): where to initialize?
   
-
+  std::fprintf(stdout, "Call activate remote cpu refresh, now is %.4lf\n", server_cpu_percent);
   std::thread keep_refresh_remote_cpu_utilizaton([&](){
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
     // register the memory block from the remote memory
@@ -1399,8 +1399,8 @@ void DBImpl::ActivateRemoteCPURefresh(){
     //   outfile << "in refresher:" << server_cpu_percent << std::endl;
     //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
     // }
-    if(receive_pointer->cpu_util > 0.0)
-      server_cpu_percent = receive_pointer->cpu_util;
+    // if(receive_pointer->cpu_util > 0.0)
+    //   server_cpu_percent = receive_pointer->cpu_util;
       // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
     outfile << "in refresher:" << server_cpu_percent << std::endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
