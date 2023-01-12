@@ -1357,6 +1357,7 @@ void DBImpl::ActivateRemoteCPURefresh(){
 
   //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
   //TODO(Chuqing): where to initialize?
+  
 
   std::thread keep_refresh_remote_cpu_utilizaton([&](){
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -1389,15 +1390,20 @@ void DBImpl::ActivateRemoteCPURefresh(){
     std::ofstream outfile;
     outfile.open("cn_refresh.txt", std::ios::out);
 
-    while(1){
-      //TODO(chuqing): don't know why server_cpu will become negative
-      // maybe because the content is a union
-      if(receive_pointer->cpu_util > 0.0)
-        server_cpu_percent = receive_pointer->cpu_util;
+    // while(1){
+    //   //TODO(chuqing): don't know why server_cpu will become negative
+    //   // maybe because the content is a union
+    //   if(receive_pointer->cpu_util > 0.0)
+    //     server_cpu_percent = receive_pointer->cpu_util;
+    //   // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
+    //   outfile << "in refresher:" << server_cpu_percent << std::endl;
+    //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    // }
+    if(receive_pointer->cpu_util > 0.0)
+      server_cpu_percent = receive_pointer->cpu_util;
       // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
-      outfile << "in refresher:" << server_cpu_percent << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
+    outfile << "in refresher:" << server_cpu_percent << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
     outfile.close();
   });
   keep_refresh_remote_cpu_utilizaton.detach();
