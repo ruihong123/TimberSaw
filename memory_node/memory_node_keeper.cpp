@@ -1716,20 +1716,20 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       outfile.open("senderout.txt", std::ios::out);
     
       send_pointer->received = true;
-      // while (1){
-      //   // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
-      //   outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
-      //   send_pointer->cpu_util = rdma_mg->rpter.current_percent;
-      //   rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
-      //                   sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
-      //   std::this_thread::sleep_for(std::chrono::milliseconds(100));
-      // }
+      while (1){
+        // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
+        outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
+        send_pointer->cpu_util = rdma_mg->rpter.current_percent;
+        rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
+                        sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
       // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
-      outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
-      send_pointer->cpu_util = rdma_mg->rpter.current_percent;
-      rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
-                      sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
+      // send_pointer->cpu_util = rdma_mg->rpter.current_percent;
+      // rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
+      //                 sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
+      // std::this_thread::sleep_for(std::chrono::milliseconds(100));
       outfile.close();
     });
     CPU_utilization_heartbeat.detach();
