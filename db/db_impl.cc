@@ -265,6 +265,8 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //        }
 //      main_comm_threads.back().detach();
     printf("DBImpl finished\n");
+    ActivateRemoteCPURefresh();
+    printf("Refresher start\n");
 }
 //This functon does not contain the creation of the client message handling thread
 DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
@@ -301,15 +303,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
       shard_target_node_id(0)
 {
 
-  std::fprintf(stdout, "finish000\n");
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-  std::fprintf(stdout, "finish111\n");
   env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
-  std::fprintf(stdout, "finish222\n");
   env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
-  std::fprintf(stdout, "finish333\n");
-  //TODO(chuqing): here to initialize?
-  ActivateRemoteCPURefresh();
 
 }
 
