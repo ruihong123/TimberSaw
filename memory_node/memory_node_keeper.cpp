@@ -1322,7 +1322,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
   void Memory_Node_Keeper::server_communication_thread(std::string client_ip,
                                                  int socket_fd) {
     printf("A new shared memory thread start\n");
-    printf("checkpoint1");
+    printf("checkpoint-out\n");
     char temp_receive[2];
     char temp_send[] = "Q";
     int rc = 0;
@@ -1353,6 +1353,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 //      fprintf(stderr, "memory registering failed by size of 0x%x\n", 1000);
 //    }
     //  post_receive<int>(recv_mr, client_ip);
+    printf("checkpoint3\n");
     for(int i = 0; i<R_SIZE; i++) {
       rdma_mg->post_receive<RDMA_Request>(&recv_mr[i], compute_node_id, client_ip);
     }
@@ -1376,6 +1377,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     ibv_wc wc[3] = {};
     rdma_mg->connection_counter.fetch_add(1);
 //    std::thread* thread_sync;
+    printf("checkpoint4\n");
     if (rdma_mg->connection_counter.load() == rdma_mg->compute_nodes.size()
         && rdma_mg->node_id == 0){
       std::thread thread_sync(&RDMA_Manager::sync_with_computes_Mside, rdma_mg.get());
@@ -1398,6 +1400,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     // TODO: implement a heart beat mechanism.
     int buffer_position = 0;
     int miss_poll_counter = 0;
+    printf("checkpoint5\n");
     while (true) {
       ++miss_poll_counter;
 //      rdma_mg->poll_completion(wc, 1, client_ip, false, compute_node_id);
