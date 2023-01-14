@@ -1450,6 +1450,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
+      //TODO(chuqing): breakpoint here
       if (receive_msg_buf->command == create_mr_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,

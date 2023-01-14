@@ -806,12 +806,12 @@ class Benchmark {
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
 //    printf("Bechmark start\n");
-  if (method == &Benchmark::WriteRandom || method == &Benchmark::WriteRandomSharded)
+    if (method == &Benchmark::WriteRandom || method == &Benchmark::WriteRandomSharded)
       Validation_Write();
 //    if (name.ToString() == "readrandom"){
 //    }
     SharedState shared(n);
-
+    //TODO(chuqing): try to activate here
     ThreadArg* arg = new ThreadArg[n];
     for (int i = 0; i < n; i++) {
 #ifdef NUMA
