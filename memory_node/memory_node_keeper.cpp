@@ -1550,7 +1550,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
   }
   int rc;
   if (rdma_mg->rdma_config.gid_idx >= 0) {
-    printf("checkpoint0");
+    printf("checkpoint0\n");
     rc = ibv_query_gid(rdma_mg->res->ib_ctx, rdma_mg->rdma_config.ib_port,
                        rdma_mg->rdma_config.gid_idx,
                        &(rdma_mg->res->my_gid));
