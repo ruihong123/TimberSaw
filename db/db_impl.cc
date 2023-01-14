@@ -442,8 +442,11 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
-
+  //TODO(chuqing): try to activate here
 //  config::Immutable_FlushTrigger = temp;
+  printf("Before activate refreshing\n");
+  ActivateRemoteCPURefresh();
+  printf("Before activate refreshing\n");
 }
 Status DBImpl::NewDB() {
   VersionEdit new_db(0);
