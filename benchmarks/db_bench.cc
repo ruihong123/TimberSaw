@@ -842,7 +842,7 @@ class Benchmark {
       arg[i].thread->shared = &shared;
       printf("start front-end threads\n");
       g_env->StartThread(ThreadBody, &arg[i]);
-    gao688}
+    }
 
     shared.mu.Lock();
     while (shared.num_initialized < n) {
