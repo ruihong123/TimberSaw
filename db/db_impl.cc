@@ -1445,7 +1445,7 @@ long double DBImpl::RequestRemoteUtilization(){
   }
   // wait until remote (mn) write the cpu utilization to the buffer
   rdma_mg->poll_reply_buffer(receive_pointer);
-  mn_percent = receive_pointer->content.cpu_percent;
+  mn_percent = receive_pointer->cpu_util;
 
   return mn_percent;
 }
@@ -1459,12 +1459,13 @@ bool DBImpl::CheckWhetherPushDownorNot(){
   long double cn_percent = rdma_mg->rpter.getCurrentValue();
   std::string currenthost = rdma_mg->rpter.getCurrentHost();
 
-  // long double mn_percent = RequestRemoteUtilization();
-  long double mn_percent = this->server_cpu_percent;
+  long double mn_percent = RequestRemoteUtilization();
+  // long double mn_percent = this->server_cpu_percent;
+  //TODO(chuqing): need heartbeat implementation
 
   std::fprintf(stdout, "%s CPU utilization: %Lf \n",
                  currenthost.c_str(), cn_percent);
-  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", this->server_cpu_percent);
+  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   //TODO(chuqing): a dynamic strategy here
   if (cn_percent > 0.05) {

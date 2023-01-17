@@ -1377,7 +1377,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     ibv_wc wc[3] = {};
     rdma_mg->connection_counter.fetch_add(1);
 //    std::thread* thread_sync;
-    printf("checkpoint4\n");
+    printf("\ncheckpoint4\n");
     if (rdma_mg->connection_counter.load() == rdma_mg->compute_nodes.size()
         && rdma_mg->node_id == 0){
       std::thread thread_sync(&RDMA_Manager::sync_with_computes_Mside, rdma_mg.get());
@@ -1450,7 +1450,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 
       // copy the pointer of receive buf to a new place because
       // it is the same with send buff pointer.
-      //TODO(chuqing): breakpoint here
+      //TODO(chuqing): breakpoint here, no use
       if (receive_msg_buf->command == create_mr_) {
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
@@ -1496,8 +1496,8 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
                                             compute_node_id,
                                             client_ip);
         
-        //TODO(chuqing): don't know why this branch are called 
-        // return_cpu_utilization(receive_msg_buf, client_ip, compute_node_id);
+        //TODO(chuqing): don't know why this branch are called->maybe not called
+        return_cpu_utilization(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == SSTable_gc) {
 
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
@@ -1690,6 +1690,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
     //TODO(chuqing): don't know whether this sentence had influence on result
     // send_pointer->content.cpu_percent = rdma_mg->rpter.getCurrentValue();
+    send_pointer->cpu_util = rdma_mg->rpter.current_percent;
     send_pointer->received = true;
 
     rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
