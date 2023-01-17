@@ -212,7 +212,7 @@ class DBImpl : public DB {
   void BackgroundCall();
   void BackgroundFlush(void* p);
   void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
-  bool CheckWhetherPushDownorNot();
+  bool CheckWhetherPushDownorNot(int from_level);
   long double RequestRemoteUtilization();
   void ActivateRemoteCPURefresh();
   void CleanupCompaction(CompactionState* compact)

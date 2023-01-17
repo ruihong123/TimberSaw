@@ -1450,7 +1450,7 @@ long double DBImpl::RequestRemoteUtilization(){
   return mn_percent;
 }
 
-bool DBImpl::CheckWhetherPushDownorNot(){
+bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   //TODO(chuqing): decide whether pushdown, now we get the mn_perecnt by 
   // heartbeat, to be more accurate for compute node itself, should also 
   // change to heartbeat instead of on demand 
@@ -1466,14 +1466,20 @@ bool DBImpl::CheckWhetherPushDownorNot(){
   // std::fprintf(stdout, "%s CPU utilization: %Lf \n",
   //                currenthost.c_str(), cn_percent);
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
+  printf("now in level %d\n", from_level);
 
-  //TODO(chuqing): a dynamic strategy here
-  if (mn_percent > 80) {
-    return false;
-  }
-  else {
+  //TODO(chuqing): may need to be improved
+  if (from_level == 0){
     return true;
+  } else {
+    return (mn_percent <= 80);
   }
+  // if (mn_percent > 80) {
+  //   return false;
+  // }
+  // else {
+  //   return true;
+  // }
 }
 
 //TODO(Chuqing): neardata compaction
@@ -1481,7 +1487,6 @@ bool DBImpl::CheckWhetherPushDownorNot(){
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
-  bool adaptive_compaction = CheckWhetherPushDownorNot();
   if (shutting_down_.load(std::memory_order_acquire)) {
     // No more background work when shutting down.
   } else if (!bg_error_.ok()) {
@@ -1491,7 +1496,7 @@ void DBImpl::BackgroundCompaction(void* p) {
     bool is_manual = (manual_compaction_ != nullptr);
     InternalKey manual_end;
     if (is_manual) {
-      // Chuqing:这部分好像还没写
+      // Chuqing: seems that unfinished
       ManualCompaction* m = manual_compaction_;
       c = versions_->CompactRange(m->level, m->begin, m->end);
       m->done = (c == nullptr);
@@ -1515,74 +1520,84 @@ void DBImpl::BackgroundCompaction(void* p) {
 
     }
 //    write_stall_mutex_.AssertNotHeld();
+
     Status status;
     if (c == nullptr) {
       // Nothing to do
-    } else if (!is_manual && c->IsTrivialMove()) {
-      // Chuqing:下一层没有 直接放到下一层
-      // Move file to next level
-      assert(c->num_input_files(0) == 1);
-      std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
-      c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
-      c->edit()->AddFile(c->level() + 1, f);
-      {
-        std::unique_lock<std::mutex> l_sv(superversion_memlist_mtx);
-//        std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
-        f->level = c->level() + 1;
-        status = versions_->LogAndApply(c->edit());
-        //trival move need to clear the UnderCompaction flag
-        f->UnderCompaction = false;
-        c->ReleaseInputs();
+    } else {
+      //TODO(chuqing): code placeholder for the checkwhether....
+      bool adaptive_compaction = CheckWhetherPushDownorNot(c->level());
+      if (!is_manual && c->IsTrivialMove()) {
+        // Chuqing:下一层没有 直接放到下一层
+        // Move file to next level
+        assert(c->num_input_files(0) == 1);
+        std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+        c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
+        c->edit()->AddFile(c->level() + 1, f);
+        {
+          std::unique_lock<std::mutex> l_sv(superversion_memlist_mtx);
+//          std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
+          f->level = c->level() + 1;
+          status = versions_->LogAndApply(c->edit());
+          //trival move need to clear the UnderCompaction flag
+          f->UnderCompaction = false;
+          c->ReleaseInputs();
 #ifdef WITHPERSISTENCE        //different from normal compaction
-        Edit_sync_to_remote(c->edit(),&l_vs);
-#endif
+          Edit_sync_to_remote(c->edit(),&l_vs);
+#endif  
 //#ifndef WITHPERSISTENCE
-//        l_vs.unlock();
+//          l_vs.unlock();
 //#endif
 
-        InstallSuperVersion();
-      }
+          InstallSuperVersion();
+        }
 
-      if (!status.ok()) {
-        RecordBackgroundError(status);
-      }
-      VersionSet::LevelSummaryStorage tmp;
-      Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
-          static_cast<unsigned long long>(f->number), c->level() + 1,
-          static_cast<unsigned long long>(f->file_size),
-          status.ToString().c_str(), versions_->LevelSummary(&tmp));
-      DEBUG("Trival compaction\n");
-    } else if (options_.near_data_compaction && adaptive_compaction) {
-      // Chuqing: is it possible to have NEARDATACOMPACTION but
-      // this option near_data_compaction is false?
-      // Chuqing:真正执行compaction
-      NearDataCompaction(c);
-//      MaybeScheduleFlushOrCompaction();
-//      return;
-    }else{
-      CompactionState* compact = new CompactionState(c);
-
-      auto start = std::chrono::high_resolution_clock::now();
-//      write_stall_mutex_.AssertNotHeld();
-      // Only when there is enough input level files and output level files will the subcompaction triggered
-      if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
-        status = DoCompactionWorkWithSubcompaction(compact);
+        if (!status.ok()) {
+          RecordBackgroundError(status);
+        }
+        VersionSet::LevelSummaryStorage tmp;
+        Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+            static_cast<unsigned long long>(f->number), c->level() + 1,
+            static_cast<unsigned long long>(f->file_size),
+            status.ToString().c_str(), versions_->LevelSummary(&tmp));
+        DEBUG("Trival compaction\n");
+      } else if (options_.near_data_compaction && adaptive_compaction) {
+        // Chuqing: is it possible to have NEARDATACOMPACTION but
+        // this option near_data_compaction is false?
+        // Chuqing:真正执行compaction
+        NearDataCompaction(c);
+//        MaybeScheduleFlushOrCompaction();
+//        return;
       }else{
-        status = DoCompactionWork(compact);
-      }
+        CompactionState* compact = new CompactionState(c);
 
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-      printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
-             duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
-      DEBUG("Non-trivalcompaction!\n");
-      std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
-      if (!status.ok()) {
-        RecordBackgroundError(status);
+        auto start = std::chrono::high_resolution_clock::now();
+//        write_stall_mutex_.AssertNotHeld();
+        // Only when there is enough input level files and output level files will the subcompaction triggered
+        if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+          status = DoCompactionWorkWithSubcompaction(compact);
+        }else{
+          status = DoCompactionWork(compact);
+        }
+
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        if(adaptive_compaction){
+          printf("[NearData]");
+        } else {
+          printf("[Normal]");
+        }
+        printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
+               duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+        DEBUG("Non-trivalcompaction!\n");
+        std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
+        if (!status.ok()) {
+          RecordBackgroundError(status);
+        }
+        CleanupCompaction(compact);
+//      RemoveObsoleteFiles();
       }
-      CleanupCompaction(compact);
-//    RemoveObsoleteFiles();
-    }
+    }//TODO(chuqing): bracket ends here
     delete c;
 
     if (status.ok()) {
