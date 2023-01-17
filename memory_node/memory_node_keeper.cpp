@@ -1704,7 +1704,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                                              uint8_t target_node_id){
     //TODO: (chuqing)
     DEBUG("Create cpu utilization sender\n");
-    //TODO(chuqing): tf just send the utilization once, works or not
+    //TODO(chuqing): if just send the utilization once, works or not
     std::thread CPU_utilization_heartbeat([&](){
       //backup the function arguments
       uint8_t target_node_id_local = target_node_id;

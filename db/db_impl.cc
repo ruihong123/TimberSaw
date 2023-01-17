@@ -1463,12 +1463,12 @@ bool DBImpl::CheckWhetherPushDownorNot(){
   // long double mn_percent = this->server_cpu_percent;
   //TODO(chuqing): need heartbeat implementation
 
-  std::fprintf(stdout, "%s CPU utilization: %Lf \n",
-                 currenthost.c_str(), cn_percent);
-  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
+  // std::fprintf(stdout, "%s CPU utilization: %Lf \n",
+  //                currenthost.c_str(), cn_percent);
+  // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   //TODO(chuqing): a dynamic strategy here
-  if (cn_percent > 0.05) {
+  if (mn_percent > 80) {
     return false;
   }
   else {
