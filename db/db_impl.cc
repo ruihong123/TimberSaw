@@ -1457,7 +1457,8 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   long double cn_percent = rdma_mg->rpter.getCurrentValue();
-  std::string currenthost = rdma_mg->rpter.getCurrentHost();
+  // std::string currenthost = rdma_mg->rpter.getCurrentHost();
+  //TODO(chuqing): it is needed to heartbeat the cpu_util on computing node?
 
   long double mn_percent = RequestRemoteUtilization();
   // long double mn_percent = this->server_cpu_percent;
@@ -1466,20 +1467,14 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   // std::fprintf(stdout, "%s CPU utilization: %Lf \n",
   //                currenthost.c_str(), cn_percent);
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
-  printf("now in level %d\n", from_level);
 
   //TODO(chuqing): may need to be improved
   if (from_level == 0){
+    // Push to memory node if in level 0
     return true;
   } else {
     return (mn_percent <= 80);
   }
-  // if (mn_percent > 80) {
-  //   return false;
-  // }
-  // else {
-  //   return true;
-  // }
 }
 
 //TODO(Chuqing): neardata compaction
@@ -1527,6 +1522,11 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else {
       //TODO(chuqing): code placeholder for the checkwhether....
       bool adaptive_compaction = CheckWhetherPushDownorNot(c->level());
+      
+      // Initialize the timer
+      auto start_time = std::chrono::high_resolution_clock::now();
+      auto end_time = std::chrono::high_resolution_clock::now();
+      // int level_from = c->level();
       if (!is_manual && c->IsTrivialMove()) {
         // Chuqing:下一层没有 直接放到下一层
         // Move file to next level
@@ -1562,41 +1562,48 @@ void DBImpl::BackgroundCompaction(void* p) {
             status.ToString().c_str(), versions_->LevelSummary(&tmp));
         DEBUG("Trival compaction\n");
       } else if (options_.near_data_compaction && adaptive_compaction) {
+        // The neardata compaction branch
         // Chuqing: is it possible to have NEARDATACOMPACTION but
         // this option near_data_compaction is false?
-        // Chuqing:真正执行compaction
+        start_time = std::chrono::high_resolution_clock::now();
         NearDataCompaction(c);
+        end_time = std::chrono::high_resolution_clock::now();
 //        MaybeScheduleFlushOrCompaction();
 //        return;
-      }else{
+      } else {
+        // Normal compaction branch
         CompactionState* compact = new CompactionState(c);
 
-        auto start = std::chrono::high_resolution_clock::now();
+        start_time = std::chrono::high_resolution_clock::now();
 //        write_stall_mutex_.AssertNotHeld();
         // Only when there is enough input level files and output level files will the subcompaction triggered
         if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
           status = DoCompactionWorkWithSubcompaction(compact);
-        }else{
+        } else {
           status = DoCompactionWork(compact);
         }
 
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        if(adaptive_compaction){
-          printf("[NearData]");
-        } else {
-          printf("[Normal]");
-        }
-        printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
-               duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
+        end_time = std::chrono::high_resolution_clock::now();
+        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        // printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
+        //        duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
         DEBUG("Non-trivalcompaction!\n");
-        std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
+        // std::cout << "compaction task table number in the first level"<<compact->compaction->inputs_[0].size() << std::endl;
         if (!status.ok()) {
           RecordBackgroundError(status);
         }
         CleanupCompaction(compact);
 //      RemoveObsoleteFiles();
       }
+      // Time printer
+      if(adaptive_compaction){
+        printf("[NearData]");
+      } else {
+        printf("[Normal]");
+      }
+      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
+      printf("Table compaction time elapse (%ld) us, compaction level is %d \n",
+                            duration.count(), c->level());
     }//TODO(chuqing): bracket ends here
     delete c;
 
