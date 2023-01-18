@@ -1520,7 +1520,6 @@ void DBImpl::BackgroundCompaction(void* p) {
     if (c == nullptr) {
       // Nothing to do
     } else {
-      //TODO(chuqing): code placeholder for the checkwhether....
       bool adaptive_compaction = CheckWhetherPushDownorNot(c->level());
       
       // Initialize the timer
@@ -1602,8 +1601,10 @@ void DBImpl::BackgroundCompaction(void* p) {
         printf("[Normal]");
       }
       auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-      printf("Table compaction time elapse (%ld) us, compaction level is %d \n",
-                            duration.count(), c->level());
+      // printf("Table compaction time elapse (%ld) us, compaction level is %d \n",
+      //                       duration.count(), c->level());
+      this->accumulated_time += duration.count();
+      printf("Now accumulated time: %ld us\n", this->accumulated_time);
     }//TODO(chuqing): bracket ends here
     delete c;
 

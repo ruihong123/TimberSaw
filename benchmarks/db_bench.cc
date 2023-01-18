@@ -811,7 +811,7 @@ class Benchmark {
 //    if (name.ToString() == "readrandom"){
 //    }
     SharedState shared(n);
-    //TODO(chuqing): try to activate here
+    //TODO(chuqing): try to activate here, but failed
     ThreadArg* arg = new ThreadArg[n];
     for (int i = 0; i < n; i++) {
 #ifdef NUMA
