@@ -1,6 +1,6 @@
 #!/bin/bash
 declare -i THREAD_NUM=16
-declare -i TOTAL_NUM=100000000
+declare -i TOTAL_NUM=200000000
 declare -i NUM_PER_THREAD
 NUM_PER_THREAD=TOTAL_NUM/THREAD_NUM
 OUTPUTFILE="benchout.txt"

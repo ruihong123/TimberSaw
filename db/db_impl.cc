@@ -1469,14 +1469,14 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   //TODO(chuqing): may need to be improved
-  // if (from_level == 0){
-  //   // Push to memory node if in level 0
-  //   return true;
-  // } else {
-  //   return (mn_percent <= 80);
-  // }
+  if (from_level == 0){
+    // Push to memory node if in level 0
+    return true;
+  } else {
+    return (mn_percent <= 80);
+  }
   // return (mn_percent <= 80);
-  return false;
+  // return false;
 }
 
 //TODO(Chuqing): neardata compaction
