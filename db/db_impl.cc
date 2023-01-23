@@ -1476,7 +1476,7 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   //   return (mn_percent <= 80);
   // }
   // return (mn_percent <= 80);
-  return true;
+  return false;
 }
 
 //TODO(Chuqing): neardata compaction
