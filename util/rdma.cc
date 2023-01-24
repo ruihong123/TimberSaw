@@ -1956,7 +1956,11 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
     //  auto start = std::chrono::high_resolution_clock::now();
     //  while(std::chrono::high_resolution_clock::now
     //  ()-start < std::chrono::nanoseconds(msg_size+200000));
+    auto start = std::chrono::high_resolution_clock::now();
     rc = poll_completion(wc, poll_num, qp_type, true, target_node_id);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    std::printf("Poll completion (Read) time elapse is %zu\n",  duration.count());
     if (rc != 0) {
       std::cout << "RDMA Read Failed" << std::endl;
       std::cout << "q id is" << qp_type << std::endl;
