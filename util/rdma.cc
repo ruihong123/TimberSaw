@@ -2,7 +2,7 @@
 #include <util/rdma.h>
 
 #include "TimberSaw/env.h"
-
+#include "db/db_impl.h"
 namespace TimberSaw {
 uint8_t RDMA_Manager::node_id = 1;
 #ifdef PROCESSANALYSIS
@@ -92,6 +92,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
   Mempool_initialize(Message,
                      std::max(sizeof(RDMA_Request), sizeof(RDMA_Reply)), 32*std::max(sizeof(RDMA_Request), sizeof(RDMA_Reply)));
   Mempool_initialize(Version_edit, 1024 * 1024, 32*1024*1024);
+  Unpin_bg_pool_.SetBackgroundThreads(1);
 
 }
 /******************************************************************************
@@ -667,7 +668,7 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
 #ifdef WITHPERSISTENCE
       } else if(receive_msg_buf->command == persist_unpin_) {
         //TODO: implement the persistent unpin dispatch machenism
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+        post_receive<RDMA_Request>(&recv_mr[buffer_counter], shard_target_node_id, "main");
         auto start = std::chrono::high_resolution_clock::now();
         Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};

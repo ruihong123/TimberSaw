@@ -146,6 +146,8 @@ class DBImpl : public DB {
   std::string upper_bound;
   std::string lower_bound;
 //  void Wait_for_client_message_hanlding_setup();
+  static void SSTable_Unpin_Dispatch(void* thread_args);
+
  private:
   friend class DB;
 //  struct CompactionState;
@@ -242,7 +244,6 @@ class DBImpl : public DB {
   void remote_qp_reset(std::string& qp_type, uint8_t target_node_id);
   void install_version_edit_handler(RDMA_Request* request, std::string client_ip);
 #ifdef WITHPERSISTENCE
-  static void SSTable_Unpin_Dispatch(void* thread_args);
   void persistence_unpin_handler(void* arg);
 #endif
   // Constant after construction

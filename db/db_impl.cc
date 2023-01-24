@@ -1831,7 +1831,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
     // Install Superversion will also modify the version reference counter.
 
 #ifdef WITHPERSISTENCE
-    Edit_sync_to_remote(c->edit(),&lck);
+    Edit_sync_to_remote(edit,nullptr);
 #endif
 //#ifndef WITHPERSISTENCE
 //    lck.unlock();
@@ -2128,7 +2128,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
 //  assert(*(unsigned char*)recv_mr_c.addr == 6);
-  VersionEdit edit(0);
+  VersionEdit edit(shard_target_node_id);
   edit.DecodeFrom(Slice((char*)mr_c.addr, buffer_size), 0, table_cache_);
 #ifndef NDEBUG
   for(auto iter : *edit.GetNewFiles()){
@@ -2167,8 +2167,8 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   *file_number_end_send_ptr = file_number_end;
   memset((char*)send_mr.addr + sizeof(uint64_t), 1, 1);
   rdma_mg->RDMA_Write(remote_prt, remote_rkey,
-                           &send_mr, sizeof(uint64_t) + 1, "main",
-                           IBV_SEND_SIGNALED, 1);
+                           &send_mr, sizeof(uint64_t) + 1, std::string("main"),
+                           IBV_SEND_SIGNALED, 1, shard_target_node_id);
 
 #endif
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
@@ -2408,7 +2408,7 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 #ifdef WITHPERSISTENCE
         } else if(receive_msg_buf->command == persist_unpin_) {
           //TODO: implement the persistent unpin dispatch machenism
-          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],  shard_target_node_id, "main");
           auto start = std::chrono::high_resolution_clock::now();
           Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
           BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
@@ -2537,7 +2537,8 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
   // The difference sequence of version edit may trigger big problem (system crash), if
   // the new version edit delete a file which has not been installed by the old edit yet,
   // because the old version edit is lagged because of RDMA or cpu schedule.
-  // For now it is ok.
+  // Answer: Since the RDMA send message are equal size, So the competion order of the RDMA send on the other side should be the same
+  // as that in the compute node.
 //  version_mtx->unlock();
 
   ibv_wc wc[2] = {};
@@ -2717,7 +2718,7 @@ void DBImpl::persistence_unpin_handler(void* arg) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                      &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
+                      &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1, shard_target_node_id);
   size_t counter = 0;
   while (*(unsigned char*)polling_byte != 1){
     _mm_clflush(polling_byte);

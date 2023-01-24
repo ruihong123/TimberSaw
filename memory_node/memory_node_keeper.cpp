@@ -1927,7 +1927,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    asm volatile ("lfence\n" : : );
 //    asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(remote_prt, remote_rkey,
-                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1, target_node_id);
 #endif
 
 
@@ -2044,7 +2044,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //                             &large_send_mr, serilized_ve.size() + 1, client_ip,
 //                             IBV_SEND_SIGNALED, 1);
 #ifdef WITHPERSISTENCE
-    int counter = 0;
+//    int counter = 0;
     // polling the finishing bit for the file number transmission.
     while (*(unsigned char*)polling_byte_2 == 0){
       _mm_clflush(polling_byte_2);
@@ -2064,7 +2064,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     compact->compaction->edit()->SetFileNumbers(file_number_end);
     DEBUG_arg("file number end %lu", file_number_end);
 
-    VersionEdit* edit = new VersionEdit();
+    VersionEdit* edit = new VersionEdit(target_node_id);
     *edit = *compact->compaction->edit();
     {
       std::unique_lock<std::mutex> lck(merger_mtx);

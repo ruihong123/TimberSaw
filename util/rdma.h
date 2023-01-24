@@ -37,9 +37,10 @@
 #include "util/thread_local.h"
 
 //#include "Resource_Printer_Plan.h"
+#include "ThreadPool.h"
 #include "mutexlock.h"
 
-//#include <boost/lockfree/spsc_queue.hpp>
+// #include <boost/lockfree/spsc_queue.hpp>
 #define _mm_clflush(addr)\
 	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -510,6 +511,7 @@ class RDMA_Manager {
   std::map<std::string, ibv_qp*> qp_map_Mside; /* QP Map */
   std::map<std::string, registered_qp_config*> qp_main_connection_info_Mside;
   Resource_Printer_PlanB rpter;
+  ThreadPool Unpin_bg_pool_;
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;
