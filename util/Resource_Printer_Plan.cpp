@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <limits>
+#include <numa.h>
 #include <vector>
 #include <unistd.h>
 #include <sys/syscall.h>
@@ -185,14 +186,7 @@ long double Resource_Printer_PlanA::getCurrentValue() {
 
 
 Resource_Printer_PlanB::Resource_Printer_PlanB() {
-
-  // getCurrentValue();
-  // int tid = syscall(SYS_gettid);
-  // std::cout << "rpter init in thread " << pthread_self() << std::endl;
-  // printf("????????????????????????????\n");
-  std::fprintf(stdout, "rpter init. addr is %Ld \n", long(this));
-  // std::cout << "rpter init. addr is " << std::endl;
-  // std::cout << "rpter init. addr is " << long(this) << std::endl;
+  
   paramInit();
 
 }
@@ -217,14 +211,12 @@ std::string Resource_Printer_PlanB::getCurrentHost() {
 
 long double Resource_Printer_PlanB::getCurrentValue() {
   struct tms timeSample;
-  clock_t now;
   long double percent;
-  int coreNumber = NUMA_CORE_NUM;
-  //TODO: generalize the compute node identification by read file
-  if (getCurrentHost() == "dbserver3"){
-    coreNumber = COMPUTE_NUMA_CORE_NUM;
-  }
-  now = times(&timeSample);
+  int all_possible_core_num = numa_num_configured_cpus();
+  int numa_bind_core_num = numa_num_task_cpus();
+  //TODO(chuqing): generalize the compute node identification by read file
+
+  clock_t now = times(&timeSample);
   if (now <= lastCPU || timeSample.tms_stime < lastSysCPU ||
       timeSample.tms_utime < lastUserCPU){
     //Overflow detection. Just skip this value.
@@ -245,21 +237,13 @@ long double Resource_Printer_PlanB::getCurrentValue() {
     percent = (timeSample.tms_stime - lastSysCPU) +
               (timeSample.tms_utime - lastUserCPU);
     percent /= (now - lastCPU);
-    percent /= coreNumber;
+    percent /= numa_bind_core_num;
     percent *= 100;
   }
   lastCPU = now;
   lastSysCPU = timeSample.tms_stime;
   lastUserCPU = timeSample.tms_utime;
   
-  // int tid = syscall(SYS_gettid);
-  // std::fprintf(stdout, "%Ld: now %Ld \n", long(this), lastCPU);
-  // std::cout << "last value updated in class addr " << long(this) \
-  //           << ", now lastCPU is " << lastCPU << std::endl;
-  // // std::cout << "HIHIHIHIHIHIHIHIHIHI" << std::endl;
-  // std::flush(std::cout);
-  // printf("ttttttttttttttttttttttttttttttttttt");
-  // in case time interval is too short
   if (percent > 0.0)
     current_percent = percent;
   return percent;

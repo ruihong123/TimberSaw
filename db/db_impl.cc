@@ -1460,7 +1460,8 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   long double cn_percent = rdma_mg->rpter.getCurrentValue();
   // std::string currenthost = rdma_mg->rpter.getCurrentHost();
   //TODO(chuqing): it is needed to heartbeat the cpu_util on computing node?
-  //  also how about both cn and mn are overused?
+  //  also how about both cn and mn are overused? => may not for current case, 
+  //  in case where memory nodes are considerded first, cn_cpu_util is always low
 
   long double mn_percent = RequestRemoteUtilization();
   // long double mn_percent = this->server_cpu_percent;
@@ -1468,17 +1469,14 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
 
   // std::fprintf(stdout, "%s CPU utilization: %Lf \n",
   //                currenthost.c_str(), cn_percent);
-  // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
+  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   //TODO(chuqing): may need to be improved
   if (from_level == 0){
-    // Push to memory node if in level 0
     return true;
   } else {
     return (mn_percent <= 80);
   }
-  // return (mn_percent <= 80);
-  // return true;
 }
 
 //TODO(Chuqing): neardata compaction
@@ -1508,7 +1506,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           (m->end ? m->end->DebugString().c_str() : "(end)"),
           (m->done ? "(end)" : manual_end.DebugString().c_str()));
     } else {
-      // Chuqing:挑一个最重要的拿出来
+      // Chuqing:pick the most important one
       c = versions_->PickCompaction();
       //if there is no task to pick up, just return.
       if (c== nullptr){

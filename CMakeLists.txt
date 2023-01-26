@@ -83,7 +83,7 @@ else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL -Wall -Wextra") #set ggdb  -fsanitize=address flag here.
-
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma") # for core number statistic
 
 
 # Test whether -Wthread-safety is available. See
