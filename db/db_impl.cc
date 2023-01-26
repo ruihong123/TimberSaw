@@ -1451,25 +1451,17 @@ long double DBImpl::RequestRemoteUtilization(){
 }
 
 bool DBImpl::CheckWhetherPushDownorNot(int from_level){
-  //TODO(chuqing): decide whether pushdown, now we get the mn_perecnt by 
-  // heartbeat, to be more accurate for compute node itself, should also 
-  // change to heartbeat instead of on demand 
+  // Decide whether pushdown, now we get the mn_perecnt by heartbeat
   //TODO(chuqing): also decide by number of cores?
   
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-  long double cn_percent = rdma_mg->rpter.getCurrentValue();
-  // std::string currenthost = rdma_mg->rpter.getCurrentHost();
-  //TODO(chuqing): it is needed to heartbeat the cpu_util on computing node?
-  //  also how about both cn and mn are overused? => may not for current case, 
-  //  in case where memory nodes are considerded first, cn_cpu_util is always low
+  // long double cn_percent = rdma_mg->rpter.getCurrentValue();
 
   long double mn_percent = RequestRemoteUtilization();
   // long double mn_percent = this->server_cpu_percent;
   //TODO(chuqing): need to fix the heartbeat implementation
 
-  // std::fprintf(stdout, "%s CPU utilization: %Lf \n",
-  //                currenthost.c_str(), cn_percent);
-  std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
+  // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   //TODO(chuqing): may need to be improved
   if (from_level == 0){
@@ -1479,7 +1471,7 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   }
 }
 
-//TODO(Chuqing): neardata compaction
+// Neardata compaction
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
