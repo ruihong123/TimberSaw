@@ -1469,7 +1469,7 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   // std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   // long double cn_percent = rdma_mg->rpter.getCurrentValue();
 
-  long double mn_percent = RequestRemoteUtilization();
+  // long double mn_percent = RequestRemoteUtilization();
   long double mn_percent = this->server_cpu_percent;
   //TODO(chuqing): need to fix the heartbeat implementation
 
