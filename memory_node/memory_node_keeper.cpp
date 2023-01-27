@@ -1408,6 +1408,8 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     //  receive_msg_buf->content.qp_config.qp_num = ntohl(receive_msg_buf->content.qp_config.qp_num);
     //  receive_msg_buf->content.qp_config.lid = ntohs(receive_msg_buf->content.qp_config.lid);
     //  ibv_wc wc[3] = {};
+
+    //
     // TODO: implement a heart beat mechanism.
     int buffer_position = 0;
     int miss_poll_counter = 0;
