@@ -7,7 +7,7 @@
 #include "db/table_cache.h"
 #include <fstream>
 #include <list>
-
+#include <numa.h>
 #include "table/table_builder_bams.h"
 #include "table/table_builder_memoryside.h"
 
@@ -52,7 +52,14 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
 //    ClipToRange(&opts->write_buffer_size, 64 << 10, 1 << 30);
 //    ClipToRange(&opts->max_file_size, 1 << 20, 1 << 30);
 //    ClipToRange(&opts->block_size, 1 << 10, 4 << 20);
+
+#ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
+    int available_cpu_num = numa_num_task_cpus();
+    Compactor_pool_.SetBackgroundThreads(available_cpu_num);
+    opts->MaxSubcompaction = available_cpu_num;
+#else
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);
+#endif
     Message_handler_pool_.SetBackgroundThreads(2);
     Persistency_bg_pool_.SetBackgroundThreads(1);
 

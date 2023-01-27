@@ -24,6 +24,7 @@
 #include <string>
 #include <utility>
 #include <vector>
+#include <numa.h>
 
 #include "TimberSaw/db.h"
 #include "TimberSaw/env.h"
@@ -305,8 +306,15 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
 
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
+#ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
+  int available_cpu_num = numa_num_task_cpus();
+  env_->SetBackgroundThreads(available_cpu_num,ThreadPoolType::CompactionThreadPool);
+  options_.MaxSubcompaction = available_cpu_num;
+
+#else
   env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
 
+#endif
 }
 
 DBImpl::~DBImpl() {
