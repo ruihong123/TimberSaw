@@ -1541,10 +1541,6 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else {
       bool need_push_down = CheckWhetherPushDownorNot(c->level());
       
-      // Initialize the timer
-      auto start_time = std::chrono::high_resolution_clock::now();
-      auto end_time = std::chrono::high_resolution_clock::now();
-      // int level_from = c->level();
       if (!is_manual && c->IsTrivialMove()) {
         // Move file to next level
         assert(c->num_input_files(0) == 1);
@@ -1582,16 +1578,13 @@ void DBImpl::BackgroundCompaction(void* p) {
       } else if (need_push_down) {
 
         // The neardata compaction branch
-        start_time = std::chrono::high_resolution_clock::now();
         NearDataCompaction(c);
-        end_time = std::chrono::high_resolution_clock::now();
 //        MaybeScheduleFlushOrCompaction();
 //        return;
       } else {
         // Normal compaction branch
         CompactionState* compact = new CompactionState(c);
 
-        start_time = std::chrono::high_resolution_clock::now();
 //        write_stall_mutex_.AssertNotHeld();
         // Only when there is enough input level files and output level files will the subcompaction triggered
         if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
@@ -1600,8 +1593,6 @@ void DBImpl::BackgroundCompaction(void* p) {
           status = DoCompactionWork(compact);
         }
 
-        end_time = std::chrono::high_resolution_clock::now();
-        // auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
         // printf("Table compaction time elapse (%ld) us, compaction level is %d, first level file number %d, the second level file number %d \n",
         //        duration.count(), compact->compaction->level(), compact->compaction->num_input_files(0),compact->compaction->num_input_files(1) );
         DEBUG("Non-trivalcompaction!\n");
@@ -1612,17 +1603,7 @@ void DBImpl::BackgroundCompaction(void* p) {
         CleanupCompaction(compact);
 //      RemoveObsoleteFiles();
       }
-      // Time printer
-      if(need_push_down){
-        printf("[NearData]");
-      } else {
-        printf("[Normal]");
-      }
-      auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end_time - start_time);
-      // printf("Table compaction time elapse (%ld) us, compaction level is %d \n",
-      //                       duration.count(), c->level());
-      this->accumulated_time += duration.count();
-      // printf("Now accumulated time: %ld us\n", this->accumulated_time);
+      
     }
     delete c;
 
