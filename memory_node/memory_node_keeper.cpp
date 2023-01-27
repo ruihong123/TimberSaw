@@ -1727,8 +1727,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::thread CPU_utilization_heartbeat([&](){
       //backup the function arguments
       uint8_t target_node_id_local = target_node_id;
-      void* request_buffer = malloc(sizeof(ibv_mr));
-      memcpy(request_buffer, request->buffer, sizeof(ibv_mr));
+      void* request_buffer = request->buffer;
+      // memcpy(request_buffer, request->buffer, sizeof(ibv_mr));
       uint32_t request_rkey = request->rkey;
       std::string client_ip_local = std::string(client_ip.c_str());
 
