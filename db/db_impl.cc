@@ -1607,7 +1607,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       // printf("Table compaction time elapse (%ld) us, compaction level is %d \n",
       //                       duration.count(), c->level());
       this->accumulated_time += duration.count();
-      printf("Now accumulated time: %ld us\n", this->accumulated_time);
+      // printf("Now accumulated time: %ld us\n", this->accumulated_time);
     }
     delete c;
 

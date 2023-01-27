@@ -410,7 +410,7 @@ class Stats {
     }
     AppendWithSpace(&extra, message_);
 
-    std::fprintf(stdout, "\033[33m%-12s\033[0m : %8.3f micros/op; %ld ops/sec;%s%s\n",
+    std::fprintf(stdout, "%-12s: %8.3f micros/op; %ld ops/sec;%s%s\n",
                  name.ToString().c_str(), seconds_ * 1e6 / done_, (long)(done_/elapsed),
                  (extra.empty() ? "" : " "), extra.c_str());
 
