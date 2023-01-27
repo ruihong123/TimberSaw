@@ -94,7 +94,8 @@
 //#define WITHPERSISTENCE
 //#define PROCESSANALYSIS
 #define BYTEADDRESSABLE
-#define NEARDATACOMPACTION
+#define NEARDATACOMPACTION 2 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
+
 //#define GETANALYSIS
 #define ROCKSDB_PTHREAD_ADAPTIVE_MUTEX
 #define R_SIZE 1024

@@ -1451,6 +1451,7 @@ long double DBImpl::RequestRemoteUtilization(){
 }
 
 bool DBImpl::CheckWhetherPushDownorNot(int from_level){
+#if NEARDATACOMPACTION==2
   // Decide whether pushdown, now we get the mn_perecnt by heartbeat
   //TODO(chuqing): also decide by number of cores?
   
@@ -1469,9 +1470,17 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   } else {
     return (mn_percent <= 80);
   }
+  // return (mn_percent <= 80);
+  // return true;
+#elif NEARDATACOMPACTION == 0
+  return false;
+#else
+  return true;
+#endif
+
 }
 
-// Neardata compaction
+//TODO(Chuqing): neardata compaction
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
@@ -1498,7 +1507,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           (m->end ? m->end->DebugString().c_str() : "(end)"),
           (m->done ? "(end)" : manual_end.DebugString().c_str()));
     } else {
-      // Chuqing:pick the most important one
+      // Chuqing:挑一个最重要的拿出来
       c = versions_->PickCompaction();
       //if there is no task to pick up, just return.
       if (c== nullptr){
@@ -1514,7 +1523,7 @@ void DBImpl::BackgroundCompaction(void* p) {
     if (c == nullptr) {
       // Nothing to do
     } else {
-      bool adaptive_compaction = CheckWhetherPushDownorNot(c->level());
+      bool need_push_down = CheckWhetherPushDownorNot(c->level());
       
       // Initialize the timer
       auto start_time = std::chrono::high_resolution_clock::now();
@@ -1554,7 +1563,9 @@ void DBImpl::BackgroundCompaction(void* p) {
             static_cast<unsigned long long>(f->file_size),
             status.ToString().c_str(), versions_->LevelSummary(&tmp));
         DEBUG("Trival compaction\n");
-      } else if (options_.near_data_compaction && adaptive_compaction) {
+//      } else if (options_.near_data_compaction && need_push_down) {
+      } else if (need_push_down) {
+
         // The neardata compaction branch
         // Chuqing: is it possible to have NEARDATACOMPACTION but
         // this option near_data_compaction is false?
@@ -1589,7 +1600,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 //      RemoveObsoleteFiles();
       }
       // Time printer
-      if(adaptive_compaction){
+      if(need_push_down){
         printf("[NearData]");
       } else {
         printf("[Normal]");
