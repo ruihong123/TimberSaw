@@ -1483,6 +1483,12 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
 
   //TODO(chuqing): may need to be improved
   if (from_level == 0){
+    //TODO (ruihong): Always pushing down level 0 compaction may not always be a good choice. T
+    // The strategy should be depends on the relationship between remote CPU number
+    // and the maximum subcompaction the level 0 compaction can provide.
+    // E.g. If a level 0 compaction can be divided into 10 subcompaction conducting by 10 cores, but
+    // the remote server only contains 1 core. Then doing the level 0 compaction in compute
+    // node is better, because there could be more parallelism be explored.
     return true;
   } else {
     return (mn_percent <= 80);
