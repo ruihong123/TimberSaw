@@ -1491,7 +1491,6 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         Compactor_pool_.Schedule(&Memory_Node_Keeper::RPC_Compaction_Dispatch, thread_pool_args);
 //        sst_compaction_handler(nullptr);
       } else if (receive_msg_buf->command == create_cpu_refresher) {
-        //TODO: (chuqing)
         // receive a new remote cpu keeper request from compute node
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
@@ -1503,7 +1502,6 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
                                             compute_node_id,
                                             client_ip);
         
-        //TODO(chuqing): don't know why this branch are called->maybe not called
         return_cpu_utilization(receive_msg_buf, client_ip, compute_node_id);
       } else if (receive_msg_buf->command == SSTable_gc) {
 
@@ -1695,7 +1693,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
     RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
 
-    //TODO(chuqing): don't know whether this sentence had influence on result
+    
     // send_pointer->content.cpu_percent = rdma_mg->rpter.getCurrentValue();
     send_pointer->cpu_util = rdma_mg->rpter.current_percent;
     send_pointer->received = true;
@@ -1709,9 +1707,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
   void Memory_Node_Keeper::create_cpu_util_sender(RDMA_Request* request,
                                              std::string& client_ip,
                                              uint8_t target_node_id){
-    //TODO: (chuqing)
     DEBUG("Create cpu utilization sender\n");
-    //TODO(chuqing): if just send the utilization once, works or not
+    
     std::thread CPU_utilization_heartbeat([&](){
       //backup the function arguments
       uint8_t target_node_id_local = target_node_id;
@@ -1736,12 +1733,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                         sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
-      // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
-      // outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
-      // send_pointer->cpu_util = rdma_mg->rpter.current_percent;
-      // rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
-      //                 sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
-      // std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      
       outfile.close();
     });
     CPU_utilization_heartbeat.detach();

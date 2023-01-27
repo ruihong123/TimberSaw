@@ -1182,7 +1182,6 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
   }
   if (versions_->NeedsCompaction()) {
 //    background_compaction_scheduled_ = true;
-    // Chuqing: 远端是否需要schedule， 看一下BGwork compaction的调用
     void* function_args = nullptr;
     BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
     env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
@@ -1196,7 +1195,6 @@ void DBImpl::BGWork_Flush(void* thread_arg) {
   delete static_cast<BGThreadMetadata*>(thread_arg);
 }
 void DBImpl::BGWork_Compaction(void* thread_arg) {
-  // Chuqing: call compaction here
   BGThreadMetadata* p = static_cast<BGThreadMetadata*>(thread_arg);
   ((DBImpl*)p->db)->BackgroundCompaction(p->func_args);
   delete static_cast<BGThreadMetadata*>(thread_arg);
@@ -1244,7 +1242,7 @@ void DBImpl::BackgroundFlush(void* p) {
   MaybeScheduleFlushOrCompaction();
 //  undefine_mutex.Unlock();
 }
-#ifndef NEARDATACOMPACTION   // Chuqing: normal compaction
+#ifndef NEARDATACOMPACTION   
 void DBImpl::BackgroundCompaction(void* p) {
   //  write_stall_mutex_.AssertNotHeld();
 
@@ -1311,7 +1309,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       auto start = std::chrono::high_resolution_clock::now();
       //      write_stall_mutex_.AssertNotHeld();
       // Only when there is enough input level files and output level files will the subcompaction triggered
-      // Chuqing:区别：这里不发rpc了，直接do compaction
+
       if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
         status = DoCompactionWorkWithSubcompaction(compact);
       }else{
@@ -1366,8 +1364,7 @@ void DBImpl::ActivateRemoteCPURefresh(){
   **/
 
   //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
-  //TODO(Chuqing): where to initialize?
-  //TODO(chuqing): seem that never be called
+  //TODO(Chuqing): where to initialize, seem that never be called
   
   std::fprintf(stdout, "Call activate remote cpu refresh, now is %.4Lf\n", server_cpu_percent);
   std::thread keep_refresh_remote_cpu_utilizaton([&](){
@@ -1463,7 +1460,7 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   // Decide whether pushdown, now we get the mn_perecnt by heartbeat
   //TODO(chuqing): also decide by number of cores?
   
-  std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
   // long double cn_percent = rdma_mg->rpter.getCurrentValue();
 
   long double mn_percent = RequestRemoteUtilization();
@@ -1478,8 +1475,7 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   } else {
     return (mn_percent <= 80);
   }
-  // return (mn_percent <= 80);
-  // return true;
+
 #elif NEARDATACOMPACTION == 0
   return false;
 #else
@@ -1488,7 +1484,6 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
 
 }
 
-//TODO(Chuqing): neardata compaction
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
 //  write_stall_mutex_.AssertNotHeld();
@@ -1502,7 +1497,6 @@ void DBImpl::BackgroundCompaction(void* p) {
     bool is_manual = (manual_compaction_ != nullptr);
     InternalKey manual_end;
     if (is_manual) {
-      // Chuqing: seems that unfinished
       ManualCompaction* m = manual_compaction_;
       c = versions_->CompactRange(m->level, m->begin, m->end);
       m->done = (c == nullptr);
@@ -1515,7 +1509,6 @@ void DBImpl::BackgroundCompaction(void* p) {
           (m->end ? m->end->DebugString().c_str() : "(end)"),
           (m->done ? "(end)" : manual_end.DebugString().c_str()));
     } else {
-      // Chuqing:挑一个最重要的拿出来
       c = versions_->PickCompaction();
       //if there is no task to pick up, just return.
       if (c== nullptr){
@@ -1538,7 +1531,6 @@ void DBImpl::BackgroundCompaction(void* p) {
       auto end_time = std::chrono::high_resolution_clock::now();
       // int level_from = c->level();
       if (!is_manual && c->IsTrivialMove()) {
-        // Chuqing:下一层没有 直接放到下一层
         // Move file to next level
         assert(c->num_input_files(0) == 1);
         std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
@@ -1575,8 +1567,6 @@ void DBImpl::BackgroundCompaction(void* p) {
       } else if (need_push_down) {
 
         // The neardata compaction branch
-        // Chuqing: is it possible to have NEARDATACOMPACTION but
-        // this option near_data_compaction is false?
         start_time = std::chrono::high_resolution_clock::now();
         NearDataCompaction(c);
         end_time = std::chrono::high_resolution_clock::now();
@@ -1618,7 +1608,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       //                       duration.count(), c->level());
       this->accumulated_time += duration.count();
       printf("Now accumulated time: %ld us\n", this->accumulated_time);
-    }//TODO(chuqing): bracket ends here
+    }
     delete c;
 
     if (status.ok()) {
@@ -2142,7 +2132,6 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   ibv_mr mr_c = {};
 //  ibv_mr recv_mr_c = {};
   ibv_mr receive_mr = {};
-  // Chuqing:创建buffer
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   rdma_mg->Allocate_Local_RDMA_Slot(mr_c, Version_edit);
 //  rdma_mg->Allocate_Local_RDMA_Slot(recv_mr_c, Version_edit);
@@ -2163,9 +2152,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 //      = recv_mr_c.rkey;
 //  memset((char*)send_mr_c.addr + serilized_c.size() + \
 //             sizeof(receive_mr.addr) + sizeof(receive_mr.rkey), 1, 1);
-  // Chuqing:转换类型
   send_pointer = (RDMA_Request*)send_mr.addr;
-  // Chuqing:定义具体内容
   send_pointer->command = near_data_compaction;
   send_pointer->content.sstCompact.buffer_size = serilized_c.size() + 1;
   send_pointer->buffer = receive_mr.addr;
@@ -2175,8 +2162,6 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   //Todo: modify this.
 
 
-
-  // Chuqing: generate a immediate, on compute node
   uint32_t imm_num = imm_gen->fetch_add(1);
   // avoid imm_num == 0
   if (imm_num == 0){
@@ -2201,7 +2186,6 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
-  // Chuqing:看send有没有发出去 ?
 #ifdef WITHPERSISTENCE
 
   asm volatile ("sfence\n" : : );
@@ -2287,14 +2271,12 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   // polling the finishing bit for the file number transmission.
   size_t counter = 0;
   std::unique_lock<std::mutex> lck(*mtx_imme);
-  // Chuqing: cv condition variable 等别人让自己苏醒 wait信号
   while (imm_num != *imme_data){
     cv_imme->wait(lck);
   }
   size_t buffer_size = *byte_len;
   *byte_len = 0;
   *imme_data = 0;
-  // Chuqing: 这个mr_c是写的地方，醒了之后肯定有东西了
   assert(*((unsigned char*)mr_c.addr + buffer_size - 1) == 1);
   assert(*imme_data == 0);
   lck.unlock();
@@ -2331,15 +2313,12 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     // TODO: remove the version id argument because we no longer need it.
 //    std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
 
-    // Chuqing:edit就是每次更改放到edit里，这个是rocksdb原本的设计
     versions_->LogAndApply(&edit);
     c->ReleaseInputs();
 //    lck_vs.unlock();
 
     InstallSuperVersion();
     write_stall_cv.notify_all();
-    // Chuqing:为了前端写等待的信号，假如level 0太多了，
-    // 就等compaction完了之后发个信号之后不那么多了可以继续写了
   }
 #ifdef WITHPERSISTENCE
   uint64_t* file_number_end_send_ptr = static_cast<uint64_t*>(send_mr.addr);
@@ -2354,7 +2333,6 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   rdma_mg->Deallocate_Local_RDMA_Slot(mr_c.addr,Version_edit);
 //  rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
-  // Chuqing:清理local buffer， 放回rdma管理的资源里，不然mem leak
 
 }
 //void DBImpl::Communication_To_Home_Node() {
@@ -3755,24 +3733,18 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
 //  w.sync = options.sync;
 //  w.done = false;
 
-  // Chuqing: write要先放到batch里，
-
   // May temporarily Unlock and wait.
 //  Status status = Status::OK();
 #ifdef TIMEPRINT
   auto start = std::chrono::high_resolution_clock::now();
   auto total_start = std::chrono::high_resolution_clock::now();
 #endif
-  // Chuqing: check一下多少个写 v
   size_t kv_num = WriteBatchInternal::Count(updates);
   assert(kv_num == 1);
-  // Chuqing: 找到这次的sequence number
   uint64_t sequence = versions_->AssignSequnceNumbers(kv_num);
   //todo: remove
 //  kv_counter0.fetch_add(1);
   MemTable* mem;
-  // Chuqing: 找写在哪个memtable里，这里好多个线程，有可能有多个线程写的时候发现要创建新的table，
-  // 所以要sync一下，新的sequence number大于原来的那个
   Status status = PickupTableToWrite(updates == nullptr, sequence, mem);
 #ifdef TIMEPRINT
   auto stop = std::chrono::high_resolution_clock::now();
@@ -3844,7 +3816,6 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
     // for a new table.
 
     size_t level0_filenum = versions_->NumLevelFiles(0);
-    // Chuqing:rm记录有多少个memtable在里面，如果里面满了的话会block一下
     if (imm_.current_memtable_num() >= config::Immutable_StopWritesTrigger
         || level0_filenum >= config::kL0_StopWritesTrigger) {
       // We have filled up the current memtable, but the previous
@@ -3867,7 +3838,6 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
       }
 //      imm_mtx.unlock();
     } else if(level0_filenum > config::kL0_SlowdownWritesTrigger && !delayed){
-      // Chuqing:slowdown trigger 发现太多的话不让他读？
       env_->SleepForMicroseconds(1000);
       delayed = true;
     }else{
@@ -3883,7 +3853,6 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
 #endif
       mem_r = mem_.load();
       //After aquire the lock check the status again
-      // Chuqing:找到了table之后
       if (imm_.current_memtable_num() <= config::Immutable_StopWritesTrigger&&
           versions_->NumLevelFiles(0) <= config::kL0_StopWritesTrigger &&
           seq_num > mem_r->Getlargest_seq_supposed()){
@@ -3907,7 +3876,6 @@ Status DBImpl::PickupTableToWrite(bool force, uint64_t seq_num, MemTable*& mem_r
         // the table we will write.
         mem_r = temp_mem;
 //        imm_mtx.unlock();
-        // Chuqing: maybe 这个是可能触发compaction 
         MaybeScheduleFlushOrCompaction();
 #ifndef NDEBUG
         locked = false;
