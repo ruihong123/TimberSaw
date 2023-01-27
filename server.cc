@@ -28,7 +28,7 @@ int main(int argc,char* argv[])
     strValue3 << value;
     strValue3 >> Memory_server_id;
      mn_keeper = new TimberSaw::Memory_Node_Keeper(true, tcp_port, pr_size);
-     TimberSaw::RDMA_Manager::node_id = 2* Memory_server_id;
+     TimberSaw::RDMA_Manager::node_id = 2 * Memory_server_id;
   }else{
     mn_keeper = new TimberSaw::Memory_Node_Keeper(true, 19844, 88);
     TimberSaw::RDMA_Manager::node_id = 0;
@@ -46,6 +46,8 @@ int main(int argc,char* argv[])
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
       long double new_percent = TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue();
       // printf("Heartbeat generate new CPU utilization is %.4Lf(%.4Lf)\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.current_percent, new_percent);
+      sleep(2);
+//      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
     }
   });
   CPU_utilization_heartbeat.detach();

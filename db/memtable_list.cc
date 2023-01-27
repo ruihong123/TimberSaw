@@ -71,7 +71,9 @@ MemTableListVersion::MemTableListVersion(
     int64_t max_write_buffer_size_to_maintain)
     : max_write_buffer_number_to_maintain_(max_write_buffer_number_to_maintain),
       max_write_buffer_size_to_maintain_(max_write_buffer_size_to_maintain),
-      parent_memtable_list_memory_usage_(parent_memtable_list_memory_usage) {}
+      parent_memtable_list_memory_usage_(parent_memtable_list_memory_usage) {
+  assert(max_write_buffer_size_to_maintain_ < 64ull * 1024*1024*100);
+}
 //TODO: make refs_ a atomic pointer, all the refs_ should be atomic pointer in
 // this project.  If we can make sure the reference counter can not be 0 then, we can
 // avoid using lock for the reference and dereference
@@ -81,6 +83,8 @@ void MemTableListVersion::Ref() { ++refs_; }
 void MemTableListVersion::Unref(autovector<MemTable*>* to_delete) {
   assert(refs_ >= 1);
   --refs_;
+  assert(memlist_.size() <= 32);
+  assert(memlist_history_.size() <= 32);
   if (refs_ == 0) {
     //Unref all the memtable in the memtable list.
     for (const auto& m : memlist_) {
@@ -335,6 +339,9 @@ bool MemTableListVersion::TrimHistory(size_t usage) {
 
     *parent_memtable_list_memory_usage_ -= x->ApproximateMemoryUsage();
     ret = true;
+//#ifndef NDEBUG
+//    x->assert_refs(1);
+//#endif
     x->Unref();
   }
   return ret;

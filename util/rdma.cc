@@ -34,8 +34,9 @@ void UnrefHandle_cq(void* ptr) {
 }
 void Destroy_mr(void* ptr) {
   if (ptr == nullptr) return;
+  auto target_add = (char*)((ibv_mr*)ptr)->addr;
   ibv_dereg_mr((ibv_mr*)ptr);
-  delete (char*)((ibv_mr*)ptr)->addr;
+  delete target_add;
 }
 template<typename T>
 void General_Destroy(void* ptr){
@@ -53,8 +54,8 @@ void General_Destroy(void* ptr){
 * Initialize the resource for RDMA.
 ******************************************************************************/
 RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
-    : total_registered_size(0),
-      Table_Size(remote_block_size),
+    : total_assigned_memory_size(0),
+//      Table_Size(remote_block_size),
       read_buffer(new ThreadLocalPtr(&Destroy_mr)),
 //      qp_local_write_flush(new ThreadLocalPtr(&UnrefHandle_qp)),
 //      cq_local_write_flush(new ThreadLocalPtr(&UnrefHandle_cq)),
@@ -123,7 +124,11 @@ RDMA_Manager::~RDMA_Manager() {
     //    local_mem_pool.clear();
   }
   for(auto iter : dealloc_mr){
-    ibv_dereg_mr(iter.second);
+    for(auto iter1 : *iter.second){
+      ibv_dereg_mr(iter1.second);
+    }
+    delete iter.second;
+
     //The mr will be deleted in the end.
   }
   if (!remote_mem_pool.empty()) {
@@ -181,6 +186,9 @@ RDMA_Manager::~RDMA_Manager() {
   }
   for(auto iter : Remote_Mem_Bitmap){
     for(auto iter1 : *iter.second){
+      for(auto iter2 : *iter1.second){
+      delete iter2.second;
+      }
       delete iter1.second;
     }
     delete iter.second;
@@ -808,10 +816,7 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     //  auto stop = std::chrono::high_resolution_clock::now();
     //  auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start); std::printf("Memory registeration size: %zu time elapse (%ld) us\n", size, duration.count());
     local_mem_pool.push_back(*p2mrpointer);
-    fprintf(stdout,
-            "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %lu\n",
-            (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
-            mr_flags, size, total_registered_size);
+
   }else{
     *p2mrpointer = pre_allocated_pool.back();
     pre_allocated_pool.pop_back();
@@ -824,7 +829,8 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
         "ibv_reg_mr failed with mr_flags=0x%x, size = %zu, region num = %zu\n",
         mr_flags, size, local_mem_pool.size());
     return false;
-  } else if(pool_name!= Default) {
+    //TODO:
+  } else if(pool_name!= No_Use_Default_chunk) {
     // if pool name == Default, then no bit map will be created. The registered memory is used for remote compute node RDMA read and write
     // If chunk size equals 0, which means that this buffer should not be add to Local Bit Map, will not be regulated by the RDMA manager.
 
@@ -839,28 +845,51 @@ bool RDMA_Manager::Local_Memory_Register(char** p2buffpointer,
     name_to_mem_pool.at(pool_name).insert({(*p2mrpointer)->addr, in_use_array});
   }
     else
-      printf("Register memory for computing node\n");
-  total_registered_size = total_registered_size + (*p2mrpointer)->length;
+      printf("Register memory at memory node for computing node\n");
+  total_assigned_memory_size =
+      total_assigned_memory_size + (*p2mrpointer)->length;
+  fprintf(stdout,
+          "New MR was registered with addr=%p, lkey=0x%x, rkey=0x%x, flags=0x%x, size=%lu, total registered size is %Lf, chunk type is %d\n",
+          (*p2mrpointer)->addr, (*p2mrpointer)->lkey, (*p2mrpointer)->rkey,
+          mr_flags, size,
+          total_assigned_memory_size /(1024.0L*1024.0L*1024.0L), pool_name);
 
 
   return true;
 };
-bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(
-    uint64_t** ptr, size_t size, uint8_t target_node_id) {
-  std::unique_lock<std::mutex> lck(*dealloc_mtx.at(target_node_id));
+bool RDMA_Manager::Remote_Memory_Deallocation_Fetch_Buff(uint64_t** ptr,
+                                                         size_t size,
+                                                         uint8_t target_node_id,
+                                                         Chunk_type c_type) {
+  std::unique_lock<std::mutex> lck(*dealloc_mtx.at(c_type)->at(target_node_id));
 //  memcpy(deallocation_buffers + top * sizeof(uint64_t), ptr, size);
-  while(top.at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
-    dealloc_cv.at(target_node_id)->wait(lck);
+  while(top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
+    dealloc_cv.at(c_type)->at(target_node_id)->wait(lck);
   }
-  *ptr = deallocation_buffers.at(target_node_id) + top.at(target_node_id);
-  top[target_node_id] += size;
-  if (top.at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128)
+  *ptr = deallocation_buffers.at(c_type)->at(target_node_id) + top.at(c_type)->at(target_node_id);
+  (*top.at(c_type))[target_node_id] += size;
+
+  if (top.at(c_type)->at(target_node_id) >= REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t) - 128){
+#ifndef NDEBUG
+    size_t current_index = (*top.at(c_type))[target_node_id];
+    if (c_type == FilterChunk){
+      uint64_t * interested_buffer = deallocation_buffers.at(c_type)->at(target_node_id);
+      for (int i = 0; i < current_index - size; ++i) {
+        assert(interested_buffer[i] != 0);
+      }
+    }
+
+
+#endif
     return true;
+  }
   else
     return false;
 
 }
-void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
+void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id,
+                                           Chunk_type c_type) {
+//  printf("Send garbage collection RPC\n");
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
 //  ibv_mr send_mr_ve = {};
@@ -871,7 +900,8 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
   Allocate_Local_RDMA_Slot(receive_mr, Message);
   send_pointer = (RDMA_Request*)send_mr.addr;
   send_pointer->command = SSTable_gc;
-  send_pointer->content.gc.buffer_size = top.at(target_node_id) * sizeof(uint64_t);
+  send_pointer->content.gc.buffer_size = top.at(c_type)->at(target_node_id) * sizeof(uint64_t);
+  send_pointer->content.gc.c_type = c_type;
   send_pointer->buffer = receive_mr.addr;
   send_pointer->rkey = receive_mr.rkey;
   send_pointer->imm_num = 0;
@@ -909,7 +939,7 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   RDMA_Write(receive_pointer->buffer_large, receive_pointer->rkey_large,
-             dealloc_mr.at(target_node_id), top.at(target_node_id) * sizeof(uint64_t), "main", IBV_SEND_SIGNALED, 1,
+             dealloc_mr.at(c_type)->at(target_node_id), top.at(c_type)->at(target_node_id) * sizeof(uint64_t), "main", IBV_SEND_SIGNALED, 1,
              target_node_id);
   //TODO: implement a wait function for the received bit. THe problem is when to
   // reset the buffer to zero (we may need different buffer for the compaction reply)
@@ -920,11 +950,12 @@ void RDMA_Manager::Memory_Deallocation_RPC(uint8_t target_node_id) {
   Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
   // Notify all the other deallocation threads that the buffer has been cleared.
-  std::unique_lock<std::mutex> lck(*dealloc_mtx.at(target_node_id));
-  assert(top.find(target_node_id) != top.end());
-  top[target_node_id] = 0;
-  dealloc_cv.at(target_node_id)->notify_all();
+  std::unique_lock<std::mutex> lck(*dealloc_mtx.at(c_type)->at(target_node_id));
+  assert((*top.at(c_type)).find(target_node_id) != (*top.at(c_type)).end());
+  (*top.at(c_type))[target_node_id] = 0;
+  dealloc_cv.at(c_type)->at(target_node_id)->notify_all();
 }
+
 bool RDMA_Manager::Preregister_Memory(int gb_number) {
   int mr_flags = 0;
   size_t size = 1024*1024*1024;
@@ -932,7 +963,7 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
 //    void* dummy = malloc(size*2);
 //  }
   for (int i = 0; i < gb_number; ++i) {
-    total_registered_size = total_registered_size + size;
+//    total_registered_size = total_registered_size + size;
     std::fprintf(stderr, "Pre allocate registered memory %d GB %30s\r", i, "");
     std::fflush(stderr);
     char* buff_pointer = new char[size];
@@ -1043,6 +1074,19 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 //  }
 }
 void RDMA_Manager::Initialize_threadlocal_map(){
+  Remote_Mem_Bitmap.insert({FlushBuffer, new std::map<uint8_t, std::map<void*, In_Use_Array*>*>});
+  Remote_Mem_Bitmap.insert({FilterChunk, new std::map<uint8_t, std::map<void*, In_Use_Array*>*>});
+  deallocation_buffers.insert({FlushBuffer, new std::map<uint8_t,uint64_t*> });
+  deallocation_buffers.insert({FilterChunk, new std::map<uint8_t,uint64_t*> });
+
+  dealloc_mtx.insert({FlushBuffer, new std::map<uint8_t,std::mutex*>});
+  dealloc_mtx.insert({FilterChunk, new std::map<uint8_t,std::mutex*>});
+  dealloc_cv.insert({FlushBuffer, new std::map<uint8_t,std::condition_variable*>});
+  dealloc_cv.insert({FilterChunk, new std::map<uint8_t,std::condition_variable*>});
+  dealloc_mr.insert({FlushBuffer, new std::map<uint8_t,ibv_mr*>});
+  dealloc_mr.insert({FilterChunk, new std::map<uint8_t,ibv_mr*>});
+  top.insert({FlushBuffer, new std::map<uint8_t,size_t>});
+  top.insert({FilterChunk, new std::map<uint8_t,size_t>});
   uint8_t target_node_id;
   for (int i = 0; i < memory_nodes.size(); ++i) {
     target_node_id = 2*i;
@@ -1055,12 +1099,20 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     qp_local_read.insert({target_node_id, new ThreadLocalPtr(&UnrefHandle_qp)});
     cq_local_read.insert({target_node_id, new ThreadLocalPtr(&UnrefHandle_cq)});
     local_read_qp_info.insert({target_node_id, new ThreadLocalPtr(&General_Destroy<registered_qp_config*>)});
-    Remote_Mem_Bitmap.insert({target_node_id, new std::map<void*, In_Use_Array*>()});
-    deallocation_buffers.insert({target_node_id, new uint64_t[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)]});
-    dealloc_mtx.insert({target_node_id, new std::mutex});
-    dealloc_cv.insert({target_node_id, new std::condition_variable});
-    dealloc_mr.insert({target_node_id, nullptr});
-    top.insert({target_node_id,0});
+    Remote_Mem_Bitmap.at(FlushBuffer)->insert({target_node_id, new std::map<void*, In_Use_Array*>()});
+    Remote_Mem_Bitmap.at(FilterChunk)->insert({target_node_id, new std::map<void*, In_Use_Array*>()});
+
+    deallocation_buffers.at(FlushBuffer)->insert({target_node_id, new uint64_t[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)]});
+    dealloc_mtx.at(FlushBuffer)->insert({target_node_id, new std::mutex});
+    dealloc_cv.at(FlushBuffer)->insert({target_node_id, new std::condition_variable});
+    dealloc_mr.at(FlushBuffer)->insert({target_node_id, nullptr});
+    top.at(FlushBuffer)->insert({target_node_id,0});
+    deallocation_buffers.at(FilterChunk)->insert({target_node_id, new uint64_t[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)]});
+    dealloc_mtx.at(FilterChunk)->insert({target_node_id, new std::mutex});
+    dealloc_cv.at(FilterChunk)->insert({target_node_id, new std::condition_variable});
+    dealloc_mr.at(FilterChunk)->insert({target_node_id, nullptr});
+    top.at(FilterChunk)->insert({target_node_id,0});
+//    top.insert({target_node_id,0});
     mtx_imme_map.insert({target_node_id, new std::mutex});
     imm_gen_map.insert({target_node_id, new std::atomic<uint32_t>{0}});
     imme_data_map.insert({target_node_id, new  uint32_t{0}});
@@ -1176,12 +1228,15 @@ int RDMA_Manager::resources_create() {
   //  auto start = std::chrono::high_resolution_clock::now();
   // Register the deallocation buffers.
   for(auto iter : deallocation_buffers){
-    dealloc_mr[iter.first] = ibv_reg_mr(res->pd, iter.second,
-                            REMOTE_DEALLOC_BUFF_SIZE, mr_flags);
-    if (dealloc_mr[iter.first] == nullptr){
-      fprintf(stdout, "dealloc_mr registration failed\n");
+    for (auto iter1 : *iter.second) {
+      (*dealloc_mr.at(iter.first))[iter1.first] = ibv_reg_mr(res->pd, iter1.second,
+                                          REMOTE_DEALLOC_BUFF_SIZE, mr_flags);
+      if ( (*dealloc_mr.at(iter.first))[iter1.first] == nullptr){
+        fprintf(stdout, "dealloc_mr registration failed\n");
 
+      }
     }
+
   }
 
 
@@ -1346,7 +1401,7 @@ void RDMA_Manager::sync_with_computes_Mside() {
           usleep(1024);
           continue;
         }else{
-          printf("CPU utilization is %Lf\n", rpter.getCurrentValue());
+//          printf("CPU utilization is %Lf\n", rpter.getCurrentValue());
           sleep(2);
           continue;
         }
@@ -2784,7 +2839,8 @@ void RDMA_Manager::usage(const char* argv0) {
           " -g, --gid_idx <git index> gid index to be used in GRH (default not used)\n");
 }
 
-bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id) {
+bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id,
+                                          Chunk_type c_type) {
 //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
   // register the memory block from the remote memory
 
@@ -2826,14 +2882,44 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id) {
   // push the bitmap of the new registed buffer to the bitmap vector in resource.
   int placeholder_num =
       static_cast<int>(temp_pointer->length) /
-      (Table_Size);  // here we supposing the SSTables are 4 megabytes
-  In_Use_Array* in_use_array = new In_Use_Array(placeholder_num, Table_Size, temp_pointer);
+      (name_to_chunksize.at(c_type));  // here we supposing the SSTables are 4 megabytes
+  In_Use_Array* in_use_array = new In_Use_Array(placeholder_num, name_to_chunksize.at(c_type), temp_pointer);
   //    std::unique_lock l(remote_pool_mutex);
-  Remote_Mem_Bitmap.at(target_node_id)->insert({temp_pointer->addr, in_use_array});
+  Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->insert({temp_pointer->addr, in_use_array});
   //    l.unlock();
   //  l.unlock();
   Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
   Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
+  return true;
+}
+
+bool RDMA_Manager::Print_Remote_CPU_RPC(uint8_t target_node_id) {
+  RDMA_Request* send_pointer;
+  ibv_mr send_mr = {};
+//  ibv_mr receive_mr = {};
+  Allocate_Local_RDMA_Slot(send_mr, Message);
+//  Allocate_Local_RDMA_Slot(receive_mr, Message);
+  send_pointer = (RDMA_Request*)send_mr.addr;
+  send_pointer->command = print_cpu_util;
+//  send_pointer->buffer = receive_mr.addr;
+//  send_pointer->rkey = receive_mr.rkey;
+//  RDMA_Reply* receive_pointer;
+//  receive_pointer = (RDMA_Reply*)receive_mr.addr;
+  //Clear the reply buffer for the polling.
+//  *receive_pointer = {};
+  post_send<RDMA_Request>(&send_mr, target_node_id, std::string("main"));
+  ibv_wc wc[2] = {};
+
+
+  if (poll_completion(wc, 1, std::string("main"), true, target_node_id)){
+    fprintf(stderr, "failed to poll send for remote memory register\n");
+    return false;
+  }
+  //  asm volatile ("sfence\n" : : );
+  //  asm volatile ("lfence\n" : : );
+  //  asm volatile ("mfence\n" : : );
+  Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+//  Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
   return true;
 }
 bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_type,
@@ -2931,31 +3017,33 @@ bool RDMA_Manager::Remote_Query_Pair_Connection(std::string& qp_type,
 }
 
 void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
-                                             uint8_t target_node_id) {
+                                             uint8_t target_node_id,
+                                             Chunk_type c_type) {
   // If the Remote buffer is empty, register one from the remote memory.
   //  remote_mr = new ibv_mr;
-  if (Remote_Mem_Bitmap.at(target_node_id)->empty()) {
+  if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->empty()) {
     // this lock is to prevent the system register too much remote memory at the
     // begginning.
     std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
-    if (Remote_Mem_Bitmap.at(target_node_id)->empty()) {
-      Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id);
+    if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->empty()) {
+      Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id,
+                             c_type);
       //      fs_meta_save();
     }
     mem_write_lock.unlock();
   }
   std::shared_lock<std::shared_mutex> mem_read_lock(remote_mem_mutex);
-  auto ptr = Remote_Mem_Bitmap.at(target_node_id)->begin();
+  auto ptr = Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->begin();
 
-  while (ptr != Remote_Mem_Bitmap.at(target_node_id)->end()) {
+  while (ptr != Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->end()) {
     // iterate among all the remote memory region
     // find the first empty SSTable Placeholder's iterator, iterator->first is ibv_mr* second is the bool vector for this ibv_mr*. Each ibv_mr is the origin block get from the remote memory. The memory was divided into chunks with size == SSTable size.
     int sst_index = ptr->second->allocate_memory_slot();
     if (sst_index >= 0) {
       remote_mr = *((ptr->second)->get_mr_ori());
       remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
-                                           sst_index * Table_Size);
-      remote_mr.length = Table_Size;
+                                           sst_index * name_to_chunksize.at(c_type));
+      remote_mr.length = name_to_chunksize.at(c_type);
 
 //        remote_data_mrs->fname = file_name;
 //        remote_data_mrs->map_pointer =
@@ -2970,19 +3058,19 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
   mem_read_lock.unlock();
   // If not find remote buffers are all used, allocate another remote memory region.
   std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
-  Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id);
+  Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id, c_type);
   //  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
-  int sst_index = Remote_Mem_Bitmap.at(target_node_id)->at(mr_last->addr)->allocate_memory_slot();
+  int sst_index = Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->at(mr_last->addr)->allocate_memory_slot();
   assert(sst_index >= 0);
   mem_write_lock.unlock();
 
   //  sst_meta->mr = new ibv_mr();
   remote_mr = *(mr_last);
   remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
-                                       sst_index * Table_Size);
-  remote_mr.length = Table_Size;
+                                       sst_index * name_to_chunksize.at(c_type));
+  remote_mr.length = name_to_chunksize.at(c_type);
   //    remote_data_mrs->fname = file_name;
   //    remote_data_mrs->map_pointer = mr_last;
 //  DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
@@ -3039,44 +3127,64 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
   // pick up one buffer from the new Local memory region.
   // TODO:: It could happen that the local buffer size is not enough, need to reallocate a new buff again,
   // TODO:: Because there are two many thread going on at the same time.
-  ibv_mr* mr_to_allocate = new ibv_mr();
-  char* buff = new char[chunk_size];
+
 
   std::unique_lock<std::shared_mutex> mem_write_lock(local_mem_mutex);
+  // The other threads may have already allocate a large chunk of memory. first check
+  // the last chunk bit mapm and if it is full then allocate new big chunk of memory.
+  auto last_element = --name_to_mem_pool.at(pool_name).end();
+  int block_index = last_element->second->allocate_memory_slot();
+  if( block_index>=0){
 
-  Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
-      1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
-  if (node_id%2 == 1)
-    printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
-           EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
-           Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)
-           + Calculate_size_of_pool(FlushBuffer)+ Calculate_size_of_pool(Version_edit));
-  int block_index = name_to_mem_pool.at(pool_name)
-                        .at(mr_to_allocate->addr)
-                        ->allocate_memory_slot();
-  mem_write_lock.unlock();
-  if (block_index >= 0) {
-//    mr_input = new ibv_mr();
-    //    map_pointer = mr_to_allocate;
-    mr_input = *(mr_to_allocate);
+    mr_input = *((last_element->second)->get_mr_ori());
     mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
-                                        block_index * chunk_size);
+                                       block_index * chunk_size);
     mr_input.length = chunk_size;
-//    DEBUG_arg("Allocate pointer %p", mr_input.addr);
-    //  mr_input.fname = file_name;
+
     return;
+  }else{
+    ibv_mr* mr_to_allocate = new ibv_mr();
+    char* buff = new char[chunk_size];
+    Local_Memory_Register(&buff, &mr_to_allocate,name_to_allocated_size.at(pool_name) == 0 ?
+                                                                                            1024*1024*1024:name_to_allocated_size.at(pool_name), pool_name);
+    if (node_id%2 == 1)
+      printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
+             EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
+                                         Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)
+                                         + Calculate_size_of_pool(FlushBuffer)+ Calculate_size_of_pool(Version_edit));
+    block_index = name_to_mem_pool.at(pool_name)
+                          .at(mr_to_allocate->addr)
+                          ->allocate_memory_slot();
+    mem_write_lock.unlock();
+    assert(block_index >= 0);
+      //    mr_input = new ibv_mr();
+      //    map_pointer = mr_to_allocate;
+      mr_input = *(mr_to_allocate);
+      mr_input.addr = static_cast<void*>(static_cast<char*>(mr_input.addr) +
+                                         block_index * chunk_size);
+      mr_input.length = chunk_size;
+      //    DEBUG_arg("Allocate pointer %p", mr_input.addr);
+      //  mr_input.fname = file_name;
+      return;
+
   }
+
 }
 size_t RDMA_Manager::Calculate_size_of_pool(Chunk_type pool_name) {
   size_t Sum = 0;
-  Sum = name_to_mem_pool.at(pool_name).size();
+  Sum = name_to_mem_pool.at(pool_name).size() * name_to_chunksize.at(pool_name);
 //        *name_to_allocated_size.at(pool_name);
   return Sum;
 }
-void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size) {
+void RDMA_Manager::BatchGarbageCollection(uint64_t* ptr, size_t size,
+                                          Chunk_type c_type) {
   for (int i = 0; i < size/ sizeof(uint64_t); ++i) {
 //    assert()
-    bool result = Deallocate_Local_RDMA_Slot((void*)ptr[i], FlushBuffer);
+    bool result = Deallocate_Local_RDMA_Slot((void*)ptr[i], c_type);
+    if (!result){
+      printf("wrong garbage collection\n");
+      exit(0);
+    }
     assert(result);
 //#ifndef NDEBUG
 //    printf("Sucessfully delete a SSTable %p", (void*)ptr[i]);
@@ -3139,12 +3247,12 @@ bool RDMA_Manager::Deallocate_Local_RDMA_Slot(void* p, Chunk_type buff_type) {
   }
   return false;
 }
-bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p,
-                                               uint8_t target_node_id) {
+bool RDMA_Manager::Deallocate_Remote_RDMA_Slot(void* p, uint8_t target_node_id,
+                                               Chunk_type c_type) {
 //  DEBUG_arg("Delete Remote pointer %p", p);
   std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
   std::map<void*, In_Use_Array*>* Bitmap;
-  Bitmap = Remote_Mem_Bitmap.at(target_node_id);
+  Bitmap = Remote_Mem_Bitmap.at(c_type)->at(target_node_id);
   auto mr_iter = Bitmap->upper_bound(p);
   if (mr_iter == Bitmap->begin()) {
     return false;
@@ -3223,10 +3331,11 @@ bool RDMA_Manager::CheckInsideLocalBuff(
   }
   return false;
 }
-bool RDMA_Manager::CheckInsideRemoteBuff(void* p, uint8_t target_node_id) {
+bool RDMA_Manager::CheckInsideRemoteBuff(void* p, uint8_t target_node_id,
+                                         Chunk_type c_type) {
   std::shared_lock<std::shared_mutex> read_lock(remote_mem_mutex);
   std::map<void*, In_Use_Array*>* Bitmap;
-  Bitmap = Remote_Mem_Bitmap.at(target_node_id);
+  Bitmap = Remote_Mem_Bitmap.at(c_type)->at(target_node_id);
   auto mr_iter = Bitmap->upper_bound(p);
   if (mr_iter == Bitmap->begin()) {
     return false;

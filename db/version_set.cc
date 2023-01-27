@@ -896,6 +896,7 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
 //}
 
 VersionSet::~VersionSet() {
+  current_->print_version_content();
   current_->Unref(0);
 //  assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log;
@@ -905,8 +906,8 @@ VersionSet::~VersionSet() {
     printf("LSM Version GET time statistics is %zu, %zu, %zu\n",
            VersionSet::GetTimeElapseSum.load(), VersionSet::GetNum.load(),
            VersionSet::GetTimeElapseSum.load()/VersionSet::GetNum.load());
+  printf("version set install times is %lu\n", metadata_install_counter);
 #endif
-//  current_->print_version_content();
 #ifndef NDEBUG
   printf("remained versuins number is %d", version_remain);
 #endif
@@ -978,7 +979,9 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 //        if (iter.second->table_cache == nullptr)
 //          iter.second->table_cache = table_cache_;
 //  }
-
+#ifdef PROCESSANALYSIS
+  metadata_install_counter++;
+#endif
   edit->SetLastSequence(last_sequence_);
   Version* v;
   v = new Version(this);

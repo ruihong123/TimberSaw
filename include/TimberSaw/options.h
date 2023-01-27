@@ -22,8 +22,8 @@ class Snapshot;
 //static size_t RDMA_WRITE_BLOCK = 2*1024*1024;
 // default 8 8  1
 #define RDMA_WRITE_BLOCK  (8*1024*1024)
-#define INDEX_BLOCK  (8*1024*1024)
-#define FILTER_BLOCK  (2*1024*1024)
+#define INDEX_BLOCK  (7*1024*1024)
+#define FILTER_BLOCK  (256*1024)
 //static size_t RDMA_WRITE_BLOCK = 1*1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
 // sequence of key,value pairs.  Each block may be compressed before
@@ -115,7 +115,7 @@ struct TimberSaw_EXPORT Options {
   // Number of open files that can be used by the DB.  You may need to
   // increase this if your database has a large working set (budget
   // one open file per 2MB of working set).
-  int max_open_files = 20000;
+  int max_open_files = 5000000;
 
   // Control over blocks (user data is stored in a set of blocks, and
   // a block is the unit of reading from disk).

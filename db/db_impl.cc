@@ -87,6 +87,7 @@ Options SanitizeOptions(const std::string& dbname,
 //  ClipToRange(&result.write_buffer_size, 64 << 10, 1 << 30);
 //  ClipToRange(&result.max_file_size, 1 << 20, 1 << 30);
 //  ClipToRange(&result.block_size, 1 << 10, 4 << 20);
+  //TODO: recover the info log below try to understand why it will fail.
   if (result.info_log == nullptr) {
     // Open a log file in the same directory as the db
     src.env->CreateDir(dbname);  // In case it does not exist
@@ -288,7 +289,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
       //      write_stall_cv(&write_stall_mutex_),
       mem_(nullptr),
       imm_(config::Immutable_FlushTrigger, config::Immutable_StopWritesTrigger,
-           64 * 1024 * 1024 * config::Immutable_StopWritesTrigger),
+           64ull * 1024 * 1024 * config::Immutable_StopWritesTrigger),
       has_imm_(false),
       logfile_(nullptr),
       logfile_number_(0),
@@ -332,6 +333,7 @@ DBImpl::~DBImpl() {
   for(int i = 0; i < main_comm_threads.size(); i++){
     main_comm_threads[i].join();
   }
+//delete local_sv_;
 //  if (shard_id == 0){
 //    // in sharding mode, the first shard clear those shared variables.
 //    delete mtx_imme;
@@ -396,6 +398,7 @@ DBImpl::~DBImpl() {
 // put the memtable to immutable table and flush all immutable to remote memory if the
 // immutable trigger is 1. Wait for all the background task to finish.
 void DBImpl::WaitforAllbgtasks(bool clear_mem) {
+//  slow_down_compaction.store(false);
   if (clear_mem){
     std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
     MemTable* mem = mem_.load();
@@ -438,6 +441,9 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
     ForceCompactMemTable();
   };
   MaybeScheduleFlushOrCompaction();
+  // Trim all the immutable histories
+  imm_.TrimHistory(nullptr, (config::Immutable_StopWritesTrigger + 16)* 64ull*1024*1024);
+  InstallSuperVersion();
   bool version_not_ready = true;
   bool immutable_list_not_ready = true;
   // Note there could be ongoing compaction thread unfinished, even if the two
@@ -450,12 +456,13 @@ void DBImpl::WaitforAllbgtasks(bool clear_mem) {
 
     immutable_list_not_ready = imm_.AllFlushNotFinished();
   }
-  //TODO(chuqing): try to activate here
-  // result: didnot work
+
+  return ;
+
 //  config::Immutable_FlushTrigger = temp;
-  // printf("Before activate refreshing\n");
+  //chuqing: activate here, didnot work
   // ActivateRemoteCPURefresh();
-  // printf("Before activate refreshing\n");
+  
 }
 Status DBImpl::NewDB() {
   VersionEdit new_db(0);
@@ -1304,6 +1311,11 @@ void DBImpl::BackgroundCompaction(void* p) {
           status.ToString().c_str(), versions_->LevelSummary(&tmp));
       DEBUG("Trival compaction\n");
     } else {
+//      if(CheckwhetherPushdownorNOt){
+//        NearDataCompaction()
+//      }else{
+//
+//      }
       CompactionState* compact = new CompactionState(c);
 
       auto start = std::chrono::high_resolution_clock::now();
@@ -1486,6 +1498,9 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
 
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
+  if (slow_down_compaction.load()){
+    usleep(50);
+  }
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
   if (shutting_down_.load(std::memory_order_acquire)) {
@@ -3317,6 +3332,7 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       compact->builder->Add(key, input->value());
 //      assert(key.data()[0] == '0');
       // Close output file if it is big enough
+
       if (compact->builder->FileSize() >=
           compact->compaction->MaxOutputFileSize()) {
 //        assert(key.data()[0] == '0');

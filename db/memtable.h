@@ -66,11 +66,13 @@ class MemTable {
   // Increase reference count.
   void Ref() { refs_.fetch_add(1); }
   void NotFullTableflush(){full_table_flush = false;}
+  void assert_refs(int i){
+    assert(refs_.load() == i);
+  }
   // Drop reference count.  Delete if no more references exist.
   void Unref() {
     refs_.fetch_sub(1);
     assert(refs_ >= 0);
-
     if (refs_ <= 0) {
       // TODO: THis assertion may changed in the future
 #ifndef NDEBUG
@@ -79,13 +81,13 @@ class MemTable {
       }
 
 #endif
-
       delete this;
     }
   }
   //Simple Delete here means that the memtable is not full but it was deleted.
   void SimpleDelete(){
     refs_--;
+
     delete this;
   }
 

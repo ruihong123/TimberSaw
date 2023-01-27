@@ -391,6 +391,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       (*handle_result)(arg, key, value);
 //      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
     }
+    delete iiter;
 
 //    if (iter->Valid()) {
 //      (*handle_result)(arg, iter->key(), iter->value());

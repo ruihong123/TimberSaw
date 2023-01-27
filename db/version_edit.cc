@@ -64,9 +64,9 @@ RemoteMemTableMetaData::~RemoteMemTableMetaData() {
       //#ifndef NDEBUG
       //        printf("Destroying RemoteMemtableMetaData locally on compute node, Table number is %lu, creator node id is %d \n", number, creator_node_id);
       //#endif
-      if(Remote_blocks_deallocate(remote_data_mrs) &&
-          Remote_blocks_deallocate(remote_dataindex_mrs) &&
-          Remote_blocks_deallocate(remote_filter_mrs)){
+      if(Remote_blocks_deallocate(remote_data_mrs, FlushBuffer) &&
+          Remote_blocks_deallocate(remote_dataindex_mrs, FlushBuffer) &&
+          Remote_blocks_deallocate(remote_filter_mrs, FilterChunk)){
         DEBUG("Remote blocks deleted successfully\n");
       }else{
         DEBUG("Remote memory collection not found\n");

@@ -43,6 +43,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
     rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK, 0);
+//    rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     //TODO: actually we don't need Prefetch buffer.
 //    rdma_mg->Mempool_initialize(std::string("Prefetch"), RDMA_WRITE_BLOCK);
     //TODO: add a handle function for the option value to get the non-default bloombits.
@@ -1454,6 +1455,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         }
         continue;
       }
+      // TOFIX: memory leak for new RDMA request()
       RDMA_Request* receive_msg_buf = new RDMA_Request();
       *receive_msg_buf = *(RDMA_Request*)recv_mr[buffer_position].addr;
 //      memcpy(receive_msg_buf, recv_mr[buffer_position].addr, sizeof(RDMA_Request));
@@ -1538,6 +1540,14 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         DEBUG("QP has been reconnect from the memory node side\n");
         //TODO: Pause all the background tasks because the remote qp is not ready.
         // stop sending back messasges. The compute node may not reconnect its qp yet!
+      } else if (receive_msg_buf->command == print_cpu_util) {// depracated functions
+        //THis should not be called because the recevei mr will be reset and the buffer
+        // counter will be reset as 0
+        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
+                                            compute_node_id,
+                                            client_ip);
+        printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+
       } else {
         printf("corrupt message from client. %d\n", receive_msg_buf->command);
         assert(false);
@@ -1670,7 +1680,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
     assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
       if (!rdma_mg->Local_Memory_Register(&buff, &mr, request->content.mem_size,
-                                          Default)) {
+                                        No_Use_Default_chunk)) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(request->content.mem_size));
       }
@@ -1763,12 +1773,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       std::to_string(request->content.qp_config.lid) +
       std::to_string(request->content.qp_config.qp_num);
 
-  std::cout << "create query pair command receive for" << client_ip
-  << std::endl;
-  fprintf(stdout, "Remote QP number=0x%x\n",
-          request->content.qp_config.qp_num);
-  fprintf(stdout, "Remote LID = 0x%x\n",
-          request->content.qp_config.lid);
+//  std::cout << "create query pair command receive for" << client_ip
+//  << std::endl;
+//  fprintf(stdout, "Remote QP number=0x%x\n",
+//          request->content.qp_config.qp_num);
+//  fprintf(stdout, "Remote LID = 0x%x\n",
+//          request->content.qp_config.lid);
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
   RDMA_Reply* send_pointer = (RDMA_Reply*)send_mr.addr;
@@ -1905,11 +1915,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       RDMA_Request* request = ((Arg_for_handler*)arg)->request;
       std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
       uint8_t target_node_id = ((Arg_for_handler*)arg)->target_node_id;
-      printf("Garbage collection\n");
+//      printf("Garbage collection\n");
 
       void* remote_prt = request->buffer;
       uint32_t remote_rkey = request->rkey;
       unsigned int imm_num = request->imm_num;
+      Chunk_type c_type = request->content.gc.c_type;
       ibv_mr send_mr;
 //      ibv_mr recv_mr;
       ibv_mr large_recv_mr;
@@ -1931,6 +1942,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       //TODO: how to check whether the version edit message is ready, we need to know the size of the
       // version edit in the first REQUEST from compute node.
       volatile uint64_t * polling_byte = (uint64_t*)((char*)large_recv_mr.addr + request->content.gc.buffer_size - sizeof(uint64_t));
+//      memset((char*)large_recv_mr.addr,  0, large_recv_mr.length);
       *polling_byte = 0;
       asm volatile ("sfence\n" : : );
       asm volatile ("lfence\n" : : );
@@ -1953,7 +1965,9 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         counter++;
       }
       assert(request->content.gc.buffer_size%sizeof(uint64_t) == 0);
-      rdma_mg->BatchGarbageCollection((uint64_t*)large_recv_mr.addr, request->content.gc.buffer_size);
+      rdma_mg->BatchGarbageCollection((uint64_t*)large_recv_mr.addr,
+                                      request->content.gc.buffer_size,
+                                      c_type);
       rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
 //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr.addr, "message");
       rdma_mg->Deallocate_Local_RDMA_Slot(large_recv_mr.addr, Version_edit);
@@ -2040,7 +2054,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     //Decode compaction
     c.DecodeFrom(
         Slice((char*)large_recv_mr.addr, request->content.sstCompact.buffer_size), 1);
-    printf("near data compaction at level %d\n", c.level());
+    printf("near data compaction at level %d, first level of file%d, second level of file %d\n", c.level(), c.num_input_files(0), c.num_input_files(1));
 
     // Note need to check whether the code below is correct.
 //    void* remote_large_recv_ptr =  *(void**)new_pos.data();
