@@ -1750,6 +1750,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       }
       
       outfile.close();
+      delete request;
     });
     CPU_utilization_heartbeat.detach();
     // wait for the deepcopy
