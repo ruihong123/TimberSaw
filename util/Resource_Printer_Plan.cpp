@@ -213,7 +213,7 @@ long double Resource_Printer_PlanB::getCurrentValue() {
   struct tms timeSample;
   long double percent;
 //  int all_possible_core_num = numa_num_configured_cpus();
-  int numa_bind_core_num = numa_num_task_cpus();
+  numa_bind_core_num = numa_num_task_cpus();
   //TODO(ruihong): make numa_bind_core_num a static variable or a class variable.
   //TODO(chuqing): generalize the compute node identification by read file
 

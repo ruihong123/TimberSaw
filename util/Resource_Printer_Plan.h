@@ -29,6 +29,7 @@ class Resource_Printer_PlanA {
 
 class Resource_Printer_PlanB {
   clock_t lastCPU, lastSysCPU, lastUserCPU;
+  int numa_bind_core_num = 0;
  public:
   Resource_Printer_PlanB();
   void paramInit();
