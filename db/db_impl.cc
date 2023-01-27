@@ -267,7 +267,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //        }
 //      main_comm_threads.back().detach();
     printf("DBImpl finished\n");
-//     ActivateRemoteCPURefresh();
+     ActivateRemoteCPURefresh();
     printf("Refresher start\n");
 }
 //This functon does not contain the creation of the client message handling thread
