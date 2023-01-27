@@ -1485,14 +1485,16 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
     // node is better, because there could be more parallelism be explored.
     return true;
   } else {
-    //TODO(ruihong): One possible problem for current implementation is that the compute node may issue more Compaction
-    // than the remote CPU cores due to the lagging for Remote CPU utilization heartbeat.
-    // The remote compaction are cached in the task queue of the thread pool. There will be no available thread
-    // for the compaction on the compute node.
-    // Two solutions: 1)creating much more bg thread in the compute node. 2) set a limitation in the code
-    // to limit the in processing pushdown compaction .
+    //TODO(ruihong): One possible problem for current implementation is the lagging for Remote CPU utilization heartbeat.
+    // The heart beat should be frequent enough. Otherwise the compute node may push down more compaction than expected,
+    // making the compute node idle
+    // E.g. Since the remote compaction can be cached in the task queue of the thread pool, all the bg thread in compute node
+    // may push down the compactions in the remote memory.
+    //  There will be no available thread in the thread pull for the compaction on the compute node.
+    // Three solutions: 1) update the Remote CPU utilization very frequently. 2)creating much more bg thread in the compute node.(bad choice ignore this) 3) set a limitation in the code
+    // to limit the in processing pushdown compaction (may have problem to decide what should be the ).
 
-    // TODO(ruihong): if the CN is under high utilization. We should sleep here to make
+    // TODO(ruihong): if the CN is under high utilization. We may sleep here to make
     //  the compaction tasks smaller than core number, so that there would be less context switch overhead.
 
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
