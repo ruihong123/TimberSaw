@@ -9,7 +9,7 @@ port=$((10000+RANDOM%1000))
 github_repo="https://github.com/ruihong123/TimberSaw"
 gitbranch="Multinodes_follow_nova"
 function run_bench() {
-  communication_port="19844"
+  communication_port="19843"
 #	memory_port=()
 	memory_server=()
   memory_shard=()
