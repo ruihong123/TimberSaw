@@ -267,7 +267,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //        }
 //      main_comm_threads.back().detach();
     printf("DBImpl finished\n");
-    ActivateRemoteCPURefresh();
+//    ActivateRemoteCPURefresh();
     printf("Refresher start\n");
 }
 //This functon does not contain the creation of the client message handling thread
@@ -1371,13 +1371,13 @@ void DBImpl::BackgroundCompaction(void* p) {
 
 void DBImpl::ActivateRemoteCPURefresh(){
   /**
-  Keep updating a DB public variable 'server_cpu_utilization' by receive 
+  Keep updating a DB public variable 'server_cpu_utilization' by receive
   the RDMA_Write from compute nodes, 100ms once
   **/
 
   //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
   //TODO(Chuqing): where to initialize, seem that never be called
-  
+
   std::fprintf(stdout, "Call activate remote cpu refresh, now is %.4Lf\n", server_cpu_percent);
   std::thread keep_refresh_remote_cpu_utilizaton([&](){
     std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -1411,13 +1411,13 @@ void DBImpl::ActivateRemoteCPURefresh(){
     outfile.open("cn_refresh.txt", std::ios::out);
 
     while(1){
-      if(receive_pointer->cpu_util > 0.0)
-        this->server_cpu_percent = receive_pointer->cpu_util;
+      if(receive_pointer->content.cpu_info.cpu_util > 0.0)
+        this->server_cpu_percent = receive_pointer->content.cpu_info.cpu_util;
       // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
       outfile << "in refresher:" << server_cpu_percent << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
     }
-  
+
     outfile.close();
   });
   keep_refresh_remote_cpu_utilizaton.detach();
@@ -1456,7 +1456,7 @@ long double DBImpl::RequestRemoteUtilization(){
   }
   // wait until remote (mn) write the cpu utilization to the buffer
   rdma_mg->poll_reply_buffer(receive_pointer);
-  mn_percent = receive_pointer->cpu_util;
+  mn_percent = receive_pointer->content.cpu_info.cpu_util;
 
   return mn_percent;
 }
@@ -1470,7 +1470,9 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   // long double cn_percent = rdma_mg->rpter.getCurrentValue();
 
   // long double mn_percent = RequestRemoteUtilization();
-  long double mn_percent = this->server_cpu_percent;
+//  long double mn_percent = this->server_cpu_percent;
+  auto rdma_mg = env_->rdma_mg;
+  double mn_percent = rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
   //TODO(chuqing): need to fix the heartbeat implementation
 
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
@@ -1500,7 +1502,7 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
-    return (mn_percent <= 80);
+    return (mn_percent <= 0.80);
   }
 
 #elif NEARDATACOMPACTION == 0

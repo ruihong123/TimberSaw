@@ -185,6 +185,8 @@ class Memory_Node_Keeper {
                          uint8_t target_node_id);
   void create_cpu_util_sender(RDMA_Request* request, std::string& client_ip,
                          uint8_t target_node_id);
+  void create_cpu_util_heart_beater_sender();
+
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }

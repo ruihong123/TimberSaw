@@ -337,6 +337,8 @@ class DBImpl : public DB {
   // Add for cpu utilization refreshing
   //TODO: (chuqing) if multiple servers
   long double server_cpu_percent = 0.0;
+  std::map<uint16_t,uint16_t> remote_core_number_map;
+  std::map<uint16_t,uint16_t> compute_core_number_map;
   //TODO(chuqing): add for count time, need a better calculator
   long int accumulated_time = 0;
 

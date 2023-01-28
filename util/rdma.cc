@@ -667,18 +667,29 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
 //        install_version_edit_handler(receive_msg_buf, q_id);
 #ifdef WITHPERSISTENCE
       } else if(receive_msg_buf->command == persist_unpin_) {
-        //TODO: implement the persistent unpin dispatch machenism
+        // TODO: implement the persistent unpin dispatch machenism
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
         auto start = std::chrono::high_resolution_clock::now();
-        Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
-        BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
-        Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch, thread_pool_args);
+        Arg_for_handler* argforhandler = new Arg_for_handler{
+            .request = receive_msg_buf, .client_ip = "main"};
+        BGThreadMetadata* thread_pool_args =
+            new BGThreadMetadata{.db = this, .func_args = argforhandler};
+        Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch,
+                                thread_pool_args);
         auto stop = std::chrono::high_resolution_clock::now();
-        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        printf("unpin for %lu files time elapse is %ld",
-               (receive_msg_buf->content.psu.buffer_size-1)/sizeof(uint64_t),
-               duration.count());
+        auto duration =
+            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        printf(
+            "unpin for %lu files time elapse is %ld",
+            (receive_msg_buf->content.psu.buffer_size - 1) / sizeof(uint64_t),
+            duration.count());
 #endif
+      } else if(receive_msg_buf->command == cpu_utilization_heartbeat) {
+        // handle the heartbeat, record the cpu utilization and core number of the remote memory
+        post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                   shard_target_node_id,
+                                   "main");
+        cpu_util_heart_beater_receiver(receive_msg_buf, shard_target_node_id);
       } else {
         printf("corrupt message from client.");
         break;
@@ -701,6 +712,21 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
   //    for (int i = 0; i < R_SIZE; ++i) {
   //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
   //    }
+}
+void RDMA_Manager::cpu_util_heart_beater_receiver(
+    RDMA_Request* request, uint8_t target_node_id) {
+
+  assert(request->command == cpu_utilization_heartbeat);
+  //todo(ruihong): use UNLIKELY()
+  if (remote_core_number_map.find(target_node_id) == remote_core_number_map.end()){
+    remote_core_number_map[target_node_id] = request->content.cpu_info.core_number;
+  }
+//    uint8_t check_byte = request->content.ive.check_byte;
+  server_cpu_percent.at(target_node_id)->store(request->content.cpu_info.cpu_util);
+
+  printf("Recieve the cput utilization %f", request->content.cpu_info.cpu_util);
+  delete request;
+
 }
 void RDMA_Manager::ConnectQPThroughSocket(std::string qp_type, int socket_fd,
                                           uint8_t& target_node_id) {
@@ -1118,6 +1144,7 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     imme_data_map.insert({target_node_id, new  uint32_t{0}});
     byte_len_map.insert({target_node_id, new  uint32_t{0}});
     cv_imme_map.insert({target_node_id, new std::condition_variable});
+    server_cpu_percent.insert({target_node_id, new std::atomic<double>(0)});
   }
 
 

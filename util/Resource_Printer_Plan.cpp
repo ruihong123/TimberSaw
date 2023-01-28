@@ -1,7 +1,6 @@
 //
 // Created by ruihong on 9/24/22.
 //
-
 #include "Resource_Printer_Plan.h"
 
 #include <fstream>

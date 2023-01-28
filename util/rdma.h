@@ -128,7 +128,8 @@ enum RDMA_Command_Type {
   save_log_serialized_data,
   retrieve_log_serialized_data,
   request_cpu_utilization,
-  create_cpu_refresher
+  create_cpu_refresher,
+  cpu_utilization_heartbeat
 };
 enum file_type { log_type, others };
 struct fs_sync_command {
@@ -140,6 +141,11 @@ struct sst_gc {
   Chunk_type c_type;
 //  file_type type;
 };
+struct CPU_Info{
+  double cpu_util;
+  int core_number;
+};
+
 //TODO (ruihong): add the reply message address to avoid request&response conflict for the same queue pair.
 // In other word, the threads will not need to figure out whether this message is a reply or response,
 // when receive a message from the main queue pair.
@@ -152,12 +158,14 @@ union RDMA_Request_Content {
   sst_compaction sstCompact;
   sst_unpin psu;
   size_t unpinned_version_id;
+  CPU_Info cpu_info;
 };
 union RDMA_Reply_Content {
   ibv_mr mr;
   registered_qp_config qp_config;
   install_versionedit ive;
-  long double cpu_percent;
+//  long double cpu_percent;
+  CPU_Info cpu_info;
 };
 struct RDMA_Request {
   RDMA_Command_Type command;
@@ -178,7 +186,7 @@ struct RDMA_Reply {
   void* buffer_large;
   uint32_t rkey_large;
   volatile bool received;
-  long double cpu_util;
+//  long double cpu_util;
 } __attribute__((packed));
 // Structure for the file handle in RDMA file system. it could be a link list
 // for large files
@@ -344,6 +352,8 @@ class RDMA_Manager {
   //                                   ibv_mr* local_data_mr);
 //  void client_message_polling_thread();
   void compute_message_handling_thread(std::string q_id, uint8_t shard_target_node_id);
+  void cpu_util_heart_beater_receiver(RDMA_Request* request,
+                                             uint8_t target_node_id);
   void ConnectQPThroughSocket(std::string qp_type, int socket_fd,
                               uint8_t& target_node_id);
   // Local memory register will register RDMA memory in local machine,
@@ -514,6 +524,13 @@ class RDMA_Manager {
   std::map<std::string, ibv_qp*> qp_map_Mside; /* QP Map */
   std::map<std::string, registered_qp_config*> qp_main_connection_info_Mside;
   Resource_Printer_PlanB rpter;
+  // Add for cpu utilization refreshing
+//TODO: (chuqing) if multiple servers
+  std::map<uint8_t,std::atomic<double>*> server_cpu_percent;
+  std::map<uint8_t,uint16_t> remote_core_number_map;
+  uint16_t local_compute_core_number;
+//TODO(chuqing): add for count time, need a better calculator
+long int accumulated_time = 0;
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> RDMAReadTimeElapseSum;
   static std::atomic<uint64_t> ReadCount;

@@ -1411,6 +1411,9 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 
     //
     // TODO: implement a heart beat mechanism.
+
+    // directly start the heart beat from the remote memory side.
+    create_cpu_util_heart_beater_sender();
     int buffer_position = 0;
     int miss_poll_counter = 0;
     printf("checkpoint5\n");
@@ -1710,7 +1713,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
     
     // send_pointer->content.cpu_percent = rdma_mg->rpter.getCurrentValue();
-    send_pointer->cpu_util = rdma_mg->rpter.current_percent;
+    send_pointer->content.cpu_info.cpu_util = rdma_mg->rpter.current_percent;
     send_pointer->received = true;
 
     rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
@@ -1743,10 +1746,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       while (1){
         // std::fprintf(stdout, "in cpu sender: %.4lf\n", rdma_mg->rpter.current_percent);
         outfile << "in cpu sender" << rdma_mg->rpter.current_percent << std::endl;
-        send_pointer->cpu_util = rdma_mg->rpter.current_percent;
+        send_pointer->content.cpu_info.cpu_util = rdma_mg->rpter.current_percent;
         rdma_mg->RDMA_Write(request_buffer, request_rkey, &send_mr,
                         sizeof(RDMA_Reply), client_ip_local, IBV_SEND_SIGNALED, 1, target_node_id_local);
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
       }
       
       outfile.close();
@@ -1757,6 +1760,55 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::this_thread::sleep_for(std::chrono::milliseconds(1500));
   
   }
+
+  void Memory_Node_Keeper::create_cpu_util_heart_beater_sender() {
+    DEBUG("Create cpu utilization sender\n");
+
+    std::thread CPU_utilization_heartbeat([&](){
+      //backup the function arguments
+
+      while (1){
+        long double cpu_util_percentage = rdma_mg->rpter.getCurrentValue();
+        if (cpu_util_percentage <0){
+          continue;
+        }
+        for (auto iter : rdma_mg->compute_nodes) {
+          // register the memory block from the remote memory
+          RDMA_Request* send_pointer;
+          ibv_mr send_mr = {};
+          rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+
+          send_pointer = (RDMA_Request*)send_mr.addr;
+          send_pointer->command = cpu_utilization_heartbeat;
+          send_pointer->content.cpu_info.cpu_util = cpu_util_percentage;
+          send_pointer->content.cpu_info.core_number = rdma_mg->rpter.numa_bind_core_num;
+
+          //TODO: Delete the function below.
+          printf("Current cpu utilization is %Lf", cpu_util_percentage);
+
+
+
+          rdma_mg->post_send<RDMA_Request>(&send_mr, iter.first, std::string("main"));
+          ibv_wc wc[2] = {};
+          if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
+                                       iter.first)){
+            fprintf(stderr, "failed to poll send for remote memory register\n");
+            return ;
+          }
+
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
+      }
+
+//      outfile.close();
+//      delete request;
+    });
+    CPU_utilization_heartbeat.detach();
+    // wait for the deepcopy
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+  }
+
   // the client ip can by any string differnt from read_local write_local_flush
   // and write_local_compact
   void Memory_Node_Keeper::create_qp_handler(RDMA_Request* request,
