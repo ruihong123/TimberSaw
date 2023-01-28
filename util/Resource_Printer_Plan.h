@@ -16,7 +16,7 @@
 
 #define NUMA_CORE_NUM 8
 #define COMPUTE_NUMA_CORE_NUM 152
-#define CPU_UTILIZATION_CACULATE_INTERVAL 100 // in miliseconds.
+#define CPU_UTILIZATION_CACULATE_INTERVAL 10 // in miliseconds.
 
 class Resource_Printer_PlanA {
   unsigned long long lastTotalUser[NUMA_CORE_NUM], lastTotalUserLow[NUMA_CORE_NUM], lastTotalSys[NUMA_CORE_NUM], lastTotalIdle[NUMA_CORE_NUM];
@@ -36,7 +36,7 @@ class Resource_Printer_PlanB {
   void paramInit();
   long double current_percent;
   int numa_bind_core_num = 0;
-  long double getCurrentValue();
+  double getCurrentValue();
   std::string getCurrentHost();
 };
 

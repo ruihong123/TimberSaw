@@ -1412,8 +1412,12 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
     //
     // TODO: implement a heart beat mechanism.
 
-    // directly start the heart beat from the remote memory side.
-    create_cpu_util_heart_beater_sender();
+    // directly start the heart beat from the remote memory side, when all the connection to
+    // the compute nodes are ready.
+    if (rdma_mg->connection_counter.load() == rdma_mg->compute_nodes.size()){
+      create_cpu_util_heart_beater_sender();
+    }
+
     int buffer_position = 0;
     int miss_poll_counter = 0;
     printf("checkpoint5\n");
@@ -1768,7 +1772,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       //backup the function arguments
 
       while (1){
-        long double cpu_util_percentage = rdma_mg->rpter.getCurrentValue();
+        double cpu_util_percentage = rdma_mg->rpter.getCurrentValue();
         if (cpu_util_percentage <0){
           continue;
         }

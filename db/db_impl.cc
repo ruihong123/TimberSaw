@@ -1461,7 +1461,7 @@ long double DBImpl::RequestRemoteUtilization(){
   return mn_percent;
 }
 
-bool DBImpl::CheckWhetherPushDownorNot(int from_level){
+bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 #if NEARDATACOMPACTION==2
   // Decide whether pushdown, now we get the mn_perecnt by heartbeat
   //TODO(chuqing): also decide by number of cores?
@@ -1478,14 +1478,20 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
 
   //TODO(chuqing): may need to be improved
-  if (from_level == 0){
+  if (compact->level() == 0){
     //TODO (ruihong): Always pushing down level 0 compaction may not be a good choice. T
     // The strategy should be depends on the relationship between remote CPU number
     // and the maximum subcompaction the level 0 compaction can provide.
     // E.g. If a level 0 compaction can be divided into 10 subcompaction conducting by 10 cores, but
     // the remote server only contains 1 core. Then doing the level 0 compaction in compute
     // node is better, because there could be more parallelism be explored.
-    return true;
+    if (rdma_mg->local_cpu_percent.load()*rdma_mg->local_compute_core_number >
+        2.0 * rdma_mg->remote_core_number_map.at(shard_target_node_id) *
+            rdma_mg->server_cpu_percent.at(shard_target_node_id)->load()){
+      return false;
+    }else{
+      return true;
+    }
   } else {
     //TODO(ruihong): One possible problem for current implementation is the lagging for Remote CPU utilization heartbeat.
     // The heart beat should be frequent enough. Otherwise the compute node may push down more compaction than expected,
@@ -1515,9 +1521,9 @@ bool DBImpl::CheckWhetherPushDownorNot(int from_level){
 
 #ifdef NEARDATACOMPACTION
 void DBImpl::BackgroundCompaction(void* p) {
-  if (slow_down_compaction.load()){
-    usleep(50);
-  }
+//  if (slow_down_compaction.load()){
+//    usleep(50);
+//  }
 //  write_stall_mutex_.AssertNotHeld();
 //  assert(false);
   if (shutting_down_.load(std::memory_order_acquire)) {
@@ -1556,7 +1562,7 @@ void DBImpl::BackgroundCompaction(void* p) {
     if (c == nullptr) {
       // Nothing to do
     } else {
-      bool need_push_down = CheckWhetherPushDownorNot(c->level());
+      bool need_push_down = CheckWhetherPushDownorNot(c);
       
       if (!is_manual && c->IsTrivialMove()) {
         // Move file to next level
@@ -1593,12 +1599,22 @@ void DBImpl::BackgroundCompaction(void* p) {
         DEBUG("Trival compaction\n");
 //      } else if (options_.near_data_compaction && need_push_down) {
       } else if (need_push_down) {
+        auto start = std::chrono::high_resolution_clock::now();
 
         // The neardata compaction branch
         NearDataCompaction(c);
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        if (c->level() == 0){
+          printf("level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
+                 c->num_input_files(0), c->num_input_files(1), duration.count());
+
+        }
 //        MaybeScheduleFlushOrCompaction();
 //        return;
       } else {
+        auto start = std::chrono::high_resolution_clock::now();
+
         // Normal compaction branch
         CompactionState* compact = new CompactionState(c);
 
@@ -1619,8 +1635,15 @@ void DBImpl::BackgroundCompaction(void* p) {
         }
         CleanupCompaction(compact);
 //      RemoveObsoleteFiles();
+        auto stop = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+        if (c->level() == 0) {
+          printf(
+              "level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
+              c->num_input_files(0), c->num_input_files(1), duration.count());
+        }
       }
-      
+
     }
     delete c;
 

@@ -207,8 +207,7 @@ std::string Resource_Printer_PlanB::getCurrentHost() {
   return hostname;
 }
 
-
-long double Resource_Printer_PlanB::getCurrentValue() {
+double Resource_Printer_PlanB::getCurrentValue() {
   struct tms timeSample;
   long double percent;
 //  int all_possible_core_num = numa_num_configured_cpus();

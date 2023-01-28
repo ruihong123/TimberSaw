@@ -35,22 +35,16 @@ int main(int argc,char* argv[])
   }
 
   mn_keeper->SetBackgroundThreads(12, TimberSaw::ThreadPoolType::CompactionThreadPool);
-  std::thread CPU_utilization_heartbeat([&](){
-    // std::ofstream myfile;
-    while (1){
-//      myfile.open ("CPU_Utilization.txt",std::ios_base::app);
-//      myfile << TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue() ;
-//      myfile <<"\n";
-//      myfile.close();
-      // sleep(2);
-      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
-      long double new_percent = TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue();
-      // printf("Heartbeat generate new CPU utilization is %.4Lf(%.4Lf)\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.current_percent, new_percent);
-      sleep(2);
-//      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
-    }
-  });
-  CPU_utilization_heartbeat.detach();
+//  std::thread CPU_utilization_heartbeat([&](){
+//    // std::ofstream myfile;
+//    while (1){
+//      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
+//      long double new_percent = TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue();
+//      sleep(2);
+////      printf("CPU utilization is %Lf\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+//    }
+//  });
+//  CPU_utilization_heartbeat.detach();
   mn_keeper->Server_to_Client_Communication();
 
   delete mn_keeper;

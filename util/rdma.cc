@@ -1,6 +1,6 @@
 #include <fstream>
 #include <util/rdma.h>
-
+#include <numa.h>
 #include "TimberSaw/env.h"
 
 namespace TimberSaw {
@@ -616,6 +616,8 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
 //    write_stall_cv.notify_one();
 //  }
   printf("client handling thread\n");
+
+
   std::mutex* mtx_imme = mtx_imme_map.at(shard_target_node_id);
   std::atomic<uint32_t>* imm_gen = imm_gen_map.at(shard_target_node_id);
   uint32_t* imme_data = imme_data_map.at(shard_target_node_id);
@@ -1094,7 +1096,20 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 //    Get_Remote_qp_Info_Then_Connect(shard_target_node_id);
     threads.back().detach();
   }
+
   while (connection_counter.load() != memory_nodes.size());
+  // Start to regularly update the local CPU utilization
+  if (main_comm_thread_ready_num.load() == memory_nodes.size()){
+    local_compute_core_number = numa_num_task_cpus();
+    std::thread CPU_utilization_heartbeat([&](){
+      while (1){
+        std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
+        local_cpu_percent.store(rpter.getCurrentValue());
+      }
+
+    });
+    CPU_utilization_heartbeat.detach();
+  }
 //  for (auto & thread : threads) {
 //    thread.join();
 //  }
