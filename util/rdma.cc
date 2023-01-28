@@ -724,7 +724,7 @@ void RDMA_Manager::cpu_util_heart_beater_receiver(
 //    uint8_t check_byte = request->content.ive.check_byte;
   server_cpu_percent.at(target_node_id)->store(request->content.cpu_info.cpu_util);
 
-  printf("Recieve the cput utilization %f", request->content.cpu_info.cpu_util);
+  printf("Recieve the cpu utilization %f\n", request->content.cpu_info.cpu_util);
   delete request;
 
 }
