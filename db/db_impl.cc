@@ -1605,8 +1605,9 @@ void DBImpl::BackgroundCompaction(void* p) {
         NearDataCompaction(c);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        if (c->level() == 0){
-          printf("level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
+//        if (c->level() == 0){
+        if (c->num_input_files(0) == 1) {
+          printf("[Remote Memory]level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
                  c->num_input_files(0), c->num_input_files(1), duration.count());
 
         }
@@ -1637,9 +1638,10 @@ void DBImpl::BackgroundCompaction(void* p) {
 //      RemoveObsoleteFiles();
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        if (c->level() == 0) {
+//        if (c->level() == 0) {
+        if (c->num_input_files(0) == 1) {
           printf(
-              "level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
+              "[Compute] level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
               c->num_input_files(0), c->num_input_files(1), duration.count());
         }
       }
