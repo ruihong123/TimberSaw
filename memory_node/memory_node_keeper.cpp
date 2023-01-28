@@ -1784,7 +1784,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
           send_pointer->content.cpu_info.core_number = rdma_mg->rpter.numa_bind_core_num;
 
           //TODO: Delete the function below.
-          printf("Current cpu utilization is %Lf", cpu_util_percentage);
+          printf("Current cpu utilization is %Lf\n", cpu_util_percentage);
 
 
 
