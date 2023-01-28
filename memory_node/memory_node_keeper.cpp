@@ -1414,9 +1414,9 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
 
     // directly start the heart beat from the remote memory side, when all the connection to
     // the compute nodes are ready.
-//    if (rdma_mg->connection_counter.load() == rdma_mg->compute_nodes.size()){
-//      create_cpu_util_heart_beater_sender();
-//    }
+    if (rdma_mg->connection_counter.load() == rdma_mg->compute_nodes.size()){
+      create_cpu_util_heart_beater_sender();
+    }
 
     int buffer_position = 0;
     int miss_poll_counter = 0;
