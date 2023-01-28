@@ -1508,7 +1508,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
-    return (mn_percent <= 0.80);
+    return (mn_percent <= 80.0);
   }
 
 #elif NEARDATACOMPACTION == 0

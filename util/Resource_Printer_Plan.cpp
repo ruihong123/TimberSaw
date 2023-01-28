@@ -244,6 +244,6 @@ double Resource_Printer_PlanB::getCurrentValue() {
   
   if (percent > 0.0)
     current_percent = percent;
-  return percent;
+  return static_cast<double>(percent);
 
 }
