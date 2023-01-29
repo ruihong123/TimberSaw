@@ -110,7 +110,7 @@ int FindFile(const InternalKeyComparator& icmp,
       right = mid;
     }
   }
-//  assert(right!= files.size()); //todo: remove this assert.
+  assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
   return right;
 }
 

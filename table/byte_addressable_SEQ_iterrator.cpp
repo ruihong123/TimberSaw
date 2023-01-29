@@ -38,6 +38,7 @@ ByteAddressableSEQIterator::~ByteAddressableSEQIterator() {
 };
 
 void ByteAddressableSEQIterator::Seek(const Slice& target) {
+  //TODO: THe boundary here have some bugs.
   assert(target.compare(reinterpret_cast<Table*>(arg_)->rep->remote_table.lock()->largest.Encode()) <= 0);
   index_iter_.Seek(target);
   GetKVInitial();
@@ -131,7 +132,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
   if (iter_ptr == nullptr || iter_ptr == remote_mr_current.length + (char*)prefetched_mr->addr){
 
     valid_ = Fetch_next_buffer_initial(iter_offset);
-    DEBUG_arg("Move to the next chunk, iter_ptr now is %p\n", iter_ptr);
+//    DEBUG_arg("Move to the next chunk, iter_ptr now is %p\n", iter_ptr);
     //TODO: reset all the relevent metadata such as iter_ptr, cur_prefetch_status.
   }
   if (!valid_){
@@ -151,7 +152,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
       Fetch_next_buffer_initial(iter_offset);
     }
     assert(iter_offset + 8 <= cur_prefetch_status);
-    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+//    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 
   }
   Slice Size_buff = Slice(iter_ptr, 8);
@@ -169,7 +170,7 @@ void ByteAddressableSEQIterator::GetNextKV() {
       Fetch_next_buffer_initial(iter_offset);
     }
     assert(iter_offset + 8 <= cur_prefetch_status);
-    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+//    DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
   }
   key_.SetKey(Slice(iter_ptr, key_size), false /* copy */);
   iter_ptr += key_size;
