@@ -1574,7 +1574,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           (m->end ? m->end->DebugString().c_str() : "(end)"),
           (m->done ? "(end)" : manual_end.DebugString().c_str()));
     } else {
-      c = versions_->PickCompaction();
+      c = versions_->PickCompaction(&superversion_memlist_mtx);
       //if there is no task to pick up, just return.
       if (c== nullptr){
         DEBUG("compaction task executed but not found doable task.\n");
@@ -1593,17 +1593,25 @@ void DBImpl::BackgroundCompaction(void* p) {
       
       if (!is_manual && c->IsTrivialMove()) {
         // Move file to next level
-        assert(c->num_input_files(0) == 1);
-        std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
-        c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
-        c->edit()->AddFile(c->level() + 1, f);
+        assert(c->num_input_files(1) == 0);
+        for (const auto& f :c->inputs_[0]) {
+//          std::shared_ptr<RemoteMemTableMetaData> f = file_iter;
+          c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
+          c->edit()->AddFile(c->level() + 1, f);
+        }
+
         {
           std::unique_lock<std::mutex> l_sv(superversion_memlist_mtx);
 //          std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
-          f->level = c->level() + 1;
+          for (const auto& f :c->inputs_[0]) {
+            f->level = c->level() + 1;
+          }
           status = versions_->LogAndApply(c->edit());
+          //The undercompaciton need to be changed after the metadata has been modified
+          for (const auto& f :c->inputs_[0]) {
+            f->UnderCompaction = false;
+          }
           //trival move need to clear the UnderCompaction flag
-          f->UnderCompaction = false;
           c->ReleaseInputs();
 #ifdef WITHPERSISTENCE        //different from normal compaction
           Edit_sync_to_remote(c->edit(),&l_vs);
@@ -1618,12 +1626,12 @@ void DBImpl::BackgroundCompaction(void* p) {
         if (!status.ok()) {
           RecordBackgroundError(status);
         }
-        VersionSet::LevelSummaryStorage tmp;
-        Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
-            static_cast<unsigned long long>(f->number), c->level() + 1,
-            static_cast<unsigned long long>(f->file_size),
-            status.ToString().c_str(), versions_->LevelSummary(&tmp));
-        DEBUG("Trival compaction\n");
+//        VersionSet::LevelSummaryStorage tmp;
+//        Log(options_.info_log, "Moved #%lld to level-%d %lld bytes %s: %s\n",
+//            static_cast<unsigned long long>(f->number), c->level() + 1,
+//            static_cast<unsigned long long>(f->file_size),
+//            status.ToString().c_str(), versions_->LevelSummary(&tmp));
+        DEBUG_arg("Trival compaction< level 0 file number is %d\n", c->num_input_files(0));
 //      } else if (options_.near_data_compaction && need_push_down) {
       } else if (need_push_down) {
         auto start = std::chrono::high_resolution_clock::now();

@@ -402,7 +402,7 @@ class VersionSet {
   // Returns nullptr if there is no compaction to be done.
   // Otherwise returns a pointer to a heap-allocated object that
   // describes the compaction.  Caller should delete the result.
-  Compaction* PickCompaction();
+  Compaction* PickCompaction(std::mutex* sv_mtx_within_function);
 
 
   // Return a compaction object for compacting the range [begin,end] in

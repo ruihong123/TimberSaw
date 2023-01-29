@@ -1736,7 +1736,7 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
   return !c->inputs_[0].empty();
 
 }
-Compaction* VersionSet::PickCompaction() {
+Compaction* VersionSet::PickCompaction(std::mutex* sv_mtx_within_function) {
 
   Compaction* c;
   int level = 0;
@@ -1745,10 +1745,9 @@ Compaction* VersionSet::PickCompaction() {
   c = new Compaction(options_, level);
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
-
   //TODO: may be we can create a verion for current_, and only use a read lock
   // when fetch the current from the list.
-  std::unique_lock<std::mutex> lck(*sv_mtx);
+  std::unique_lock<std::mutex> lck(*sv_mtx_within_function);
 
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_->CompactionLevel(i);
@@ -2038,7 +2037,7 @@ bool Compaction::IsTrivialMove() const {
   // Avoid a move if there is lots of overlapping grandparent data.
   // Otherwise, the move could create a parent file that will require
   // a very expensive merge later on.
-  return (num_input_files(0) == 1 && num_input_files(1) == 0 &&
+  return (num_input_files(1) == 0 &&
           TotalFileSize(grandparents_) <=
               MaxGrandParentOverlapBytes(vset->options_));
 }
