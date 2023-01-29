@@ -207,7 +207,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     //TODO: Make client handling thread only 1 per compute node-memory node connection.
 //    main_comm_threads.emplace_back(
 //        &DBImpl::client_message_polling_and_handling_thread, this, "main");
-    while(rdma_mg->main_comm_thread_ready_num.load() != rdma_mg->memory_nodes.size());
+    while(rdma_mg->RPC_handler_thread_ready_num.load() != rdma_mg->memory_nodes.size());
 
     if (RDMA_Manager::node_id == 1){
       // every memory ndoe only get synced option one time from compute node 1
@@ -227,7 +227,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     //Wait for the clearance of pending receive work request from the last DB open.
 //    {
 //      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-//      while (main_comm_thread_ready_num == 0) {
+//      while (RPC_handler_thread_ready_num == 0) {
 //        printf("Start to sleep\n");
 //        write_stall_cv.wait(lck);
 //        printf("Waked up\n");
@@ -2677,7 +2677,7 @@ void DBImpl::WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
   byte_len = rdma_mg->byte_len_map.at(shard_target_node_id);
   cv_imme = rdma_mg->cv_imme_map.at(shard_target_node_id);
 
-  while(rdma_mg->main_comm_thread_ready_num.load() != rdma_mg->memory_nodes.size());
+  while(rdma_mg->RPC_handler_thread_ready_num.load() != rdma_mg->memory_nodes.size());
 
   if (RDMA_Manager::node_id == 1 && shard_id == 0){
     // every memory ndoe only get synced option one time from compute node 1
@@ -2693,7 +2693,7 @@ void DBImpl::WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
 //void DBImpl::Wait_for_client_message_hanlding_setup() {
 //  {
 //    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-//    while (main_comm_thread_ready_num == 0) {
+//    while (RPC_handler_thread_ready_num == 0) {
 //      printf("Start to sleep\n");
 //      write_stall_cv.wait(lck);
 //      printf("Waked up\n");

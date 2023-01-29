@@ -612,7 +612,7 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
   //    RDMA_Request receive_msg_buf;
 //  {
 //    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
-    main_comm_thread_ready_num.fetch_add(1);
+  RPC_handler_thread_ready_num.fetch_add(1);
 //    write_stall_cv.notify_one();
 //  }
   printf("client handling thread\n");
@@ -1099,17 +1099,17 @@ void RDMA_Manager::Client_Set_Up_Resources() {
 
   while (connection_counter.load() != memory_nodes.size());
   // Start to regularly update the local CPU utilization
-  if (main_comm_thread_ready_num.load() == memory_nodes.size()){
-    local_compute_core_number = numa_num_task_cpus();
-    std::thread CPU_utilization_heartbeat([&](){
-      while (1){
-        std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
-        local_cpu_percent.store(rpter.getCurrentValue());
-      }
+//  if (RPC_handler_thread_ready_num.load() == memory_nodes.size()){
+  local_compute_core_number = numa_num_task_cpus();
+  std::thread CPU_utilization_heartbeat([&](){
+    while (1){
+      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
+      local_cpu_percent.store(rpter.getCurrentValue());
+    }
 
-    });
-    CPU_utilization_heartbeat.detach();
-  }
+  });
+  CPU_utilization_heartbeat.detach();
+//  }
 //  for (auto & thread : threads) {
 //    thread.join();
 //  }

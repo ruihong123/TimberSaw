@@ -504,7 +504,7 @@ class RDMA_Manager {
   std::map<Chunk_type, std::map<uint8_t,std::condition_variable*>*> dealloc_cv;
   std::map<Chunk_type, std::map<uint8_t,ibv_mr*>*>  dealloc_mr;
   std::map<Chunk_type, std::map<uint8_t,size_t>*>  top;
-  std::atomic<uint64_t> main_comm_thread_ready_num = 0;
+  std::atomic<uint64_t> RPC_handler_thread_ready_num = 0;
 
 //  uint64_t deallocation_buffers[REMOTE_DEALLOC_BUFF_SIZE / sizeof(uint64_t)];
 
