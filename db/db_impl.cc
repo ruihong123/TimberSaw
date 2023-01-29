@@ -1483,6 +1483,8 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
   double available_remote_computing_power = rdma_mg->local_cpu_percent.load() *
                                             rdma_mg->local_compute_core_number;
+  printf("task parallelism is %f, available_local_computing_power is %f, available_remote_computing_power is %f\n",
+         task_parallelism, available_local_computing_power,available_remote_computing_power);
   //TODO(chuqing): may need to be improved
   if (compact->level() == 0){
     //TODO (ruihong): Always pushing down level 0 compaction may not be a good choice. T
@@ -1518,10 +1520,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
     // else if there is a higher mn utilization, then do the compaction in the compute node
-    if (available_remote_computing_power/100.0 > 1){
+    if (available_remote_computing_power > 100.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (available_local_computing_power/100 > 1){
+    }else if (available_local_computing_power > 100.0){
       // supposing the local computing power is enough.
 
       return false;
