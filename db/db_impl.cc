@@ -1593,25 +1593,17 @@ void DBImpl::BackgroundCompaction(void* p) {
       
       if (!is_manual && c->IsTrivialMove()) {
         // Move file to next level
-        assert(c->num_input_files(1) == 0);
-        for (const auto& f :c->inputs_[0]) {
-//          std::shared_ptr<RemoteMemTableMetaData> f = file_iter;
-          c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
-          c->edit()->AddFile(c->level() + 1, f);
-        }
-
+        assert(c->num_input_files(0) == 1);
+        std::shared_ptr<RemoteMemTableMetaData> f = c->input(0, 0);
+        c->edit()->RemoveFile(c->level(), f->number, f->creator_node_id);
+        c->edit()->AddFile(c->level() + 1, f);
         {
           std::unique_lock<std::mutex> l_sv(superversion_memlist_mtx);
 //          std::unique_lock<std::mutex> l_vs(versionset_mtx, std::defer_lock);
-          for (const auto& f :c->inputs_[0]) {
-            f->level = c->level() + 1;
-          }
+          f->level = c->level() + 1;
           status = versions_->LogAndApply(c->edit());
-          //The undercompaciton need to be changed after the metadata has been modified
-          for (const auto& f :c->inputs_[0]) {
-            f->UnderCompaction = false;
-          }
           //trival move need to clear the UnderCompaction flag
+          f->UnderCompaction = false;
           c->ReleaseInputs();
 #ifdef WITHPERSISTENCE        //different from normal compaction
           Edit_sync_to_remote(c->edit(),&l_vs);
