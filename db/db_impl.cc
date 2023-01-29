@@ -1631,7 +1631,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 //            static_cast<unsigned long long>(f->number), c->level() + 1,
 //            static_cast<unsigned long long>(f->file_size),
 //            status.ToString().c_str(), versions_->LevelSummary(&tmp));
-        DEBUG_arg("Trival compaction< level 0 file number is %d\n", c->num_input_files(0));
+        printf("Trival compaction< level 0 file number is %d\n", c->num_input_files(0));
 //      } else if (options_.near_data_compaction && need_push_down) {
       } else if (need_push_down) {
         auto start = std::chrono::high_resolution_clock::now();
