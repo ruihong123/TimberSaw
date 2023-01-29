@@ -74,7 +74,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
     iter_offset = handle.offset();
 
     valid_ = Fetch_next_buffer_initial(iter_offset);
-    DEBUG_arg("Move to the next chunk, iter_ptr now is %p\n", iter_ptr);
+//    DEBUG_arg("Move to the next chunk, iter_ptr now is %p\n", iter_ptr);
     assert(valid_);
     auto rdma_mg = Env::Default()->rdma_mg;
     // Only support forward iterator for sequential access iterator.
@@ -84,7 +84,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
         assert(iter_offset == cur_prefetch_status);
         Fetch_next_buffer_initial(iter_offset);
       }
-      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+//      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
@@ -104,7 +104,7 @@ void ByteAddressableSEQIterator::GetKVInitial(){
         assert(iter_offset == cur_prefetch_status);
         Fetch_next_buffer_initial(iter_offset);
       }
-      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
+//      DEBUG_arg("Move to the next subchunk, iter_ptr now is %p\n", iter_ptr);
 //      ibv_wc wc[1];
 //      rdma_mg->poll_completion(wc,1, "read_local", true);
 //      cur_prefetch_status += PREFETCH_GRANULARITY;
