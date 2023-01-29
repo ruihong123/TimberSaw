@@ -476,7 +476,7 @@ class Benchmark {
   std::vector<std::string> validation_keys;
 
   void PrintHeader() {
-    const int kKeySize = 16 + FLAGS_key_prefix;
+    const int kKeySize = 20 + FLAGS_key_prefix;
     PrintEnvironment();
     std::fprintf(stdout, "Keys:       %d bytes each\n", kKeySize);
     std::fprintf(

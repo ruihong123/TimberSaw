@@ -1478,10 +1478,12 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
   double task_parallelism = compact->num_input_files(1);
   // core number * CPU utilization percentage which represented the available cores estimated.
-  double available_local_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
-                                           rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
+  double LocalCPU_utilization = rdma_mg->local_cpu_percent.load();
 
-  double available_remote_computing_power = rdma_mg->local_cpu_percent.load() *
+  double  RemoteCPU_utilization= rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
+  double available_local_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
+                                           (100.0-LocalCPU_utilization);
+  double available_remote_computing_power = (RemoteCPU_utilization > 100.0 ? 0:(100.0 - RemoteCPU_utilization)) *
                                             rdma_mg->local_compute_core_number;
   printf("task parallelism is %f, available_local_computing_power is %f, available_remote_computing_power is %f\n",
          task_parallelism, available_local_computing_power,available_remote_computing_power);
