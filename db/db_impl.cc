@@ -1472,11 +1472,17 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
   // long double mn_percent = RequestRemoteUtilization();
 //  long double mn_percent = this->server_cpu_percent;
   auto rdma_mg = env_->rdma_mg;
-  double mn_percent = rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
+//  double mn_percent = rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
   //TODO(chuqing): need to fix the heartbeat implementation
 
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
+  double task_parallelism = compact->num_input_files(1);
+  // core number * CPU utilization percentage which represented the available cores estimated.
+  double available_local_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
+                                           rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
 
+  double available_remote_computing_power = rdma_mg->local_cpu_percent.load() *
+                                            rdma_mg->local_compute_core_number;
   //TODO(chuqing): may need to be improved
   if (compact->level() == 0){
     //TODO (ruihong): Always pushing down level 0 compaction may not be a good choice. T
@@ -1485,9 +1491,14 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // E.g. If a level 0 compaction can be divided into 10 subcompaction conducting by 10 cores, but
     // the remote server only contains 1 core. Then doing the level 0 compaction in compute
     // node is better, because there could be more parallelism be explored.
-    if (rdma_mg->local_cpu_percent.load()*rdma_mg->local_compute_core_number >
-        2.0 * rdma_mg->remote_core_number_map.at(shard_target_node_id) *
-            rdma_mg->server_cpu_percent.at(shard_target_node_id)->load()){
+
+    // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
+    // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
+    // BY experiment the accelerate factor is about 17/30
+
+    double estimated_time_compute = 1.0/(available_local_computing_power>  task_parallelism? task_parallelism:available_local_computing_power);
+    double estimated_time_memory = 1.0*17.0/30.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power);
+    if (estimated_time_compute < estimated_time_memory ){
       return false;
     }else{
       return true;
@@ -1507,8 +1518,20 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
     // else if there is a higher mn utilization, then do the compaction in the compute node
+    if (available_remote_computing_power/100.0 > 1){
+      // supposing the remote computing power is enough.
+      return true;
+    }else if (available_local_computing_power/100 > 1){
+      // supposing the local computing power is enough.
 
-    return (mn_percent <= 80.0);
+      return false;
+    }else{
+      //if local computing power is not enough sleep for a while to avoid context switching overhead.
+      // TODO: THis could be more fine-grained.
+      usleep(5000);
+      return false;
+    }
+//    return (mn_percent <= 80.0);
   }
 
 #elif NEARDATACOMPACTION == 0
