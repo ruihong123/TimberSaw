@@ -1502,6 +1502,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
     double estimated_time_compute = 1.0/(available_local_computing_power>  task_parallelism? task_parallelism:available_local_computing_power);
     double estimated_time_memory = 1.0*17.0/30.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power);
+    printf("estimate compute time %f, estimate memory time %f\n",estimated_time_compute,estimated_time_memory);
     if (estimated_time_compute < estimated_time_memory ){
       return false;
     }else{
