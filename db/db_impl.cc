@@ -1485,8 +1485,8 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
                                                (RemoteCPU_utilization > 100.0 ? 0 : (100.0-RemoteCPU_utilization));
   double available_local_computing_power = (LocalCPU_utilization > 100.0 ? 0:(100.0 - LocalCPU_utilization)) *
                                             rdma_mg->local_compute_core_number;
-  printf("task parallelism is %f, available_local_computing_power is %f, available_remote_computing_power is %f\n",
-         task_parallelism, available_local_computing_power,available_remote_computing_power);
+//  printf("task parallelism is %f, available_local_computing_power is %f, available_remote_computing_power is %f\n",
+//         task_parallelism, available_local_computing_power,available_remote_computing_power);
   //TODO(chuqing): may need to be improved
   if (compact->level() == 0){
     //TODO (ruihong): Always pushing down level 0 compaction may not be a good choice. T
