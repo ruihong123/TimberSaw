@@ -1649,8 +1649,8 @@ void DBImpl::BackgroundCompaction(void* p) {
 
 //        write_stall_mutex_.AssertNotHeld();
         // Only when there is enough input level files and output level files will the subcompaction triggered
-//        if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
-        if (options_.usesubcompaction && c->num_input_files(1)>1){
+        if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+//        if (options_.usesubcompaction && c->num_input_files(1)>1){
 
           status = DoCompactionWorkWithSubcompaction(compact);
         } else {
