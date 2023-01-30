@@ -2122,7 +2122,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     DEBUG_arg("Compaction decoded, the first input file number is %lu \n", c.inputs_[0][0]->number);
     DEBUG_arg("Compaction decoded, input file level is %d \n", c.level());
     CompactionState* compact = new CompactionState(&c);
-    if (usesubcompaction && c.num_input_files(0)>=4 && c.num_input_files(1)>1){
+//    if (usesubcompaction && c.num_input_files(0)>=4 && c.num_input_files(1)>1){
+    if (usesubcompaction && c.num_input_files(1)>1){
 //      test_compaction_mutex.lock();
       status = DoCompactionWorkWithSubcompaction(compact, client_ip);
 //      test_compaction_mutex.unlock();

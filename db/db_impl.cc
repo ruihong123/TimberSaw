@@ -1501,7 +1501,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // BY experiment the accelerate factor is about 1/2
 
     double estimated_time_compute = 1.0/(available_local_computing_power>  task_parallelism? task_parallelism:available_local_computing_power);
-    double estimated_time_memory = 1.0/(2.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power));
+    double estimated_time_memory = 1.0*8.0/(17.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power));
     printf("estimate compute time %f, estimate memory time %f\n",estimated_time_compute,estimated_time_memory);
     if (estimated_time_compute < estimated_time_memory ){
       return false;
@@ -1523,7 +1523,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
     // else if there is a higher mn utilization, then do the compaction in the compute node
-    if (available_remote_computing_power > 100.0){
+    if (available_remote_computing_power > 10.0){
       // supposing the remote computing power is enough.
       return true;
     }else if (available_local_computing_power > 100.0){
@@ -1533,7 +1533,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     }else{
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
       // TODO: THis could be more fine-grained.
-      usleep(5000);
+      usleep(50);
       return false;
     }
 //    return (mn_percent <= 80.0);
@@ -1633,12 +1633,12 @@ void DBImpl::BackgroundCompaction(void* p) {
         NearDataCompaction(c);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        if (c->level() == 0){
+//        if (c->level() == 0){
 //        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
           printf("[Remote Memory]level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
                  c->num_input_files(0), c->num_input_files(1), duration.count());
 
-        }
+//        }
 //        MaybeScheduleFlushOrCompaction();
 //        return;
       } else {
@@ -1649,7 +1649,9 @@ void DBImpl::BackgroundCompaction(void* p) {
 
 //        write_stall_mutex_.AssertNotHeld();
         // Only when there is enough input level files and output level files will the subcompaction triggered
-        if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+//        if (options_.usesubcompaction && c->num_input_files(0)>=4 && c->num_input_files(1)>1){
+        if (options_.usesubcompaction && c->num_input_files(1)>1){
+
           status = DoCompactionWorkWithSubcompaction(compact);
         } else {
           status = DoCompactionWork(compact);
@@ -1666,7 +1668,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 //      RemoveObsoleteFiles();
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        if (c->level() == 0) {
+//        if (c->level() == 0) {
           printf(
               "[Compute] level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
               c->num_input_files(0), c->num_input_files(1), duration.count());
@@ -1674,7 +1676,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 //          printf(
 //              "[Compute] level 0 compaction first level file size %lu, second level file size %lu time elapse %ld\n",
 //              c->input(0,0)->file_size, c->input(1,0)->file_size, duration.count());
-        }
+//        }
       }
 
     }
