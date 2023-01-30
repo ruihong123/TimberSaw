@@ -59,7 +59,7 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     //The background thread should be larger than the actual core number in compute node,
     // because the bg thread trigger the near data compaction will sleep.Acurately speaking,
     // the compute background thread number = compute core number  + memory core number
-    Compactor_pool_.SetBackgroundThreads(2*available_cpu_num);
+    Compactor_pool_.SetBackgroundThreads(available_cpu_num);
     opts->MaxSubcompaction = available_cpu_num;
 #else
     Compactor_pool_.SetBackgroundThreads(opts->max_background_compactions);

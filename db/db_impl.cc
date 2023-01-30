@@ -306,10 +306,11 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
 {
 
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  // TODO: DBImpl is not a singleton, better to move the funciton below to a singleton.
   env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
   int available_cpu_num = numa_num_task_cpus();
-  env_->SetBackgroundThreads(available_cpu_num,ThreadPoolType::CompactionThreadPool);
+  env_->SetBackgroundThreads(2*available_cpu_num,ThreadPoolType::CompactionThreadPool);
   options_.MaxSubcompaction = available_cpu_num;
 
 #else
@@ -1481,6 +1482,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
   double LocalCPU_utilization = rdma_mg->local_cpu_percent.load();
 
   double  RemoteCPU_utilization= rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
+  // 100 represent 1 core.
   double  available_remote_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
                                                (RemoteCPU_utilization > 100.0 ? 0 : (100.0-RemoteCPU_utilization));
   double available_local_computing_power = (LocalCPU_utilization > 100.0 ? 0:(100.0 - LocalCPU_utilization)) *
@@ -1526,7 +1528,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     if (available_remote_computing_power > 10.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (available_local_computing_power > 100.0){
+    }else if (available_local_computing_power > 10.0){
       // supposing the local computing power is enough.
 
       return false;
