@@ -1498,10 +1498,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
     // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
     // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
-    // BY experiment the accelerate factor is about 17/30
+    // BY experiment the accelerate factor is about 1/2
 
     double estimated_time_compute = 1.0/(available_local_computing_power>  task_parallelism? task_parallelism:available_local_computing_power);
-    double estimated_time_memory = 1.0*17.0/(30.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power));
+    double estimated_time_memory = 1.0/(2.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power));
     printf("estimate compute time %f, estimate memory time %f\n",estimated_time_compute,estimated_time_memory);
     if (estimated_time_compute < estimated_time_memory ){
       return false;
