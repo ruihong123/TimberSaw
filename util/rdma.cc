@@ -2152,6 +2152,7 @@ int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
       std::cout << "RDMA Write Failed" << std::endl;
       std::cout << "q id is" << qp_type << std::endl;
       fprintf(stdout, "QP number=0x%x\n", res->qp_map[target_node_id]->qp_num);
+      exit(0);
     }
     delete[] wc;
   }
@@ -2233,6 +2234,7 @@ int RDMA_Manager::RDMA_Write(void* addr, uint32_t rkey, ibv_mr* local_mr,
         std::cout << "RDMA Write Failed" << std::endl;
         std::cout << "q id is" << qp_type << std::endl;
         fprintf(stdout, "QP number=0x%x\n", res->qp_map[target_node_id]->qp_num);
+        exit(0);
       }else{
         DEBUG("RDMA write successfully\n");
       }
@@ -2320,6 +2322,7 @@ int RDMA_Manager::RDMA_Write_Imme(void* addr, uint32_t rkey, ibv_mr* local_mr,
       std::cout << "RDMA Write Failed" << std::endl;
       std::cout << "q id is" << qp_type << std::endl;
       fprintf(stdout, "QP number=0x%x\n", res->qp_map[target_node_id]->qp_num);
+      exit(0);
     }else{
       DEBUG("RDMA write successfully\n");
     }
