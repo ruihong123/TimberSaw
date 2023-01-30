@@ -95,7 +95,7 @@ Version::~Version() {
 int FindFile(const InternalKeyComparator& icmp,
              const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files, const Slice& key) {
   uint32_t left = 0;
-  uint32_t right = files.size();
+  uint32_t right = files.size()-1;
   while (left < right) {
     uint32_t mid = (left + right) / 2;
     const std::shared_ptr<RemoteMemTableMetaData> f = files[mid];
@@ -110,6 +110,7 @@ int FindFile(const InternalKeyComparator& icmp,
       right = mid;
     }
   }
+
   assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
   return right;
 }
