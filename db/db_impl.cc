@@ -1389,62 +1389,62 @@ void DBImpl::BackgroundCompaction(void* p) {
 }
 #endif   
 
-void DBImpl::ActivateRemoteCPURefresh(){
-  /**
-  Keep updating a DB public variable 'server_cpu_utilization' by receive
-  the RDMA_Write from compute nodes, 100ms once
-  **/
-
-  //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
-  //TODO(Chuqing): where to initialize, seem that never be called
-
-  std::fprintf(stdout, "Call activate remote cpu refresh, now is %.4Lf\n", server_cpu_percent);
-  std::thread keep_refresh_remote_cpu_utilizaton([&](){
-    std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
-    // register the memory block from the remote memory
-    RDMA_Request* send_pointer;
-    ibv_mr send_mr = {};
-    ibv_mr receive_mr = {};
-    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
-    rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
-
-    send_pointer = (RDMA_Request*)send_mr.addr;
-    send_pointer->command = create_cpu_refresher;
-    send_pointer->buffer = receive_mr.addr;
-    send_pointer->rkey = receive_mr.rkey;
-
-    RDMA_Reply* receive_pointer;
-    receive_pointer = (RDMA_Reply*)receive_mr.addr;
-    *receive_pointer = {};
-
-    rdma_mg->post_send<RDMA_Request>(&send_mr, shard_target_node_id, std::string("main"));
-    ibv_wc wc[2] = {};
-    if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
-                                 shard_target_node_id)){
-      fprintf(stderr, "failed to poll send for remote memory register\n");
-      return ;
-    }
-    // wait until remote (mn) write the cpu utilization to the buffer
-    rdma_mg->poll_reply_buffer(receive_pointer);
-
-    std::ofstream outfile;
-    outfile.open("cn_refresh.txt", std::ios::out);
-
-    while(1){
-      if(receive_pointer->content.cpu_info.cpu_util > 0.0)
-        this->server_cpu_percent = receive_pointer->content.cpu_info.cpu_util;
-      // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
-      outfile << "in refresher:" << server_cpu_percent << std::endl;
-      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
-    }
-
-    outfile.close();
-  });
-  keep_refresh_remote_cpu_utilizaton.detach();
-  //a random wait, just a try
-  std::this_thread::sleep_for(std::chrono::milliseconds(5));
-  return;
-}
+//void DBImpl::ActivateRemoteCPURefresh(){
+//  /**
+//  Keep updating a DB public variable 'server_cpu_utilization' by receive
+//  the RDMA_Write from compute nodes, 100ms once
+//  **/
+//
+//  //TODO(Chuqing): distinguish different compute nodes for multi-nodes case
+//  //TODO(Chuqing): where to initialize, seem that never be called
+//
+//  std::fprintf(stdout, "Call activate remote cpu refresh, now is %.4Lf\n", server_cpu_percent);
+//  std::thread keep_refresh_remote_cpu_utilizaton([&](){
+//    std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+//    // register the memory block from the remote memory
+//    RDMA_Request* send_pointer;
+//    ibv_mr send_mr = {};
+//    ibv_mr receive_mr = {};
+//    rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
+//    rdma_mg->Allocate_Local_RDMA_Slot(receive_mr, Message);
+//
+//    send_pointer = (RDMA_Request*)send_mr.addr;
+//    send_pointer->command = create_cpu_refresher;
+//    send_pointer->buffer = receive_mr.addr;
+//    send_pointer->rkey = receive_mr.rkey;
+//
+//    RDMA_Reply* receive_pointer;
+//    receive_pointer = (RDMA_Reply*)receive_mr.addr;
+//    *receive_pointer = {};
+//
+//    rdma_mg->post_send<RDMA_Request>(&send_mr, shard_target_node_id, std::string("main"));
+//    ibv_wc wc[2] = {};
+//    if (rdma_mg->poll_completion(wc, 1, std::string("main"), true,
+//                                 shard_target_node_id)){
+//      fprintf(stderr, "failed to poll send for remote memory register\n");
+//      return ;
+//    }
+//    // wait until remote (mn) write the cpu utilization to the buffer
+//    rdma_mg->poll_reply_buffer(receive_pointer);
+//
+//    std::ofstream outfile;
+//    outfile.open("cn_refresh.txt", std::ios::out);
+//
+//    while(1){
+//      if(receive_pointer->content.cpu_info.cpu_util > 0.0)
+//        this->server_cpu_percent = receive_pointer->content.cpu_info.cpu_util;
+//      // std::fprintf(stdout, "in refresher: %.4lf\n", server_cpu_percent);
+//      outfile << "in refresher:" << server_cpu_percent << std::endl;
+//      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
+//    }
+//
+//    outfile.close();
+//  });
+//  keep_refresh_remote_cpu_utilizaton.detach();
+//  //a random wait, just a try
+//  std::this_thread::sleep_for(std::chrono::milliseconds(5));
+//  return;
+//}
 
 long double DBImpl::RequestRemoteUtilization(){
   long double mn_percent = 0;
@@ -1491,6 +1491,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
   // long double mn_percent = RequestRemoteUtilization();
 //  long double mn_percent = this->server_cpu_percent;
+  retry:
   auto rdma_mg = env_->rdma_mg;
 //  double mn_percent = rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
   //TODO(chuqing): need to fix the heartbeat implementation
@@ -1502,12 +1503,13 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
   double  RemoteCPU_utilization= rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
   // 100 represent 1 core.
-  double  available_remote_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
+  double DA_remote_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
                                                (RemoteCPU_utilization > 100.0 ? 0 : (100.0-RemoteCPU_utilization));
-  double available_local_computing_power = (LocalCPU_utilization > 100.0 ? 0:(100.0 - LocalCPU_utilization)) *
+  // sometimes LocalCPU_utilization will be larger than 100. If so, making DA_local_computing_power as 0;
+  double DA_local_computing_power = (LocalCPU_utilization > 100.0 ? 0:(100.0 - LocalCPU_utilization)) *
                                             rdma_mg->local_compute_core_number;
-//  printf("task parallelism is %f, available_local_computing_power is %f, available_remote_computing_power is %f\n",
-//         task_parallelism, available_local_computing_power,available_remote_computing_power);
+//  printf("task parallelism is %f, DA_local_computing_power is %f, DA_remote_computing_power is %f\n",
+//         task_parallelism, DA_local_computing_power,DA_remote_computing_power);
   //TODO(chuqing): may need to be improved
   if (compact->level() == 0){
     //TODO (ruihong): Always pushing down level 0 compaction may not be a good choice. T
@@ -1517,12 +1519,20 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // the remote server only contains 1 core. Then doing the level 0 compaction in compute
     // node is better, because there could be more parallelism be explored.
 
+    // Strategy 1: predict the level 0 execution time by dynamical info.
     // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
     // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
     // BY experiment the accelerate factor is about 1/2
+//    double estimated_time_compute = 1.0/(DA_local_computing_power>  task_parallelism? task_parallelism:DA_local_computing_power);
+//    double estimated_time_memory = 1.0*8.0/(17.0*(DA_remote_computing_power >  task_parallelism? task_parallelism:DA_remote_computing_power));
 
-    double estimated_time_compute = 1.0/(available_local_computing_power>  task_parallelism? task_parallelism:available_local_computing_power);
-    double estimated_time_memory = 1.0*8.0/(17.0*(available_remote_computing_power >  task_parallelism? task_parallelism:available_local_computing_power));
+    // Strategy 2: predict the level 0 execution time by STATIC info.
+    // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(static core number, maximum parallelism)
+    // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(static core number, maximum parallelism)
+    // The other level compaction should make room for the level 0 compactions.
+    double estimated_time_compute = 1.0/(rdma_mg->local_compute_core_number >  task_parallelism? task_parallelism: rdma_mg->local_compute_core_number);
+    double estimated_time_memory = 1.0*8.0/(17.0*(rdma_mg->remote_core_number_map.at(shard_target_node_id) >  task_parallelism? task_parallelism: rdma_mg->remote_core_number_map.at(shard_target_node_id)));
+    // strategy 2: could be problematic if two compute node share the same memory node, so dynamically decide the side by available computing resource is better.
     printf("estimate compute time %f, estimate memory time %f\n",estimated_time_compute,estimated_time_memory);
     if (estimated_time_compute < estimated_time_memory ){
       return false;
@@ -1544,18 +1554,22 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
     //TODO(ruihong): if there is a lower mn utilization, then pushdown,
     // else if there is a higher mn utilization, then do the compaction in the compute node
-    if (available_remote_computing_power > 10.0){
+
+    //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
+    if (DA_remote_computing_power > 10.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (available_local_computing_power > 10.0){
+    }else if (DA_local_computing_power > 10.0){
       // supposing the local computing power is enough.
 
       return false;
     }else{
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
       // TODO: THis could be more fine-grained.
-      usleep(50);
-      return false;
+//      while(rdma_mg->local_cpu_percent.load()*)
+      usleep(500);
+      goto retry;
+      //      return false;
     }
 //    return (mn_percent <= 80.0);
   }
@@ -1612,6 +1626,9 @@ void DBImpl::BackgroundCompaction(void* p) {
       // Nothing to do
     } else {
       bool need_push_down = CheckWhetherPushDownorNot(c);
+      if (c->level() == 0){
+
+      }
       
       if (!is_manual && c->IsTrivialMove()) {
         // Move file to next level

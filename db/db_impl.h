@@ -214,7 +214,7 @@ class DBImpl : public DB {
   void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   bool CheckWhetherPushDownorNot(Compaction* compact);
   long double RequestRemoteUtilization();
-  void ActivateRemoteCPURefresh();
+//  void ActivateRemoteCPURefresh();
   void CleanupCompaction(CompactionState* compact)
       EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   Status DoCompactionWork(CompactionState* compact)
@@ -333,12 +333,12 @@ class DBImpl : public DB {
   std::vector<std::thread> main_comm_threads;
   uint8_t shard_target_node_id = 0;
   uint8_t shard_id = 0;
-
+  std::atomic<bool> level_0_compaction_in_progress = false;
   // Add for cpu utilization refreshing
   //TODO: (chuqing) if multiple servers
-  long double server_cpu_percent = 0.0;
-  std::map<uint16_t,uint16_t> remote_core_number_map;
-  std::map<uint16_t,uint16_t> compute_core_number_map;
+//  long double server_cpu_percent = 0.0;
+//  std::map<uint16_t,uint16_t> remote_core_number_map;
+//  std::map<uint16_t,uint16_t> compute_core_number_map;
   //TODO(chuqing): add for count time, need a better calculator
   long int accumulated_time = 0;
 
