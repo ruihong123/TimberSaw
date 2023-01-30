@@ -304,7 +304,7 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
         // All of "f" is past any data for user_key
       } else {
         if (!(*func)(arg, level, f)) {
-          printf("Found in the SSTables\n");
+//          printf("Found in the SSTables\n");
           return;
         }
       }
