@@ -1635,8 +1635,8 @@ void DBImpl::BackgroundCompaction(void* p) {
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //        if (c->level() == 0){
 //        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
-          printf("[Remote Memory]level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
-                 c->num_input_files(0), c->num_input_files(1), duration.count());
+          printf("[Remote Memory]level %d compaction first level file number %d, second level file number %d time elapse %ld\n",
+                c->level(), c->num_input_files(0), c->num_input_files(1), duration.count());
 
 //        }
 //        MaybeScheduleFlushOrCompaction();
@@ -1670,8 +1670,8 @@ void DBImpl::BackgroundCompaction(void* p) {
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //        if (c->level() == 0) {
           printf(
-              "[Compute] level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
-              c->num_input_files(0), c->num_input_files(1), duration.count());
+              "[Compute] level %d compaction first level file number %d, second level file number %d time elapse %ld\n",
+              c->level(), c->num_input_files(0), c->num_input_files(1), duration.count());
 //        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
 //          printf(
 //              "[Compute] level 0 compaction first level file size %lu, second level file size %lu time elapse %ld\n",
