@@ -691,7 +691,8 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
         post_receive<RDMA_Request>(&recv_mr[buffer_counter],
                                    shard_target_node_id,
                                    "main");
-        cpu_util_heart_beater_receiver(receive_msg_buf, shard_target_node_id);
+        remote_cpu_util_heart_beater_receiver(receive_msg_buf,
+                                              shard_target_node_id);
       } else {
         printf("corrupt message from client.");
         break;
@@ -715,14 +716,21 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
   //      rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr[i].addr, Message);
   //    }
 }
-void RDMA_Manager::cpu_util_heart_beater_receiver(
+void RDMA_Manager::remote_cpu_util_heart_beater_receiver(
     RDMA_Request* request, uint8_t target_node_id) {
 
   assert(request->command == cpu_utilization_heartbeat);
   //todo(ruihong): use UNLIKELY()
-  if (remote_core_number_map.find(target_node_id) == remote_core_number_map.end()){
-    remote_core_number_map[target_node_id] = request->content.cpu_info.core_number;
+  if (!remote_core_number_received.load())[[unlikely]]{
+    std::unique_lock<std::mutex> lck(remote_core_number_map_mtx);
+    if (remote_core_number_map.find(target_node_id) == remote_core_number_map.end())[[unlikely]]{
+      remote_core_number_map[target_node_id] = request->content.cpu_info.core_number;
+    }
+    if (remote_core_number_map.size() == memory_nodes.size()){
+      remote_core_number_received.store(true);
+    }
   }
+
 //    uint8_t check_byte = request->content.ive.check_byte;
   server_cpu_percent.at(target_node_id)->store(request->content.cpu_info.cpu_util);
 
@@ -1039,6 +1047,17 @@ bool RDMA_Manager::Preregister_Memory(int gb_number) {
 void RDMA_Manager::Client_Set_Up_Resources() {
   //  int rc = 1;
   // int trans_times;
+
+  local_compute_core_number = numa_num_task_cpus();
+  std::thread CPU_utilization_heartbeat([&](){
+    while (1){
+      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
+      local_cpu_percent.store(rpter.getCurrentValue());
+    }
+
+  });
+  CPU_utilization_heartbeat.detach();
+
   char temp_char;
 
   std::string connection_conf;
@@ -1100,15 +1119,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
   while (connection_counter.load() != memory_nodes.size());
   // Start to regularly update the local CPU utilization
 //  if (RPC_handler_thread_ready_num.load() == memory_nodes.size()){
-  local_compute_core_number = numa_num_task_cpus();
-  std::thread CPU_utilization_heartbeat([&](){
-    while (1){
-      std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
-      local_cpu_percent.store(rpter.getCurrentValue());
-    }
 
-  });
-  CPU_utilization_heartbeat.detach();
 //  }
 //  for (auto & thread : threads) {
 //    thread.join();

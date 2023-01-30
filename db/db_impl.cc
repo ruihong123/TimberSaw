@@ -202,8 +202,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     byte_len = rdma_mg->byte_len_map.at(shard_target_node_id);
     cv_imme = rdma_mg->cv_imme_map.at(shard_target_node_id);
 
-    env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
-    env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
+
     //TODO: Make client handling thread only 1 per compute node-memory node connection.
 //    main_comm_threads.emplace_back(
 //        &DBImpl::client_message_polling_and_handling_thread, this, "main");
@@ -233,6 +232,16 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 //        printf("Waked up\n");
 //      }
 //    }
+    env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
+#ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
+    int available_cpu_num = numa_num_task_cpus();
+    env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
+    options_.MaxSubcompaction = available_cpu_num;
+
+#else
+    env_->SetBackgroundThreads(options_.max_background_compactions,ThreadPoolType::CompactionThreadPool);
+
+#endif
     Unpin_bg_pool_.SetBackgroundThreads(1);
 //    if (options_.block_cache != nullptr){
 //      size_t size_in_gb = options_.block_cache->GetCapacity()/(1024*1024*1024) +1 +1;
@@ -306,11 +315,21 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
 {
 
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
+  while(rdma_mg->RPC_handler_thread_ready_num.load() != rdma_mg->memory_nodes.size());
+
+  if (RDMA_Manager::node_id == 1){
+      // every memory ndoe only get synced option one time from compute node 1
+      for (int i = 0; i <  rdma_mg->memory_nodes.size(); ++i) {
+        sync_option_to_remote(2*i);
+      }
+
+  }
   // TODO: DBImpl is not a singleton, better to move the funciton below to a singleton.
   env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
   int available_cpu_num = numa_num_task_cpus();
-  env_->SetBackgroundThreads(2*available_cpu_num,ThreadPoolType::CompactionThreadPool);
+  while (!rdma_mg->remote_core_number_received.load());
+  env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
   options_.MaxSubcompaction = available_cpu_num;
 
 #else
@@ -1423,7 +1442,7 @@ void DBImpl::ActivateRemoteCPURefresh(){
   });
   keep_refresh_remote_cpu_utilizaton.detach();
   //a random wait, just a try
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::this_thread::sleep_for(std::chrono::milliseconds(5));
   return;
 }
 

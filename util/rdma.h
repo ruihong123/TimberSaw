@@ -352,7 +352,7 @@ class RDMA_Manager {
   //                                   ibv_mr* local_data_mr);
 //  void client_message_polling_thread();
   void compute_message_handling_thread(std::string q_id, uint8_t shard_target_node_id);
-  void cpu_util_heart_beater_receiver(RDMA_Request* request,
+  void remote_cpu_util_heart_beater_receiver(RDMA_Request* request,
                                              uint8_t target_node_id);
   void ConnectQPThroughSocket(std::string qp_type, int socket_fd,
                               uint8_t& target_node_id);
@@ -527,6 +527,8 @@ class RDMA_Manager {
   // Add for cpu utilization refreshing
 //TODO: (chuqing) if multiple servers
   std::map<uint8_t,std::atomic<double>*> server_cpu_percent;
+  std::mutex remote_core_number_map_mtx;
+  std::atomic<bool> remote_core_number_received;
   std::map<uint8_t,uint16_t> remote_core_number_map;
   uint16_t local_compute_core_number;
   std::atomic<double> local_cpu_percent;
