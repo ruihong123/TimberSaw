@@ -1624,7 +1624,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 //            static_cast<unsigned long long>(f->number), c->level() + 1,
 //            static_cast<unsigned long long>(f->file_size),
 //            status.ToString().c_str(), versions_->LevelSummary(&tmp));
-        printf("Trival compaction< level 0 file number is %d\n", c->num_input_files(0));
+       DEBUG_arg("Trival compaction< level 0 file number is %d\n", c->num_input_files(0));
 //      } else if (options_.near_data_compaction && need_push_down) {
       } else if (need_push_down) {
         auto start = std::chrono::high_resolution_clock::now();
@@ -1633,10 +1633,10 @@ void DBImpl::BackgroundCompaction(void* p) {
         NearDataCompaction(c);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//        if (c->level() == 0){
-        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
-          printf("[Remote Memory]level 0 compaction first level file size %lu, second level file size %lu time elapse %ld\n",
-                 c->input(0,0)->file_size, c->input(1,0)->file_size, duration.count());
+        if (c->level() == 0){
+//        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
+          printf("[Remote Memory]level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
+                 c->num_input_files(0), c->num_input_files(1), duration.count());
 
         }
 //        MaybeScheduleFlushOrCompaction();
@@ -1666,11 +1666,14 @@ void DBImpl::BackgroundCompaction(void* p) {
 //      RemoveObsoleteFiles();
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//        if (c->level() == 0) {
-        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
+        if (c->level() == 0) {
           printf(
-              "[Compute] level 0 compaction first level file size %lu, second level file size %lu time elapse %ld\n",
-              c->input(0,0)->file_size, c->input(1,0)->file_size, duration.count());
+              "[Compute] level 0 compaction first level file number %d, second level file number %d time elapse %ld\n",
+              c->num_input_files(0), c->num_input_files(1), duration.count());
+//        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
+//          printf(
+//              "[Compute] level 0 compaction first level file size %lu, second level file size %lu time elapse %ld\n",
+//              c->input(0,0)->file_size, c->input(1,0)->file_size, duration.count());
         }
       }
 
