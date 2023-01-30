@@ -112,7 +112,7 @@ int FindFile(const InternalKeyComparator& icmp,
   }
 
   assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
-  return right;
+  return static_cast<int>(right);
 }
 
 static bool AfterFile(const Comparator* ucmp, const Slice* user_key,
