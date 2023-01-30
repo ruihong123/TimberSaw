@@ -1498,43 +1498,57 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
   // std::fprintf(stdout, "Remote CPU utilization: %Lf \n", mn_percent);
   double task_parallelism = compact->num_input_files(1);
+
+
   // core number * CPU utilization percentage which represented the available cores estimated.
   double LocalCPU_utilization = rdma_mg->local_cpu_percent.load();
 
   double  RemoteCPU_utilization= rdma_mg->server_cpu_percent.at(shard_target_node_id)->load();
-  // 100 represent 1 core.
-  double DA_remote_computing_power = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
-                                               (RemoteCPU_utilization > 100.0 ? 0 : (100.0-RemoteCPU_utilization));
-  // sometimes LocalCPU_utilization will be larger than 100. If so, making DA_local_computing_power as 0;
-  double DA_local_computing_power = (LocalCPU_utilization > 100.0 ? 0:(100.0 - LocalCPU_utilization)) *
-                                            rdma_mg->local_compute_core_number;
-//  printf("task parallelism is %f, DA_local_computing_power is %f, DA_remote_computing_power is %f\n",
-//         task_parallelism, DA_local_computing_power,DA_remote_computing_power);
+  // represent dynamically available core number.
+
+  // sometimes LocalCPU_utilization will be larger than 100. If so, making dynamic_compute_available_core as 0;
+  double dynamic_compute_available_core = (LocalCPU_utilization > 100.0 ? 0:(100.0 - LocalCPU_utilization)) *
+                                            rdma_mg->local_compute_core_number/100.0;
+  double dynamic_remote_available_core = rdma_mg->remote_core_number_map.at(shard_target_node_id) *
+                                                 (RemoteCPU_utilization > 100.0 ? 0 : (100.0-RemoteCPU_utilization))/100.0;
+  //  printf("task parallelism is %f, dynamic_compute_available_core is %f, dynamic_remote_available_core is %f\n",
+//         task_parallelism, dynamic_compute_available_core,dynamic_remote_available_core);
   //TODO(chuqing): may need to be improved
   if (compact->level() == 0){
+    double static_compute_achievable_parallelism = (rdma_mg->local_compute_core_number >  task_parallelism? task_parallelism: rdma_mg->local_compute_core_number);
+    double static_memory_achievable_parallelism = (rdma_mg->remote_core_number_map.at(shard_target_node_id) >  task_parallelism? task_parallelism: rdma_mg->remote_core_number_map.at(shard_target_node_id));
     //TODO (ruihong): Always pushing down level 0 compaction may not be a good choice. T
     // The strategy should be depends on the relationship between remote CPU number
     // and the maximum subcompaction the level 0 compaction can provide.
     // E.g. If a level 0 compaction can be divided into 10 subcompaction conducting by 10 cores, but
     // the remote server only contains 1 core. Then doing the level 0 compaction in compute
     // node is better, because there could be more parallelism be explored.
+    double final_estimated_time_compute = 0.0;
+    double final_estimated_time_memory = 0.0;
+    // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
+    if (2.0*(compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) >= 10.0){
+      // execution time is longer than a normal compaction task then use dynamic score
+      // Strategy 1: predict the level 0 execution time by dynamical info.
+      // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
+      // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
+      // BY experiment the accelerate factor is about 1/2
+      final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
+      final_estimated_time_memory = 1.0*8.0/(17.0*(dynamic_remote_available_core >  task_parallelism? task_parallelism: dynamic_remote_available_core));
 
-    // Strategy 1: predict the level 0 execution time by dynamical info.
-    // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
-    // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
-    // BY experiment the accelerate factor is about 1/2
-//    double estimated_time_compute = 1.0/(DA_local_computing_power>  task_parallelism? task_parallelism:DA_local_computing_power);
-//    double estimated_time_memory = 1.0*8.0/(17.0*(DA_remote_computing_power >  task_parallelism? task_parallelism:DA_remote_computing_power));
+    }else{
+      // Strategy 2: predict the level 0 execution time by STATIC info.
+      // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(static core number, maximum parallelism)
+      // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(static core number, maximum parallelism)
+      // The other level compaction should make room for the level 0 compactions.
+      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
+      final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
 
-    // Strategy 2: predict the level 0 execution time by STATIC info.
-    // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(static core number, maximum parallelism)
-    // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(static core number, maximum parallelism)
-    // The other level compaction should make room for the level 0 compactions.
-    double estimated_time_compute = 1.0/(rdma_mg->local_compute_core_number >  task_parallelism? task_parallelism: rdma_mg->local_compute_core_number);
-    double estimated_time_memory = 1.0*8.0/(17.0*(rdma_mg->remote_core_number_map.at(shard_target_node_id) >  task_parallelism? task_parallelism: rdma_mg->remote_core_number_map.at(shard_target_node_id)));
+    }
+
     // strategy 2: could be problematic if two compute node share the same memory node, so dynamically decide the side by available computing resource is better.
-    printf("estimate compute time %f, estimate memory time %f\n",estimated_time_compute,estimated_time_memory);
-    if (estimated_time_compute < estimated_time_memory ){
+    printf("estimate compute time %f, estimate memory time %f\n",
+           final_estimated_time_compute, final_estimated_time_memory);
+    if (final_estimated_time_compute < final_estimated_time_memory){
       return false;
     }else{
       return true;
@@ -1556,10 +1570,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
     //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
-    if (DA_remote_computing_power > 10.0){
+    if (dynamic_remote_available_core > 10.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (DA_local_computing_power > 10.0){
+    }else if (dynamic_compute_available_core > 10.0){
       // supposing the local computing power is enough.
 
       return false;
@@ -1567,7 +1581,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
       // TODO: THis could be more fine-grained.
 //      while(rdma_mg->local_cpu_percent.load()*)
-      usleep(500);
+      usleep(compact->level()*500);
       goto retry;
       //      return false;
     }
