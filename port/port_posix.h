@@ -94,7 +94,7 @@
 //#define WITHPERSISTENCE
 //#define PROCESSANALYSIS
 //#define BYTEADDRESSABLE
-#define NEARDATACOMPACTION 1 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
+#define NEARDATACOMPACTION 2 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
 #define PERFECT_THREAD_NUMBER_FOR_BGTHREADS
 #define ASYNC_READ
 //#define GETANALYSIS

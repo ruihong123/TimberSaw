@@ -1550,8 +1550,11 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // strategy 2: could be problematic if two compute node share the same memory node, so dynamically decide the side by available computing resource is better.
 
     if (final_estimated_time_compute < final_estimated_time_memory){
-      printf("estimate compute time %f, estimate memory time %f, the file size estimation is %f\n",
-             final_estimated_time_compute, final_estimated_time_memory,(compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism));
+      printf("estimate compute time %f, estimate memory time %f, the file size estimation is %f, remtoe cpu utilization is %f\n",
+             final_estimated_time_compute, final_estimated_time_memory,
+             (compact->num_input_files(0) + compact->num_input_files(0))/
+                 (static_compute_achievable_parallelism + static_memory_achievable_parallelism),
+             RemoteCPU_utilization);
       return false;
     }else{
       return true;
