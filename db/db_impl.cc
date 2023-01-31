@@ -1546,9 +1546,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     }
 
     // strategy 2: could be problematic if two compute node share the same memory node, so dynamically decide the side by available computing resource is better.
-    printf("estimate compute time %f, estimate memory time %f\n",
-           final_estimated_time_compute, final_estimated_time_memory);
+
     if (final_estimated_time_compute < final_estimated_time_memory){
+      printf("estimate compute time %f, estimate memory time %f\n",
+             final_estimated_time_compute, final_estimated_time_memory);
       return false;
     }else{
       return true;
