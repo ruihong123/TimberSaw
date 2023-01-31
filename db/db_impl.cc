@@ -329,7 +329,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
   int available_cpu_num = numa_num_task_cpus();
   while (!rdma_mg->remote_core_number_received.load());
-  env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
+  // The compute node thread number should be larger than the total core number across compute and memory node,
+  // because we want to let the remote thread pool queue have some waiting task to exhaust the remote computing power.
+  env_->SetBackgroundThreads(available_cpu_num + 2*rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
   options_.MaxSubcompaction = available_cpu_num;
 
 #else
@@ -1526,7 +1528,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
-    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 5.0){
+    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 2.5){
       // execution time is longer than a normal compaction task then use dynamic score
       // Strategy 1: predict the level 0 execution time by dynamical info.
       // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
@@ -1548,8 +1550,12 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // strategy 2: could be problematic if two compute node share the same memory node, so dynamically decide the side by available computing resource is better.
 
     if (final_estimated_time_compute < final_estimated_time_memory){
-      printf("estimate compute time %f, estimate memory time %f, the file size estimation is %f\n",
-             final_estimated_time_compute, final_estimated_time_memory,(compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism));
+      printf("estimate compute time %f, estimate memory time %f, the file size estimation is %f, "
+          "local cpu utilization is %f,remtoe cpu utilization is %f\n",
+             final_estimated_time_compute, final_estimated_time_memory,
+             (compact->num_input_files(0) + compact->num_input_files(0))/
+                 (static_compute_achievable_parallelism + static_memory_achievable_parallelism),
+             LocalCPU_utilization, RemoteCPU_utilization);
       return false;
     }else{
       return true;
@@ -1571,12 +1577,12 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
     //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
-    if (dynamic_remote_available_core > 10.0){
+    if (dynamic_remote_available_core > 5.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core > 10.0){
+    }else if (dynamic_compute_available_core > 50.0){
       // supposing the local computing power is enough.
-
+      printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
       return false;
     }else{
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
