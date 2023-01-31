@@ -532,6 +532,7 @@ class RDMA_Manager {
   std::map<uint8_t,uint16_t> remote_core_number_map;
   uint16_t local_compute_core_number;
   std::atomic<double> local_cpu_percent;
+  std::atomic<bool> local_compaction_issued = false;
 //TODO(chuqing): add for count time, need a better calculator
 long int accumulated_time = 0;
 #ifdef PROCESSANALYSIS

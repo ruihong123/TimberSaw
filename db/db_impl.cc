@@ -1555,6 +1555,8 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
              (compact->num_input_files(0) + compact->num_input_files(0))/
                  (static_compute_achievable_parallelism + static_memory_achievable_parallelism),
              LocalCPU_utilization, RemoteCPU_utilization);
+
+      rdma_mg->local_compaction_issued.store(true);
       return false;
     }else{
       return true;
@@ -1579,9 +1581,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     if (dynamic_remote_available_core > 0.5){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core/rdma_mg->local_compute_core_number > 0.2){
+    }else if (dynamic_compute_available_core/rdma_mg->local_compute_core_number > 0.2 && !rdma_mg->local_compaction_issued.load() ){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
+      rdma_mg->local_compaction_issued.store(true);
       return false;
     }else{
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
