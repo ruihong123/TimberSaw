@@ -568,7 +568,7 @@ Status TableBuilder_ComputeSide::Finish() {
     size_t msg_size;
     FinishFilterBlock(r->filter_block, &filter_block_handle, kNoCompression, msg_size);
     FlushFilter(msg_size);
-    printf("BloomFilter block size is %zu", msg_size);
+//    printf("BloomFilter block size is %zu", msg_size);
   }
 
 
