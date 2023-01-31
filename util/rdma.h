@@ -528,7 +528,7 @@ class RDMA_Manager {
 //TODO: (chuqing) if multiple servers
   std::map<uint8_t,std::atomic<double>*> server_cpu_percent;
   std::mutex remote_core_number_map_mtx;
-  std::atomic<bool> remote_core_number_received;
+  std::atomic<bool> remote_core_number_received = false;
   std::map<uint8_t,uint16_t> remote_core_number_map;
   uint16_t local_compute_core_number;
   std::atomic<double> local_cpu_percent;
