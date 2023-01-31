@@ -275,11 +275,11 @@ void TwoLevelFileIterator::InitDataBlock() {
 
 
 }  // namespace
-//Iterator* NewTwoLevelIterator(Iterator* index_iter,
-//                              BlockFunction block_function, void* arg,
-//                              const ReadOptions& options) {
-//  return new TwoLevelIterator(index_iter, block_function, arg, options);
-//}
+Iterator* NewTwoLevelIterator(Iterator* index_iter,
+                              BlockFunction block_function, void* arg,
+                              const ReadOptions& options) {
+  return new TwoLevelIterator(index_iter, block_function, arg, options);
+}
 Iterator* NewTwoLevelFileIterator(Version::LevelFileNumIterator* index_iter,
                                   FileFunction file_function, void* arg,
                               const ReadOptions& options) {

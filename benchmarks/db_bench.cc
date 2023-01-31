@@ -1216,7 +1216,11 @@ class Benchmark {
     int i = 0;
     int range_length = 1000*1000;
     char value_buff[FLAGS_value_size];
+#ifdef BYTEADDRESSABLE
     Iterator* iter = db_->NewSEQIterator(options);
+#else
+    Iterator* iter = db_->NewIterator(options);
+#endif
     while(i < reads_){
       //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
       int k_start = thread->rand.Next()%(FLAGS_num*FLAGS_threads - range_length); //do not go out of bound
