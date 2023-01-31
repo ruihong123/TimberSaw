@@ -1588,7 +1588,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
       // TODO: THis could be more fine-grained.
 //      while(rdma_mg->local_cpu_percent.load()*)
-      printf("remote computing power is smaller than 0.05, and compute node CPU utilization is less than 1 core");
+//      printf("remote computing power is smaller than 0.05, and compute node CPU utilization is less than 1 core");
       usleep(compact->level()*500);
       goto retry;
       //      return false;
