@@ -1579,7 +1579,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     if (dynamic_remote_available_core > 5.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core > 5.0){
+    }else if (dynamic_compute_available_core > 100.0){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
       return false;
