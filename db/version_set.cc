@@ -318,79 +318,8 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
   }
 }
 
-//TODO(chuqing): rename for another call in ReadRecordSample
-void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg,
-                          bool (*ioissue)(void*, int, std::shared_ptr<RemoteMemTableMetaData>), 
-                          bool (*callback)(void*, int, std::shared_ptr<RemoteMemTableMetaData>)) {
-  const Comparator* ucmp = vset_->icmp_.user_comparator();
 
-  // Search level-0 in order from newest to oldest.
-  std::vector<std::shared_ptr<RemoteMemTableMetaData>> tmp;
-  tmp.reserve(levels_[0].size());
-  for (uint32_t i = 0; i < levels_[0].size(); i++) {
-    std::shared_ptr<RemoteMemTableMetaData> f = levels_[0][i];
-    if (ucmp->Compare(user_key, f->smallest.user_key()) >= 0 &&
-        ucmp->Compare(user_key, f->largest.user_key()) <= 0) {
-      tmp.push_back(f);
-    }
-  }
-  if (!tmp.empty()) {
-    std::sort(tmp.begin(), tmp.end(), NewestFirst);
-    for (uint32_t i = 0; i < tmp.size(); i++) {
-      if (!(*ioissue)(arg, 0, tmp[i])) {
-        return;
-      }
-    }
-  }
-
-  // Search other levels.
-  for (int level = 1; level < config::kNumLevels; level++) {
-    size_t num_files = levels_[level].size();
-    if (num_files == 0) continue;
-
-    // Binary search to find earliest index whose largest key >= internal_key.
-    uint32_t index = FindFile(vset_->icmp_, levels_[level], internal_key);
-    if (index < num_files) {
-      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][index];
-      if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
-        // All of "f" is past any data for user_key
-      } else {
-//        async();
-//
-//        IF(RMDA ->TRY_POLL()){
-//
-//        }
-        if (!(*ioissue)(arg, level, f)) {
-//          printf("Found in the SSTables\n");
-          return;
-        }
-      }
-    }
-  }
-}
-
-
-Status Version::Get(const ReadOptions& options, const LookupKey& k,
-                    std::string* value, GetStats* stats) {
-#ifdef PROCESSANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
-  stats->seek_file = nullptr;
-  stats->seek_file_level = -1;
-
-  struct State {
-    Saver saver;
-    GetStats* stats;
-    const ReadOptions* options;
-    Slice ikey;
-    std::shared_ptr<RemoteMemTableMetaData> last_file_read;
-    int last_file_read_level;
-
-    VersionSet* vset;
-    Status s;
-    bool found;
-
-    static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
+bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
       State* state = reinterpret_cast<State*>(arg);
 
       if (state->stats->seek_file == nullptr &&
@@ -428,7 +357,125 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
       // "control reaches end of non-void function".
       return false;
     }
-  };
+
+//TODO(chuqing): rename for another call in ReadRecordSample
+void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg,
+                          bool (*ioissue)(void*, int, std::shared_ptr<RemoteMemTableMetaData>), 
+                          bool (*callback)(void*, int, std::shared_ptr<RemoteMemTableMetaData>)) {
+  const Comparator* ucmp = vset_->icmp_.user_comparator();
+
+  // Search level-0 in order from newest to oldest.
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> tmp;
+  tmp.reserve(levels_[0].size());
+  for (uint32_t i = 0; i < levels_[0].size(); i++) {
+    std::shared_ptr<RemoteMemTableMetaData> f = levels_[0][i];
+    if (ucmp->Compare(user_key, f->smallest.user_key()) >= 0 &&
+        ucmp->Compare(user_key, f->largest.user_key()) <= 0) {
+      tmp.push_back(f);
+    }
+  }
+  if (!tmp.empty()) {
+    std::sort(tmp.begin(), tmp.end(), NewestFirst);
+    for (uint32_t i = 0; i < tmp.size(); i++) {
+      if (!(*ioissue)(arg, 0, tmp[i])) {
+        return;
+      }
+    }
+  }
+
+  // Search other levels.
+  for (int level = 1; level < config::kNumLevels; level++) {
+    size_t num_files = levels_[level].size();
+    if (num_files == 0) continue;
+
+    // Binary search to find earliest index whose largest key >= internal_key.
+    uint32_t index = FindFile(vset_->icmp_, levels_[level], internal_key);
+    if (index < num_files) {
+      // auto start = std::chrono::high_resolution_clock::now();
+      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][index];
+      if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
+        // All of "f" is past any data for user_key
+      } else {
+        //Notes: the judgment above takes almost no time
+//        async();
+//
+//        IF(RMDA ->TRY_POLL()){
+//
+//        }
+        // auto mid = std::chrono::high_resolution_clock::now();
+        if (!(*ioissue)(arg, level, f)) {
+//          printf("Found in the SSTables\n");
+          // auto end = std::chrono::high_resolution_clock::now();
+          // auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
+          // auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - mid);
+          // printf("[1] %ld, [2] %ld\n", duration1.count(),duration2.count());
+          return;
+        }
+      }
+    }
+  }
+}
+
+
+Status Version::Get(const ReadOptions& options, const LookupKey& k,
+                    std::string* value, GetStats* stats) {
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
+  stats->seek_file = nullptr;
+  stats->seek_file_level = -1;
+
+  // struct State {
+  //   Saver saver;
+  //   GetStats* stats;
+  //   const ReadOptions* options;
+  //   Slice ikey;
+  //   std::shared_ptr<RemoteMemTableMetaData> last_file_read;
+  //   int last_file_read_level;
+
+  //   VersionSet* vset;
+  //   Status s;
+  //   bool found;
+
+  //   static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
+  //     State* state = reinterpret_cast<State*>(arg);
+
+  //     if (state->stats->seek_file == nullptr &&
+  //         state->last_file_read != nullptr) {
+  //       // We have had more than one seek for this read.  Charge the 1st file.
+  //       state->stats->seek_file = state->last_file_read;
+  //       state->stats->seek_file_level = state->last_file_read_level;
+  //     }
+
+  //     state->last_file_read = f;
+  //     state->last_file_read_level = level;
+
+  //     state->s = state->vset->table_cache_->Get(*state->options, f,
+  //         state->ikey, &state->saver, SaveValue);
+  //     if (!state->s.ok()) {
+  //       state->found = true;
+  //       return false;
+  //     }
+  //     switch (state->saver.state) {
+  //       case kNotFound:
+  //         return true;  // Keep searching in other files
+  //       case kFound:
+  //         state->found = true;
+  //         return false;
+  //       case kDeleted:
+  //         return false;
+  //       case kCorrupt:
+  //         state->s =
+  //             Status::Corruption("corrupted key for ", state->saver.user_key);
+  //         state->found = true;
+  //         return false;
+  //     }
+
+  //     // Not reached. Added to avoid false compilation warnings of
+  //     // "control reaches end of non-void function".
+  //     return false;
+  //   }
+  // };
 
   State state;
   state.found = false;
@@ -448,7 +495,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
 #ifndef ASYNC_READ
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
 #else
-  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state, &State::Match, &State::Match);
+  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state, &MatchAsync, &MatchAsync);
 #endif
 
 #ifdef PROCESSANALYSIS
