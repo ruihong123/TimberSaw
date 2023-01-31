@@ -267,6 +267,7 @@ static bool NewestFirst(std::shared_ptr<RemoteMemTableMetaData> a, std::shared_p
   return a->number > b->number;
 }
 
+
 void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
                                  bool (*func)(void*, int,
                                               std::shared_ptr<RemoteMemTableMetaData>)) {
@@ -316,6 +317,58 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
     }
   }
 }
+
+//TODO(chuqing): rename for another call in ReadRecordSample
+void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg,
+                          bool (*ioissue)(void*, int, std::shared_ptr<RemoteMemTableMetaData>), 
+                          bool (*callback)(void*, int, std::shared_ptr<RemoteMemTableMetaData>)) {
+  const Comparator* ucmp = vset_->icmp_.user_comparator();
+
+  // Search level-0 in order from newest to oldest.
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> tmp;
+  tmp.reserve(levels_[0].size());
+  for (uint32_t i = 0; i < levels_[0].size(); i++) {
+    std::shared_ptr<RemoteMemTableMetaData> f = levels_[0][i];
+    if (ucmp->Compare(user_key, f->smallest.user_key()) >= 0 &&
+        ucmp->Compare(user_key, f->largest.user_key()) <= 0) {
+      tmp.push_back(f);
+    }
+  }
+  if (!tmp.empty()) {
+    std::sort(tmp.begin(), tmp.end(), NewestFirst);
+    for (uint32_t i = 0; i < tmp.size(); i++) {
+      if (!(*ioissue)(arg, 0, tmp[i])) {
+        return;
+      }
+    }
+  }
+
+  // Search other levels.
+  for (int level = 1; level < config::kNumLevels; level++) {
+    size_t num_files = levels_[level].size();
+    if (num_files == 0) continue;
+
+    // Binary search to find earliest index whose largest key >= internal_key.
+    uint32_t index = FindFile(vset_->icmp_, levels_[level], internal_key);
+    if (index < num_files) {
+      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][index];
+      if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
+        // All of "f" is past any data for user_key
+      } else {
+//        async();
+//
+//        IF(RMDA ->TRY_POLL()){
+//
+//        }
+        if (!(*ioissue)(arg, level, f)) {
+//          printf("Found in the SSTables\n");
+          return;
+        }
+      }
+    }
+  }
+}
+
 
 Status Version::Get(const ReadOptions& options, const LookupKey& k,
                     std::string* value, GetStats* stats) {
@@ -392,7 +445,12 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
   state.saver.user_key = k.user_key();
   state.saver.value = value;
 
+#ifndef ASYNC_READ
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &State::Match);
+#else
+  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state, &State::Match, &State::Match);
+#endif
+
 #ifdef PROCESSANALYSIS
   if (!state.found){
     auto stop = std::chrono::high_resolution_clock::now();
