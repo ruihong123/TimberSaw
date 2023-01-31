@@ -1786,12 +1786,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
           send_pointer->command = cpu_utilization_heartbeat;
           send_pointer->content.cpu_info.cpu_util = cpu_util_percentage;
           send_pointer->content.cpu_info.core_number = rdma_mg->rpter.numa_bind_core_num;
-#ifndef NDEBUG
+//#ifndef NDEBUG
           if (print_counter++ == 200){
             printf("Current cpu utilization is %f\n", cpu_util_percentage);
             print_counter = 0;
           }
-#endif
+//#endif
 
 
           rdma_mg->post_send<RDMA_Request>(&send_mr, iter.first, std::string("main"));
