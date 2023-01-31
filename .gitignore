@@ -14,5 +14,4 @@ out/
 
 # some useless things 
 demo*
-# unsafe, to avoid temporary conflicts on different machines 
-util/rdma.h 
+
