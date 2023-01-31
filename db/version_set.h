@@ -133,6 +133,7 @@ class Version {
 
     // static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   };
+  static bool MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   static bool MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
 //  std::shared_ptr<Subversion> subversion;
 
@@ -732,96 +733,6 @@ struct CompactionStats {
   int64_t bytes_read;
   int64_t bytes_written;
 };
-
-// struct State {
-//   Saver saver;
-//   Version::GetStats* stats;
-//   const ReadOptions* options;
-//   Slice ikey;
-//   std::shared_ptr<RemoteMemTableMetaData> last_file_read;
-//   int last_file_read_level;
-
-//   VersionSet* vset;
-//   Status s;
-//   bool found;
-  
-//   static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
-//     State* state = reinterpret_cast<State*>(arg);
-
-//     if (state->stats->seek_file == nullptr &&
-//         state->last_file_read != nullptr) {
-//       // We have had more than one seek for this read.  Charge the 1st file.
-//       state->stats->seek_file = state->last_file_read;
-//       state->stats->seek_file_level = state->last_file_read_level;
-//     }
-
-//     state->last_file_read = f;
-//     state->last_file_read_level = level;
-//     state->s = state->vset->table_cache_->Get(*state->options, f,
-//         state->ikey, &state->saver, SaveValue);
-
-//     if (!state->s.ok()) {
-//       state->found = true;
-//       return false;
-//     }
-//     switch (state->saver.state) {
-//       case kNotFound:
-//         return true;  // Keep searching in other files
-//       case kFound:
-//         state->found = true;
-//         return false;
-//       case kDeleted:
-//         return false;
-//       case kCorrupt:
-//         state->s =
-//             Status::Corruption("corrupted key for ", state->saver.user_key);
-//         state->found = true;
-//         return false;
-//     }
-//       // Not reached. Added to avoid false compilation warnings of
-//       // "control reaches end of non-void function".
-//     return false;
-//   }
-// };  // struct State
-// bool Version::State::Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
-//       State* state = reinterpret_cast<State*>(arg);
-
-//       if (state->stats->seek_file == nullptr &&
-//           state->last_file_read != nullptr) {
-//         // We have had more than one seek for this read.  Charge the 1st file.
-//         state->stats->seek_file = state->last_file_read;
-//         state->stats->seek_file_level = state->last_file_read_level;
-//       }
-
-//       state->last_file_read = f;
-//       state->last_file_read_level = level;
-
-//       state->s = state->vset->table_cache_->Get(*state->options, f,
-//           state->ikey, &state->saver, SaveValue);
-//       if (!state->s.ok()) {
-//         state->found = true;
-//         return false;
-//       }
-//       switch (state->saver.state) {
-//         case kNotFound:
-//           return true;  // Keep searching in other files
-//         case kFound:
-//           state->found = true;
-//           return false;
-//         case kDeleted:
-//           return false;
-//         case kCorrupt:
-//           state->s =
-//               Status::Corruption("corrupted key for ", state->saver.user_key);
-//           state->found = true;
-//           return false;
-//       }
-
-//       // Not reached. Added to avoid false compilation warnings of
-//       // "control reaches end of non-void function".
-//       return false;
-//     }
-
 
 
 }  // namespace TimberSaw
