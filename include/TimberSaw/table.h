@@ -24,6 +24,7 @@ class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
 
+enum Table_Type{block_based, byte_addressable};
 // A Table is a sorted map from strings to strings.  Tables are
 // immutable and persistent.  A Table may be safely accessed from
 // multiple threads without external synchronization.
@@ -50,6 +51,7 @@ class TimberSaw_EXPORT Table {
 
     BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
     Block* index_block;
+    Table_Type table_type = byte_addressable;
 #ifdef BYTEADDRESSABLE
 //    Iterator* index_iter;
 //    ThreadLocalPtr* mr_addr;
@@ -99,6 +101,7 @@ class TimberSaw_EXPORT Table {
 //  struct Rep;
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
+  static Iterator* BlockReader_async(void*, const ReadOptions&, const Slice&);
   explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call

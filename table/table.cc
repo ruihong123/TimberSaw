@@ -115,6 +115,7 @@ static void ReleaseBlock(void* arg, void* h) {
   cache->Release(handle);
 }
 
+
 // Convert an index iterator value (i.e., an encoded BlockHandle)
 // into an iterator over the contents of the corresponding block.
 // Note the block reader no does not support muliti compute nodes.
@@ -201,6 +202,92 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   }
   iter->SeekToFirst();
 //  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
+  return iter;
+}
+
+Iterator* Table::BlockReader_async(void* arg, const ReadOptions& options,
+                             const Slice& index_value) {
+  Table* table = reinterpret_cast<Table*>(arg);
+  Cache* block_cache = table->rep->options.block_cache;
+  Block* block = nullptr;
+  Cache::Handle* cache_handle = nullptr;
+
+  BlockHandle handle;
+  Slice input = index_value;
+  Status s = handle.DecodeFrom(&input);
+  // We intentionally allow extra stuff in index_value so that we
+  // can add more features in the future.
+
+  if (s.ok()) {
+    BlockContents contents;
+    if (block_cache != nullptr) {
+      //      printf("There is a table_cache!!\n");
+      char cache_key_buffer[16];
+      EncodeFixed64(cache_key_buffer, table->rep->cache_id);
+      EncodeFixed64(cache_key_buffer + 8, handle.offset());
+      Slice key(cache_key_buffer, sizeof(cache_key_buffer));
+#ifdef PROCESSANALYSIS
+      auto start = std::chrono::high_resolution_clock::now();
+#endif
+      cache_handle = block_cache->Lookup(key);
+#ifdef PROCESSANALYSIS
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+#endif
+      if (cache_handle != nullptr) {
+        block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
+//        printf("Cache hit\n");
+#ifdef PROCESSANALYSIS
+        TableCache::cache_hit.fetch_add(1);
+        TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
+#endif
+      } else {
+#ifdef PROCESSANALYSIS
+        TableCache::cache_miss.fetch_add(1);
+        //        if(TableCache::cache_miss < TableCache::not_filtered){
+        //          printf("warning\n");
+        //        };
+        start = std::chrono::high_resolution_clock::now();
+
+#endif
+        s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+#ifdef PROCESSANALYSIS
+        stop = std::chrono::high_resolution_clock::now();
+        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
+#endif
+
+        if (s.ok()) {
+          block = new Block(contents, DataBlock);
+          if (options.fill_cache) {
+            cache_handle = block_cache->Insert(key, block, block->size(),
+                                               &DeleteCachedBlock);
+          }
+        }
+      }
+    } else {
+      //      printf("NO table_cache found!!\n");
+      s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      if (s.ok()) {
+        block = new Block(contents, DataBlock);
+      }
+    }
+  }
+
+  Iterator* iter;
+  if (block != nullptr) {
+    iter = block->NewIterator(table->rep->options.comparator);
+    if (cache_handle == nullptr) {
+      iter->RegisterCleanup(&DeleteBlock, block, nullptr);
+    } else {
+      // Realease the table_cache handle when we delete the block iterator
+      iter->RegisterCleanup(&ReleaseBlock, block_cache, cache_handle);
+    }
+  } else {
+    iter = NewErrorIterator(s);
+  }
+  iter->SeekToFirst();
+  //  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
   return iter;
 }
 // Convert an index iterator value (i.e., an encoded BlockHandle)
@@ -374,6 +461,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       Slice key;
       Slice value;
       auto table_meta = rep->remote_table.lock();
+
       s = ReadKVPair(&table_meta->remote_data_mrs, options,
                      bhandle, &KV, table_meta->shard_target_node_id);
 

@@ -303,6 +303,11 @@ void Version::ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
       if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
         // All of "f" is past any data for user_key
       } else {
+//        async();
+//
+//        IF(RMDA ->TRY_POLL()){
+//
+//        }
         if (!(*func)(arg, level, f)) {
 //          printf("Found in the SSTables\n");
           return;

@@ -278,9 +278,13 @@ class Version {
   // false, makes no more calls.
   //
   // REQUIRES: user portion of internal_key == user_key.
+#ifndef ASYNC_READ
   void ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
                           bool (*func)(void*, int, std::shared_ptr<RemoteMemTableMetaData>));
-
+#else
+  void ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
+                          bool (*ioissue)(void*, int, std::shared_ptr<RemoteMemTableMetaData>), bool (*callback)(void*, int, std::shared_ptr<RemoteMemTableMetaData>));
+#endif
   VersionSet* vset_;  // VersionSet to which this Version belongs
   Version* next_;     // Next version in linked list
   Version* prev_;     // Previous version in linked list

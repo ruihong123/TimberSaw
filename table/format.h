@@ -96,6 +96,10 @@ bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 // return non-OK.  On success fill *result and return OK.
 Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                  const BlockHandle& handle, BlockContents* result);
+Status ReadDataBlock_async(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
+                     const BlockHandle& handle, BlockContents* result);
+Status ReadDataBlock_callback(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
+                           const BlockHandle& handle, BlockContents* result);
 Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                   const ReadOptions& options, const BlockHandle& handle,
                   Slice* result, uint8_t target_node_id);
