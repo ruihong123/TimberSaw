@@ -236,9 +236,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
     int available_cpu_num = numa_num_task_cpus();
     while (!rdma_mg->remote_core_number_received.load());
-    // The compute node thread number should be larger than the total core number across compute and memory node,
-    // because we want to let the remote thread pool queue have some waiting task to exhaust the remote computing power.
-    env_->SetBackgroundThreads(available_cpu_num + 2*rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
+    env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
     options_.MaxSubcompaction = available_cpu_num;
 
 #else
@@ -332,9 +330,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
   int available_cpu_num = numa_num_task_cpus();
   while (!rdma_mg->remote_core_number_received.load());
-  // The compute node thread number should be larger than the total core number across compute and memory node,
-  // because we want to let the remote thread pool queue have some waiting task to exhaust the remote computing power.
-  env_->SetBackgroundThreads(available_cpu_num + 2*rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
+  env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
   options_.MaxSubcompaction = available_cpu_num;
 
 #else
