@@ -1528,7 +1528,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
-    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 5.0){
+    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 2.5){
       // execution time is longer than a normal compaction task then use dynamic score
       // Strategy 1: predict the level 0 execution time by dynamical info.
       // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
@@ -1550,11 +1550,12 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // strategy 2: could be problematic if two compute node share the same memory node, so dynamically decide the side by available computing resource is better.
 
     if (final_estimated_time_compute < final_estimated_time_memory){
-      printf("estimate compute time %f, estimate memory time %f, the file size estimation is %f, remtoe cpu utilization is %f\n",
+      printf("estimate compute time %f, estimate memory time %f, the file size estimation is %f, "
+          "local cpu utilization is %f,remtoe cpu utilization is %f\n",
              final_estimated_time_compute, final_estimated_time_memory,
              (compact->num_input_files(0) + compact->num_input_files(0))/
                  (static_compute_achievable_parallelism + static_memory_achievable_parallelism),
-             RemoteCPU_utilization);
+             LocalCPU_utilization, RemoteCPU_utilization);
       return false;
     }else{
       return true;
@@ -1579,7 +1580,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     if (dynamic_remote_available_core > 5.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core > 100.0){
+    }else if (dynamic_compute_available_core > 50.0){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
       return false;
