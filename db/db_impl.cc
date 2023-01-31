@@ -1577,10 +1577,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
     //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
-    if (dynamic_remote_available_core > 5.0){
+    if (dynamic_remote_available_core > 50.0){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core > 50.0){
+    }else if (dynamic_compute_available_core > 100.0){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
       return false;
@@ -1588,6 +1588,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
       // TODO: THis could be more fine-grained.
 //      while(rdma_mg->local_cpu_percent.load()*)
+      printf("remote computing power is smaller than 0.05, and compute node CPU utilization is less than 1 core");
       usleep(compact->level()*500);
       goto retry;
       //      return false;
