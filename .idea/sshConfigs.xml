@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SshConfigs">
+    <configs>
+      <sshConfig authType="PASSWORD" host="bigdata1.cs.purdue.edu" id="e78da766-7d4f-4dae-93f9-41b477fb321f" port="22" nameFormat="DESCRIPTIVE" username="wang4996" useOpenSSHConfig="true" />
+      <sshConfig authType="PASSWORD" host="bigdata2.cs.purdue.edu" id="d33d9d82-6064-41ea-8515-9cb19f8968ed" port="22" nameFormat="DESCRIPTIVE" username="wang4996" useOpenSSHConfig="true" />
+    </configs>
+  </component>
+</project>

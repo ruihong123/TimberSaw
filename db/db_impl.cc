@@ -235,6 +235,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
     env_->SetBackgroundThreads(options_.max_background_flushes,ThreadPoolType::FlushThreadPool);
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
     int available_cpu_num = numa_num_task_cpus();
+    while (!rdma_mg->remote_core_number_received.load());
     env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
     options_.MaxSubcompaction = available_cpu_num;
 
@@ -329,9 +330,7 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname,
 #ifdef PERFECT_THREAD_NUMBER_FOR_BGTHREADS
   int available_cpu_num = numa_num_task_cpus();
   while (!rdma_mg->remote_core_number_received.load());
-  // The compute node thread number should be larger than the total core number across compute and memory node,
-  // because we want to let the remote thread pool queue have some waiting task to exhaust the remote computing power.
-  env_->SetBackgroundThreads(available_cpu_num + 2*rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
+  env_->SetBackgroundThreads(available_cpu_num + rdma_mg->remote_core_number_map.at(shard_target_node_id),ThreadPoolType::CompactionThreadPool);
   options_.MaxSubcompaction = available_cpu_num;
 
 #else
@@ -1212,8 +1211,12 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
   if (versions_->NeedsCompaction()) {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
-    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
+    BGThreadMetadata* thread_pool_args1 = new BGThreadMetadata{.db = this, .func_args = function_args};
+    BGThreadMetadata* thread_pool_args2 = new BGThreadMetadata{.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args1), ThreadPoolType::CompactionThreadPool);
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args2), ThreadPoolType::CompactionThreadPool);
+
+
     DEBUG("Schedule a Compaction !\n");
   }
 }
@@ -1528,7 +1531,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
-    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 2.5){
+    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 2.0){
       // execution time is longer than a normal compaction task then use dynamic score
       // Strategy 1: predict the level 0 execution time by dynamical info.
       // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
@@ -1556,6 +1559,8 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
              (compact->num_input_files(0) + compact->num_input_files(0))/
                  (static_compute_achievable_parallelism + static_memory_achievable_parallelism),
              LocalCPU_utilization, RemoteCPU_utilization);
+
+      rdma_mg->local_compaction_issued.store(true);
       return false;
     }else{
       return true;
@@ -1577,17 +1582,19 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
     //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
-    if (dynamic_remote_available_core > 5.0){
+    if (dynamic_remote_available_core > 0.5){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core > 50.0){
+    }else if (dynamic_compute_available_core/rdma_mg->local_compute_core_number > 0.2 && !rdma_mg->local_compaction_issued.load() ){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
+      rdma_mg->local_compaction_issued.store(true);
       return false;
     }else{
       //if local computing power is not enough sleep for a while to avoid context switching overhead.
       // TODO: THis could be more fine-grained.
 //      while(rdma_mg->local_cpu_percent.load()*)
+//      printf("remote computing power is smaller than 0.05, and compute node CPU utilization is less than 1 core");
       usleep(compact->level()*500);
       goto retry;
       //      return false;
@@ -1763,6 +1770,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       manual_compaction_ = nullptr;
     }
   }
+
   MaybeScheduleFlushOrCompaction();
 
 }

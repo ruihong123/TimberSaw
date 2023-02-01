@@ -1053,6 +1053,7 @@ void RDMA_Manager::Client_Set_Up_Resources() {
     while (1){
       std::this_thread::sleep_for(std::chrono::milliseconds(CPU_UTILIZATION_CACULATE_INTERVAL));
       local_cpu_percent.store(rpter.getCurrentValue());
+      local_compaction_issued.store(false);
     }
 
   });
