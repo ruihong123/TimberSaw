@@ -146,6 +146,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
   start1 = std::chrono::high_resolution_clock::now();
 #endif
 //    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+  //Need to fix here
     contents = rdma_mg->Get_local_read_mr();
 #ifdef GETANALYSIS
   stop1 = std::chrono::high_resolution_clock::now();
