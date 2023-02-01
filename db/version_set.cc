@@ -357,7 +357,8 @@ bool Version::MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMe
   return false;
 }
 
-bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
+bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f,
+                          std::shared_future<void> any_future) {
   State* state = reinterpret_cast<State*>(arg);
 
   if (state->stats->seek_file == nullptr &&
@@ -422,6 +423,11 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   }
 
   // Search other levels.
+  //TODO(chuqing): first try launch all
+  std::promise<void> anylevel_promise;
+  std::shared_future<void> anylevel_future(anylevel_promise.get_future());
+  std::map<int, std::future<bool> > future_map;
+  std::vector<std::future<bool>*> future_vec;  
   for (int level = 1; level < config::kNumLevels; level++) {
     size_t num_files = levels_[level].size();
     if (num_files == 0) continue;
@@ -434,24 +440,35 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
       if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
         // All of "f" is past any data for user_key
       } else {
-        //Notes: the judgment above takes almost no time
-//        async();
-//
 //        IF(RMDA ->TRY_POLL()){
 //
 //        }
+        auto future = std::async(std::launch::async, MatchAsync, arg, level, f, anylevel_future);
+        // future_map.insert(std::pair<int, std::future<bool> >{level, future});
+        future_vec.insert(future_vec.end(), &future);
         // auto mid = std::chrono::high_resolution_clock::now();
-        if (!(*ioissue)(arg, level, f)) {
-//          printf("Found in the SSTables\n");
-          // auto end = std::chrono::high_resolution_clock::now();
-          // auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
-          // auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - mid);
-          // printf("[1] %ld, [2] %ld\n", duration1.count(),duration2.count());
-          return;
-        }
+//         if (!(*ioissue)(arg, level, f)) {
+// //          printf("Found in the SSTables\n");
+//           // auto end = std::chrono::high_resolution_clock::now();
+//           // auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
+//           // auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - mid);
+//           // printf("[1] %ld, [2] %ld\n", duration1.count(),duration2.count());
+//           return;
+//         }
       }
     }
   }
+  // auto map_iter = future_map.begin();
+  // while(map_iter != )
+  // for(auto iter = future_map.begin(); iter != future_map.end(); iter++){
+  //   if(!iter->second.get())
+  //     return;
+  // }
+  for(auto iter = future_vec.begin(); iter != future_vec.end(); iter++){
+    if(!(*iter)->get())
+      return;
+  }
+
 }
 
 

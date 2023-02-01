@@ -22,6 +22,9 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <future>
+#include <unistd.h>
+#include <thread>
 
 #include "port/port.h"
 #include "port/thread_annotations.h"
@@ -134,7 +137,7 @@ class Version {
     // static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   };
   static bool MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
-  static bool MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
+  static bool MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f, std::shared_future<void> any_future);
 //  std::shared_ptr<Subversion> subversion;
 
   // Append to *iters a sequence of iterators that will
