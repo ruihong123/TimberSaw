@@ -1643,6 +1643,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       }
 
     }
+    MaybeScheduleFlushOrCompaction();
 //    write_stall_mutex_.AssertNotHeld();
 
     Status status;
@@ -1766,7 +1767,7 @@ void DBImpl::BackgroundCompaction(void* p) {
       manual_compaction_ = nullptr;
     }
   }
-  MaybeScheduleFlushOrCompaction();
+
 
 }
 #endif
