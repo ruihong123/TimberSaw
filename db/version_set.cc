@@ -398,9 +398,7 @@ bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMet
 }
 
 //TODO(chuqing): rename for another call in ReadRecordSample
-void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg,
-                          bool (*ioissue)(void*, int, std::shared_ptr<RemoteMemTableMetaData>), 
-                          bool (*callback)(void*, int, std::shared_ptr<RemoteMemTableMetaData>)) {
+void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg) {
   const Comparator* ucmp = vset_->icmp_.user_comparator();
 
   // Search level-0 in order from newest to oldest.
@@ -416,7 +414,7 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   if (!tmp.empty()) {
     std::sort(tmp.begin(), tmp.end(), NewestFirst);
     for (uint32_t i = 0; i < tmp.size(); i++) {
-      if (!(*ioissue)(arg, 0, tmp[i])) {
+      if (!MatchNormal(arg, 0, tmp[i])) {
         return;
       }
     }
@@ -498,7 +496,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
 #ifndef ASYNC_READ
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
 #else
-  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state, &MatchAsync, &MatchAsync);
+  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
 #endif
 
 #ifdef PROCESSANALYSIS

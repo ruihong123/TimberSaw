@@ -303,9 +303,7 @@ class Version {
   void ForEachOverlapping(Slice user_key, Slice internal_key, void* arg,
                           bool (*func)(void*, int, std::shared_ptr<RemoteMemTableMetaData>));
 
-  void ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg,
-                          bool (*ioissue)(void*, int, std::shared_ptr<RemoteMemTableMetaData>), 
-                          bool (*callback)(void*, int, std::shared_ptr<RemoteMemTableMetaData>));
+  void ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg);
   
   VersionSet* vset_;  // VersionSet to which this Version belongs
   Version* next_;     // Next version in linked list
