@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="WebServers">
+    <option name="servers">
+      <webServer id="288755a7-9ba5-453f-8d0e-1d7b81b7e689" name="bigdata1" url="http://bigdata1.cs.purdue.edu">
+        <fileTransfer accessType="SFTP" host="bigdata1.cs.purdue.edu" port="22" sshConfigId="e78da766-7d4f-4dae-93f9-41b477fb321f" sshConfig="wang4996@bigdata1.cs.purdue.edu:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+      <webServer id="f2cbdd34-f615-4fe8-9e8e-ecc4552a4968" name="bigdata2" url="http://128.10.4.25">
+        <fileTransfer accessType="SFTP" host="bigdata2.cs.purdue.edu" port="22" sshConfigId="d33d9d82-6064-41ea-8515-9cb19f8968ed" sshConfig="wang4996@bigdata2.cs.purdue.edu:22 password">
+          <advancedOptions>
+            <advancedOptions dataProtectionLevel="Private" keepAliveTimeout="0" passiveMode="true" shareSSLContext="true" />
+          </advancedOptions>
+        </fileTransfer>
+      </webServer>
+    </option>
+  </component>
+</project>

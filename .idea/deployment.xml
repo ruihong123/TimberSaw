@@ -1,22 +1,28 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="Bigdata2" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="Always" serverName="bigdata1" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
-      <paths name="Bigdata1">
+      <paths name="bigdata1">
         <serverdata>
           <mappings>
-            <mapping deploy="/scratch1/wang4996/remote_debug_compute" local="$PROJECT_DIR$" web="/" />
-          </mappings>
-        </serverdata>
-      </paths>
-      <paths name="Bigdata2">
-        <serverdata>
-          <mappings>
-            <mapping deploy="/scratch1/wang4996/remote_debug_memory" local="$PROJECT_DIR$" web="/" />
+            <mapping deploy="/scratch1/wang4996/TimberSaw" local="$PROJECT_DIR$" web="/" />
+            <mapping local="" />
           </mappings>
           <excludedPaths>
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
             <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+          </excludedPaths>
+        </serverdata>
+      </paths>
+      <paths name="bigdata2">
+        <serverdata>
+          <mappings>
+            <mapping deploy="/scratch1/wang4996/TimberSaw" local="$PROJECT_DIR$" web="/" />
+            <mapping local="" />
+          </mappings>
+          <excludedPaths>
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
+            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
           </excludedPaths>
         </serverdata>
       </paths>
