@@ -1211,8 +1211,12 @@ void DBImpl::MaybeScheduleFlushOrCompaction() {
   if (versions_->NeedsCompaction()) {
 //    background_compaction_scheduled_ = true;
     void* function_args = nullptr;
-    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = function_args};
-    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args), ThreadPoolType::CompactionThreadPool);
+    BGThreadMetadata* thread_pool_args1 = new BGThreadMetadata{.db = this, .func_args = function_args};
+    BGThreadMetadata* thread_pool_args2 = new BGThreadMetadata{.db = this, .func_args = function_args};
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args1), ThreadPoolType::CompactionThreadPool);
+    env_->Schedule(BGWork_Compaction, static_cast<void*>(thread_pool_args2), ThreadPoolType::CompactionThreadPool);
+
+
     DEBUG("Schedule a Compaction !\n");
   }
 }
@@ -1643,7 +1647,6 @@ void DBImpl::BackgroundCompaction(void* p) {
       }
 
     }
-    MaybeScheduleFlushOrCompaction();
 //    write_stall_mutex_.AssertNotHeld();
 
     Status status;
@@ -1768,6 +1771,7 @@ void DBImpl::BackgroundCompaction(void* p) {
     }
   }
 
+  MaybeScheduleFlushOrCompaction();
 
 }
 #endif
