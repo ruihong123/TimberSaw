@@ -100,6 +100,8 @@ int FindFile(const InternalKeyComparator& icmp,
     uint32_t mid = (left + right) / 2;
     const std::shared_ptr<RemoteMemTableMetaData> f = files[mid];
     assert(f->largest.user_key().size() > 0);
+    //the code below will find the file whose largest key is larger or equals than the
+    // searched internal key.
     if (icmp.InternalKeyComparator::Compare(f->largest.Encode(), key) < 0) {
       // Key at "mid.largest" is < "target".  Therefore all
       // files at or before "mid" are uninteresting.
@@ -111,7 +113,7 @@ int FindFile(const InternalKeyComparator& icmp,
     }
   }
 
-  // assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
+//  assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
   return static_cast<int>(right);
 }
 

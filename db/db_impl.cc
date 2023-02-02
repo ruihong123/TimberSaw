@@ -1545,6 +1545,10 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
       // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(static core number, maximum parallelism)
       // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(static core number, maximum parallelism)
       // The other level compaction should make room for the level 0 compactions.
+
+      // We may still use the dynamic available core number here because, the frontend reader and writer can eat up the CPU resources,
+      // static core numbers is too optimistic.
+
       final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
       final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
 
@@ -1948,6 +1952,10 @@ Status DBImpl::FinishCompactionOutputFile(CompactionState* compact,
   compact->total_bytes += current_bytes;
   delete compact->builder;
   compact->builder = nullptr;
+  assert(*compact->current_output()->largest.user_key().data() == 0);
+
+//  assert(*compact->current_output()->smallest.user_key().data() == 0);
+
 
   // Finish and check for file errors
 //  if (s.ok()) {
@@ -1997,6 +2005,8 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
       meta->file_size = out.file_size;
       meta->smallest = out.smallest;
       meta->largest = out.largest;
+      assert(*meta->largest.user_key().data() == 0);
+
       meta->remote_data_mrs = out.remote_data_mrs;
       meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
       meta->remote_filter_mrs = out.remote_filter_mrs;
@@ -3375,13 +3385,15 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   std::string current_user_key;
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
-  Slice key;
+  std::string key;
   assert(input->Valid());
 #ifndef NDEBUG
   printf("first key is %s", input->key().ToString().c_str());
 #endif
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
-    key = input->key();
+    key = input->key().ToString();
+    assert(input->Valid());
+    assert(*key.data() == 0);
 //    assert(key.data()[0] == '0');
     //We do not need to check whether the output file have too much overlap with level n + 2.
     // If there is a lot of overlap subcompaction can be triggered.
@@ -3460,6 +3472,8 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
           compact->compaction->MaxOutputFileSize()) {
 //        assert(key.data()[0] == '0');
         compact->current_output()->largest.DecodeFrom(key);
+        assert(*compact->current_output()->largest.user_key().data() == 0);
+
         status = FinishCompactionOutputFile(compact, input);
         if (!status.ok()) {
           break;
@@ -3467,7 +3481,18 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       }
     }
 //    assert(key.data()[0] == '0');
+    if(*key.data() != 0){
+      printf("break here");
+    }
+    //TOFIX: The Next will destroy the buffer that key currently rely on if the input reach
+    // an invalid state. I have to use std::string rather than Slice to hold the key.  If not,
+    // the key will be corrupted when assigning it to "largest" in the table metadata.
+    // Or I can make the cahched buffer always a full block size so the deallocaiton is long enogu
+    // to avoid the bug
     input->Next();
+    if(*key.data() != 0){
+      printf("break here");
+    }
     //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
     // be invalid also.
 //    assert(key.data()[0] == '0');
@@ -3487,6 +3512,9 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   if (status.ok() && compact->builder != nullptr) {
 //    assert(key.data()[0] == '0');
     compact->current_output()->largest.DecodeFrom(key);
+    // The assertion always failed below. need to understand why.
+    assert(*compact->current_output()->largest.user_key().data() == 0);
+
     status = FinishCompactionOutputFile(compact, input);
   }
   if (status.ok()) {

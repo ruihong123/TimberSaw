@@ -89,6 +89,8 @@ class IteratorWrapper {
     valid_ = iter_->Valid();
     if (valid_) {
       key_ = iter_->key();
+      // 0201delete
+      assert(*key_.data() != 'U' && *key_.data() != 'V' );
     }
 
   }

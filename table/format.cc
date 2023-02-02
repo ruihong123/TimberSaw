@@ -146,6 +146,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
   start1 = std::chrono::high_resolution_clock::now();
 #endif
 //    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+  //Need to fix here
     contents = rdma_mg->Get_local_read_mr();
 #ifdef GETANALYSIS
   stop1 = std::chrono::high_resolution_clock::now();
@@ -181,7 +182,10 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
   // create a new buffer and copy to the new buffer. However, there could still
   // be a contention at the c++ allocator.
   char* data = new char[rdma_mg->name_to_chunksize.at(DataChunk)];
+
   memcpy(data, contents->addr, rdma_mg->name_to_chunksize.at(DataChunk));
+//  printf("/Create buffer for cache, start addr %p, length %lu content is %s\n", data, n, data+1);
+
 //  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));

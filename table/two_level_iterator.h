@@ -116,6 +116,8 @@ class TwoLevelIterator : public Iterator {
   bool Valid() const override { return data_iter_.Valid(); }
   Slice key() const override {
     assert(Valid());
+    //deleteit
+    assert(*data_iter_.key().data() == 0);
     return data_iter_.key();
   }
   Slice value() const override {

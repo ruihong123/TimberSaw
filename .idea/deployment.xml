@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="PublishConfigData" autoUpload="Always" serverName="bigdata1" remoteFilesAllowedToDisappearOnAutoupload="false">
+  <component name="PublishConfigData" autoUpload="On explicit save action" serverName="bigdata1" remoteFilesAllowedToDisappearOnAutoupload="false">
     <serverData>
       <paths name="bigdata1">
         <serverdata>
@@ -8,10 +8,6 @@
             <mapping deploy="/scratch1/wang4996/TimberSaw" local="$PROJECT_DIR$" web="/" />
             <mapping local="" />
           </mappings>
-          <excludedPaths>
-            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
-            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
-          </excludedPaths>
         </serverdata>
       </paths>
       <paths name="bigdata2">
@@ -20,13 +16,9 @@
             <mapping deploy="/scratch1/wang4996/TimberSaw" local="$PROJECT_DIR$" web="/" />
             <mapping local="" />
           </mappings>
-          <excludedPaths>
-            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-debug" />
-            <excludedPath local="true" path="$PROJECT_DIR$/cmake-build-release" />
-          </excludedPaths>
         </serverdata>
       </paths>
     </serverData>
-    <option name="myAutoUpload" value="ALWAYS" />
+    <option name="myAutoUpload" value="ON_EXPLICIT_SAVE" />
   </component>
 </project>

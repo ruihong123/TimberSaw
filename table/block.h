@@ -164,6 +164,7 @@ class Block::Iter : public Iterator {
   void Next() override {
     assert(Valid());
     ParseNextKey();
+    assert(*key_.GetKey().data() != 'U' && *key_.GetKey().data() != 'V');
 #ifndef NDEBUG
     if (num_entries > 0) {
       assert(comparator_->Compare(key_.GetKey(), Slice(last_key)) >= 0);
