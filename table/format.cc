@@ -240,6 +240,91 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 //#endif
   return Status::OK();
 }
+
+//TODO(chuqing): nonblock - 1.1
+ibv_mr* ReadDataBlockAsync(std::map<uint32_t, ibv_mr*>* remote_data_blocks, 
+                 const BlockHandle& handle) {
+
+  //TODO: Make it use thread local read buffer rather than allocate one every time.
+
+  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
+
+  size_t n = static_cast<size_t>(handle.size());
+  assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
+  ibv_mr* contents;
+  ibv_mr remote_mr = {};
+
+  Find_Remote_MR(remote_data_blocks, handle, &remote_mr);
+
+//    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
+  //Need to fix here
+  contents = rdma_mg->Get_local_read_mr();
+  // Results will be writen into contents 
+  rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local",
+                     IBV_SEND_SIGNALED, 0, 0);
+
+  return contents;
+
+  
+}
+
+//TODO(chuqing): nonblock - 1.2
+Status ReadDataBlockCallback(const ReadOptions& options, const BlockHandle& handle, 
+                              BlockContents* result, ibv_mr* contents) {
+  // poll the read work
+  int poll_num = 1;
+  ibv_wc* wc = new ibv_wc[poll_num]();
+  uint8_t target_node_id = 0;
+  std::shared_ptr<RDMA_Manager> rdma_mg = Env::Default()->rdma_mg;
+
+  // auto start = std::chrono::high_resolution_clock::now();
+  int rc = rdma_mg->poll_completion(wc, poll_num, "read_local", true, target_node_id);
+  // auto end = std::chrono::high_resolution_clock::now();
+  // auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+  // std::printf("Poll completion (Read) time elapse is %zu\n",  duration.count());
+  if (rc != 0) {
+    std::cout << "RDMA Read Failed" << std::endl;
+    std::cout << "q id is" << "read_local" << std::endl;
+    fprintf(stdout, "QP number=0x%x\n", rdma_mg->res->qp_map[target_node_id]->qp_num);
+  }
+  delete[] wc;
+
+  // callback work
+  result->data = Slice();
+  Status s = Status::OK();
+  size_t n = static_cast<size_t>(handle.size());
+
+  char* data = new char[rdma_mg->name_to_chunksize.at(DataChunk)];
+
+  memcpy(data, contents->addr, rdma_mg->name_to_chunksize.at(DataChunk));
+
+  if (options.verify_checksums) {
+    const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
+    const uint32_t actual = crc32c::Value(data, n + 1);
+    if (actual != crc) {
+//      delete[] buf;
+      DEBUG("Data block Checksum mismatch\n");
+      assert(false);
+      s = Status::Corruption("block checksum mismatch");
+      return s;
+    }
+  }
+//  printf("data[n] is %c\n", data[n]);
+  switch (data[n]) {
+    case kNoCompression:
+        result->data = Slice(data, n);
+        break;
+
+    default:
+      assert(data[n] != kNoCompression);
+      assert(false);
+//      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
+      DEBUG("Data block illegal compression type\n");
+      return Status::Corruption("bad block type");
+  }
+  return Status::OK();
+}
+
 Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                   const ReadOptions& options, const BlockHandle& handle,
                   Slice* result, uint8_t target_node_id) {

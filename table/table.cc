@@ -205,7 +205,8 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   return iter;
 }
 
-Iterator* Table::BlockReader_async(void* arg, const ReadOptions& options,
+//TODO(chuqing): nonblock - 2
+Iterator* Table::BlockReaderAsync(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
@@ -226,37 +227,18 @@ Iterator* Table::BlockReader_async(void* arg, const ReadOptions& options,
       EncodeFixed64(cache_key_buffer, table->rep->cache_id);
       EncodeFixed64(cache_key_buffer + 8, handle.offset());
       Slice key(cache_key_buffer, sizeof(cache_key_buffer));
-#ifdef PROCESSANALYSIS
-      auto start = std::chrono::high_resolution_clock::now();
-#endif
+
       cache_handle = block_cache->Lookup(key);
-#ifdef PROCESSANALYSIS
-      auto stop = std::chrono::high_resolution_clock::now();
-      auto lookup_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-#endif
+
       if (cache_handle != nullptr) {
         block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
 //        printf("Cache hit\n");
-#ifdef PROCESSANALYSIS
-        TableCache::cache_hit.fetch_add(1);
-        TableCache::cache_hit_look_up_time.fetch_add(lookup_duration.count());
-#endif
+
       } else {
-#ifdef PROCESSANALYSIS
-        TableCache::cache_miss.fetch_add(1);
-        //        if(TableCache::cache_miss < TableCache::not_filtered){
-        //          printf("warning\n");
-        //        };
-        start = std::chrono::high_resolution_clock::now();
 
-#endif
-        s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-#ifdef PROCESSANALYSIS
-        stop = std::chrono::high_resolution_clock::now();
-        auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-        TableCache::cache_miss_block_fetch_time.fetch_add(blockfetch_duration.count());
-#endif
-
+        // s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+        auto contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
+        s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
         if (s.ok()) {
           block = new Block(contents, DataBlock);
           if (options.fill_cache) {
@@ -267,7 +249,9 @@ Iterator* Table::BlockReader_async(void* arg, const ReadOptions& options,
       }
     } else {
       //      printf("NO table_cache found!!\n");
-      s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      // s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      auto contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
+      s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }
@@ -334,6 +318,8 @@ Iterator* Table::NewSEQIterator(const ReadOptions& options) const {
 
 }
 #endif
+
+//TODO(chuqing): nonblock - 3
 Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {
@@ -398,7 +384,11 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
       start = std::chrono::high_resolution_clock::now();
 #endif
+#ifndef ASYNC_READ
       Iterator* block_iter = BlockReader(this, options, iiter->value());
+#else
+      Iterator* block_iter = BlockReaderAsync(this, options, iiter->value());
+#endif
 #ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);

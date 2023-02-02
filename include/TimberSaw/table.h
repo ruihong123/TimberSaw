@@ -101,7 +101,7 @@ class TimberSaw_EXPORT Table {
 //  struct Rep;
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
-  static Iterator* BlockReader_async(void*, const ReadOptions&, const Slice&);
+  static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&);
   explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call
