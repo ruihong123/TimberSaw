@@ -60,13 +60,12 @@ class TimberSaw_EXPORT Table {
 #endif
   };
 
-#ifdef ASYNC_READ
   struct BlockReaderPipe {
     ibv_mr* contents;
     Cache::Handle* cache_handle;
     Slice key;
+    Block* block;
   };
-#endif
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
   // retrieving data from the table.
@@ -111,11 +110,10 @@ class TimberSaw_EXPORT Table {
 //  struct Rep;
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
-  static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&);
-  static BlockReaderPipe BlockReaderAsync_temp(void*, const ReadOptions&, const Slice&);
+  // static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&); 
+  static BlockReaderPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&);
   static Iterator* BlockReaderCallback(void*, const ReadOptions&, const Slice&,
-                                      ibv_mr* content_temp, Cache::Handle* cache_handle,
-                                      const Slice& key);
+                                      BlockReaderPipe* pipe);
   explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call

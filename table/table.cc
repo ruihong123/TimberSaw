@@ -205,79 +205,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   return iter;
 }
 
-//TODO(chuqing): nonblock - 2.1
-Iterator* Table::BlockReaderAsync(void* arg, const ReadOptions& options,
-                             const Slice& index_value) {
-  Table* table = reinterpret_cast<Table*>(arg);
-  Cache* block_cache = table->rep->options.block_cache;
-  Block* block = nullptr;
-  Cache::Handle* cache_handle = nullptr;
-
-  BlockHandle handle;
-  Slice input = index_value;
-  Status s = handle.DecodeFrom(&input);
-  // We intentionally allow extra stuff in index_value so that we
-  // can add more features in the future.
-
-  if (s.ok()) {
-    BlockContents contents;
-    if (block_cache != nullptr) {
-      //      printf("There is a table_cache!!\n");
-      char cache_key_buffer[16];
-      EncodeFixed64(cache_key_buffer, table->rep->cache_id);
-      EncodeFixed64(cache_key_buffer + 8, handle.offset());
-      Slice key(cache_key_buffer, sizeof(cache_key_buffer));
-
-      cache_handle = block_cache->Lookup(key);
-
-      if (cache_handle != nullptr) {
-        block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
-//        printf("Cache hit\n");
-
-      } else {
-
-        // s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-        auto contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
-        s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
-        if (s.ok()) {
-          block = new Block(contents, DataBlock);
-          if (options.fill_cache) {
-            cache_handle = block_cache->Insert(key, block, block->size(),
-                                               &DeleteCachedBlock);
-          }
-        }
-      }
-    } else {
-      //      printf("NO table_cache found!!\n");
-      // s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
-      auto contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
-      s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
-      if (s.ok()) {
-        block = new Block(contents, DataBlock);
-      }
-    }
-  }
-
-  Iterator* iter;
-  if (block != nullptr) {
-    iter = block->NewIterator(table->rep->options.comparator);
-    if (cache_handle == nullptr) {
-      iter->RegisterCleanup(&DeleteBlock, block, nullptr);
-    } else {
-      // Realease the table_cache handle when we delete the block iterator
-      iter->RegisterCleanup(&ReleaseBlock, block_cache, cache_handle);
-    }
-  } else {
-    iter = NewErrorIterator(s);
-  }
-  iter->SeekToFirst();
-  //  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
-  return iter;
-}
-
 
 //TODO(chuqing): nonblock - 2.1
-Table::BlockReaderPipe Table::BlockReaderAsync_temp(void* arg, const ReadOptions& options,
+Table::BlockReaderPipe Table::BlockReaderAsync(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
@@ -286,10 +216,9 @@ Table::BlockReaderPipe Table::BlockReaderAsync_temp(void* arg, const ReadOptions
   BlockHandle handle;
   Slice input = index_value;
   Status s = handle.DecodeFrom(&input);
-  ibv_mr* contents_temp = nullptr;
-  // We intentionally allow extra stuff in index_value so that we
-  // can add more features in the future.
   BlockReaderPipe res;
+  // We intentionally allow extra stuff in index_value so that we
+  // can add more features in the future.
 
   if (s.ok()) {
     BlockContents contents;
@@ -303,27 +232,25 @@ Table::BlockReaderPipe Table::BlockReaderAsync_temp(void* arg, const ReadOptions
       cache_handle = block_cache->Lookup(key);
 
       res.key = key;
-      res.cache_handle = cache_handle;
 
       if (cache_handle != nullptr) {
+      
       } else {
 
-        contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
+        res.contents = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
       }
     } else {
-      contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);  
+      res.contents = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);  
     }
   }
-
-  res.contents = contents_temp;
+  res.cache_handle = cache_handle;
   return res;
 }
 
 
 //TODO(chuqing): nonblock - 2.2
 Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
-                             const Slice& index_value, ibv_mr* contents_temp,
-                             Cache::Handle* cache_handle, const Slice& key) {
+                             const Slice& index_value, BlockReaderPipe* pipe) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
   Block* block = nullptr;
@@ -338,23 +265,23 @@ Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
   if (s.ok()) {
     BlockContents contents;
     if (block_cache != nullptr) {
-      if (cache_handle != nullptr) {
-        block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
+      if (pipe->cache_handle != nullptr) {
+        block = reinterpret_cast<Block*>(block_cache->Value(pipe->cache_handle));
 
       } else {
 
-        s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
+        s = ReadDataBlockCallback(options, handle, &contents, pipe->contents);
         if (s.ok()) {
           block = new Block(contents, DataBlock);
           if (options.fill_cache) {
-            cache_handle = block_cache->Insert(key, block, block->size(),
+            pipe->cache_handle = block_cache->Insert(pipe->key, block, block->size(),
                                                &DeleteCachedBlock);
           }
         }
       }
     } else {
 
-      s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
+      s = ReadDataBlockCallback(options, handle, &contents, pipe->contents);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }
@@ -364,11 +291,11 @@ Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
   Iterator* iter;
   if (block != nullptr) {
     iter = block->NewIterator(table->rep->options.comparator);
-    if (cache_handle == nullptr) {
+    if (pipe->cache_handle == nullptr) {
       iter->RegisterCleanup(&DeleteBlock, block, nullptr);
     } else {
       // Realease the table_cache handle when we delete the block iterator
-      iter->RegisterCleanup(&ReleaseBlock, block_cache, cache_handle);
+      iter->RegisterCleanup(&ReleaseBlock, block_cache, pipe->cache_handle);
     }
   } else {
     iter = NewErrorIterator(s);
@@ -607,12 +534,10 @@ Status Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void*
 
       BlockHandle handle;
 
-      // BlockReaderPipe pipe = BlockReaderAsync_temp(this, options, iiter->value());
-      // Iterator* block_iter = BlockReaderCallback(this, options, iiter->value(), 
-      //                                       pipe.contents, pipe.cache_handle, pipe.key);
-      Iterator* block_iter = BlockReaderAsync(this, options, iiter->value());
+      BlockReaderPipe pipe = BlockReaderAsync(this, options, iiter->value());
+      Iterator* block_iter = BlockReaderCallback(this, options, iiter->value(), &pipe);
+      
       block_iter->Seek(k);
-      // printf("I AM HERE\n");
       if (block_iter->Valid()) {
         (*handle_result)(arg, block_iter->key(), block_iter->value());
         assert(*block_iter->key().data() == 0);
