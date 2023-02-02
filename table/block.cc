@@ -47,6 +47,8 @@ Block::~Block() {
 //    No need to deallocate the data block from RDMA memory allocator since it is thread local.
     if (type_ == DataBlock){
 //      printf("Block RDMA registered memory deallocated successfull\n");
+//      printf("Delete buffer for cache,   start addr %p, length %zu content is %s\n", data_, size_ , data_+1);
+
       delete data_;
       return;
     }

@@ -256,6 +256,7 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
   block->Finish();
 
   Slice* raw = &(r->data_block->buffer);
+  assert(*(r->data_block->buffer.data() + 4)!= 'U' && *(r->data_block->buffer.data() + 4)!= 'V');
   Slice* block_contents;
 //  CompressionType compressiontype = r->options.compression;
   //TOTHINK: temporally disable the compression, because it can increase the latency but it could

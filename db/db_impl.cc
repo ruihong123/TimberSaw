@@ -3385,13 +3385,13 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   std::string current_user_key;
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
-  Slice key;
+  std::string key;
   assert(input->Valid());
 #ifndef NDEBUG
   printf("first key is %s", input->key().ToString().c_str());
 #endif
   while (input->Valid() && !shutting_down_.load(std::memory_order_acquire)) {
-    key = input->key();
+    key = input->key().ToString();
     assert(input->Valid());
     assert(*key.data() == 0);
 //    assert(key.data()[0] == '0');
@@ -3484,6 +3484,11 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     if(*key.data() != 0){
       printf("break here");
     }
+    //TOFIX: The Next will destroy the buffer that key currently rely on if the input reach
+    // an invalid state. I have to use std::string rather than Slice to hold the key.  If not,
+    // the key will be corrupted when assigning it to "largest" in the table metadata.
+    // Or I can make the cahched buffer always a full block size so the deallocaiton is long enogu
+    // to avoid the bug
     input->Next();
     if(*key.data() != 0){
       printf("break here");
