@@ -60,7 +60,7 @@ class TimberSaw_EXPORT Table {
 #endif
   };
 
-  struct BlockReaderPipe {
+  struct AsyncCallbackPipe {
     ibv_mr* contents;
     Cache::Handle* cache_handle;
     Slice key;
@@ -112,9 +112,9 @@ class TimberSaw_EXPORT Table {
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
   // static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&); 
-  static BlockReaderPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&);
+  static AsyncCallbackPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&);
   static Iterator* BlockReaderCallback(void*, const ReadOptions&, const Slice&,
-                                      BlockReaderPipe* pipe);
+                                      AsyncCallbackPipe* pipe);
   explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call
@@ -123,13 +123,10 @@ class TimberSaw_EXPORT Table {
   Status InternalGet(const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k,
                                            const Slice& v));
-  Table::BlockReaderPipe InternalGetAsync (const ReadOptions&, const Slice& key, void* arg);
-  Status InternalGetAsync_temp (const ReadOptions&, const Slice& key, void* arg,
-                     void (*handle_result)(void* arg, const Slice& k,
-                                           const Slice& v));
+  Table::AsyncCallbackPipe InternalGetAsync (const ReadOptions&, const Slice& key, void* arg);
   Status InternalGetCallback (const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k, const Slice& v),
-                            BlockReaderPipe* pipe);
+                            AsyncCallbackPipe* pipe);
   void ReadMeta(const Footer& footer);
   void ReadFilter();
 

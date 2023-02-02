@@ -207,7 +207,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 
 
 //TODO(chuqing): nonblock - 2.1
-Table::BlockReaderPipe Table::BlockReaderAsync(void* arg, const ReadOptions& options,
+Table::AsyncCallbackPipe Table::BlockReaderAsync(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
@@ -216,7 +216,7 @@ Table::BlockReaderPipe Table::BlockReaderAsync(void* arg, const ReadOptions& opt
   BlockHandle handle;
   Slice input = index_value;
   Status s = handle.DecodeFrom(&input);
-  BlockReaderPipe res;
+  AsyncCallbackPipe res;
   // We intentionally allow extra stuff in index_value so that we
   // can add more features in the future.
 
@@ -250,7 +250,7 @@ Table::BlockReaderPipe Table::BlockReaderAsync(void* arg, const ReadOptions& opt
 
 //TODO(chuqing): nonblock - 2.2
 Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
-                             const Slice& index_value, BlockReaderPipe* pipe) {
+                             const Slice& index_value, AsyncCallbackPipe* pipe) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
   Block* block = nullptr;
@@ -515,48 +515,10 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
   return s;
 }
 
-Status Table::InternalGetAsync_temp(const ReadOptions& options, const Slice& k, void* arg,
-                          void (*handle_result)(void*, const Slice&,
-                                                const Slice&)) {
-  Status s;
-  FullFilterBlockReader* filter = rep->filter;
-  if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
-    // Not found
-  } else {
-    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
-
-    iiter->Seek(k);//binary search for block index
-
-    if (iiter->Valid()) {
-
-      Slice handle_value = iiter->value();
-
-      BlockHandle handle;
-
-      BlockReaderPipe pipe = BlockReaderAsync(this, options, iiter->value());
-      Iterator* block_iter = BlockReaderCallback(this, options, iiter->value(), &pipe);
-      
-      block_iter->Seek(k);
-      if (block_iter->Valid()) {
-        (*handle_result)(arg, block_iter->key(), block_iter->value());
-        assert(*block_iter->key().data() == 0);
-      }
-      s = block_iter->status();
-      delete block_iter;
-
-    }else{
-      printf("block iterator invalid\n");
-      exit(1);
-    }
-    delete iiter;
-  }
-  return s;
-}
-
 //TODO(chuqing): nonblock - 3.1 , never called when byteaddressable
-Table::BlockReaderPipe Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg) {
+Table::AsyncCallbackPipe Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg) {
   // Status s;
-  BlockReaderPipe pipe;
+  AsyncCallbackPipe pipe;
   pipe.need_blockreader_callback = false;
 
   FullFilterBlockReader* filter = rep->filter;
@@ -590,11 +552,11 @@ Table::BlockReaderPipe Table::InternalGetAsync(const ReadOptions& options, const
 //TODO(chuqing): nonblock - 3.2 , never called when byteaddressable
 Status Table::InternalGetCallback(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&, const Slice&), 
-                          BlockReaderPipe* pipe) {
+                          AsyncCallbackPipe* pipe) {
   Status s;
   
   if (pipe->need_blockreader_callback) {
-    // BlockReaderPipe pipe = BlockReaderAsync(this, options, iiter->value());
+    // AsyncCallbackPipe pipe = BlockReaderAsync(this, options, iiter->value());
     Iterator* block_iter = BlockReaderCallback(this, options, pipe->index_value, pipe);
     
     block_iter->Seek(k);
