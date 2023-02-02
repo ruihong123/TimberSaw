@@ -360,8 +360,7 @@ bool Version::MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMe
 }
 
 //TODO(chuqing): nonblock - 5
-bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f,
-                          std::shared_future<void> any_future) {
+bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
   State* state = reinterpret_cast<State*>(arg);
 
   if (state->stats->seek_file == nullptr &&
@@ -461,6 +460,7 @@ Version::State Version::StateCopy(State s_ori){
 }
 
 //TODO(chuqing): rename for another call in ReadRecordSample
+//TODO(chuqing): nonblock - 6
 void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg) {
   const Comparator* ucmp = vset_->icmp_.user_comparator();
 
@@ -477,14 +477,13 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   if (!tmp.empty()) {
     std::sort(tmp.begin(), tmp.end(), NewestFirst);
     for (uint32_t i = 0; i < tmp.size(); i++) {
-      if (!MatchNormal(arg, 0, tmp[i])) {
+      if (!MatchAsync(arg, 0, tmp[i])) {
         return;
       }
     }
   }
 
   // Search other levels.
-  std::map<int, std::string*> buffer_map;
   for (int level = 1; level < config::kNumLevels; level++) {
     size_t num_files = levels_[level].size();
     if (num_files == 0) continue;
@@ -501,9 +500,9 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
 //
 //        }
         // MALLOC NEW BUFFER
-        std::string* buf = new std::string();
-
-        MatchRequestSend(arg, level, f, buf);
+        if (!MatchAsync(arg, level, f)) {
+          return;
+        }
       }
     }
   }
@@ -540,12 +539,12 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
   state.saver.user_key = k.user_key();
   state.saver.value = value;
 
-// #ifndef ASYNC_READ
-//   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
-// #else
-//   ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
-// #endif
+#ifndef ASYNC_READ
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
+#else
+  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
+#endif
+  // ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
 
 #ifdef PROCESSANALYSIS
   if (!state.found){

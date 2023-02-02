@@ -63,9 +63,11 @@ class TimberSaw_EXPORT Table {
   struct AsyncCallbackPipe {
     ibv_mr* contents;
     Cache::Handle* cache_handle;
+    Cache::Handle* tablecache_handle;
     Slice key;
     Slice index_value;
     Status tablecache_get_status;
+    Table* table;
     bool tablecache_findtable_ok;
     bool need_blockreader_callback;
   };

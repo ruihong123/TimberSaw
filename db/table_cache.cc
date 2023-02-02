@@ -315,18 +315,19 @@ Table::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
   if (s.ok()) {
 
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
-
 #ifdef BYTEADDRESSABLE
     s = t->InternalGet(options, k, arg, handle_result);
     pipe.tablecache_get_status = s;
 #endif
 #ifndef BYTEADDRESSABLE
     pipe = t->InternalGetAsync(options, k, arg);
+    pipe.table = t;
 #endif
 
     pipe.tablecache_findtable_ok = true;
     //if you want to bypass the lock in cache then commet the code below
-    cache_->Release(handle);
+    // cache_->Release(handle);
+    pipe.tablecache_handle = handle;
   } else {
     pipe.tablecache_findtable_ok = false;
     pipe.tablecache_get_status = s;
@@ -334,13 +335,13 @@ Table::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
   return pipe;
 }
 
-//TODO(chuqing): nonblock 4.2
+//TODO(chuqing): nonblock - 4.2
 Status TableCache::GetCallback(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&, const Slice&),
                        Table::AsyncCallbackPipe* pipe) {
-  Cache::Handle* handle = nullptr;
+  // Cache::Handle* handle = nullptr;
   //TODO: not let concurrent thread finding the same table and inserting the same
   // index block to the table_cache
 
@@ -351,11 +352,11 @@ Status TableCache::GetCallback(const ReadOptions& options,
     s = pipe->tablecache_get_status;
 #endif
 #ifndef BYTEADDRESSABLE
-    Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
+    Table* t = reinterpret_cast<SSTable*>(cache_->Value(pipe->tablecache_handle))->table_compute;
     s = t->InternalGetCallback(options, k, arg, handle_result, pipe);
 #endif
     //if you want to bypass the lock in cache then commet the code below
-    cache_->Release(handle);
+    cache_->Release(pipe->tablecache_handle);
   } else {
     s = pipe->tablecache_get_status;
   }
