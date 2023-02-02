@@ -407,7 +407,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
       start = std::chrono::high_resolution_clock::now();
 #endif
       block_iter->Seek(k);
-      printf("I AM HERE\n");
+      // printf("I AM HERE\n");
 #ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
