@@ -301,44 +301,64 @@ Status TableCache::Get(const ReadOptions& options,
   return s;
 }
 
-//TODO(chuqing): nonblock - 4
-Status TableCache::GetAsync(const ReadOptions& options,
+//TODO(chuqing): nonblock - 4.1
+Table::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&,
                                              const Slice&)) {
-#ifdef PROCESSANALYSIS
-  auto start = std::chrono::high_resolution_clock::now();
-#endif
   Cache::Handle* handle = nullptr;
-  //TODO: not let concurrent thread finding the same tale and inserting the same
+  //TODO: not let concurrent thread finding the same table and inserting the same
   // index block to the table_cache
+  Table::AsyncCallbackPipe pipe;
   Status s = FindTable(f, &handle);
   if (s.ok()) {
+
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
-#ifndef ASYNC_READ    
-    s = t->InternalGet(options, k, arg, handle_result);
-#else
-#ifndef BYTEADDRESSABLE
-    auto pipe = t->InternalGetAsync(options, k, arg);
-    s = t->InternalGetCallback(options, k, arg, handle_result, &pipe);
-#endif
-//TODO(chuqing): nonblock for byteaddressable?
+
 #ifdef BYTEADDRESSABLE
     s = t->InternalGet(options, k, arg, handle_result);
+    pipe.tablecache_get_status = s;
+#endif
+#ifndef BYTEADDRESSABLE
+    pipe = t->InternalGetAsync(options, k, arg);
 #endif
 
+    pipe.tablecache_findtable_ok = true;
+    //if you want to bypass the lock in cache then commet the code below
+    cache_->Release(handle);
+  } else {
+    pipe.tablecache_findtable_ok = false;
+    pipe.tablecache_get_status = s;
+  }
+  return pipe;
+}
+
+//TODO(chuqing): nonblock 4.2
+Status TableCache::GetCallback(const ReadOptions& options,
+                       std::shared_ptr<RemoteMemTableMetaData> f,
+                       const Slice& k, void* arg,
+                       void (*handle_result)(void*, const Slice&, const Slice&),
+                       Table::AsyncCallbackPipe* pipe) {
+  Cache::Handle* handle = nullptr;
+  //TODO: not let concurrent thread finding the same table and inserting the same
+  // index block to the table_cache
+
+  Status s;
+  if (pipe->tablecache_findtable_ok) {
+
+#ifdef BYTEADDRESSABLE
+    s = pipe->tablecache_get_status;
+#endif
+#ifndef BYTEADDRESSABLE
+    Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
+    s = t->InternalGetCallback(options, k, arg, handle_result, pipe);
 #endif
     //if you want to bypass the lock in cache then commet the code below
     cache_->Release(handle);
+  } else {
+    s = pipe->tablecache_get_status;
   }
-#ifdef PROCESSANALYSIS
-  auto stop = std::chrono::high_resolution_clock::now();
-  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
-  TableCache::GetTimeElapseSum.fetch_add(duration.count());
-  TableCache::GetNum.fetch_add(1);
-#endif
   return s;
 }
 

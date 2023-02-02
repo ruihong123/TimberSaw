@@ -65,6 +65,8 @@ class TimberSaw_EXPORT Table {
     Cache::Handle* cache_handle;
     Slice key;
     Slice index_value;
+    Status tablecache_get_status;
+    bool tablecache_findtable_ok;
     bool need_blockreader_callback;
   };
   // Attempt to open the table that is stored in bytes [0..file_size)

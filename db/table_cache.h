@@ -85,10 +85,15 @@ class TableCache {
              std::shared_ptr<RemoteMemTableMetaData> f, const Slice& k,
              void* arg,
              void (*handle_result)(void*, const Slice&, const Slice&));
-  Status GetAsync(const ReadOptions& options,
+  Table::AsyncCallbackPipe GetAsync(const ReadOptions& options,
              std::shared_ptr<RemoteMemTableMetaData> f, const Slice& k,
              void* arg,
              void (*handle_result)(void*, const Slice&, const Slice&));
+  Status GetCallback(const ReadOptions& options,
+             std::shared_ptr<RemoteMemTableMetaData> f, const Slice& k,
+             void* arg,
+             void (*handle_result)(void*, const Slice&, const Slice&),
+             Table::AsyncCallbackPipe* pipe);
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number, uint8_t creator_node_id);
 

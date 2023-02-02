@@ -377,8 +377,10 @@ bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMet
   state->s = state->vset->table_cache_->Get(*state->options, f,
       state->ikey, &state->saver, SaveValue);
 #else
-  state->s = state->vset->table_cache_->GetAsync(*state->options, f,
+  auto pipe = state->vset->table_cache_->GetAsync(*state->options, f,
       state->ikey, &state->saver, SaveValue);
+  state->s = state->vset->table_cache_->GetCallback(*state->options, f,
+      state->ikey, &state->saver, SaveValue, &pipe);
 #endif
   if (!state->s.ok()) {
     state->found = true;

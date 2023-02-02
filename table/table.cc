@@ -556,7 +556,6 @@ Status Table::InternalGetCallback(const ReadOptions& options, const Slice& k, vo
   Status s;
   
   if (pipe->need_blockreader_callback) {
-    // AsyncCallbackPipe pipe = BlockReaderAsync(this, options, iiter->value());
     Iterator* block_iter = BlockReaderCallback(this, options, pipe->index_value, pipe);
     
     block_iter->Seek(k);
