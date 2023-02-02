@@ -136,8 +136,11 @@ class Version {
 
     // static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   };
+  State StateCopy(State s_ori);
+  Saver SaverCopy(Saver s_ori);
   static bool MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   static bool MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f, std::shared_future<void> any_future);
+  void MatchRequestSend(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f, std::string* buf);
 //  std::shared_ptr<Subversion> subversion;
 
   // Append to *iters a sequence of iterators that will

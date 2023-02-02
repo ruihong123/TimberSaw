@@ -111,7 +111,7 @@ int FindFile(const InternalKeyComparator& icmp,
     }
   }
 
-  assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
+  // assert(key.compare(files[right]->largest.Encode()) <= 0);//  assert(right!= files.size()); //todo: remove this assert.
   return static_cast<int>(right);
 }
 
@@ -392,9 +392,63 @@ bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMet
       state->found = true;
       return false;
   }
-  // Not reached. Added to avoid false compilation warnings of
-  // "control reaches end of non-void function".
   return false;
+}
+
+void Version::MatchRequestSend(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f, std::string* buf) {
+  State* state = reinterpret_cast<State*>(arg);
+
+  if (state->stats->seek_file == nullptr &&
+      state->last_file_read != nullptr) {
+    // We have had more than one seek for this read.  Charge the 1st file.
+    state->stats->seek_file = state->last_file_read;
+    state->stats->seek_file_level = state->last_file_read_level;
+  }
+
+  state->last_file_read = f;
+  state->last_file_read_level = level;
+
+  // assign the ptr of new allocated buffer to saver
+  state->saver.value = buf;
+  state->s = state->vset->table_cache_->Get(*state->options, f,
+      state->ikey, &state->saver, SaveValue);
+  return;
+}
+
+Saver Version::SaverCopy(Saver s_ori){
+  Saver s;
+  std::string str;
+  s.state = s_ori.state;
+  s.ucmp = s_ori.ucmp;
+  s.value = new std::string; //TODO(chuqing): remember to delete
+  s.user_key = s_ori.user_key;
+  return s;
+}
+
+//TODO(chuqing): deep copy 
+Version::State Version::StateCopy(State s_ori){
+  /*
+    DONE Saver saver;  //need deep copy 
+    GetStats* stats;  // initialized pointer, nned to write in but seems never used
+    DONE const ReadOptions* options;  //const, can copy?
+    DONE Slice ikey;    // read only, can copy directly
+    DONE std::shared_ptr<RemoteMemTableMetaData> last_file_read;  //need to write in before any read?
+    DONE int last_file_read_level;  // copy directly 
+
+    DONE  VersionSet* vset; //initialized, read only 
+    NONEED  Status s;  //not initialized, need to write in
+    DONE bool found; // initialized with false 
+  */
+  State s;
+  s.found = false;
+  s.ikey = s_ori.ikey;
+  s.vset = s_ori.vset;
+  s.options = s_ori.options;
+  s.last_file_read = nullptr;  //TODO(chuqing): if assigned by level 0?
+  s.last_file_read_level = s_ori.last_file_read_level;
+  s.saver = SaverCopy(s_ori.saver);
+  //TODO(chuqing): note that the value of saver need to return 
+  return s;
 }
 
 //TODO(chuqing): rename for another call in ReadRecordSample
@@ -421,11 +475,7 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   }
 
   // Search other levels.
-  //TODO(chuqing): first try launch all
-  std::promise<void> anylevel_promise;
-  std::shared_future<void> anylevel_future(anylevel_promise.get_future());
-  std::map<int, std::future<bool> > future_map;
-  std::vector<std::future<bool>*> future_vec;  
+  std::map<int, std::string*> buffer_map;
   for (int level = 1; level < config::kNumLevels; level++) {
     size_t num_files = levels_[level].size();
     if (num_files == 0) continue;
@@ -433,26 +483,18 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
     // Binary search to find earliest index whose largest key >= internal_key.
     uint32_t index = FindFile(vset_->icmp_, levels_[level], internal_key);
     if (index < num_files) {
-      // auto start = std::chrono::high_resolution_clock::now();
       std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][index];
       if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
         // All of "f" is past any data for user_key
       } else {
+
 //        IF(RMDA ->TRY_POLL()){
 //
 //        }
-        auto future = std::async(std::launch::async, MatchAsync, arg, level, f, anylevel_future);
-        // future_map.insert(std::pair<int, std::future<bool> >{level, future});
-        future_vec.insert(future_vec.end(), &future);
-        // auto mid = std::chrono::high_resolution_clock::now();
-//         if (!(*ioissue)(arg, level, f)) {
-// //          printf("Found in the SSTables\n");
-//           // auto end = std::chrono::high_resolution_clock::now();
-//           // auto duration1 = std::chrono::duration_cast<std::chrono::microseconds>(mid - start);
-//           // auto duration2 = std::chrono::duration_cast<std::chrono::microseconds>(end - mid);
-//           // printf("[1] %ld, [2] %ld\n", duration1.count(),duration2.count());
-//           return;
-//         }
+        // MALLOC NEW BUFFER
+        std::string* buf = new std::string();
+
+        MatchRequestSend(arg, level, f, buf);
       }
     }
   }
@@ -462,10 +504,6 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   //   if(!iter->second.get())
   //     return;
   // }
-  for(auto iter = future_vec.begin(); iter != future_vec.end(); iter++){
-    if(!(*iter)->get())
-      return;
-  }
 
 }
 
