@@ -272,6 +272,8 @@ Iterator* TableCache::NewIterator_MemorySide(
   }
   return result;
 }
+
+//TODO(chuqing): nonblock - 4
 Status TableCache::Get(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
@@ -286,7 +288,18 @@ Status TableCache::Get(const ReadOptions& options,
   Status s = FindTable(f, &handle);
   if (s.ok()) {
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
+#ifndef ASYNC_READ    
     s = t->InternalGet(options, k, arg, handle_result);
+#else
+#ifndef BYTEADDRESSABLE
+    s = t->InternalGetAsync(options, k, arg, handle_result);
+#endif
+//TODO(chuqing): nonblock for byteaddressable?
+#ifdef BYTEADDRESSABLE
+    s = t->InternalGet(options, k, arg, handle_result);
+#endif
+
+#endif
     //if you want to bypass the lock in cache then commet the code below
     cache_->Release(handle);
   }

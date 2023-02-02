@@ -6,7 +6,7 @@
 
 #include "db/table_cache.h"
 
-#include "TimberSaw/cache.h"
+// #include "TimberSaw/cache.h"
 #include "TimberSaw/comparator.h"
 #include "TimberSaw/env.h"
 #include "TimberSaw/filter_policy.h"
@@ -205,7 +205,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
   return iter;
 }
 
-//TODO(chuqing): nonblock - 2
+//TODO(chuqing): nonblock - 2.1
 Iterator* Table::BlockReaderAsync(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
@@ -274,6 +274,110 @@ Iterator* Table::BlockReaderAsync(void* arg, const ReadOptions& options,
   //  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
   return iter;
 }
+
+
+//TODO(chuqing): nonblock - 2.1
+Table::BlockReaderPipe Table::BlockReaderAsync_temp(void* arg, const ReadOptions& options,
+                             const Slice& index_value) {
+  Table* table = reinterpret_cast<Table*>(arg);
+  Cache* block_cache = table->rep->options.block_cache;
+  Cache::Handle* cache_handle = nullptr;
+
+  BlockHandle handle;
+  Slice input = index_value;
+  Status s = handle.DecodeFrom(&input);
+  ibv_mr* contents_temp = nullptr;
+  // We intentionally allow extra stuff in index_value so that we
+  // can add more features in the future.
+  BlockReaderPipe res;
+
+  if (s.ok()) {
+    BlockContents contents;
+    if (block_cache != nullptr) {
+      //      printf("There is a table_cache!!\n");
+      char cache_key_buffer[16];
+      EncodeFixed64(cache_key_buffer, table->rep->cache_id);
+      EncodeFixed64(cache_key_buffer + 8, handle.offset());
+      Slice key(cache_key_buffer, sizeof(cache_key_buffer));
+
+      cache_handle = block_cache->Lookup(key);
+
+      res.key = key;
+      res.cache_handle = cache_handle;
+
+      if (cache_handle != nullptr) {
+      } else {
+
+        contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);
+      }
+    } else {
+      contents_temp = ReadDataBlockAsync(&table->rep->remote_table.lock()->remote_data_mrs, handle);  
+    }
+  }
+
+  res.contents = contents_temp;
+  return res;
+}
+
+
+//TODO(chuqing): nonblock - 2.2
+Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
+                             const Slice& index_value, ibv_mr* contents_temp,
+                             Cache::Handle* cache_handle, const Slice& key) {
+  Table* table = reinterpret_cast<Table*>(arg);
+  Cache* block_cache = table->rep->options.block_cache;
+  Block* block = nullptr;
+  // Cache::Handle* cache_handle = nullptr;
+
+  BlockHandle handle;
+  Slice input = index_value;
+  Status s = handle.DecodeFrom(&input);
+  // We intentionally allow extra stuff in index_value so that we
+  // can add more features in the future.
+
+  if (s.ok()) {
+    BlockContents contents;
+    if (block_cache != nullptr) {
+      if (cache_handle != nullptr) {
+        block = reinterpret_cast<Block*>(block_cache->Value(cache_handle));
+
+      } else {
+
+        s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
+        if (s.ok()) {
+          block = new Block(contents, DataBlock);
+          if (options.fill_cache) {
+            cache_handle = block_cache->Insert(key, block, block->size(),
+                                               &DeleteCachedBlock);
+          }
+        }
+      }
+    } else {
+
+      s = ReadDataBlockCallback(options, handle, &contents, contents_temp);
+      if (s.ok()) {
+        block = new Block(contents, DataBlock);
+      }
+    }
+  }
+
+  Iterator* iter;
+  if (block != nullptr) {
+    iter = block->NewIterator(table->rep->options.comparator);
+    if (cache_handle == nullptr) {
+      iter->RegisterCleanup(&DeleteBlock, block, nullptr);
+    } else {
+      // Realease the table_cache handle when we delete the block iterator
+      iter->RegisterCleanup(&ReleaseBlock, block_cache, cache_handle);
+    }
+  } else {
+    iter = NewErrorIterator(s);
+  }
+  iter->SeekToFirst();
+  //  DEBUG_arg("First key after the block create %s", iter->key().ToString().c_str());
+  return iter;
+}
+
 // Convert an index iterator value (i.e., an encoded BlockHandle)
 // into an iterator over the contents of the corresponding block.
 Slice Table::KVReader(void* arg, const ReadOptions& options,
@@ -319,7 +423,7 @@ Iterator* Table::NewSEQIterator(const ReadOptions& options) const {
 }
 #endif
 
-//TODO(chuqing): nonblock - 3
+
 Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {
@@ -384,11 +488,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
       start = std::chrono::high_resolution_clock::now();
 #endif
-#ifndef ASYNC_READ
+
       Iterator* block_iter = BlockReader(this, options, iiter->value());
-#else
-      Iterator* block_iter = BlockReaderAsync(this, options, iiter->value());
-#endif
+
 #ifdef PROCESSANALYSIS
       stop = std::chrono::high_resolution_clock::now();
       duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -485,6 +587,48 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 
   return s;
 }
+
+//TODO(chuqing): nonblock - 3, never called when byteaddressable
+Status Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg,
+                          void (*handle_result)(void*, const Slice&,
+                                                const Slice&)) {
+  Status s;
+  FullFilterBlockReader* filter = rep->filter;
+  if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
+    // Not found
+  } else {
+    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
+
+    iiter->Seek(k);//binary search for block index
+
+    if (iiter->Valid()) {
+
+      Slice handle_value = iiter->value();
+
+      BlockHandle handle;
+
+      // BlockReaderPipe pipe = BlockReaderAsync_temp(this, options, iiter->value());
+      // Iterator* block_iter = BlockReaderCallback(this, options, iiter->value(), 
+      //                                       pipe.contents, pipe.cache_handle, pipe.key);
+      Iterator* block_iter = BlockReaderAsync(this, options, iiter->value());
+      block_iter->Seek(k);
+      // printf("I AM HERE\n");
+      if (block_iter->Valid()) {
+        (*handle_result)(arg, block_iter->key(), block_iter->value());
+        assert(*block_iter->key().data() == 0);
+      }
+      s = block_iter->status();
+      delete block_iter;
+
+    }else{
+      printf("block iterator invalid\n");
+      exit(1);
+    }
+    delete iiter;
+  }
+  return s;
+}
+
 //void Table::GetKV(Iterator* iiter) {
 //
 //}

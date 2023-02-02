@@ -533,11 +533,12 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
   state.saver.user_key = k.user_key();
   state.saver.value = value;
 
-#ifndef ASYNC_READ
+// #ifndef ASYNC_READ
+//   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
+// #else
+//   ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
+// #endif
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
-#else
-  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
-#endif
 
 #ifdef PROCESSANALYSIS
   if (!state.found){

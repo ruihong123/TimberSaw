@@ -99,6 +99,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 ibv_mr* ReadDataBlockAsync(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const BlockHandle& handle);
 Status ReadDataBlockCallback(const ReadOptions& options, const BlockHandle& handle, 
                               BlockContents* result, ibv_mr* content);
+                 
 Status ReadKVPair(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
                   const ReadOptions& options, const BlockHandle& handle,
                   Slice* result, uint8_t target_node_id);

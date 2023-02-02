@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <memory>
 
+#include "TimberSaw/cache.h"
 #include "TimberSaw/export.h"
 #include "TimberSaw/iterator.h"
 #include "db/version_edit.h"
@@ -18,6 +19,7 @@ namespace TimberSaw {
 
 class Block;
 class BlockHandle;
+class Cache;
 class Footer;
 struct Options;
 class RandomAccessFile;
@@ -57,6 +59,14 @@ class TimberSaw_EXPORT Table {
 //    ThreadLocalPtr* mr_addr;
 #endif
   };
+
+#ifdef ASYNC_READ
+  struct BlockReaderPipe {
+    ibv_mr* contents;
+    Cache::Handle* cache_handle;
+    Slice key;
+  };
+#endif
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
   // retrieving data from the table.
@@ -102,6 +112,10 @@ class TimberSaw_EXPORT Table {
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
   static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&);
+  static BlockReaderPipe BlockReaderAsync_temp(void*, const ReadOptions&, const Slice&);
+  static Iterator* BlockReaderCallback(void*, const ReadOptions&, const Slice&,
+                                      ibv_mr* content_temp, Cache::Handle* cache_handle,
+                                      const Slice& key);
   explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call
@@ -110,7 +124,9 @@ class TimberSaw_EXPORT Table {
   Status InternalGet(const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k,
                                            const Slice& v));
-
+  Status InternalGetAsync (const ReadOptions&, const Slice& key, void* arg,
+                     void (*handle_result)(void* arg, const Slice& k,
+                                           const Slice& v));
   void ReadMeta(const Footer& footer);
   void ReadFilter();
 
