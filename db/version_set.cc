@@ -359,6 +359,7 @@ bool Version::MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMe
   return false;
 }
 
+//TODO(chuqing): nonblock - 5
 bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f,
                           std::shared_future<void> any_future) {
   State* state = reinterpret_cast<State*>(arg);
@@ -372,9 +373,13 @@ bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMet
 
   state->last_file_read = f;
   state->last_file_read_level = level;
+#ifndef ASYNC_READ
   state->s = state->vset->table_cache_->Get(*state->options, f,
       state->ikey, &state->saver, SaveValue);
-
+#else
+  state->s = state->vset->table_cache_->GetAsync(*state->options, f,
+      state->ikey, &state->saver, SaveValue);
+#endif
   if (!state->s.ok()) {
     state->found = true;
     return false;

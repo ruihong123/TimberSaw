@@ -257,7 +257,7 @@ Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
   // Cache::Handle* cache_handle = nullptr;
 
   BlockHandle handle;
-  Slice input = index_value;
+  Slice input = pipe->index_value;
   Status s = handle.DecodeFrom(&input);
   // We intentionally allow extra stuff in index_value so that we
   // can add more features in the future.
@@ -515,8 +515,7 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
   return s;
 }
 
-//TODO(chuqing): nonblock - 3, never called when byteaddressable
-Status Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg,
+Status Table::InternalGetAsync_temp(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {
   Status s;
@@ -550,6 +549,61 @@ Status Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void*
       exit(1);
     }
     delete iiter;
+  }
+  return s;
+}
+
+//TODO(chuqing): nonblock - 3.1 , never called when byteaddressable
+Table::BlockReaderPipe Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg) {
+  // Status s;
+  BlockReaderPipe pipe;
+  pipe.need_blockreader_callback = false;
+
+  FullFilterBlockReader* filter = rep->filter;
+  if (filter != nullptr && !filter->KeyMayMatch(ExtractUserKey(k))) {
+    // Not found
+  } else {
+    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
+
+    iiter->Seek(k);//binary search for block index
+
+    if (iiter->Valid()) {
+
+      Slice handle_value = iiter->value();
+
+      BlockHandle handle;
+
+      pipe = BlockReaderAsync(this, options, iiter->value());
+      pipe.need_blockreader_callback = true;
+      pipe.index_value = iiter->value();
+
+    }else{
+      printf("block iterator invalid\n");
+      exit(1);
+    }
+    delete iiter;
+  }
+
+  return pipe;
+}
+
+//TODO(chuqing): nonblock - 3.2 , never called when byteaddressable
+Status Table::InternalGetCallback(const ReadOptions& options, const Slice& k, void* arg,
+                          void (*handle_result)(void*, const Slice&, const Slice&), 
+                          BlockReaderPipe* pipe) {
+  Status s;
+  
+  if (pipe->need_blockreader_callback) {
+    // BlockReaderPipe pipe = BlockReaderAsync(this, options, iiter->value());
+    Iterator* block_iter = BlockReaderCallback(this, options, pipe->index_value, pipe);
+    
+    block_iter->Seek(k);
+    if (block_iter->Valid()) {
+      (*handle_result)(arg, block_iter->key(), block_iter->value());
+      assert(*block_iter->key().data() == 0);
+    }
+    s = block_iter->status();
+    delete block_iter;
   }
   return s;
 }

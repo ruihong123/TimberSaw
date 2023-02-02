@@ -273,8 +273,36 @@ Iterator* TableCache::NewIterator_MemorySide(
   return result;
 }
 
-//TODO(chuqing): nonblock - 4
 Status TableCache::Get(const ReadOptions& options,
+                       std::shared_ptr<RemoteMemTableMetaData> f,
+                       const Slice& k, void* arg,
+                       void (*handle_result)(void*, const Slice&,
+                                             const Slice&)) {
+#ifdef PROCESSANALYSIS
+  auto start = std::chrono::high_resolution_clock::now();
+#endif
+  Cache::Handle* handle = nullptr;
+  //TODO: not let concurrent thread finding the same tale and inserting the same
+  // index block to the table_cache
+  Status s = FindTable(f, &handle);
+  if (s.ok()) {
+    Table* t = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;   
+    s = t->InternalGet(options, k, arg, handle_result);
+    //if you want to bypass the lock in cache then commet the code below
+    cache_->Release(handle);
+  }
+#ifdef PROCESSANALYSIS
+  auto stop = std::chrono::high_resolution_clock::now();
+  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+//    std::printf("Get from SSTables (not found) time elapse is %zu\n",  duration.count());
+  TableCache::GetTimeElapseSum.fetch_add(duration.count());
+  TableCache::GetNum.fetch_add(1);
+#endif
+  return s;
+}
+
+//TODO(chuqing): nonblock - 4
+Status TableCache::GetAsync(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&,
@@ -292,7 +320,8 @@ Status TableCache::Get(const ReadOptions& options,
     s = t->InternalGet(options, k, arg, handle_result);
 #else
 #ifndef BYTEADDRESSABLE
-    s = t->InternalGetAsync(options, k, arg, handle_result);
+    auto pipe = t->InternalGetAsync(options, k, arg);
+    s = t->InternalGetCallback(options, k, arg, handle_result, &pipe);
 #endif
 //TODO(chuqing): nonblock for byteaddressable?
 #ifdef BYTEADDRESSABLE

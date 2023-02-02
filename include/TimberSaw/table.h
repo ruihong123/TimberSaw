@@ -64,7 +64,8 @@ class TimberSaw_EXPORT Table {
     ibv_mr* contents;
     Cache::Handle* cache_handle;
     Slice key;
-    Block* block;
+    Slice index_value;
+    bool need_blockreader_callback;
   };
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
@@ -122,9 +123,13 @@ class TimberSaw_EXPORT Table {
   Status InternalGet(const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k,
                                            const Slice& v));
-  Status InternalGetAsync (const ReadOptions&, const Slice& key, void* arg,
+  Table::BlockReaderPipe InternalGetAsync (const ReadOptions&, const Slice& key, void* arg);
+  Status InternalGetAsync_temp (const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k,
                                            const Slice& v));
+  Status InternalGetCallback (const ReadOptions&, const Slice& key, void* arg,
+                     void (*handle_result)(void* arg, const Slice& k, const Slice& v),
+                            BlockReaderPipe* pipe);
   void ReadMeta(const Footer& footer);
   void ReadFilter();
 
