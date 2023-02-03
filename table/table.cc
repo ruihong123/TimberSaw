@@ -207,7 +207,7 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
 
 
 //TODO(chuqing): nonblock - 2.1
-Table::AsyncCallbackPipe Table::BlockReaderAsync(void* arg, const ReadOptions& options,
+Version::AsyncCallbackPipe Table::BlockReaderAsync(void* arg, const ReadOptions& options,
                              const Slice& index_value) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
@@ -216,7 +216,7 @@ Table::AsyncCallbackPipe Table::BlockReaderAsync(void* arg, const ReadOptions& o
   BlockHandle handle;
   Slice input = index_value;
   Status s = handle.DecodeFrom(&input);
-  AsyncCallbackPipe res;
+  Version::AsyncCallbackPipe res;
   // We intentionally allow extra stuff in index_value so that we
   // can add more features in the future.
 
@@ -250,14 +250,14 @@ Table::AsyncCallbackPipe Table::BlockReaderAsync(void* arg, const ReadOptions& o
 
 //TODO(chuqing): nonblock - 2.2
 Iterator* Table::BlockReaderCallback(void* arg, const ReadOptions& options,
-                             const Slice& index_value, AsyncCallbackPipe* pipe) {
+                             const Slice& index_value, Version::AsyncCallbackPipe* pipe) {
   Table* table = reinterpret_cast<Table*>(arg);
   Cache* block_cache = table->rep->options.block_cache;
   Block* block = nullptr;
   // Cache::Handle* cache_handle = nullptr;
 
   BlockHandle handle;
-  Slice input = pipe->index_value;
+  Slice input = index_value;
   Status s = handle.DecodeFrom(&input);
   // We intentionally allow extra stuff in index_value so that we
   // can add more features in the future.
@@ -516,9 +516,9 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 }
 
 //TODO(chuqing): nonblock - 3.1 , never called when byteaddressable
-Table::AsyncCallbackPipe Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg) {
+Version::AsyncCallbackPipe Table::InternalGetAsync(const ReadOptions& options, const Slice& k, void* arg) {
   // Status s;
-  AsyncCallbackPipe pipe;
+  Version::AsyncCallbackPipe pipe;
   pipe.need_blockreader_callback = false;
 
   FullFilterBlockReader* filter = rep->filter;
@@ -537,7 +537,7 @@ Table::AsyncCallbackPipe Table::InternalGetAsync(const ReadOptions& options, con
 
       pipe = BlockReaderAsync(this, options, iiter->value());
       pipe.need_blockreader_callback = true;
-      pipe.index_value = iiter->value();
+      pipe.index_value = handle_value;
 
     }else{
       printf("block iterator invalid\n");
@@ -552,7 +552,7 @@ Table::AsyncCallbackPipe Table::InternalGetAsync(const ReadOptions& options, con
 //TODO(chuqing): nonblock - 3.2 , never called when byteaddressable
 Status Table::InternalGetCallback(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&, const Slice&), 
-                          AsyncCallbackPipe* pipe) {
+                          Version::AsyncCallbackPipe* pipe) {
   Status s;
   
   if (pipe->need_blockreader_callback) {

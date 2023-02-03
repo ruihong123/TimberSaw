@@ -16,6 +16,7 @@
 #define STORAGE_TimberSaw_DB_VERSION_SET_H_
 
 
+#include "TimberSaw/cache.h"
 #include "db/dbformat.h"
 #include "db/version_edit.h"
 #include <atomic>
@@ -35,11 +36,13 @@ namespace log {
 class Writer;
 }
 
+class Cache;
 class Compaction;
- class FlushJob;
+class FlushJob;
 class Iterator;
 class MemTable;
 class TableBuilder_ComputeSide;
+class Table;
 class TableCache;
 class Version;
 class VersionSet;
@@ -121,6 +124,18 @@ class Version {
     std::shared_ptr<RemoteMemTableMetaData> seek_file;
     int seek_file_level;
   };
+
+  struct AsyncCallbackPipe {
+    bool tablecache_findtable_ok;
+    bool need_blockreader_callback;
+    ibv_mr* contents;
+    Cache::Handle* cache_handle;
+    Cache::Handle* tablecache_handle;
+    // Table* table;
+    Slice key;
+    Slice index_value;
+    Status tablecache_get_status;
+  };
   
   struct State {
     Saver saver;
@@ -133,13 +148,16 @@ class Version {
     VersionSet* vset;
     Status s;
     bool found;
-
+    AsyncCallbackPipe* pipe;
     // static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   };
+
   State StateCopy(State s_ori);
   Saver SaverCopy(Saver s_ori);
   static bool MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
-  static bool MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
+  State* MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
+  static bool MatchAsync_temp(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
+  static bool MatchCallback(State* state, std::shared_ptr<RemoteMemTableMetaData> f);
   void MatchRequestSend(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f, std::string* buf);
 //  std::shared_ptr<Subversion> subversion;
 
@@ -307,7 +325,7 @@ class Version {
                           bool (*func)(void*, int, std::shared_ptr<RemoteMemTableMetaData>));
 
   void ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* arg);
-  
+  void ForEachOverlappingAsync_temp(Slice user_key, Slice internal_key, void* arg);
   VersionSet* vset_;  // VersionSet to which this Version belongs
   Version* next_;     // Next version in linked list
   Version* prev_;     // Previous version in linked list

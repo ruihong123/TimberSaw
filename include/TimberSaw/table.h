@@ -12,6 +12,7 @@
 #include "TimberSaw/export.h"
 #include "TimberSaw/iterator.h"
 #include "db/version_edit.h"
+#include "db/version_set.h"
 #include "table/full_filter_block.h"
 #include "table/format.h"
 #include "table/block.h"
@@ -25,6 +26,7 @@ struct Options;
 class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
+class Version;
 
 enum Table_Type{block_based, byte_addressable};
 // A Table is a sorted map from strings to strings.  Tables are
@@ -60,17 +62,17 @@ class TimberSaw_EXPORT Table {
 #endif
   };
 
-  struct AsyncCallbackPipe {
-    ibv_mr* contents;
-    Cache::Handle* cache_handle;
-    Cache::Handle* tablecache_handle;
-    Slice key;
-    Slice index_value;
-    Status tablecache_get_status;
-    Table* table;
-    bool tablecache_findtable_ok;
-    bool need_blockreader_callback;
-  };
+  // struct AsyncCallbackPipe {
+  //   bool tablecache_findtable_ok;
+  //   bool need_blockreader_callback;
+  //   ibv_mr* contents;
+  //   Cache::Handle* cache_handle;
+  //   Cache::Handle* tablecache_handle;
+  //   // Table* table;
+  //   Slice key;
+  //   Slice index_value;
+  //   Status tablecache_get_status;
+  // };
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
   // retrieving data from the table.
@@ -116,9 +118,9 @@ class TimberSaw_EXPORT Table {
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
   // static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&); 
-  static AsyncCallbackPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&);
+  static Version::AsyncCallbackPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&);
   static Iterator* BlockReaderCallback(void*, const ReadOptions&, const Slice&,
-                                      AsyncCallbackPipe* pipe);
+                                      Version::AsyncCallbackPipe* pipe);
   explicit Table(Rep* rep) : rep(rep) {}
 
   // Calls (*handle_result)(arg, ...) with the entry found after a call
@@ -127,10 +129,10 @@ class TimberSaw_EXPORT Table {
   Status InternalGet(const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k,
                                            const Slice& v));
-  Table::AsyncCallbackPipe InternalGetAsync (const ReadOptions&, const Slice& key, void* arg);
+  Version::AsyncCallbackPipe InternalGetAsync (const ReadOptions&, const Slice& key, void* arg);
   Status InternalGetCallback (const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k, const Slice& v),
-                            AsyncCallbackPipe* pipe);
+                            Version::AsyncCallbackPipe* pipe);
   void ReadMeta(const Footer& footer);
   void ReadFilter();
 

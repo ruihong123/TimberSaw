@@ -8,6 +8,7 @@
 #define STORAGE_TimberSaw_DB_TABLE_CACHE_H_
 
 #include "db/dbformat.h"
+#include "db/version_set.h"
 #include "db/version_edit.h"
 #include <cstdint>
 #include <string>
@@ -21,6 +22,7 @@
 namespace TimberSaw {
 
 class Env;
+class Version;
 class Table_Memory_Side;
 class TableCache {
  public:
@@ -85,7 +87,7 @@ class TableCache {
              std::shared_ptr<RemoteMemTableMetaData> f, const Slice& k,
              void* arg,
              void (*handle_result)(void*, const Slice&, const Slice&));
-  Table::AsyncCallbackPipe GetAsync(const ReadOptions& options,
+  Version::AsyncCallbackPipe GetAsync(const ReadOptions& options,
              std::shared_ptr<RemoteMemTableMetaData> f, const Slice& k,
              void* arg,
              void (*handle_result)(void*, const Slice&, const Slice&));
@@ -93,7 +95,7 @@ class TableCache {
              std::shared_ptr<RemoteMemTableMetaData> f, const Slice& k,
              void* arg,
              void (*handle_result)(void*, const Slice&, const Slice&),
-             Table::AsyncCallbackPipe* pipe);
+             Version::AsyncCallbackPipe* pipe);
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number, uint8_t creator_node_id);
 

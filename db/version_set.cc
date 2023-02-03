@@ -359,8 +359,7 @@ bool Version::MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMe
   return false;
 }
 
-//TODO(chuqing): nonblock - 5
-bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
+bool Version::MatchAsync_temp(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
   State* state = reinterpret_cast<State*>(arg);
 
   if (state->stats->seek_file == nullptr &&
@@ -372,15 +371,63 @@ bool Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMet
 
   state->last_file_read = f;
   state->last_file_read_level = level;
-#ifndef ASYNC_READ
-  state->s = state->vset->table_cache_->Get(*state->options, f,
-      state->ikey, &state->saver, SaveValue);
-#else
+
   auto pipe = state->vset->table_cache_->GetAsync(*state->options, f,
       state->ikey, &state->saver, SaveValue);
   state->s = state->vset->table_cache_->GetCallback(*state->options, f,
       state->ikey, &state->saver, SaveValue, &pipe);
-#endif
+
+  if (!state->s.ok()) {
+    state->found = true;
+    return false;
+  }
+
+  switch (state->saver.state) {
+    case kNotFound:
+      return true;  // Keep searching in other files
+    case kFound:
+      state->found = true;
+      return false;
+    case kDeleted:
+      return false;
+    case kCorrupt:
+      state->s =
+          Status::Corruption("corrupted key for ", state->saver.user_key);
+      state->found = true;
+      return false;
+  }
+  return false;
+}
+
+//TODO(chuqing): nonblock - 5
+Version::State* Version::MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f) {
+  State* state = reinterpret_cast<State*>(arg);
+
+  if (state->stats->seek_file == nullptr &&
+      state->last_file_read != nullptr) {
+    // We have had more than one seek for this read.  Charge the 1st file.
+    state->stats->seek_file = state->last_file_read;
+    state->stats->seek_file_level = state->last_file_read_level;
+  }
+
+  state->last_file_read = f;
+  state->last_file_read_level = level;
+
+  auto pipe = state->vset->table_cache_->GetAsync(*state->options, f,
+      state->ikey, &state->saver, SaveValue);
+  state->pipe = &pipe;
+
+  return state;
+}
+
+//TODO(chuqing): nonblock - 5.2
+bool Version::MatchCallback(State* state, std::shared_ptr<RemoteMemTableMetaData> f) {
+
+  // Version::AsyncCallbackPipe* pipe = reinterpret_cast<Version::AsyncCallbackPipe*>(state->pipe);
+
+  state->s = state->vset->table_cache_->GetCallback(*state->options, f,
+      state->ikey, &state->saver, SaveValue, state->pipe);
+
   if (!state->s.ok()) {
     state->found = true;
     return false;
@@ -477,13 +524,14 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   if (!tmp.empty()) {
     std::sort(tmp.begin(), tmp.end(), NewestFirst);
     for (uint32_t i = 0; i < tmp.size(); i++) {
-      if (!MatchAsync(arg, 0, tmp[i])) {
+      if (!MatchAsync_temp(arg, 0, tmp[i])) {
         return;
       }
     }
   }
 
   // Search other levels.
+  std::map<int, State*> state_map;
   for (int level = 1; level < config::kNumLevels; level++) {
     size_t num_files = levels_[level].size();
     if (num_files == 0) continue;
@@ -500,18 +548,67 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
 //
 //        }
         // MALLOC NEW BUFFER
-        if (!MatchAsync(arg, level, f)) {
+        auto s = MatchAsync(arg, level, f);
+        auto not_found = MatchCallback(s, f);
+        if(!not_found)
           return;
-        }
+        // state_map.insert({level, s});
       }
     }
   }
   // auto map_iter = future_map.begin();
   // while(map_iter != )
-  // for(auto iter = future_map.begin(); iter != future_map.end(); iter++){
-  //   if(!iter->second.get())
-  //     return;
+  // for(auto iter = state_map.begin(); iter != state_map.end(); iter++){
+  //   auto s = iter->second;
+  //   return;
   // }
+
+}
+
+
+void Version::ForEachOverlappingAsync_temp(Slice user_key, Slice internal_key, void* arg) {
+  const Comparator* ucmp = vset_->icmp_.user_comparator();
+
+  // Search level-0 in order from newest to oldest.
+  std::vector<std::shared_ptr<RemoteMemTableMetaData>> tmp;
+  tmp.reserve(levels_[0].size());
+  for (uint32_t i = 0; i < levels_[0].size(); i++) {
+    std::shared_ptr<RemoteMemTableMetaData> f = levels_[0][i];
+    if (ucmp->Compare(user_key, f->smallest.user_key()) >= 0 &&
+        ucmp->Compare(user_key, f->largest.user_key()) <= 0) {
+      tmp.push_back(f);
+    }
+  }
+  if (!tmp.empty()) {
+    std::sort(tmp.begin(), tmp.end(), NewestFirst);
+    for (uint32_t i = 0; i < tmp.size(); i++) {
+      if (!MatchAsync_temp(arg, 0, tmp[i])) {
+        return;
+      }
+    }
+  }
+
+  // Search other levels.
+  // std::map<int, State*> state_map;
+  for (int level = 1; level < config::kNumLevels; level++) {
+    size_t num_files = levels_[level].size();
+    if (num_files == 0) continue;
+
+    // Binary search to find earliest index whose largest key >= internal_key.
+    uint32_t index = FindFile(vset_->icmp_, levels_[level], internal_key);
+    if (index < num_files) {
+      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][index];
+      if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
+        // All of "f" is past any data for user_key
+      } else {
+
+        if (!MatchAsync_temp(arg, level, f)) {
+          return;
+        }
+        // state_map.insert({level, s});
+      }
+    }
+  }
 
 }
 
@@ -542,7 +639,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
 #ifndef ASYNC_READ
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
 #else
-  ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
+  ForEachOverlappingAsync_temp(state.saver.user_key, state.ikey, &state);
 #endif
   // ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
 

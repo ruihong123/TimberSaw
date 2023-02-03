@@ -302,7 +302,7 @@ Status TableCache::Get(const ReadOptions& options,
 }
 
 //TODO(chuqing): nonblock - 4.1
-Table::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
+Version::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&,
@@ -310,7 +310,7 @@ Table::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
   Cache::Handle* handle = nullptr;
   //TODO: not let concurrent thread finding the same table and inserting the same
   // index block to the table_cache
-  Table::AsyncCallbackPipe pipe;
+  Version::AsyncCallbackPipe pipe;
   Status s = FindTable(f, &handle);
   if (s.ok()) {
 
@@ -321,7 +321,7 @@ Table::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
 #endif
 #ifndef BYTEADDRESSABLE
     pipe = t->InternalGetAsync(options, k, arg);
-    pipe.table = t;
+    // pipe.table = t;
 #endif
 
     pipe.tablecache_findtable_ok = true;
@@ -340,7 +340,7 @@ Status TableCache::GetCallback(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
                        const Slice& k, void* arg,
                        void (*handle_result)(void*, const Slice&, const Slice&),
-                       Table::AsyncCallbackPipe* pipe) {
+                       Version::AsyncCallbackPipe* pipe) {
   // Cache::Handle* handle = nullptr;
   //TODO: not let concurrent thread finding the same table and inserting the same
   // index block to the table_cache
