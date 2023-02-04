@@ -25,9 +25,9 @@ class DBImpl_Sharding : public DB {
   Status Get(const ReadOptions& options, const Slice& key,
              std::string* value) override;
   Iterator* NewIterator(const ReadOptions& options) override;
-#ifdef BYTEADDRESSABLE
-  Iterator* NewSEQIterator(const ReadOptions& options) override;
-#endif
+//#ifdef BYTEADDRESSABLE
+//  Iterator* NewSEQIterator(const ReadOptions& options) override;
+//#endif
   void WaitforAllbgtasks(bool clear_mem) override;
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;

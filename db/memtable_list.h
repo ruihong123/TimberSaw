@@ -432,7 +432,8 @@ class FlushJob {
   Status BuildTable(const std::string& dbname, Env* env, const Options& options,
                     TableCache* table_cache, Iterator* iter,
                     const std::shared_ptr<RemoteMemTableMetaData>& meta,
-                    IO_type type, uint8_t target_node_id);
+                    IO_type type, uint8_t target_node_id,
+                    Table_Type table_type);
 
 };
 // Installs memtable atomic flush results.

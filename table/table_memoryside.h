@@ -9,6 +9,7 @@
 
 #include "TimberSaw/export.h"
 #include "TimberSaw/iterator.h"
+//#include "TimberSaw/table.h"
 #include "db/version_edit.h"
 namespace TimberSaw {
 class Block;
@@ -18,7 +19,7 @@ struct Options;
 class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
-class TimberSaw_EXPORT Table_Memory_Side {
+class TimberSaw_EXPORT Table_Memory_Side{
  public:
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow

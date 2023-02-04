@@ -105,13 +105,13 @@ Iterator* DBImpl_Sharding::NewIterator(const ReadOptions& options) {
 
   return db->NewIterator(options);
 }
-#ifdef BYTEADDRESSABLE
-Iterator* DBImpl_Sharding::NewSEQIterator(const ReadOptions& options) {
-  DBImpl* db = shards_pool.begin()->second;
-
-  return db->NewSEQIterator(options);
-}
-#endif
+//#ifdef BYTEADDRESSABLE
+//Iterator* DBImpl_Sharding::NewSEQIterator(const ReadOptions& options) {
+//  DBImpl* db = shards_pool.begin()->second;
+//
+//  return db->NewSEQIterator(options);
+//}
+//#endif
 const Snapshot* DBImpl_Sharding::GetSnapshot() {
   //TODO: This is vital for the cross shard transaction.
   return nullptr;

@@ -105,8 +105,13 @@ Options SanitizeOptions(const std::string& dbname,
 }
 
 static int TableCacheSize(const Options& sanitized_options) {
+#if TABLE_STRATEGY==2
+  return sanitized_options.max_table_cache_size;
+#else
   // Reserve ten files or so for other uses and give the rest to TableCache.
   return sanitized_options.max_open_files - kNumNonTableCacheFiles;
+#endif
+
 }
 SuperVersion::~SuperVersion() {
   for (auto td : to_delete) {
@@ -828,8 +833,16 @@ Status DBImpl::WriteLevel0Table(FlushJob* job, VersionEdit* edit) {
   Status s;
   {
 //    undefine_mutex.Unlock();
-    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta, Flush,
-                    shard_target_node_id);
+#if TABLE_STRATEGY==0
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta,
+                        Flush, shard_target_node_id, block_based);
+#elif  TABLE_STRATEGY==1
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta,
+                        Flush, shard_target_node_id, byte_addressable);
+#else
+    s = job->BuildTable(dbname_, env_, options_, table_cache_, iter, meta,
+                        Flush, shard_target_node_id, byte_addressable);
+#endif
 //    undefine_mutex.Lock();
   }
 //  printf("remote table use count after building %ld\n", meta.use_count());
@@ -1548,8 +1561,9 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
       // We may still use the dynamic available core number here because, the frontend reader and writer can eat up the CPU resources,
       // static core numbers is too optimistic.
+//      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
+      final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
 
-      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
       final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
 
     }
@@ -1589,7 +1603,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     if (dynamic_remote_available_core > 0.5){
       // supposing the remote computing power is enough.
       return true;
-    }else if (dynamic_compute_available_core/rdma_mg->local_compute_core_number > 0.2 && !rdma_mg->local_compaction_issued.load() ){
+    }else if (dynamic_compute_available_core > 0.9 && !rdma_mg->local_compaction_issued.load() ){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
       rdma_mg->local_compaction_issued.store(true);
@@ -1610,6 +1624,40 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
   return false;
 #else
   return true;
+#endif
+
+}
+bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
+#if TABLE_STRATEGY==0
+  return false;
+#elif TABLE_STRATEGY==1
+  return true;
+#else
+  size_t A_space = table_cache_->CheckAvailableSpace();
+  if (A_space > 512ull*1024ull*1024ull){
+    return true;
+  }else if (static_cast<double>(A_space)*(static_cast<double>(config::kNumLevels)- static_cast<double>(compact->level()))/(config::kNumLevels) <= 256ull*1024*1024 ){
+    //The score funciton is explain as below:
+    // if the available space is smaller than 0.5 GB then the coordinator
+    return false;
+  }else{
+    return true;
+  }
+
+
+//  if(util + static_cast<double>(compact->level())/config::kNumLevels*0.1 <0.95){
+//
+//  }else if (util + static_cast<double>(compact->level())/config::kNumLevels*0.1 <0.96)
+//  if (byte_addressable_boundary == -1)[[unlikely]]{
+//    byte_addressable_boundary = versions_->top_level;
+//  }
+//  if (compact->level() >= byte_addressable_boundary-1){
+//    return true;
+//  }
+//  if (util >0.95){
+//
+//  }
+
 #endif
 
 }
@@ -1658,10 +1706,13 @@ void DBImpl::BackgroundCompaction(void* p) {
       // Nothing to do
     } else {
       bool need_push_down = CheckWhetherPushDownorNot(c);
-      if (c->level() == 0){
-
+      if(CheckByteaddressableOrNot(c)){
+        c->table_type = byte_addressable;
+      }else{
+        c->table_type = block_based;
       }
-      
+
+//      versions_->table_cache_.
       if (!is_manual && c->IsTrivialMove()) {
         // Move file to next level
         assert(c->num_input_files(0) == 1);
@@ -1816,13 +1867,14 @@ Status DBImpl::OpenCompactionOutputFile(SubcompactionState* compact) {
 //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-#ifndef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_ComputeSide(
-        options_, Compact, shard_target_node_id);
-#endif
-#ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
-#endif
+    if (compact->compaction->table_type == block_based){
+      compact->builder = new TableBuilder_ComputeSide(
+          options_, Compact, shard_target_node_id);
+    }else{
+      compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
+
+    }
+
   }
   return s;
 }
@@ -1847,13 +1899,14 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
 //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-#ifndef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_ComputeSide(
-        options_, Compact, shard_target_node_id);
-#endif
-#ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
-#endif
+    if (compact->compaction->table_type == block_based){
+      printf("Create block based SSTables\n");
+      compact->builder = new TableBuilder_ComputeSide(
+          options_, Compact, shard_target_node_id);
+    }else{
+      compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
+
+    }
   }
   return s;
 }
@@ -2011,6 +2064,7 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
       meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
       meta->remote_filter_mrs = out.remote_filter_mrs;
       compact->compaction->edit()->AddFile(level + 1, meta);
+      meta->table_type = compact->compaction->table_type;
       assert(!meta->UnderCompaction);
     }
   }else{
@@ -2028,6 +2082,8 @@ Status DBImpl::InstallCompactionResults(CompactionState* compact,
         meta->remote_data_mrs = out.remote_data_mrs;
         meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
         meta->remote_filter_mrs = out.remote_filter_mrs;
+        meta->table_type = compact->compaction->table_type;
+
         compact->compaction->edit()->AddFile(level + 1, meta);
         assert(!meta->UnderCompaction);
       }
@@ -3170,6 +3226,23 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
     InstallSuperVersion();
   }
 
+  if (status.ok()) {
+    for(const auto& iter : *compact->compaction->edit()->GetNewFiles()){
+      Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), iter.second);
+      status = it->status();
+      delete it;
+    }
+    // Verify that the table is usable
+    //#ifndef NDEBUG
+    //      it->SeekToFirst();
+    //      size_t counter = 0;
+    //      while(it->Valid()){
+    //        counter++;
+    //        it->Next();
+    //      }
+    //      assert(counter = Not_drop_counter);
+    //#endif
+  }
 
   if (!status.ok()) {
     RecordBackgroundError(status);
@@ -3543,6 +3616,25 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
     InstallSuperVersion();
   }
   undefine_mutex.Unlock();
+
+  if (status.ok()) {
+    for(const auto& iter : *compact->compaction->edit()->GetNewFiles()){
+      Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), iter.second);
+      status = it->status();
+      delete it;
+    }
+    // Verify that the table is usable
+    //#ifndef NDEBUG
+    //      it->SeekToFirst();
+    //      size_t counter = 0;
+    //      while(it->Valid()){
+    //        counter++;
+    //        it->Next();
+    //      }
+    //      assert(counter = Not_drop_counter);
+    //#endif
+  }
+
   if (!status.ok()) {
     RecordBackgroundError(status);
   }
@@ -3641,76 +3733,74 @@ Iterator* DBImpl::NewInternalIterator(const ReadOptions& options,
   ReturnAndCleanupSuperVersion(sv);
   return internal_iter;
 }
-#ifdef BYTEADDRESSABLE
-Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
-                                      SequenceNumber* latest_snapshot,
-                                      uint32_t* seed) {
-  SequenceNumber snapshot;
-  *latest_snapshot = versions_->LastSequence();
-  // TODO: make the user defined snapshot work. THe superversion should be confirmed when
-  // creating the snapshot.
-  SuperVersion* sv;
-  if (options.snapshot != nullptr) {
-    snapshot =
-        static_cast<const SnapshotImpl*>(options.snapshot)->sequence_number();
-
-  } else {
-    snapshot = versions_->LastSequence();
-    sv = GetThreadLocalSuperVersion();
-
-  }
-
-  MemTable* mem = sv->mem;
-  MemTableListVersion* imm = sv->imm;
-  Version* current = sv->current;
-  // The iterator will can not use superversion, becuase the iterator can exist,
-  // for a long time. while we have to return the superversion by the end of this
-  // function. Otherwise we can not get the superversion out side this funciton.
-  // THe superversion can not exist in such a long existing class. THe fundamental
-  // reason is that the superverison can not be gotten twice without return.
-  mem->Ref();
-  imm->Ref();
-  current->Ref(7);
-
-  //  if (sv != nullptr){
-  //    sv->Ref();
-  //    if (sv == super_version.load()){// there is no superversion change between.
-  //      MemTable* mem = sv->mem;
-  //      MemTableListVersion* imm = sv->imm;
-  //      Version* current = sv->current;
-  //      mem->Ref();
-  //      if (imm != nullptr) imm->Ref();
-  //      current->Ref();
-  //    }else{
-  //      sv->Unref();
-  //    }
-  //
-  //  }
-  bool have_stat_update = false;
-  Version::GetStats stats;
-  // Collect together all needed child iterators
-  std::vector<Iterator*> list;
-  list.push_back(mem->NewIterator());
+//Iterator* DBImpl::NewInternalSEQIterator(const ReadOptions& options,
+//                                      SequenceNumber* latest_snapshot,
+//                                      uint32_t* seed) {
+//  SequenceNumber snapshot;
+//  *latest_snapshot = versions_->LastSequence();
+//  // TODO: make the user defined snapshot work. THe superversion should be confirmed when
+//  // creating the snapshot.
+//  SuperVersion* sv;
+//  if (options.snapshot != nullptr) {
+//    snapshot =
+//        static_cast<const SnapshotImpl*>(options.snapshot)->sequence_number();
+//
+//  } else {
+//    snapshot = versions_->LastSequence();
+//    sv = GetThreadLocalSuperVersion();
+//
+//  }
+//
+//  MemTable* mem = sv->mem;
+//  MemTableListVersion* imm = sv->imm;
+//  Version* current = sv->current;
+//  // The iterator will can not use superversion, becuase the iterator can exist,
+//  // for a long time. while we have to return the superversion by the end of this
+//  // function. Otherwise we can not get the superversion out side this funciton.
+//  // THe superversion can not exist in such a long existing class. THe fundamental
+//  // reason is that the superverison can not be gotten twice without return.
 //  mem->Ref();
-  //  imm
-  imm->AddIteratorsToList(&list);
-  current->AddSEQIterators(options, &list);
-  Iterator* internal_iter =
-      NewMergingIterator(&internal_comparator_, &list[0], list.size());
-//  versions_->current()->Ref(0);
-
-  IterState* cleanup = new IterState(&undefine_mutex, mem, imm, current);
-  internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
-
-  *seed = ++seed_;
-  //  undefine_mutex.Unlock();
-  if (options.snapshot == nullptr){
-    ReturnAndCleanupSuperVersion(sv);
-  }
-
-  return internal_iter;
-}
-#endif
+//  imm->Ref();
+//  current->Ref(7);
+//
+//  //  if (sv != nullptr){
+//  //    sv->Ref();
+//  //    if (sv == super_version.load()){// there is no superversion change between.
+//  //      MemTable* mem = sv->mem;
+//  //      MemTableListVersion* imm = sv->imm;
+//  //      Version* current = sv->current;
+//  //      mem->Ref();
+//  //      if (imm != nullptr) imm->Ref();
+//  //      current->Ref();
+//  //    }else{
+//  //      sv->Unref();
+//  //    }
+//  //
+//  //  }
+//  bool have_stat_update = false;
+//  Version::GetStats stats;
+//  // Collect together all needed child iterators
+//  std::vector<Iterator*> list;
+//  list.push_back(mem->NewIterator());
+////  mem->Ref();
+//  //  imm
+//  imm->AddIteratorsToList(&list);
+//  current->AddSEQIterators(options, &list);
+//  Iterator* internal_iter =
+//      NewMergingIterator(&internal_comparator_, &list[0], list.size());
+////  versions_->current()->Ref(0);
+//
+//  IterState* cleanup = new IterState(&undefine_mutex, mem, imm, current);
+//  internal_iter->RegisterCleanup(CleanupIteratorState, cleanup, nullptr);
+//
+//  *seed = ++seed_;
+//  //  undefine_mutex.Unlock();
+//  if (options.snapshot == nullptr){
+//    ReturnAndCleanupSuperVersion(sv);
+//  }
+//
+//  return internal_iter;
+//}
 
 Iterator* DBImpl::TEST_NewInternalIterator() {
   SequenceNumber ignored;
@@ -3779,19 +3869,19 @@ Iterator* DBImpl::NewIterator(const ReadOptions& options) {
                             : latest_snapshot),
                        seed);
 }
-#ifdef BYTEADDRESSABLE
-Iterator* DBImpl::NewSEQIterator(const ReadOptions& options) {
-  SequenceNumber latest_snapshot;
-  uint32_t seed;
-  Iterator* iter = NewInternalSEQIterator(options, &latest_snapshot, &seed);
-  return NewDBIterator(this, user_comparator(), iter,
-                       (options.snapshot != nullptr
-                            ? static_cast<const SnapshotImpl*>(options.snapshot)
-                                  ->sequence_number()
-                            : latest_snapshot),
-                       seed);
-}
-#endif
+//#ifdef BYTEADDRESSABLE
+//Iterator* DBImpl::NewSEQIterator(const ReadOptions& options) {
+//  SequenceNumber latest_snapshot;
+//  uint32_t seed;
+//  Iterator* iter = NewInternalSEQIterator(options, &latest_snapshot, &seed);
+//  return NewDBIterator(this, user_comparator(), iter,
+//                       (options.snapshot != nullptr
+//                            ? static_cast<const SnapshotImpl*>(options.snapshot)
+//                                  ->sequence_number()
+//                            : latest_snapshot),
+//                       seed);
+//}
+//#endif
 void DBImpl::RecordReadSample(Slice key) {
   MutexLock l(&undefine_mutex);
   if (versions_->current()->RecordReadSample(key)) {

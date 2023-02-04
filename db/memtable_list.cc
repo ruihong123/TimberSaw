@@ -829,7 +829,8 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
                             const Options& options, TableCache* table_cache,
                             Iterator* iter,
                             const std::shared_ptr<RemoteMemTableMetaData>& meta,
-                            IO_type type, uint8_t target_node_id) {
+                            IO_type type, uint8_t target_node_id,
+                            Table_Type table_type) {
   Status s;
 //  meta->file_size = 0;
   iter->SeekToFirst();
@@ -840,13 +841,15 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
   ParsedInternalKey ikey;
   std::string current_user_key;
   bool has_current_user_key = false;
+  TableBuilder* builder;
   if (iter->Valid()) {
-#ifndef BYTEADDRESSABLE
-    auto* builder = new TableBuilder_ComputeSide(options, type, target_node_id);
-#endif
-#ifdef BYTEADDRESSABLE
-    auto* builder = new TableBuilder_BACS(options, type, target_node_id);
-#endif
+    if (table_type == block_based){
+      builder = new TableBuilder_ComputeSide(options, type, target_node_id);
+
+    } else{
+      builder = new TableBuilder_BACS(options, type, target_node_id);
+    }
+    meta->table_type = table_type;
     meta->smallest.DecodeFrom(iter->key());
     Slice key;
     for (; iter->Valid(); iter->Next()) {
@@ -917,21 +920,21 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 //#endif
 
     // The index checking below is supposed to be deleted.
-//    if (s.ok()) {
-//      // Verify that the table is usable
-//      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
-//      s = it->status();
-////#ifndef NDEBUG
-////      it->SeekToFirst();
-////      size_t counter = 0;
-////      while(it->Valid()){
-////        counter++;
-////        it->Next();
-////      }
-////      assert(counter = Not_drop_counter);
-////#endif
-//      delete it;
-//    }
+    if (s.ok()) {
+      // Verify that the table is usable
+      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
+      s = it->status();
+//#ifndef NDEBUG
+//      it->SeekToFirst();
+//      size_t counter = 0;
+//      while(it->Valid()){
+//        counter++;
+//        it->Next();
+//      }
+//      assert(counter = Not_drop_counter);
+//#endif
+      delete it;
+    }
   }
 
   // Check for input iterator errors

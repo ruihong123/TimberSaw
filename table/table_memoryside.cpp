@@ -42,6 +42,8 @@ struct Table_Memory_Side::Rep {
 
   BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
   Block* index_block;
+//  Table_Type table_type = byte_addressable;
+
 };
 
 Status Table_Memory_Side::Open(const Options& options, Table_Memory_Side** table,
@@ -206,16 +208,16 @@ Slice Table_Memory_Side::KVReader(void* arg, const ReadOptions& options,
 }
 
 Iterator* Table_Memory_Side::NewIterator(const ReadOptions& options) const {
-#ifndef BYTEADDRESSABLE
-  return NewTwoLevelIterator(
-      rep->index_block->NewIterator(rep->options.comparator),
-      &Table_Memory_Side::BlockReader, const_cast<Table_Memory_Side*>(this), options);
-#endif
-#ifdef BYTEADDRESSABLE
-  return new ByteAddressableRAIterator(
-      rep->index_block->NewIterator(rep->options.comparator),
-      &Table_Memory_Side::KVReader, const_cast<Table_Memory_Side*>(this), options, false);
-#endif
+  if (rep->remote_table->table_type == block_based){
+      return NewTwoLevelIterator(
+          rep->index_block->NewIterator(rep->options.comparator),
+          &Table_Memory_Side::BlockReader, const_cast<Table_Memory_Side*>(this), options);
+  }else{
+          return new ByteAddressableRAIterator(
+                     rep->index_block->NewIterator(rep->options.comparator),
+                     &Table_Memory_Side::KVReader, const_cast<Table_Memory_Side*>(this), options, false);
+  }
+
 }
 
 Status Table_Memory_Side::InternalGet(const ReadOptions& options, const Slice& k, void* arg,

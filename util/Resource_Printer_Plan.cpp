@@ -235,15 +235,23 @@ double Resource_Printer_PlanB::getCurrentValue() {
     percent = (timeSample.tms_stime - lastSysCPU) +
               (timeSample.tms_utime - lastUserCPU);
     percent /= (now - lastCPU);
-    percent /= numa_bind_core_num;
+    percent /= numa_bind_core_num*1.16;// The 1.16 is a calibration parameter, I found the CPU utilization can acheive as high as 116.
     percent *= 100;
   }
   lastCPU = now;
   lastSysCPU = timeSample.tms_stime;
   lastUserCPU = timeSample.tms_utime;
   
-  if (percent > 0.0)
+  if (percent > 0.0){
+#ifdef CALCULATE_MAX_UTIL
+    if (max_util < percent){
+      max_util = static_cast<double>(percent);
+      printf("Max utilization is %f\n", max_util);
+    }
+#endif
     current_percent = percent;
+  }
+
   return static_cast<double>(percent);
 
 }

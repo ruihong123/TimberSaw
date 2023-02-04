@@ -52,11 +52,11 @@ class TableCache {
   Iterator* NewIterator(const ReadOptions& options,
                         std::shared_ptr<RemoteMemTableMetaData> remote_table,
                         Table** tableptr = nullptr);
-#ifdef BYTEADDRESSABLE
-  Iterator* NewSEQIterator(const ReadOptions& options,
-                        std::shared_ptr<RemoteMemTableMetaData> remote_table,
-                        Table** tableptr = nullptr);
-#endif
+//#ifdef BYTEADDRESSABLE
+//  Iterator* NewSEQIterator(const ReadOptions& options,
+//                        std::shared_ptr<RemoteMemTableMetaData> remote_table,
+//                        Table** tableptr = nullptr);
+//#endif
   Iterator* NewIterator_MemorySide(const ReadOptions& options,
                         const std::shared_ptr<RemoteMemTableMetaData>& remote_table,
       Table_Memory_Side** tableptr = nullptr);
@@ -88,7 +88,14 @@ class TableCache {
 
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number, uint8_t creator_node_id);
-
+  double CheckUtilizaitonOfCache(){
+    double util = static_cast<double>(cache_->TotalCharge())/ static_cast<double>(cache_->GetCapacity());
+    return util;
+  }
+  size_t CheckAvailableSpace(){
+    double size = static_cast<double>(cache_->GetCapacity()) - static_cast<double>(cache_->TotalCharge());
+    return size;
+  }
  private:
   Status FindTable(const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,
                    Cache::Handle** handle);

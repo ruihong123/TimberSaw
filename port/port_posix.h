@@ -93,8 +93,10 @@
 #define WITHMEMORYVERSIONSET
 //#define WITHPERSISTENCE
 //#define PROCESSANALYSIS
-//#define BYTEADDRESSABLE
-#define NEARDATACOMPACTION 0 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
+#define BYTEADDRESSABLE
+#define TABLE_STRATEGY 2 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive accoring to local cache size limit.
+#define USESEQITERATOR
+#define NEARDATACOMPACTION 2 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
 #define PERFECT_THREAD_NUMBER_FOR_BGTHREADS
 //#define ASYNC_READ
 //#define GETANALYSIS

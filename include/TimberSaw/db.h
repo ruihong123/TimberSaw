@@ -96,11 +96,11 @@ class TimberSaw_EXPORT DB {
   // Caller should delete the iterator when it is no longer needed.
   // The returned iterator should be deleted before this db is deleted.
   virtual Iterator* NewIterator(const ReadOptions& options) = 0;
-#ifdef BYTEADDRESSABLE
-  //Sequential access iterator for byteaddressable iterator, only
-  // support forward direction now.
-  virtual Iterator* NewSEQIterator(const ReadOptions& options) {};
-#endif
+//#ifdef BYTEADDRESSABLE
+//  //Sequential access iterator for byteaddressable iterator, only
+//  // support forward direction now.
+//  virtual Iterator* NewSEQIterator(const ReadOptions& options) {};
+//#endif
   // Return a handle to the current DB state.  Iterators created with
   // this handle will all observe a stable snapshot of the current DB
   // state.  The caller must call ReleaseSnapshot(result) when the

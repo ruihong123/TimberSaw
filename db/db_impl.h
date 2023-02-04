@@ -97,9 +97,9 @@ class DBImpl : public DB {
   Status Get(const ReadOptions& options, const Slice& key,
              std::string* value) override;
   Iterator* NewIterator(const ReadOptions&) override;
-#ifdef BYTEADDRESSABLE
-  Iterator* NewSEQIterator(const ReadOptions&) override;
-#endif
+//#ifdef BYTEADDRESSABLE
+//  Iterator* NewSEQIterator(const ReadOptions&) override;
+//#endif
   const Snapshot* GetSnapshot() override;
   void ReleaseSnapshot(const Snapshot* snapshot) override;
   // Chuqing: 
@@ -168,11 +168,11 @@ class DBImpl : public DB {
   Iterator* NewInternalIterator(const ReadOptions&,
                                 SequenceNumber* latest_snapshot,
                                 uint32_t* seed);
-#ifdef BYTEADDRESSABLE
-  Iterator* NewInternalSEQIterator(const ReadOptions&,
-                                SequenceNumber* latest_snapshot,
-                                uint32_t* seed);
-#endif
+//#ifdef BYTEADDRESSABLE
+//  Iterator* NewInternalSEQIterator(const ReadOptions&,
+//                                SequenceNumber* latest_snapshot,
+//                                uint32_t* seed);
+//#endif
   Status NewDB();
 
   // Recover the descriptor from persistent storage.  May do a significant
@@ -213,6 +213,7 @@ class DBImpl : public DB {
   void BackgroundFlush(void* p);
   void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
   bool CheckWhetherPushDownorNot(Compaction* compact);
+  bool CheckByteaddressableOrNot(Compaction* compact);
   long double RequestRemoteUtilization();
 //  void ActivateRemoteCPURefresh();
   void CleanupCompaction(CompactionState* compact)
@@ -271,7 +272,7 @@ class DBImpl : public DB {
 
   // table_cache_ provides its own synchronization
   TableCache* const table_cache_;
-
+  int byte_addressable_boundary= -1;
   // Lock over the persistent DB state.  Non-null iff successfully acquired.
   FileLock* db_lock_;
   std::atomic<bool> mem_switching;

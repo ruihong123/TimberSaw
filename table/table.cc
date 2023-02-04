@@ -52,9 +52,6 @@ Status Table::Open(const Options& options, Table** table,
     rep->remote_table = Remote_table_meta;
 //    rep->metaindex_handle = footer.metaindex_handle();
     rep->index_block = index_block;
-#ifdef BYTEADDRESSABLE
-//    rep->index_iter = rep->index_block->NewIterator(rep->options.comparator);
-#endif
     assert(rep->index_block->size() > 0);
     rep->cache_id = (options.block_cache ? options.block_cache->NewId() : 0);
 //    rep->filter_data = nullptr;
@@ -313,27 +310,26 @@ Slice Table::KVReader(void* arg, const ReadOptions& options,
 }
 
 Iterator* Table::NewIterator(const ReadOptions& options) const {
-#ifndef BYTEADDRESSABLE
-  return NewTwoLevelIterator(
-      rep->index_block->NewIterator(rep->options.comparator),
-      &Table::BlockReader, const_cast<Table*>(this), options);
+  if (rep->remote_table.lock()->table_type == byte_addressable){
+#ifdef USESEQITERATOR
+    return new ByteAddressableSEQIterator(
+        rep->index_block->NewIterator(rep->options.comparator),
+        const_cast<Table*>(this), options, true);
+#else
+    return new ByteAddressableRAIterator(
+        rep->index_block->NewIterator(rep->options.comparator),
+        &Table::KVReader, const_cast<Table*>(this), options, true);
 #endif
-#ifdef BYTEADDRESSABLE
-  return new ByteAddressableRAIterator(
-      rep->index_block->NewIterator(rep->options.comparator),
-      &Table::KVReader, const_cast<Table*>(this), options, true);
-#endif
-}
-#ifdef BYTEADDRESSABLE
-Iterator* Table::NewSEQIterator(const ReadOptions& options) const {
-
-
-  return new ByteAddressableSEQIterator(
-      rep->index_block->NewIterator(rep->options.comparator),
-      const_cast<Table*>(this), options, true);
+  }else{
+    return NewTwoLevelIterator(
+        rep->index_block->NewIterator(rep->options.comparator),
+        &Table::BlockReader, const_cast<Table*>(this), options);
+  }
 
 }
-#endif
+//Iterator* Table::NewSEQIterator(const ReadOptions& options) const {
+//
+//}
 Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
                           void (*handle_result)(void*, const Slice&,
                                                 const Slice&)) {
@@ -376,120 +372,116 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
     }
 #endif
   } else {
-#ifndef BYTEADDRESSABLE
-    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
+    if (rep->remote_table.lock()->table_type == block_based){
+      Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
 #ifdef PROCESSANALYSIS
-    auto start = std::chrono::high_resolution_clock::now();
+      auto start = std::chrono::high_resolution_clock::now();
 #endif
-    iiter->Seek(k);//binary search for block index
+      iiter->Seek(k);//binary search for block index
 #ifdef PROCESSANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-    TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+      TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
-    if (iiter->Valid()) {
+      if (iiter->Valid()) {
 
-      Slice handle_value = iiter->value();
+        Slice handle_value = iiter->value();
 
-      BlockHandle handle;
+        BlockHandle handle;
 #ifdef PROCESSANALYSIS
-      TableCache::not_filtered.fetch_add(1);
+        TableCache::not_filtered.fetch_add(1);
 
-      start = std::chrono::high_resolution_clock::now();
+        start = std::chrono::high_resolution_clock::now();
 #endif
-      Iterator* block_iter = BlockReader(this, options, iiter->value());
+        Iterator* block_iter = BlockReader(this, options, iiter->value());
 #ifdef PROCESSANALYSIS
-      stop = std::chrono::high_resolution_clock::now();
-      duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-      TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+        TableCache::DataBlockFetchBeforeCacheElapseSum.fetch_add(duration.count());
 #endif
 #ifdef PROCESSANALYSIS
-      start = std::chrono::high_resolution_clock::now();
+        start = std::chrono::high_resolution_clock::now();
 #endif
-      block_iter->Seek(k);
+        block_iter->Seek(k);
 #ifdef PROCESSANALYSIS
-      stop = std::chrono::high_resolution_clock::now();
-      duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-//    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-      TableCache::DataBinarySearchTimeElapseSum.fetch_add(duration.count());
+        stop = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+        //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+        TableCache::DataBinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
-      if (block_iter->Valid()) {
-        (*handle_result)(arg, block_iter->key(), block_iter->value());
-        assert(*block_iter->key().data() == 0);
+        if (block_iter->Valid()) {
+          (*handle_result)(arg, block_iter->key(), block_iter->value());
+          assert(*block_iter->key().data() == 0);
+        }
+        s = block_iter->status();
+        delete block_iter;
+
+#ifdef PROCESSANALYSIS
+        Saver* saver = reinterpret_cast<Saver*>(arg);
+        if(saver->state == kFound){
+          TableCache::foundNum.fetch_add(1);
+        }
+#endif
+
+      }else{
+        printf("block iterator invalid\n");
+        exit(1);
       }
-      s = block_iter->status();
-      delete block_iter;
-
-#ifdef PROCESSANALYSIS
-      Saver* saver = reinterpret_cast<Saver*>(arg);
-      if(saver->state == kFound){
-        TableCache::foundNum.fetch_add(1);
-      }
-#endif
-
+      delete iiter;
     }else{
-      printf("block iterator invalid\n");
-      exit(1);
-    }
-    delete iiter;
-#endif
-#ifdef BYTEADDRESSABLE
 #ifdef PROCESSANALYSIS
-    auto start = std::chrono::high_resolution_clock::now();
-    TableCache::not_filtered.fetch_add(1);
+      auto start = std::chrono::high_resolution_clock::now();
+      TableCache::not_filtered.fetch_add(1);
 #endif
 
-//    Iterator* iter = NewIterator(options);
-//    iter->Seek(k);
-    // todo: Can we directly search by the index block without create a iterator?
-    Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
-    iiter->Seek(k);
+      //    Iterator* iter = NewIterator(options);
+      //    iter->Seek(k);
+      // todo: Can we directly search by the index block without create a iterator?
+      Iterator* iiter = rep->index_block->NewIterator(rep->options.comparator);
+      iiter->Seek(k);
 #ifdef PROCESSANALYSIS
-    auto stop = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
-    //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
-    TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
+      auto stop = std::chrono::high_resolution_clock::now();
+      auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
+      //    std::printf("Block Reader time elapse is %zu\n",  duration.count());
+      TableCache::IndexBinarySearchTimeElapseSum.fetch_add(duration.count());
 #endif
-    if (iiter->Valid()){
-      Slice handle = iiter->value();
-      BlockHandle bhandle;
-      bhandle.DecodeFrom(&handle);
+      if (iiter->Valid()){
+        Slice handle = iiter->value();
+        BlockHandle bhandle;
+        bhandle.DecodeFrom(&handle);
 
-//      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
+        //      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
 
-      auto rdma_mg = Env::Default()->rdma_mg;
-      Slice KV;
-      Slice key;
-      Slice value;
-      auto table_meta = rep->remote_table.lock();
+        auto rdma_mg = Env::Default()->rdma_mg;
+        Slice KV;
+        Slice key;
+        Slice value;
+        auto table_meta = rep->remote_table.lock();
 
-      s = ReadKVPair(&table_meta->remote_data_mrs, options,
-                     bhandle, &KV, table_meta->shard_target_node_id);
+        s = ReadKVPair(&table_meta->remote_data_mrs, options,
+                       bhandle, &KV, table_meta->shard_target_node_id);
 
-      char* mr_addr = (char*)KV.data();
-      uint32_t key_size, value_size;
-      GetFixed32(&KV, &key_size);
-      GetFixed32(&KV, &value_size);
-      assert(key_size + value_size == KV.size());
+        char* mr_addr = (char*)KV.data();
+        uint32_t key_size, value_size;
+        GetFixed32(&KV, &key_size);
+        GetFixed32(&KV, &value_size);
+        assert(key_size + value_size == KV.size());
 
 
-      key = Slice(KV.data(), key_size);
-      KV.remove_prefix(key_size);
-      assert(KV.size() == value_size);
-      value = KV;
-      (*handle_result)(arg, key, value);
-//      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
+        key = Slice(KV.data(), key_size);
+        KV.remove_prefix(key_size);
+        assert(KV.size() == value_size);
+        value = KV;
+        (*handle_result)(arg, key, value);
+        //      rdma_mg->Deallocate_Local_RDMA_Slot(mr_addr, DataChunk);
+      }
+      delete iiter;
+
     }
-    delete iiter;
 
-//    if (iter->Valid()) {
-//      (*handle_result)(arg, iter->key(), iter->value());
-//    }
-//    s = iter->status();
-//    delete iter;
-#endif
+
   }
 
   return s;

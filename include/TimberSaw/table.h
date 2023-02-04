@@ -24,7 +24,7 @@ class RandomAccessFile;
 struct ReadOptions;
 class TableCache;
 
-enum Table_Type{block_based, byte_addressable};
+
 // A Table is a sorted map from strings to strings.  Tables are
 // immutable and persistent.  A Table may be safely accessed from
 // multiple threads without external synchronization.
@@ -51,11 +51,11 @@ class TimberSaw_EXPORT Table {
 
     BlockHandle metaindex_handle;  // Handle to metaindex_block: saved from footer
     Block* index_block;
-    Table_Type table_type = byte_addressable;
-#ifdef BYTEADDRESSABLE
+//    Table_Type table_type = byte_addressable;
+//#ifdef BYTEADDRESSABLE
 //    Iterator* index_iter;
 //    ThreadLocalPtr* mr_addr;
-#endif
+//#endif
   };
   // Attempt to open the table that is stored in bytes [0..file_size)
   // of "file", and read the metadata entries necessary to allow
@@ -81,10 +81,10 @@ class TimberSaw_EXPORT Table {
   // The result of NewIterator() is initially invalid (caller must
   // call one of the Seek methods on the iterator before using it).
   Iterator* NewIterator(const ReadOptions&) const;
-#ifdef BYTEADDRESSABLE
-  Iterator* NewSEQIterator(const ReadOptions&) const;
+  size_t GetIndexAndMetaSize(){return rep->index_block->size() + rep->filter->filter_content.size();}
+//  Iterator* NewSEQIterator(const ReadOptions&) const;
 //  void GetKV(Iterator* iiter);
-#endif
+
   // Given a key, return an approximate byte offset in the file where
   // the data for that key begins (or would begin if the key were
   // present in the file).  The returned value is in terms of file

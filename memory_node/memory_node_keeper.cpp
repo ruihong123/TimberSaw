@@ -24,7 +24,11 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
       descriptor_file(nullptr),
       descriptor_log(nullptr),
       usesubcompaction(use_sub_compaction),
+#if TABLE_STRATEGY==2
+      table_cache_(new TableCache("home_node", *opts, opts->max_table_cache_size)),
+#else
       table_cache_(new TableCache("home_node", *opts, opts->max_open_files)),
+#endif
       versions_(new VersionSet("home_node", opts.get(), table_cache_,
                                &internal_comparator_, &mtx_temp))
 {
@@ -1030,14 +1034,14 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(SubcompactionState* compact)
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-#ifndef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_Memoryside(
-        *opts, Compact, rdma_mg);
-#endif
-#ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BAMS(
-        *opts, Compact, rdma_mg);
-#endif
+    if (compact->compaction->table_type == block_based){
+      compact->builder = new TableBuilder_Memoryside(
+          *opts, Compact, rdma_mg);
+    }else{
+      compact->builder = new TableBuilder_BAMS(
+          *opts, Compact, rdma_mg);
+    }
+
   }
   return s;
 }
@@ -1063,14 +1067,13 @@ Status Memory_Node_Keeper::OpenCompactionOutputFile(CompactionState* compact) {
   //  Status s = env_->NewWritableFile(fname, &compact->outfile);
   Status s = Status::OK();
   if (s.ok()) {
-#ifndef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_Memoryside(
-        *opts, Compact, rdma_mg);
-#endif
-#ifdef BYTEADDRESSABLE
-    compact->builder = new TableBuilder_BAMS(
-        *opts, Compact, rdma_mg);
-#endif
+    if (compact->compaction->table_type == block_based){
+      compact->builder = new TableBuilder_Memoryside(
+          *opts, Compact, rdma_mg);
+    }else{
+      compact->builder = new TableBuilder_BAMS(
+          *opts, Compact, rdma_mg);
+    }
   }
 //  printf("rep_ is %p", compact->builder->get_filter_map())
   return s;
@@ -1300,6 +1303,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
       meta->remote_data_mrs = out.remote_data_mrs;
       meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
       meta->remote_filter_mrs = out.remote_filter_mrs;
+      meta->table_type = compact->compaction->table_type;
       compact->compaction->edit()->AddFile(level + 1, meta);
       assert(!meta->UnderCompaction);
 
@@ -1320,6 +1324,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         meta->remote_data_mrs = out.remote_data_mrs;
         meta->remote_dataindex_mrs = out.remote_dataindex_mrs;
         meta->remote_filter_mrs = out.remote_filter_mrs;
+        meta->table_type = compact->compaction->table_type;
         compact->compaction->edit()->AddFile(level + 1, meta);
         assert(!meta->UnderCompaction);
       }

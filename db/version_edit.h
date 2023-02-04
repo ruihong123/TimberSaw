@@ -18,6 +18,7 @@ namespace TimberSaw {
 class VersionSet;
 class RDMA_Manager;
 class TableCache;
+enum Table_Type{ invalid_table_type_, block_based, byte_addressable};
 struct RemoteMemTableMetaData {
 //  RemoteMemTableMetaData();
 // this_machine_type 0 means compute node, 1 means memory node
@@ -117,6 +118,7 @@ struct RemoteMemTableMetaData {
   InternalKey largest;   // Largest internal key served by table
   TableCache* table_cache = nullptr;
   bool UnderCompaction = false;
+  Table_Type table_type;
 };
 
 class VersionEdit {
@@ -208,7 +210,8 @@ class VersionEdit {
   Status DecodeFromDiskFormat(const Slice& src, int sstable_type);
   std::string DebugString() const;
   int compactlevel(){
-    return std::get<0>(*deleted_files_.begin());
+//    return std::get<0>(*deleted_files_.begin());
+    return std::get<0>(*new_files_.begin()) - 1;
   }
   uint8_t GetNodeID(){return target_node_id_;}
  private:

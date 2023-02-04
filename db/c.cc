@@ -407,7 +407,13 @@ void TimberSaw_options_set_write_buffer_size(TimberSaw_options_t* opt, size_t s)
 }
 
 void TimberSaw_options_set_max_open_files(TimberSaw_options_t* opt, int n) {
+#if TABLE_STRATEGY==2
+  opt->rep.max_table_cache_size;
+#else
   opt->rep.max_open_files = n;
+#endif
+//      opt->rep.max_open_files = n;
+
 }
 
 void TimberSaw_options_set_cache(TimberSaw_options_t* opt, TimberSaw_cache_t* c) {

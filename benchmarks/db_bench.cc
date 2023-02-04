@@ -967,7 +967,13 @@ class Benchmark {
     if (FLAGS_comparisons) {
       options.comparator = &count_comparator_;
     }
+#if TABLE_STRATEGY==2
+//    options.max_open_files = FLAGS_open_files;
+
+#else
     options.max_open_files = FLAGS_open_files;
+
+#endif
     options.filter_policy = filter_policy_;
     options.reuse_logs = FLAGS_reuse_logs;
     //
@@ -1174,12 +1180,12 @@ class Benchmark {
     thread->stats.AddBytes(bytes);
   }
   void ReadSequential(ThreadState* thread) {
-#ifdef BYTEADDRESSABLE
-    Iterator* iter = db_->NewSEQIterator(ReadOptions());
-#endif
-#ifndef BYTEADDRESSABLE
+//#ifdef BYTEADDRESSABLE
+//    Iterator* iter = db_->NewSEQIterator(ReadOptions());
+//#endif
+//#ifndef BYTEADDRESSABLE
     Iterator* iter = db_->NewIterator(ReadOptions());
-#endif
+//#endif
     int i = 0;
     int64_t bytes = 0;
     for (iter->SeekToFirst(); i < reads_ && iter->Valid(); iter->Next()) {
@@ -1216,11 +1222,11 @@ class Benchmark {
     int i = 0;
     int range_length = 1000*1000;
     char value_buff[FLAGS_value_size];
-#ifdef BYTEADDRESSABLE
-    Iterator* iter = db_->NewSEQIterator(options);
-#else
+//#ifdef BYTEADDRESSABLE
+//    Iterator* iter = db_->NewSEQIterator(options);
+//#else
     Iterator* iter = db_->NewIterator(options);
-#endif
+//#endif
     while(i < reads_){
       //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
       int k_start = thread->rand.Next()%(FLAGS_num*FLAGS_threads - range_length); //do not go out of bound
@@ -1612,7 +1618,11 @@ int main(int argc, char** argv) {
   FLAGS_write_buffer_size = TimberSaw::Options().write_buffer_size;
   FLAGS_max_file_size = TimberSaw::Options().max_file_size;
   FLAGS_block_size = TimberSaw::Options().block_size;
+#if TABLE_STRATEGY==2
+//  FLAGS_open_files = TimberSaw::Options().max_open_files;
+#else
   FLAGS_open_files = TimberSaw::Options().max_open_files;
+#endif
   std::string default_db_path;
   TimberSaw::g_env = TimberSaw::Env::Default();
 

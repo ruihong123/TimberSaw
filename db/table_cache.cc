@@ -131,7 +131,12 @@ Status TableCache::FindTable(
         //      tf->remote_table = Remote_memtable_meta;
         tf->table_compute = table;
         assert(table->rep != nullptr);
+#if TABLE_STRATEGY==2
+        *handle = cache_->Insert(key, tf, table->GetIndexAndMetaSize(), &DeleteEntry_Compute);
+#else
         *handle = cache_->Insert(key, tf, 1, &DeleteEntry_Compute);
+
+#endif
       }
     }
     hash_mtx[hash_value].unlock();
@@ -202,41 +207,41 @@ Iterator* TableCache::NewIterator(
   }
 
   Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
-#ifndef BYTEADDRESSABLE
+//#ifndef BYTEADDRESSABLE
   Iterator* result = table->NewIterator(options);
-#endif
-#ifdef BYTEADDRESSABLE
-  Iterator* result = table->NewSEQIterator(options);
-#endif
+//#endif
+//#ifdef BYTEADDRESSABLE
+//  Iterator* result = table->NewSEQIterator(options);
+//#endif
   result->RegisterCleanup(&UnrefEntry, cache_, handle);
   if (tableptr != nullptr) {
     *tableptr = table;
   }
   return result;
 }
-#ifdef BYTEADDRESSABLE
-Iterator* TableCache::NewSEQIterator(
-    const ReadOptions& options,
-    std::shared_ptr<RemoteMemTableMetaData> remote_table, Table** tableptr) {
-  if (tableptr != nullptr) {
-    *tableptr = nullptr;
-  }
-
-  Cache::Handle* handle = nullptr;
-  Status s = FindTable(std::move(remote_table), &handle);
-  if (!s.ok()) {
-    return NewErrorIterator(s);
-  }
-
-  Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
-  Iterator* result = table->NewSEQIterator(options);
-  result->RegisterCleanup(&UnrefEntry, cache_, handle);
-  if (tableptr != nullptr) {
-    *tableptr = table;
-  }
-  return result;
-}
-#endif
+//#ifdef BYTEADDRESSABLE
+//Iterator* TableCache::NewSEQIterator(
+//    const ReadOptions& options,
+//    std::shared_ptr<RemoteMemTableMetaData> remote_table, Table** tableptr) {
+//  if (tableptr != nullptr) {
+//    *tableptr = nullptr;
+//  }
+//
+//  Cache::Handle* handle = nullptr;
+//  Status s = FindTable(std::move(remote_table), &handle);
+//  if (!s.ok()) {
+//    return NewErrorIterator(s);
+//  }
+//
+//  Table* table = reinterpret_cast<SSTable*>(cache_->Value(handle))->table_compute;
+//  Iterator* result = table->NewSEQIterator(options);
+//  result->RegisterCleanup(&UnrefEntry, cache_, handle);
+//  if (tableptr != nullptr) {
+//    *tableptr = table;
+//  }
+//  return result;
+//}
+//#endif
 Iterator* TableCache::NewIterator_MemorySide(
     const ReadOptions& options,
     const std::shared_ptr<RemoteMemTableMetaData>& remote_table,

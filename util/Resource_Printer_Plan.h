@@ -17,7 +17,7 @@
 #define NUMA_CORE_NUM 8
 #define COMPUTE_NUMA_CORE_NUM 152
 #define CPU_UTILIZATION_CACULATE_INTERVAL 50 // in miliseconds.
-
+#define CALCULATE_MAX_UTIL
 class Resource_Printer_PlanA {
   unsigned long long lastTotalUser[NUMA_CORE_NUM], lastTotalUserLow[NUMA_CORE_NUM], lastTotalSys[NUMA_CORE_NUM], lastTotalIdle[NUMA_CORE_NUM];
 
@@ -30,9 +30,16 @@ class Resource_Printer_PlanA {
 
 class Resource_Printer_PlanB {
   clock_t lastCPU, lastSysCPU, lastUserCPU;
-
+#ifdef CALCULATE_MAX_UTIL
+  double max_util;
+#endif
  public:
   Resource_Printer_PlanB();
+  ~Resource_Printer_PlanB(){
+#ifdef CALCULATE_MAX_UTIL
+    printf("Max utilization is %f\n", max_util);
+#endif
+  }
   void paramInit();
   long double current_percent;
   int numa_bind_core_num = 0;

@@ -70,6 +70,8 @@ class FullFilterBlockBuilder {
 };
 class FullFilterBlockReader {
  public:
+  Slice filter_content;
+
   // REQUIRES: "contents" and *policy must stay live while *this is live.
   FullFilterBlockReader(const Slice& contents,
                         std::shared_ptr<RDMA_Manager> rdma_mg, FilterSide side);
@@ -79,7 +81,6 @@ class FullFilterBlockReader {
 //  const FilterPolicy* policy_;
 //  std::unique_ptr<FilterBitsReader> filter_bits_reader_;
 
-  Slice filter_content;
   const char* data_;
   int num_probes_ = 0;
   uint32_t num_lines_ = 0;

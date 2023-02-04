@@ -109,6 +109,8 @@ RemoteMemTableMetaData::~RemoteMemTableMetaData() {
 }
 void RemoteMemTableMetaData::EncodeTo(std::string* dst) const {
   PutFixed64(dst, level);
+  uint32_t temp_type_buf =  static_cast<uint32_t>(table_type);
+  PutFixed32(dst, temp_type_buf);
   PutFixed64(dst, number);
 //  printf("Node id is %u", creator_node_id);
   dst->append(reinterpret_cast<const char*>(&creator_node_id), sizeof(creator_node_id));
@@ -164,7 +166,10 @@ Status RemoteMemTableMetaData::DecodeFrom(Slice& src) {
 
   GetFixed64(&src, &level);
   assert(level < config::kNumLevels);
-
+  uint32_t temp_type_buff;
+  GetFixed32(&src, &temp_type_buff);
+  table_type = static_cast<Table_Type>(temp_type_buff);
+  assert(table_type!= invalid_table_type_);
   GetFixed64(&src, &number);
 //  node_id = reinterpret_cast<uint8_t*>(src.data());
   memcpy(&creator_node_id, src.data(), sizeof(creator_node_id));
