@@ -2126,6 +2126,9 @@ void Compaction::DecodeFrom(const Slice src, int side) {
   uint16_t level = 0;
   GetFixed16(&input, &level);
   level_ = level;
+  uint32_t temp_type_buff;
+  GetFixed32(&input, &temp_type_buff);
+  table_type = static_cast<Table_Type>(temp_type_buff);
   uint32_t first_level_len = 0;
   GetFixed32(&input, &first_level_len);
   for (size_t i = 0; i < first_level_len; i++) {
@@ -2147,6 +2150,8 @@ void Compaction::EncodeTo(std::string* dst){
 //  dst->append(reinterpret_cast<const char*>(&level), sizeof(char));
   PutFixed16(dst,level);
   uint32_t first_level_len = inputs_[0].size();
+  uint32_t temp_type_buf =  static_cast<uint32_t>(table_type);
+  PutFixed32(dst, temp_type_buf);
   PutFixed32(dst, first_level_len);
   for (size_t i = 0; i < first_level_len; i++) {
     const std::shared_ptr<RemoteMemTableMetaData> f = inputs_[0][i];

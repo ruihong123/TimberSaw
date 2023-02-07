@@ -26,7 +26,8 @@
 namespace TimberSaw {
 
 class TimberSaw_EXPORT Cache;
-
+static const int kNumShardBits = 6;
+static const int kNumShards = 1 << kNumShardBits;
 // Create a new table_cache with a fixed size capacity.  This implementation
 // of Cache uses a least-recently-used eviction policy.
 TimberSaw_EXPORT Cache* NewLRUCache(size_t capacity);

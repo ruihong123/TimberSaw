@@ -919,22 +919,22 @@ Status FlushJob::BuildTable(const std::string& dbname, Env* env,
 //    sleep(10);
 //#endif
 
-    // The index checking below is supposed to be deleted.
-    if (s.ok()) {
-      // Verify that the table is usable
-      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
-      s = it->status();
-//#ifndef NDEBUG
-//      it->SeekToFirst();
-//      size_t counter = 0;
-//      while(it->Valid()){
-//        counter++;
-//        it->Next();
-//      }
-//      assert(counter = Not_drop_counter);
-//#endif
-      delete it;
-    }
+//    // The index checking below is supposed to be deleted.
+//    if (s.ok()) {
+//      // Verify that the table is usable
+//      Iterator* it = table_cache->NewIterator(ReadOptions(), meta);
+//      s = it->status();
+////#ifndef NDEBUG
+////      it->SeekToFirst();
+////      size_t counter = 0;
+////      while(it->Valid()){
+////        counter++;
+////        it->Next();
+////      }
+////      assert(counter = Not_drop_counter);
+////#endif
+//      delete it;
+//    }
   }
 
   // Check for input iterator errors

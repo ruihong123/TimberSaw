@@ -231,7 +231,7 @@ class VersionEdit {
   bool has_last_sequence_;
 
   std::vector<std::pair<int, InternalKey>> compact_pointers_;
-  DeletedFileSet deleted_files_;
+  DeletedFileSet deleted_files_;// level, file_number, creator_node_id
   std::vector<std::pair<int, std::shared_ptr<RemoteMemTableMetaData>>> new_files_;
 };
 class VersionEdit_Merger {

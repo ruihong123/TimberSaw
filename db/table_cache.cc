@@ -56,7 +56,7 @@ static void UnrefEntry(void* arg1, void* arg2) {
 }
 
 TableCache::TableCache(const std::string& dbname, const Options& options,
-                       int entries)
+                       size_t entries)
     : env_(options.env),
       dbname_(dbname),
       options_(options),
@@ -100,6 +100,9 @@ Status TableCache::FindTable(
 //  char buf[sizeof(Remote_memtable_meta->number)];
 //  EncodeFixed64(buf, Remote_memtable_meta->number);
 //  Slice key(buf, sizeof(buf));
+  //TODO: Why I did not add the creator node id into the table identifier, how to distinguish
+  // table with the same file number accross memory nodes.
+  // Answer: Every DB_Impl have its own table cache, so there will be never a table cache contain two SSTables with the same number
 //  char buf[sizeof(Remote_memtable_meta->number)];
 //  EncodeFixed64(buf, Remote_memtable_meta->number);
   Slice key((char*)&Remote_memtable_meta->number, sizeof(uint64_t));
@@ -195,13 +198,13 @@ Status TableCache::FindTable_MemorySide(
 }
 Iterator* TableCache::NewIterator(
     const ReadOptions& options,
-    std::shared_ptr<RemoteMemTableMetaData> remote_table, Table** tableptr) {
+    const std::shared_ptr<RemoteMemTableMetaData>& remote_table, Table** tableptr) {
   if (tableptr != nullptr) {
     *tableptr = nullptr;
   }
 
   Cache::Handle* handle = nullptr;
-  Status s = FindTable(std::move(remote_table), &handle);
+  Status s = FindTable(remote_table, &handle);
   if (!s.ok()) {
     return NewErrorIterator(s);
   }
@@ -307,10 +310,11 @@ Status TableCache::Get(const ReadOptions& options,
 
 void TableCache::Evict(uint64_t file_number, uint8_t creator_node_id) {
 //  char buf[sizeof(uint64_t) + sizeof(uint8_t)];
-char buf[sizeof(file_number)];
+  //  memcpy(buf + sizeof(uint64_t), &creator_node_id,
+  //         sizeof(uint8_t));
+  char buf[sizeof(file_number)];
   EncodeFixed64(buf, file_number);
-//  memcpy(buf + sizeof(uint64_t), &creator_node_id,
-//         sizeof(uint8_t));
+
   cache_->Erase(Slice(buf, sizeof(buf)));
 }
 

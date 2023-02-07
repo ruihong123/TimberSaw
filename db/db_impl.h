@@ -212,6 +212,8 @@ class DBImpl : public DB {
   void BackgroundCall();
   void BackgroundFlush(void* p);
   void BackgroundCompaction(void* p) EXCLUSIVE_LOCKS_REQUIRED(undefine_mutex);
+  std::atomic<int> print_counter = 0;
+
   bool CheckWhetherPushDownorNot(Compaction* compact);
   bool CheckByteaddressableOrNot(Compaction* compact);
   long double RequestRemoteUtilization();

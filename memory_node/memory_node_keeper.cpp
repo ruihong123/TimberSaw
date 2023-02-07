@@ -669,13 +669,13 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
     }
     //    assert(key.data()[0] == '0');
 //    input->Next();
-    if(*key.data() != 0){
-      printf("break here");
-    }
+//    if(*key.data() != 0){
+//      printf("break here");
+//    }
     input->Next();
-    if(*key.data() != 0){
-      printf("break here");
-    }
+//    if(*key.data() != 0){
+//      printf("break here");
+//    }
     //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
     // be invalid also.
     //    assert(key.data()[0] == '0');

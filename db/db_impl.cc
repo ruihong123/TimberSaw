@@ -104,9 +104,9 @@ Options SanitizeOptions(const std::string& dbname,
   return result;
 }
 
-static int TableCacheSize(const Options& sanitized_options) {
+static size_t TableCacheSize(const Options& sanitized_options) {
 #if TABLE_STRATEGY==2
-  return sanitized_options.max_table_cache_size;
+  return sanitized_options.max_table_cache_size*TABLE_CACHE_SCALING_FACTOR;
 #else
   // Reserve ten files or so for other uses and give the rest to TableCache.
   return sanitized_options.max_open_files - kNumNonTableCacheFiles;
@@ -167,7 +167,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
       owns_info_log_(options_.info_log != raw_options.info_log),
       owns_cache_(options_.block_cache != raw_options.block_cache),
       dbname_(dbname),
+
       table_cache_(new TableCache(dbname_, options_, TableCacheSize(options_))),
+
       db_lock_(nullptr),
       shutting_down_(false),
 //      write_stall_cv(&write_stall_mutex_),
@@ -348,6 +350,7 @@ DBImpl::~DBImpl() {
   // Wait for background work to finish.
 //  undefine_mutex.Lock();
   printf("DBImpl deallocated\n");
+  printf("Cache entried used is %f\n", table_cache_->CheckUtilizaitonOfCache());
   WaitforAllbgtasks(false);
   //TODO: recycle all the
 
@@ -1062,6 +1065,26 @@ void DBImpl::CompactMemTable() {
 
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
 //  MaybeScheduleFlushOrCompaction();
+  // The index checking below is supposed to be deleted.
+  if (s.ok()) {
+    // Verify that the table is usable
+    for(const auto& meta : *edit.GetNewFiles()){
+//      printf("delete flushed table\n");
+      Iterator* it = table_cache_->NewIterator(ReadOptions(), meta.second);
+      s = it->status();
+      delete it;
+
+    }
+    //#ifndef NDEBUG
+    //      it->SeekToFirst();
+    //      size_t counter = 0;
+    //      while(it->Valid()){
+    //        counter++;
+    //        it->Next();
+    //      }
+    //      assert(counter = Not_drop_counter);
+    //#endif
+  }
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
   }
@@ -1633,14 +1656,27 @@ bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
 #elif TABLE_STRATEGY==1
   return true;
 #else
+  if (print_counter.fetch_add(1) == 5){
+    printf("Cache utilization is %f\n", table_cache_->CheckUtilizaitonOfCache());
+    print_counter.store(0);
+  }
   size_t A_space = table_cache_->CheckAvailableSpace();
-  if (A_space > 512ull*1024ull*1024ull){
+  // There are kNumShards*INDEX_BLOCK hardware unavailable in the capacity.
+  //How to deal with the overflow problem
+//  size_t real_A_space = A_space >kNumShards*INDEX_BLOCK ? A_space - kNumShards*INDEX_BLOCK:0;
+  size_t real_A_space = A_space;
+
+  double level_factor = (static_cast<double>(config::kNumLevels)- static_cast<double>(compact->level()))/(static_cast<double>(config::kNumLevels));
+  if ( real_A_space> 512ull*1024ull*1024ull){
     return true;
-  }else if (static_cast<double>(A_space)*(static_cast<double>(config::kNumLevels)- static_cast<double>(compact->level()))/(config::kNumLevels) <= 256ull*1024*1024 ){
+  }else if (static_cast<double>(real_A_space)*level_factor <= 256ull*1024*1024){
+    printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
     //The score funciton is explain as below:
     // if the available space is smaller than 0.5 GB then the coordinator
     return false;
   }else{
+    printf("Judge as byte-addressable Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+
     return true;
   }
 
@@ -1707,8 +1743,10 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else {
       bool need_push_down = CheckWhetherPushDownorNot(c);
       if(CheckByteaddressableOrNot(c)){
+        printf("SHould create as a byte-addressable SSTable\n");
         c->table_type = byte_addressable;
       }else{
+        printf("SHould create as a block based SSTable\n");
         c->table_type = block_based;
       }
 
@@ -1904,6 +1942,7 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
       compact->builder = new TableBuilder_ComputeSide(
           options_, Compact, shard_target_node_id);
     }else{
+      printf("Create byte_addressable based SSTables\n");
       compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
 
     }
@@ -2524,6 +2563,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
     InstallSuperVersion();
     write_stall_cv.notify_all();
   }
+
 #ifdef WITHPERSISTENCE
   uint64_t* file_number_end_send_ptr = static_cast<uint64_t*>(send_mr.addr);
   *file_number_end_send_ptr = file_number_end;
@@ -2533,6 +2573,27 @@ void DBImpl::NearDataCompaction(Compaction* c) {
                            IBV_SEND_SIGNALED, 1);
 
 #endif
+    for(const auto& iter : *edit.GetDeletedFiles()){
+      table_cache_->Evict(std::get<1>(iter), std::get<2>(iter));
+    }
+    for(const auto& iter : *edit.GetNewFiles()){
+//      printf("open compaciton tables2\n");
+
+      Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), iter.second);
+//      assert(it->status());
+      delete it;
+    }
+    // Verify that the table is usable
+    //#ifndef NDEBUG
+    //      it->SeekToFirst();
+    //      size_t counter = 0;
+    //      while(it->Valid()){
+    //        counter++;
+    //        it->Next();
+    //      }
+    //      assert(counter = Not_drop_counter);
+    //#endif
+
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   rdma_mg->Deallocate_Local_RDMA_Slot(mr_c.addr,Version_edit);
 //  rdma_mg->Deallocate_Local_RDMA_Slot(recv_mr_c.addr,Version_edit);
@@ -3227,6 +3288,9 @@ Status DBImpl::DoCompactionWorkWithSubcompaction(CompactionState* compact) {
   }
 
   if (status.ok()) {
+    for(const auto& iter : *compact->compaction->edit()->GetDeletedFiles()){
+      table_cache_->Evict(std::get<1>(iter), std::get<2>(iter));
+    }
     for(const auto& iter : *compact->compaction->edit()->GetNewFiles()){
       Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), iter.second);
       status = it->status();
@@ -3554,18 +3618,18 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
       }
     }
 //    assert(key.data()[0] == '0');
-    if(*key.data() != 0){
-      printf("break here");
-    }
+//    if(*key.data() != 0){
+//      printf("break here");
+//    }
     //TOFIX: The Next will destroy the buffer that key currently rely on if the input reach
     // an invalid state. I have to use std::string rather than Slice to hold the key.  If not,
     // the key will be corrupted when assigning it to "largest" in the table metadata.
     // Or I can make the cahched buffer always a full block size so the deallocaiton is long enogu
     // to avoid the bug
     input->Next();
-    if(*key.data() != 0){
-      printf("break here");
-    }
+//    if(*key.data() != 0){
+//      printf("break here");
+//    }
     //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
     // be invalid also.
 //    assert(key.data()[0] == '0');
@@ -3618,6 +3682,10 @@ Status DBImpl::DoCompactionWork(CompactionState* compact) {
   undefine_mutex.Unlock();
 
   if (status.ok()) {
+    for(const auto& iter : *compact->compaction->edit()->GetDeletedFiles()){
+      table_cache_->Evict(std::get<1>(iter), std::get<2>(iter));
+    }
+//    printf("open compaciton tables1\n");
     for(const auto& iter : *compact->compaction->edit()->GetNewFiles()){
       Iterator* it = versions_->table_cache_->NewIterator(ReadOptions(), iter.second);
       status = it->status();

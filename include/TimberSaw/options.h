@@ -21,8 +21,8 @@ class Snapshot;
 // The size for one SStable chunk
 //static size_t RDMA_WRITE_BLOCK = 2*1024*1024;
 // default 8 8  1
-#define RDMA_WRITE_BLOCK  (8*1024*1024)
-#define INDEX_BLOCK  (7*1024*1024)
+#define RDMA_WRITE_BLOCK  (8*1024*1024ULL)
+#define INDEX_BLOCK  (7*1024*1024ULL)
 #define FILTER_BLOCK  (256*1024)
 //static size_t RDMA_WRITE_BLOCK = 1*1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
@@ -112,7 +112,7 @@ struct TimberSaw_EXPORT Options {
   // deprecated: This should be revised as number of key value per memtable.
   size_t write_buffer_size = 64 * 1024 * 1024;
 #if TABLE_STRATEGY==2
-  size_t max_table_cache_size = 1*1024ul*1024ul*1024ul; // in bytes
+  size_t max_table_cache_size = 2*1024ull*1024ull*1024ull; // in bytes
 #else
   // Number of open files that can be used by the DB.  You may need to
   // increase this if your database has a large working set (budget

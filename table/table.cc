@@ -310,8 +310,11 @@ Slice Table::KVReader(void* arg, const ReadOptions& options,
 }
 
 Iterator* Table::NewIterator(const ReadOptions& options) const {
-  if (rep->remote_table.lock()->table_type == byte_addressable){
+  auto table_meta = rep->remote_table.lock();
+  if (table_meta->table_type == byte_addressable){
 #ifdef USESEQITERATOR
+//    printf("Byte-addressable table created, table number is %lu\n", table_meta->number);
+
     return new ByteAddressableSEQIterator(
         rep->index_block->NewIterator(rep->options.comparator),
         const_cast<Table*>(this), options, true);
@@ -321,6 +324,7 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
         &Table::KVReader, const_cast<Table*>(this), options, true);
 #endif
   }else{
+//    printf("BLock based table created, table number is %lu\n", table_meta->number);
     return NewTwoLevelIterator(
         rep->index_block->NewIterator(rep->options.comparator),
         &Table::BlockReader, const_cast<Table*>(this), options);

@@ -24,7 +24,7 @@ class Env;
 class Table_Memory_Side;
 class TableCache {
  public:
-  TableCache(const std::string& dbname, const Options& options, int entries);
+  TableCache(const std::string& dbname, const Options& options, size_t entries);
   ~TableCache();
 #ifdef PROCESSANALYSIS
   static std::atomic<uint64_t> GetTimeElapseSum;
@@ -50,7 +50,7 @@ class TableCache {
   // by the table_cache and should not be deleted, and is valid for as long as the
   // returned iterator is live.
   Iterator* NewIterator(const ReadOptions& options,
-                        std::shared_ptr<RemoteMemTableMetaData> remote_table,
+                        const std::shared_ptr<RemoteMemTableMetaData>& remote_table,
                         Table** tableptr = nullptr);
 //#ifdef BYTEADDRESSABLE
 //  Iterator* NewSEQIterator(const ReadOptions& options,
@@ -89,12 +89,22 @@ class TableCache {
   // Evict any entry for the specified file number
   void Evict(uint64_t file_number, uint8_t creator_node_id);
   double CheckUtilizaitonOfCache(){
-    double util = static_cast<double>(cache_->TotalCharge())/ static_cast<double>(cache_->GetCapacity());
+#if TABLE_STRATEGY==2
+    double util = static_cast<double>(cache_->TotalCharge())/ (static_cast<double>(cache_->GetCapacity())/TABLE_CACHE_SCALING_FACTOR);
+#else
+    double util = static_cast<double>(cache_->TotalCharge())/ (static_cast<double>(cache_->GetCapacity()));
+#endif
     return util;
   }
   size_t CheckAvailableSpace(){
-    double size = static_cast<double>(cache_->GetCapacity()) - static_cast<double>(cache_->TotalCharge());
-    return size;
+    size_t usage = (cache_->TotalCharge());
+    size_t capacity = (cache_->GetCapacity());
+    return capacity/TABLE_CACHE_SCALING_FACTOR > usage ? (capacity/TABLE_CACHE_SCALING_FACTOR - usage) : 0;
+  }
+  double CheckLeftSpacekilo(){
+    double usage = static_cast<double>(cache_->TotalCharge());
+    double capacity = static_cast<double>(cache_->GetCapacity())/TABLE_CACHE_SCALING_FACTOR;
+    return (capacity - usage)/1024.0;
   }
  private:
   Status FindTable(const std::shared_ptr<RemoteMemTableMetaData>& Remote_memtable_meta,

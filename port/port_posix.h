@@ -94,7 +94,8 @@
 //#define WITHPERSISTENCE
 //#define PROCESSANALYSIS
 #define BYTEADDRESSABLE
-#define TABLE_STRATEGY 2 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive accoring to local cache size limit.
+#define TABLE_STRATEGY 1 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive accoring to local cache size limit.
+#define TABLE_CACHE_SCALING_FACTOR 8
 #define USESEQITERATOR
 #define NEARDATACOMPACTION 2 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
 #define PERFECT_THREAD_NUMBER_FOR_BGTHREADS
@@ -102,6 +103,8 @@
 //#define GETANALYSIS
 #define ROCKSDB_PTHREAD_ADAPTIVE_MUTEX
 #define R_SIZE 1024
+
+
 
 //#define BLOOMANALYSIS
 #include "port/thread_annotations.h"
