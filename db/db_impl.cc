@@ -1066,25 +1066,25 @@ void DBImpl::CompactMemTable() {
   TryInstallMemtableFlushResults(&f_job, versions_, f_job.sst, &edit);
 //  MaybeScheduleFlushOrCompaction();
   // The index checking below is supposed to be deleted.
-  if (s.ok()) {
-    // Verify that the table is usable
-    for(const auto& meta : *edit.GetNewFiles()){
-//      printf("delete flushed table\n");
-      Iterator* it = table_cache_->NewIterator(ReadOptions(), meta.second);
-      s = it->status();
-      delete it;
-
-    }
-    //#ifndef NDEBUG
-    //      it->SeekToFirst();
-    //      size_t counter = 0;
-    //      while(it->Valid()){
-    //        counter++;
-    //        it->Next();
-    //      }
-    //      assert(counter = Not_drop_counter);
-    //#endif
-  }
+//  if (s.ok()) {
+//    // Verify that the table is usable
+//    for(const auto& meta : *edit.GetNewFiles()){
+////      printf("delete flushed table\n");
+//      Iterator* it = table_cache_->NewIterator(ReadOptions(), meta.second);
+//      s = it->status();
+//      delete it;
+//
+//    }
+//    //#ifndef NDEBUG
+//    //      it->SeekToFirst();
+//    //      size_t counter = 0;
+//    //      while(it->Valid()){
+//    //        counter++;
+//    //        it->Next();
+//    //      }
+//    //      assert(counter = Not_drop_counter);
+//    //#endif
+//  }
   if (s.ok() && shutting_down_.load(std::memory_order_acquire)) {
     s = Status::IOError("Deleting DB during memtable compaction");
   }
@@ -1665,20 +1665,27 @@ bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
   //How to deal with the overflow problem
 //  size_t real_A_space = A_space >kNumShards*INDEX_BLOCK ? A_space - kNumShards*INDEX_BLOCK:0;
   size_t real_A_space = A_space;
-
   double level_factor = (static_cast<double>(config::kNumLevels)- static_cast<double>(compact->level()))/(static_cast<double>(config::kNumLevels));
-  if ( real_A_space> 512ull*1024ull*1024ull){
-    return true;
-  }else if (static_cast<double>(real_A_space)*level_factor <= 256ull*1024*1024){
-    printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
-    //The score funciton is explain as below:
-    // if the available space is smaller than 0.5 GB then the coordinator
-    return false;
-  }else{
-    printf("Judge as byte-addressable Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
-
-    return true;
+  double real_A_after_Factor = static_cast<double>(real_A_space)*level_factor;
+  if (real_A_after_Factor <= TABLE_TYPE_ADJUST_THRESHOLD){
+    if ((std::rand()%10)/10.0 < (TABLE_TYPE_ADJUST_THRESHOLD - real_A_after_Factor)/TABLE_TYPE_ADJUST_THRESHOLD){
+      return false;
+    }
   }
+  return true;
+//  if ( real_A_space> 512ull*1024ull*1024ull){
+//    return true;
+//  }else if (static_cast<double>(real_A_space)*level_factor <= TABLE_TYPE_ADJUST_THRESHOLD){
+//    printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+//    //The score funciton is explain as below:
+//    // if the available space is smaller than 0.5 GB then the coordinator
+////    rand()/10 <
+//    return false;
+//  }else{
+//    printf("Judge as byte-addressable Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+//
+//    return true;
+//  }
 
 
 //  if(util + static_cast<double>(compact->level())/config::kNumLevels*0.1 <0.95){
@@ -1743,10 +1750,10 @@ void DBImpl::BackgroundCompaction(void* p) {
     } else {
       bool need_push_down = CheckWhetherPushDownorNot(c);
       if(CheckByteaddressableOrNot(c)){
-        printf("SHould create as a byte-addressable SSTable\n");
+//        printf("SHould create as a byte-addressable SSTable\n");
         c->table_type = byte_addressable;
       }else{
-        printf("SHould create as a block based SSTable\n");
+//        printf("SHould create as a block based SSTable\n");
         c->table_type = block_based;
       }
 
@@ -2155,6 +2162,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
   {
     std::unique_lock<std::mutex> lck1(FlushPickMTX);
     for (size_t i = 0; i < mems.size(); ++i) {
+      assert(i==0);
       // First mark the flushing is finished in the immutables
       mems[i]->MarkFlushed();
       DEBUG_arg("Memtable %p marked as flushed\n", mems[i]);
@@ -2552,7 +2560,7 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   DEBUG_arg("Edit new file number is %lu\n", new_file_size);
   edit.SetFileNumbers(file_number_end);
   {
-    std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+    std::unique_lock<std::mutex> sv_lck(superversion_memlist_mtx);
     // TODO: remove the version id argument because we no longer need it.
 //    std::unique_lock<std::mutex> lck_vs(versionset_mtx, std::defer_lock);
 

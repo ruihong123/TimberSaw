@@ -351,7 +351,7 @@ class VersionSet {
   Status Recover(bool* save_manifest);
 
   // Return the current version.
-  Version* current() const { return current_; }
+  Version* current() const { return current_.load(); }
 
   // Return the current manifest file number
   uint64_t ManifestFileNumber() const { return manifest_file_number_; }
@@ -403,7 +403,7 @@ class VersionSet {
   // being compacted, or zero if there is no such log file.
   uint64_t PrevLogNumber() const { return prev_log_number_; }
 //  static bool check_compaction_state(std::shared_ptr<RemoteMemTableMetaData> sst);
-  bool PickFileToCompact(int level, Compaction* c);
+  bool PickFileToCompact(int level, Compaction* c, Version* current_snap);
   // Pick level and mem_vec for a new compaction.
   // Returns nullptr if there is no compaction to be done.
   // Otherwise returns a pointer to a heap-allocated object that
@@ -431,7 +431,7 @@ class VersionSet {
   bool NeedsCompaction() const {
     //TODO(ruihong): make current_ an atomic variable if we do not want to have a lock for this
     // funciton.
-    Version* v = current_;
+    Version* v = current_.load();
     //TODO(ruihong): we may also need a lock for changing reading the compaction score.
     return (v->compaction_score_[0] >= 1) ;
     //TODO: keep the file_to compact in our implementation in the future.
@@ -439,7 +439,7 @@ class VersionSet {
   }
   bool AllCompactionNotFinished() {
 
-    Version* v = current_;
+    Version* v = current_.load();
     //since the version are apply
 //    Finalize(v);
 //    || (v->file_to_compact_.get() != nullptr)
@@ -514,8 +514,8 @@ class VersionSet {
 
   Version dummy_versions_;  // Head of circular doubly-linked list of versions.
   //TODO: make current_ an atomic variable.
-//  std::atomic<Version*> current_;        // == dummy_versions_.prev_
-  Version* current_;
+  std::atomic<Version*> current_;        // == dummy_versions_.prev_
+//  Version* current_;
 
   //TODO: make it spinmutex?
 //  std::mutex* sv_mtx;

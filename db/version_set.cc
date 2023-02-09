@@ -963,8 +963,8 @@ VersionSet::VersionSet(const std::string& dbname, const Options* options,
 //}
 
 VersionSet::~VersionSet() {
-  current_->print_version_content();
-  current_->Unref(0);
+  current_.load()->print_version_content();
+  current_.load()->Unref(0);
 //  assert(dummy_versions_.next_ == &dummy_versions_);  // List must be empty
   delete descriptor_log;
   delete descriptor_file;
@@ -984,11 +984,11 @@ VersionSet::~VersionSet() {
 void VersionSet::AppendVersion(Version* v) {
   // Make "v" current
   assert(v->refs_.load() == 0);
-  assert(v != current_);
-  if (current_ != nullptr) {
-    current_->Unref(1);
+  assert(v != current_.load());
+  if (current_.load() != nullptr) {
+    current_.load()->Unref(1);
   }
-  current_ = v;
+  current_.store(v);
   v->Ref(1);
 #ifndef NDEBUG
   version_remain++;
@@ -1084,10 +1084,10 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
 
   {
     // Decide what table to keep what to discard.
-    Builder builder(this, current_);
+    Builder builder(this, current_.load());
     // apply to the new version, no need to apply delete files, only add
     // alive files and new files to the new version just created
-    builder.Apply(edit, current_);
+    builder.Apply(edit, current_.load());
     builder.SaveTo(v);
   }
 //  if (edit->compactlevel() +1 > top_level){
@@ -1197,7 +1197,7 @@ Status VersionSet::Recover(bool* save_manifest) {
   uint64_t last_sequence = 0;
   uint64_t log_number = 0;
   uint64_t prev_log_number = 0;
-  Builder builder(this, current_);
+  Builder builder(this, current_.load());
   int read_records = 0;
 
   {
@@ -1221,7 +1221,7 @@ Status VersionSet::Recover(bool* save_manifest) {
       }
 
       if (s.ok()) {
-        builder.Apply(&edit, current_);
+        builder.Apply(&edit, current_.load());
       }
 
       if (edit.has_log_number_) {
@@ -1411,7 +1411,7 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
 
   // Save files
   for (int level = 0; level < config::kNumLevels; level++) {
-    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = current_->levels_[level];
+    const std::vector<std::shared_ptr<RemoteMemTableMetaData>>& files = current_.load()->levels_[level];
     for (size_t i = 0; i < files.size(); i++) {
       const std::shared_ptr<RemoteMemTableMetaData> f = files[i];
       edit.AddFile(level, f);
@@ -1426,7 +1426,7 @@ Status VersionSet::WriteSnapshot(log::Writer* log) {
 int VersionSet::NumLevelFiles(int level) const {
   assert(level >= 0);
   assert(level < config::kNumLevels);
-  return current_->levels_[level].size();
+  return current_.load()->levels_[level].size();
 }
 
 const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
@@ -1434,10 +1434,10 @@ const char* VersionSet::LevelSummary(LevelSummaryStorage* scratch) const {
   static_assert(config::kNumLevels == 6, "");
   std::snprintf(
       scratch->buffer, sizeof(scratch->buffer), "files[ %d %d %d %d %d %d %d ]",
-      int(current_->levels_[0].size()), int(current_->levels_[1].size()),
-      int(current_->levels_[2].size()), int(current_->levels_[3].size()),
-      int(current_->levels_[4].size()), int(current_->levels_[5].size()),
-      int(current_->levels_[6].size()));
+      int(current_.load()->levels_[0].size()), int(current_.load()->levels_[1].size()),
+      int(current_.load()->levels_[2].size()), int(current_.load()->levels_[3].size()),
+      int(current_.load()->levels_[4].size()), int(current_.load()->levels_[5].size()),
+      int(current_.load()->levels_[6].size()));
   return scratch->buffer;
 }
 //must have lock outside.
@@ -1501,16 +1501,16 @@ void VersionSet::AddLiveFiles(std::set<uint64_t>* live) {
 int64_t VersionSet::NumLevelBytes(int level) const {
   assert(level >= 0);
   assert(level < config::kNumLevels);
-  return TotalFileSize(current_->levels_[level]);
+  return TotalFileSize(current_.load()->levels_[level]);
 }
 
 int64_t VersionSet::MaxNextLevelOverlappingBytes() {
   int64_t result = 0;
   std::vector<std::shared_ptr<RemoteMemTableMetaData>> overlaps;
   for (int level = 1; level < config::kNumLevels - 1; level++) {
-    for (size_t i = 0; i < current_->levels_[level].size(); i++) {
-      const std::shared_ptr<RemoteMemTableMetaData> f = current_->levels_[level][i];
-      current_->GetOverlappingInputs(level + 1, &f->smallest, &f->largest,
+    for (size_t i = 0; i < current_.load()->levels_[level].size(); i++) {
+      const std::shared_ptr<RemoteMemTableMetaData> f = current_.load()->levels_[level][i];
+      current_.load()->GetOverlappingInputs(level + 1, &f->smallest, &f->largest,
                                      &overlaps);
       const int64_t sum = TotalFileSize(overlaps);
       if (sum > result) {
@@ -1693,34 +1693,35 @@ Iterator* VersionSet::MakeInputIteratorMemoryServer(Compaction* c) {
 //  return sst->UnderCompaction;
 //}
 // TODO: Implement the file picking up for those file who exceed their peeking limit.
-bool VersionSet::PickFileToCompact(int level, Compaction* c){
+bool VersionSet::PickFileToCompact(int level, Compaction* c,
+                                   Version* current_snap) {
   assert(c->inputs_[0].empty());
   assert(c->inputs_[1].empty());
   if (level==0){
     // if there is pending compaction, skip level 0
-    if (current_->in_progress[level].size()>0){
+    if (current_snap->in_progress[level].size()>0){
 //      assert(current_->levels_[level][0]->UnderCompaction);
       return false;
     }
     //Directly pickup all the pending table in level 0
-    c->inputs_[0] = current_->levels_[level];
+    c->inputs_[0] = current_snap->levels_[level];
     InternalKey smallest, largest;
     GetRange(c->inputs_[0], &smallest, &largest);
     // Note that the next call will discard the file we placed in
     // c->inputs_[0] earlier and replace it with an overlapping set
     // which will include the picked file.
     assert(!c->inputs_[0].empty());
-    if(current_->GetOverlappingInputs(level+1, &smallest, &largest, &c->inputs_[1])){
+    if(current_snap->GetOverlappingInputs(level+1, &smallest, &largest, &c->inputs_[1])){
       //Mark all the files as undercompaction
       for (auto iter : c->inputs_[0]) {
         iter->UnderCompaction = true;
       }
-      current_->in_progress[level].insert(current_->in_progress[level].end(),
+      current_snap->in_progress[level].insert(current_snap->in_progress[level].end(),
                                           c->inputs_[0].begin(), c->inputs_[0].end());
       for (auto iter : c->inputs_[1]) {
         iter->UnderCompaction = true;
       }
-      current_->in_progress[level+1].insert(current_->in_progress[level+1].end(),
+      current_snap->in_progress[level+1].insert(current_snap->in_progress[level+1].end(),
                                            c->inputs_[1].begin(), c->inputs_[1].end());
 //      return true;
     }else{
@@ -1730,20 +1731,20 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
 //      return false;
     }
   }else {
-    size_t current_level_size = current_->levels_[level].size();
+    size_t current_level_size = current_snap->levels_[level].size();
     size_t random_index = std::rand() % current_level_size;
     InternalKey smallest, largest;
     auto user_cmp = icmp_.user_comparator();
     int counter = 0;
     while (1) {
       std::shared_ptr<RemoteMemTableMetaData> f =
-          current_->levels_[level][random_index];
+          current_snap->levels_[level][random_index];
 
       if (!f->UnderCompaction) {
         // if this file is not under compaction, insert it to the input list.
         c->inputs_[0].push_back(f);
         if (random_index != current_level_size - 1){
-          std::shared_ptr<RemoteMemTableMetaData> next_f = current_->levels_[level][random_index + 1];
+          std::shared_ptr<RemoteMemTableMetaData> next_f = current_snap->levels_[level][random_index + 1];
           // need to check whether next file share the same key with this file, if yes
           // we have to add the next file. because the upper level can not have newer update
           // than lower level
@@ -1756,18 +1757,18 @@ bool VersionSet::PickFileToCompact(int level, Compaction* c){
 
         GetRange(c->inputs_[0], &smallest, &largest);
         // find file for level n+1
-        if(current_->GetOverlappingInputs(level + 1, &smallest, &largest,
+        if(current_snap->GetOverlappingInputs(level + 1, &smallest, &largest,
                                        &c->inputs_[1])){
           //Mark all the files as undercompaction
           for (auto iter : c->inputs_[0]) {
             iter->UnderCompaction = true;
           }
-          current_->in_progress[level].insert(current_->in_progress[level].end(),
+          current_snap->in_progress[level].insert(current_snap->in_progress[level].end(),
                                               c->inputs_[0].begin(), c->inputs_[0].end());
           for (auto iter : c->inputs_[1]) {
             iter->UnderCompaction = true;
           }
-          current_->in_progress[level+1].insert(current_->in_progress[level+1].end(),
+          current_snap->in_progress[level+1].insert(current_snap->in_progress[level+1].end(),
                                                 c->inputs_[1].begin(), c->inputs_[1].end());
           break;
         }else{
@@ -1813,6 +1814,7 @@ Compaction* VersionSet::PickCompaction(std::mutex* sv_mtx_within_function) {
   double level_score = 0;
   bool skipped_l0_to_base = false;
   c = new Compaction(options_, level);
+  Version* current_snap = current_.load();
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
   //TODO: may be we can create a verion for current_, and only use a read lock
@@ -1821,8 +1823,8 @@ Compaction* VersionSet::PickCompaction(std::mutex* sv_mtx_within_function) {
   std::unique_lock<std::mutex> lck(*sv_mtx_within_function);
 
   for (int i = 0; i < config::kNumLevels - 1; i++) {
-    level = current_->CompactionLevel(i);
-    level_score = current_->CompactionScore(i);
+    level = current_snap->CompactionLevel(i);
+    level_score = current_snap->CompactionScore(i);
     c->SetLevel(level);
     if (level_score >= 1){
 
@@ -1833,12 +1835,12 @@ Compaction* VersionSet::PickCompaction(std::mutex* sv_mtx_within_function) {
         // Chuqing:level 0 满了，level1正在工作。。。。？给level 0更高的priority
         continue;
       }
-      if (PickFileToCompact(level,c)) {
+      if (PickFileToCompact(level, c, current_snap)) {
         assert(c->level() == level && level < 10);
 #ifndef NDEBUG
         for (auto iter : c->inputs_[0]) {
-          assert(std::find(current_->levels_[level].begin(), current_->levels_[level].end(), iter)
-                 !=current_-> levels_[level].end());
+          assert(std::find(current_snap->levels_[level].begin(), current_snap->levels_[level].end(), iter)
+                 !=current_snap-> levels_[level].end());
         }
 #endif
         break;
@@ -1855,10 +1857,10 @@ Compaction* VersionSet::PickCompaction(std::mutex* sv_mtx_within_function) {
     }
   }
   if (!c->inputs_[0].empty()) {
-    c->input_version_ = current_;
+    c->input_version_ = current_snap;
     c->input_version_->Ref(2);
     //Recalculate the scores so that next time pick from a different level.
-    Finalize(current_);
+    Finalize(current_snap);
 //    if (c->inputs_[1].size() == 1){
 //      printf("mark here, first level file number is %lu\n", c->inputs_[1][0]->number);
 //    }
@@ -1977,10 +1979,10 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   const int level = c->level();
   InternalKey smallest, largest;
 
-  AddBoundaryInputs(icmp_, current_->levels_[level], &c->inputs_[0]);
+  AddBoundaryInputs(icmp_, current_.load()->levels_[level], &c->inputs_[0]);
   GetRange(c->inputs_[0], &smallest, &largest);
 
-  current_->GetOverlappingInputs(level + 1, &smallest, &largest,
+  current_.load()->GetOverlappingInputs(level + 1, &smallest, &largest,
                                  &c->inputs_[1]);
 
   // Get entire range covered by compaction
@@ -1991,8 +1993,8 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   // changing the number of "level+1" files we pick up.
   if (!c->inputs_[1].empty()) {
     std::vector<std::shared_ptr<RemoteMemTableMetaData>> expanded0;
-    current_->GetOverlappingInputs(level, &all_start, &all_limit, &expanded0);
-    AddBoundaryInputs(icmp_, current_->levels_[level], &expanded0);
+    current_.load()->GetOverlappingInputs(level, &all_start, &all_limit, &expanded0);
+    AddBoundaryInputs(icmp_, current_.load()->levels_[level], &expanded0);
     const int64_t inputs0_size = TotalFileSize(c->inputs_[0]);
     const int64_t inputs1_size = TotalFileSize(c->inputs_[1]);
     const int64_t expanded0_size = TotalFileSize(expanded0);
@@ -2002,7 +2004,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
       InternalKey new_start, new_limit;
       GetRange(expanded0, &new_start, &new_limit);
       std::vector<std::shared_ptr<RemoteMemTableMetaData>> expanded1;
-      current_->GetOverlappingInputs(level + 1, &new_start, &new_limit,
+      current_.load()->GetOverlappingInputs(level + 1, &new_start, &new_limit,
                                      &expanded1);
       if (expanded1.size() == c->inputs_[1].size()) {
         Log(options_->info_log,
@@ -2022,7 +2024,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
   // Compute the set of grandparent files that overlap this compaction
   // (parent == level+1; grandparent == level+2)
   if (level + 2 < config::kNumLevels) {
-    current_->GetOverlappingInputs(level + 2, &all_start, &all_limit,
+    current_.load()->GetOverlappingInputs(level + 2, &all_start, &all_limit,
                                    &c->grandparents_);
   }
 
@@ -2037,7 +2039,7 @@ void VersionSet::SetupOtherInputs(Compaction* c) {
 Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
                                      const InternalKey* end) {
   std::vector<std::shared_ptr<RemoteMemTableMetaData>> inputs;
-  current_->GetOverlappingInputs(level, begin, end, &inputs);
+  current_.load()->GetOverlappingInputs(level, begin, end, &inputs);
   if (inputs.empty()) {
     return nullptr;
   }
@@ -2060,7 +2062,7 @@ Compaction* VersionSet::CompactRange(int level, const InternalKey* begin,
   }
 
   Compaction* c = new Compaction(options_, level);
-  c->input_version_ = current_;
+  c->input_version_ = current_.load();
   c->input_version_->Ref(0);
   c->inputs_[0] = inputs;
   SetupOtherInputs(c);

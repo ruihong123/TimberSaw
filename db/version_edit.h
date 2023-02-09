@@ -179,8 +179,7 @@ class VersionEdit {
   DeletedFileSet* GetDeletedFiles(){
     return &deleted_files_;
   }
-  void AddFileIfNotExist(int level,
-               const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
+  void AddFileIfNotExist(int level, const std::shared_ptr<RemoteMemTableMetaData>& remote_table) {
     for(auto iter : new_files_){
       if (iter.second == remote_table){
         return;
@@ -188,8 +187,7 @@ class VersionEdit {
     }
     if (remote_table->file_size >0)
       new_files_.emplace_back(level, remote_table);
-    return;
-  }
+ }
   // Delete the specified "file" from the specified "level".
   void RemoveFile(int level, uint64_t file, uint8_t node_id) {
     //TODO(ruihong): remove this.

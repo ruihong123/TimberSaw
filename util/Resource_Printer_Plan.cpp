@@ -235,7 +235,7 @@ double Resource_Printer_PlanB::getCurrentValue() {
     percent = (timeSample.tms_stime - lastSysCPU) +
               (timeSample.tms_utime - lastUserCPU);
     percent /= (now - lastCPU);
-    percent /= numa_bind_core_num*1.16;// The 1.16 is a calibration parameter, I found the CPU utilization can acheive as high as 116.
+    percent /= numa_bind_core_num*1.16*1.07;// The 1.16 is a calibration parameter, I found the CPU utilization can acheive as high as 116.
     percent *= 100;
   }
   lastCPU = now;
