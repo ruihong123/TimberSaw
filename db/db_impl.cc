@@ -1033,10 +1033,12 @@ void DBImpl::CompactMemTable() {
   // wait for the immutable to get ready to flush. the signal here is prepare for
   // the case that the thread this immutable is under the control of conditional
   // variable.
+  //TODO: sometimes there is a racing bug below, need to fix it after the deadline
   FlushJob f_job(&write_stall_cv, &internal_comparator_);
   { //This code should synchronized outside the superversion mutex, since nothing
     // has been changed for superversion.
-    std::unique_lock<std::mutex> l(FlushPickMTX);
+//    std::unique_lock<std::mutex> l(imm_.imm_mtx);
+    std::unique_lock<std::mutex> l(superversion_memlist_mtx);
     if (imm_.IsFlushPending())
       imm_.PickMemtablesToFlush(&f_job.mem_vec);
     else
@@ -1574,7 +1576,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
       // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
       // BY experiment the accelerate factor is about 1/2
       final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
-      final_estimated_time_memory = 1.0*8.0/(17.0*(dynamic_remote_available_core >  task_parallelism? task_parallelism: dynamic_remote_available_core));
+      final_estimated_time_memory = 1.0*4.0/(17.0*(dynamic_remote_available_core >  task_parallelism? task_parallelism: dynamic_remote_available_core));
 
     }else{
       // Strategy 2: predict the level 0 execution time by STATIC info.
@@ -1587,7 +1589,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 //      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
       final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
 
-      final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
+      final_estimated_time_memory = 1.0*4.0/(17.0* static_memory_achievable_parallelism);
 
     }
 
@@ -1661,14 +1663,18 @@ bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
     print_counter.store(0);
   }
   size_t A_space = table_cache_->CheckAvailableSpace();
-  // There are kNumShards*INDEX_BLOCK hardware unavailable in the capacity.
+  // There are kNumShards*INDEX_BLOCK_BIG hardware unavailable in the capacity.
   //How to deal with the overflow problem
-//  size_t real_A_space = A_space >kNumShards*INDEX_BLOCK ? A_space - kNumShards*INDEX_BLOCK:0;
+//  size_t real_A_space = A_space >kNumShards*INDEX_BLOCK_BIG ? A_space - kNumShards*INDEX_BLOCK_BIG:0;
   size_t real_A_space = A_space;
   double level_factor = (static_cast<double>(config::kNumLevels)- static_cast<double>(compact->level()))/(static_cast<double>(config::kNumLevels));
+  if (static_cast<double>(A_space) < 2*TABLE_TYPE_ADJUST_THRESHOLD){
+    return true;
+  }
   double real_A_after_Factor = static_cast<double>(real_A_space)*level_factor;
   if (real_A_after_Factor <= TABLE_TYPE_ADJUST_THRESHOLD){
     if ((std::rand()%10)/10.0 < (TABLE_TYPE_ADJUST_THRESHOLD - real_A_after_Factor)/TABLE_TYPE_ADJUST_THRESHOLD){
+//          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
       return false;
     }
   }
@@ -2163,10 +2169,11 @@ Status DBImpl::TryInstallMemtableFlushResults(
     std::unique_lock<std::mutex> lck1(FlushPickMTX);
     for (size_t i = 0; i < mems.size(); ++i) {
       assert(i==0);
+      mems[i]->sstable = sstable;
       // First mark the flushing is finished in the immutables
       mems[i]->MarkFlushed();
       DEBUG_arg("Memtable %p marked as flushed\n", mems[i]);
-      mems[i]->sstable = sstable;
+
     }
   }
 
@@ -2281,7 +2288,7 @@ void DBImpl::CleanupSuperVersion(SuperVersion* sv) {
   // Release SuperVersion
   if (sv->Unref()) {
     {
-//      std::unique_lock<std::mutex> lck(superversion_memlist_mtx);
+//      std::unique_lock<std::mutex> lck(imm_.imm_mtx);
       sv->Cleanup();
     }
   }

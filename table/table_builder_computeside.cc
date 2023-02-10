@@ -127,15 +127,23 @@ TableBuilder_ComputeSide::~TableBuilder_ComputeSide() {
   }
   std::shared_ptr<RDMA_Manager> rdma_mg = rep_->options.env->rdma_mg;
   for(auto iter : rep_->local_data_mr){
-    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, FlushBuffer);
+    if (!rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, FlushBuffer)){
+      fprintf(stderr, "Flush buffer chunk deallocation failed\n");
+
+    }
     delete iter;
   }
   for(auto iter : rep_->local_index_mr){
-    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, IndexChunk);
+    if (!rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, IndexChunk)){
+      fprintf(stderr, "Index chunk deallocation failed\n");
+    }
     delete iter;
   }
   for(auto iter : rep_->local_filter_mr){
-    rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, FilterChunk);
+//    printf("Deallocate the filter block of a table builder\n");
+    if (!rdma_mg->Deallocate_Local_RDMA_Slot(iter->addr, FilterChunk)){
+      fprintf(stderr, "Filter chunk deallocation failed\n");
+    }
     delete iter;
   }
   delete rep_->data_block;
@@ -511,7 +519,7 @@ void TableBuilder_ComputeSide::FlushDataIndex(size_t msg_size) {
   Rep* r = rep_;
   ibv_mr* remote_mr = new ibv_mr();
   std::shared_ptr<RDMA_Manager> rdma_mg =  r->options.env->rdma_mg;
-  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr, 0, FlushBuffer);
+  rdma_mg->Allocate_Remote_RDMA_Slot(*remote_mr, 0, FlushBuffer);//Use flush buffer here, because we does not distinguish flush vs index in the remote memory.
   rdma_mg->RDMA_Write(remote_mr, r->local_index_mr[0], msg_size,
                       r->type_string_, IBV_SEND_SIGNALED, 0, 0);
   remote_mr->length = msg_size;

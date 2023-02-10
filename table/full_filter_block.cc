@@ -19,6 +19,7 @@ FullFilterBlockBuilder::FullFilterBlockBuilder(ibv_mr* mr,
       num_probes_(LegacyNoLocalityBloomImpl::ChooseNumProbes(bits_per_key_)),
       result((char*)mr->addr,0) {
 //  filter_bits_builder_ = std::make_unique<LegacyBloomImpl>();
+
 }
 
 //TOTHINK: One block per bloom filter, then why there is a design for the while loop?
@@ -246,6 +247,8 @@ FullFilterBlockReader::FullFilterBlockReader(
     std::cerr << "corrupt bloom filter" << std::endl;
     exit(1);
   }
+//  printf("Filter Block created, address is %p\n", this->filter_content.data());
+
 }
 
 //bool FullFilterBlockReader::KeyMayMatch(uint64_t block_offset, const Slice& key) {
@@ -282,9 +285,9 @@ bool FullFilterBlockReader::KeyMayMatch(const Slice& key) {
 FullFilterBlockReader::~FullFilterBlockReader() {
   if (filter_side == Compute){
     if (!rdma_mg_->Deallocate_Local_RDMA_Slot((void*)filter_content.data(), FilterChunk)){
-      DEBUG("Filter Block deregisteration failed\n");
+//      printf("Filter Block deregisteration failed\n");
     }else{
-//          printf("Filter block deregisteration successfully\n");
+//          printf("Filter block deregisteration successfully, Address is %p\n", this->filter_content.data());
     }
   }
 

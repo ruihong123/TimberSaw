@@ -22,7 +22,7 @@
 #include "table/table_builder_bacs.h"
 namespace TimberSaw {
 
-std::mutex MemTableList::imm_mtx;
+//std::mutex MemTableList::imm_mtx;
 
 class InternalKeyComparator;
 class Mutex;

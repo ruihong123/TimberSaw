@@ -23,7 +23,8 @@ namespace TimberSaw {
 struct BlockContents;
 class Comparator;
 //class IterKey;
-enum BlockType {DataBlock, IndexBlock, FilterBlock, Block_On_Memory_Side};
+enum BlockType {DataBlock, IndexBlock, IndexBlock_Small, FilterBlock, Block_On_Memory_Side};
+
 class Block {
  public:
   // Initialize the block with the specified contents.

@@ -38,7 +38,10 @@ Block::Block(const BlockContents& contents, BlockType type)
   }else{
     rdma_mg_ = Env::Default()->rdma_mg;
   }
+//  if(type_ == IndexBlock){
+//    printf("INdex Block created, address is %p\n", this->data_);
 
+//  }
 }
 
 Block::~Block() {
@@ -49,12 +52,16 @@ Block::~Block() {
 //      printf("Block RDMA registered memory deallocated successfull\n");
 //      printf("Delete buffer for cache,   start addr %p, length %zu content is %s\n", data_, size_ , data_+1);
 
-      delete data_;
+      delete[] data_;
       return;
     }
 
     if (type_ == IndexBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, IndexChunk)){
-//      printf("Index Block RDMA registered memory deallocated successfull\n");
+//      printf("Index Block RDMA registered memory deallocated successfully, address is %p\n", this->data_);
+      return;
+    }
+    if (type_ == IndexBlock_Small && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, IndexChunk_Small)){
+      //      printf("Index Block RDMA registered memory deallocated successfully, address is %p\n", this->data_);
       return;
     }
     if (type_ == FilterBlock && rdma_mg_->Deallocate_Local_RDMA_Slot((void*)data_, FilterChunk)){
@@ -64,7 +71,7 @@ Block::~Block() {
     if (type_ == Block_On_Memory_Side){
       return;
     }
-    DEBUG("Not found in the RDMA mem pool");
+    printf("Not found in the RDMA mem pool");
   }
 }
 

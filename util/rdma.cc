@@ -3209,7 +3209,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
     if (node_id%2 == 1)
       printf("Memory used up, allocate new one, memory pool is %s, total memory is %lu\n",
              EnumStrings[pool_name], Calculate_size_of_pool(DataChunk)+
-                                         Calculate_size_of_pool(IndexChunk)+Calculate_size_of_pool(FilterChunk)
+                                         Calculate_size_of_pool(IndexChunk) +Calculate_size_of_pool(IndexChunk_Small) +Calculate_size_of_pool(FilterChunk)
                                          + Calculate_size_of_pool(FlushBuffer)+ Calculate_size_of_pool(Version_edit));
     block_index = name_to_mem_pool.at(pool_name)
                           .at(mr_to_allocate->addr)

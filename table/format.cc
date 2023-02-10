@@ -330,7 +330,12 @@ Status ReadDataIndexBlock(ibv_mr* remote_mr, const ReadOptions& options,
   assert(n>0);
   assert(n + kBlockTrailerSize < rdma_mg->name_to_chunksize.at(IndexChunk));
   ibv_mr contents = {};
-  rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk);
+  if (remote_mr->length < INDEX_BLOCK_SMALL){
+    rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk_Small);
+
+  }else{
+    rdma_mg->Allocate_Local_RDMA_Slot(contents, IndexChunk);
+  }
   rdma_mg->RDMA_Read(remote_mr, &contents, n + kBlockTrailerSize, "read_local",
                      IBV_SEND_SIGNALED, 1, target_node_id);
 

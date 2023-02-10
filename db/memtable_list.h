@@ -232,7 +232,7 @@ class MemTableList {
 
   std::atomic<bool> imm_trim_needed;
   uint8_t target_node_id;
-
+  std::mutex imm_mtx;
   // Returns the total number of memtables in the list that haven't yet
   // been flushed and logged.
   int NumNotFlushed() const;
@@ -415,7 +415,7 @@ class MemTableList {
   // Cached value of current_->HasHistory().
   std::atomic<bool> current_has_history_;
 //  std::mutex* sv_mtx;
-  static std::mutex imm_mtx;
+
 };
 class FlushJob {
  public:

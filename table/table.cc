@@ -38,14 +38,22 @@ Status Table::Open(const Options& options, Table** table,
   if (options.paranoid_checks) {
     opt.verify_checksums = true;
   }
+  ibv_mr* remote_mr = Remote_table_meta->remote_dataindex_mrs.begin()->second;
   s = ReadDataIndexBlock(
-      Remote_table_meta->remote_dataindex_mrs.begin()->second, opt,
+      remote_mr, opt,
       &index_block_contents, Remote_table_meta->shard_target_node_id);
 
   if (s.ok()) {
     // We've successfully read the footer and the index block: we're
     // ready to serve requests.
-    Block* index_block = new Block(index_block_contents, IndexBlock);
+    Block* index_block;
+    if (remote_mr->length < INDEX_BLOCK_SMALL){
+      index_block = new Block(index_block_contents, IndexBlock_Small);
+
+    } else{
+      index_block = new Block(index_block_contents, IndexBlock);
+
+    }
     Rep* rep = new Table::Rep(options);
 //    rep->options = options;
 //    rep->file = file;

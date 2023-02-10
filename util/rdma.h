@@ -70,9 +70,9 @@
 #endif
 namespace TimberSaw {
 
-enum Chunk_type {Message=1, Version_edit=2, IndexChunk=3, FilterChunk=4, FlushBuffer=5, DataChunk=6, No_Use_Default_chunk=7};
-static const char * EnumStrings[] = { "Message", "Version_edit",
-      "IndexChunk", "FilterChunk", "FlushBuffer", "Default" };
+enum Chunk_type {Message=1, Version_edit=2, IndexChunk=3, IndexChunk_Small=4, FilterChunk=5, FlushBuffer=6, DataChunk=7, No_Use_Default_chunk=8};
+static const char * EnumStrings[] = { "NULL", "Message", "Version_edit",
+      "IndexChunk", "IndexChunk_Small", "FilterChunk", "FlushBuffer", "Default", "No_Use_Default_chunk" };
 
 static char config_file_name[100] = "../connection_bigdata.conf";
 

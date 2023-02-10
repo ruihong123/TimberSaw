@@ -40,7 +40,8 @@ check_include_file("unistd.h" HAVE_UNISTD_H)
 include(CheckLibraryExists)
 check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
-check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
+#check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
+# disable tcmalloc when we want to enable the fsantinize=address
 
 string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
 if(uppercase_CMAKE_BUILD_TYPE STREQUAL "DEBUG")
@@ -82,7 +83,7 @@ else(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif(CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL -Wall -Wextra -ggdb -fsanitize=thread") #set ggdb  -fsanitize=address flag here.
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DROCKSDB_SUPPORT_THREAD_LOCAL -Wall -Wextra") #set ggdb  -fsanitize=address flag here.
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -lnuma") # for core number statistic
 
 message(STATUS "compling mode ${CMAKE_BUILD_TYPE}")
@@ -331,9 +332,9 @@ endif(HAVE_CRC32C)
 if(HAVE_SNAPPY)
   target_link_libraries(TimberSaw snappy)
 endif(HAVE_SNAPPY)
-if(HAVE_TCMALLOC)
-  target_link_libraries(TimberSaw tcmalloc)
-endif(HAVE_TCMALLOC)
+#if(HAVE_TCMALLOC)
+#  target_link_libraries(TimberSaw tcmalloc)
+#endif(HAVE_TCMALLOC)
 
 list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake")
 # Needed by port_stdcxx.h

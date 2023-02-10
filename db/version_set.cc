@@ -1814,13 +1814,13 @@ Compaction* VersionSet::PickCompaction(std::mutex* sv_mtx_within_function) {
   double level_score = 0;
   bool skipped_l0_to_base = false;
   c = new Compaction(options_, level);
+  std::unique_lock<std::mutex> lck(*sv_mtx_within_function);
   Version* current_snap = current_.load();
   // We prefer compactions triggered by too much data in a level over
   // the compactions triggered by seeks.
   //TODO: may be we can create a verion for current_, and only use a read lock
   // when fetch the current from the list.
   // TOTHINK: Is this unique locak necessary here, will this have impact over the read performance?
-  std::unique_lock<std::mutex> lck(*sv_mtx_within_function);
 
   for (int i = 0; i < config::kNumLevels - 1; i++) {
     level = current_snap->CompactionLevel(i);
