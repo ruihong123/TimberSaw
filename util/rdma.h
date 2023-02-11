@@ -527,6 +527,8 @@ class RDMA_Manager {
   // Add for cpu utilization refreshing
 //TODO: (chuqing) if multiple servers
   std::map<uint8_t,std::atomic<double>*> server_cpu_percent;
+//  std::map<uint8_t,std::atomic<bool>*> remote_compaction_issued;
+
   std::mutex remote_core_number_map_mtx;
   std::atomic<bool> remote_core_number_received = false;
   std::map<uint8_t,uint16_t> remote_core_number_map;

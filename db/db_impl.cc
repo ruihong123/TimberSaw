@@ -1569,15 +1569,16 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
-    if ((compact->num_input_files(0) + compact->num_input_files(0))/(static_compute_achievable_parallelism + static_memory_achievable_parallelism) <= 2.0){
+    if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 1.5){
+//      static_compute_achievable_parallelism + static_memory_achievable_parallelism
       // execution time is longer than a normal compaction task then use dynamic score
       // Strategy 1: predict the level 0 execution time by dynamical info.
       // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(available cores, maximum parallelism)
       // supposing the table compaction task volume is A, then the run time for remote compaciton T = A* (accelerate factor)/min(available cores, maximum parallelism)
       // BY experiment the accelerate factor is about 1/2
       final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
-      final_estimated_time_memory = 1.0*4.0/(17.0*(dynamic_remote_available_core >  task_parallelism? task_parallelism: dynamic_remote_available_core));
-
+      final_estimated_time_memory = 1.0*8.0/(17.0*(dynamic_remote_available_core >  task_parallelism? task_parallelism: dynamic_remote_available_core));
+      // the accelerate factor here should be smaller than that in the "else". If a compaciton is fast then, the remote memory should
     }else{
       // Strategy 2: predict the level 0 execution time by STATIC info.
       // supposing the table compaction task volume is A, then the run time for local compaciton T = A/min(static core number, maximum parallelism)
@@ -1589,7 +1590,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 //      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
       final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
 
-      final_estimated_time_memory = 1.0*4.0/(17.0* static_memory_achievable_parallelism);
+      final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
 
     }
 
@@ -1625,10 +1626,14 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
     //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
-    if (dynamic_remote_available_core > 0.5){
+    if (dynamic_remote_available_core > 0.8){
+//      && !rdma_mg->remote_compaction_issued.at(shard_target_node_id)->load()
       // supposing the remote computing power is enough.
+//      if (dynamic_remote_available_core < 1.5){
+//        rdma_mg->remote_compaction_issued.at(shard_target_node_id)->store(true);
+//      }
       return true;
-    }else if (dynamic_compute_available_core > 0.9 && !rdma_mg->local_compaction_issued.load() ){
+    }else if (dynamic_compute_available_core > 0.2 && !rdma_mg->local_compaction_issued.load() ){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
       rdma_mg->local_compaction_issued.store(true);
@@ -1951,11 +1956,11 @@ Status DBImpl::OpenCompactionOutputFile(CompactionState* compact) {
   Status s = Status::OK();
   if (s.ok()) {
     if (compact->compaction->table_type == block_based){
-      printf("Create block based SSTables\n");
+//      printf("Create block based SSTables\n");
       compact->builder = new TableBuilder_ComputeSide(
           options_, Compact, shard_target_node_id);
     }else{
-      printf("Create byte_addressable based SSTables\n");
+//      printf("Create byte_addressable based SSTables\n");
       compact->builder = new TableBuilder_BACS(options_, Compact, shard_target_node_id);
 
     }
