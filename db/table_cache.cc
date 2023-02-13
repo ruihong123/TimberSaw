@@ -304,7 +304,7 @@ Status TableCache::Get(const ReadOptions& options,
 //TODO(chuqing): nonblock - 4.1
 Version::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
-                       const Slice& k, void* arg,
+                       const Slice& k, int level, void* arg,
                        void (*handle_result)(void*, const Slice&,
                                              const Slice&)) {
   Cache::Handle* handle = nullptr;
@@ -320,7 +320,7 @@ Version::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
     pipe.tablecache_get_status = s;
 #endif
 #ifndef BYTEADDRESSABLE
-    pipe = t->InternalGetAsync(options, k, arg);
+    pipe = t->InternalGetAsync(options, k, level, arg);
     // pipe.table = t;
 #endif
 
@@ -338,7 +338,7 @@ Version::AsyncCallbackPipe TableCache::GetAsync(const ReadOptions& options,
 //TODO(chuqing): nonblock - 4.2
 Status TableCache::GetCallback(const ReadOptions& options,
                        std::shared_ptr<RemoteMemTableMetaData> f,
-                       const Slice& k, void* arg,
+                       const Slice& k, void* arg, int level,
                        void (*handle_result)(void*, const Slice&, const Slice&),
                        Version::AsyncCallbackPipe* pipe) {
   // Cache::Handle* handle = nullptr;
@@ -353,7 +353,7 @@ Status TableCache::GetCallback(const ReadOptions& options,
 #endif
 #ifndef BYTEADDRESSABLE
     Table* t = reinterpret_cast<SSTable*>(cache_->Value(pipe->tablecache_handle))->table_compute;
-    s = t->InternalGetCallback(options, k, arg, handle_result, pipe);
+    s = t->InternalGetCallback(options, k, arg, handle_result, pipe, level);
 #endif
     //if you want to bypass the lock in cache then commet the code below
     cache_->Release(pipe->tablecache_handle);

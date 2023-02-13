@@ -1405,15 +1405,18 @@ void RDMA_Manager::sync_with_computes_Cside() {
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
   printf("sync wait time is %ld\n", duration.count());
 }
+
+//TODO(chuqing): nonblock - buffer
 ibv_mr* RDMA_Manager::Get_local_read_mr() {
   ibv_mr* ret;
   ret = (ibv_mr*)read_buffer->Get();
   if (ret == nullptr){
-    char* buffer = new char[name_to_chunksize.at(DataChunk)];
+    //TODO(chuqing): more copies for level 0
+    char* buffer = new char[config::kNumLevels * name_to_chunksize.at(DataChunk)];
     auto mr_flags =
         IBV_ACCESS_LOCAL_WRITE | IBV_ACCESS_REMOTE_READ | IBV_ACCESS_REMOTE_WRITE;
     //  auto start = std::chrono::high_resolution_clock::now();
-    ret = ibv_reg_mr(res->pd, buffer, name_to_chunksize.at(DataChunk), mr_flags);
+    ret = ibv_reg_mr(res->pd, buffer, config::kNumLevels * name_to_chunksize.at(DataChunk), mr_flags);
     read_buffer->Reset(ret);
   }
   return ret;
@@ -2090,6 +2093,94 @@ int RDMA_Manager::RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr,
 //#endif
   return rc;
 }
+
+int RDMA_Manager::RDMA_Read_level(ibv_mr* remote_mr, ibv_mr* local_mr,
+                            size_t msg_size, std::string qp_type,
+                            size_t send_flag, int poll_num, uint8_t target_node_id, int level) {
+//#ifdef GETANALYSIS
+//  auto start = std::chrono::high_resolution_clock::now();
+//#endif
+//  assert(poll_num == 1);
+  struct ibv_send_wr sr;
+  struct ibv_sge sge;
+  struct ibv_send_wr* bad_wr = NULL;
+  int rc;
+  /* prepare the scatter/gather entry */
+  memset(&sge, 0, sizeof(sge));
+  sge.addr = (uintptr_t)local_mr->addr + level * name_to_chunksize.at(DataChunk);
+  sge.length = msg_size;
+  sge.lkey = local_mr->lkey;
+  /* prepare the send work request */
+  memset(&sr, 0, sizeof(sr));
+  sr.next = NULL;
+  sr.wr_id = 0;
+  sr.sg_list = &sge;
+  sr.num_sge = 1;
+  sr.opcode = IBV_WR_RDMA_READ;
+  if (send_flag != 0) sr.send_flags = send_flag;
+  //  printf("send flag to transform is %u", send_flag);
+  //  printf("send flag is %u", sr.send_flags);
+  sr.wr.rdma.remote_addr = reinterpret_cast<uint64_t>(remote_mr->addr);
+  sr.wr.rdma.rkey = remote_mr->rkey;
+
+  /* there is a Receive Request in the responder side, so we won't get any into RNR flow */
+  //*(start) = std::chrono::steady_clock::now();
+  // start = std::chrono::steady_clock::now();
+  //  auto stop = std::chrono::high_resolution_clock::now();
+  //  auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start); std::printf("rdma read  send prepare for (%zu), time elapse : (%ld)\n", msg_size, duration.count()); start = std::chrono::high_resolution_clock::now();
+  ibv_qp* qp;
+  if (qp_type == "read_local"){
+//    assert(false);// Never comes to here
+    // TODO: Need a mutex to protect the map access. (shared exclusive lock)
+    qp = static_cast<ibv_qp*>(qp_local_read.at(target_node_id)->Get());
+    if (qp == NULL) {
+      Remote_Query_Pair_Connection(qp_type,target_node_id);
+      qp = static_cast<ibv_qp*>(qp_local_read.at(target_node_id)->Get());
+    }
+    rc = ibv_post_send(qp, &sr, &bad_wr);
+  }else if (qp_type == "write_local_flush"){
+    assert(false);
+
+  }else if (qp_type == "write_local_compact"){
+    assert(false);
+
+  } else {
+//    std::shared_lock<std::shared_mutex> l(qp_cq_map_mutex);
+    rc = ibv_post_send(res->qp_map.at(target_node_id), &sr, &bad_wr);
+//    l.unlock();
+  }
+  //    std::cout << " " << msg_size << "time elapse :" <<  << std::endl;
+  //  start = std::chrono::high_resolution_clock::now();
+
+  if (rc) {
+    fprintf(stderr, "failed to post SR %s \n", qp_type.c_str());
+    exit(1);
+
+  } else {
+    //      printf("qid: %s", q_id.c_str());
+  }
+
+  if (poll_num != 0) {
+    ibv_wc* wc = new ibv_wc[poll_num]();
+    //  auto start = std::chrono::high_resolution_clock::now();
+    //  while(std::chrono::high_resolution_clock::now
+    //  ()-start < std::chrono::nanoseconds(msg_size+200000));
+    auto start = std::chrono::high_resolution_clock::now();
+    rc = poll_completion(wc, poll_num, qp_type, true, target_node_id);
+    auto end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(end - start);
+    // std::printf("Poll completion (Read) time elapse is %zu\n",  duration.count());
+    if (rc != 0) {
+      std::cout << "RDMA Read Failed" << std::endl;
+      std::cout << "q id is" << qp_type << std::endl;
+      fprintf(stdout, "QP number=0x%x\n", res->qp_map[target_node_id]->qp_num);
+    }
+    delete[] wc;
+  }
+  ibv_wc wc;
+  return rc;
+}
+
 int RDMA_Manager::RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr,
                              size_t msg_size, std::string qp_type,
                              size_t send_flag, int poll_num, uint8_t target_node_id) {

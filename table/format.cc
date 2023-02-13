@@ -243,7 +243,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
 
 //TODO(chuqing): nonblock - 1.1
 ibv_mr* ReadDataBlockAsync(std::map<uint32_t, ibv_mr*>* remote_data_blocks, 
-                 const BlockHandle& handle) {
+                 const BlockHandle& handle, int level) {
 
   //TODO: Make it use thread local read buffer rather than allocate one every time.
 
@@ -258,11 +258,15 @@ ibv_mr* ReadDataBlockAsync(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 
 //    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
   //Need to fix here
+  //TODO(chuqing): different buffer
   contents = rdma_mg->Get_local_read_mr();
+  ibv_mr* contents_temp = rdma_mg->Get_local_read_mr();
+  // contents_temp->addr = contents_temp->addr + rdma_mg->name_to_chunksize.at(DataChunk);
   // Results will be writen into contents 
-  rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local",
-                     IBV_SEND_SIGNALED, 0, 0);
-
+  // rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local",
+  //                    IBV_SEND_SIGNALED, 0, 0);
+  rdma_mg->RDMA_Read_level(&remote_mr, contents_temp, n + kBlockTrailerSize, "read_local",
+                     IBV_SEND_SIGNALED, 0, 0, level);
   return contents;
 
   
@@ -270,7 +274,7 @@ ibv_mr* ReadDataBlockAsync(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 
 //TODO(chuqing): nonblock - 1.2
 Status ReadDataBlockCallback(const ReadOptions& options, const BlockHandle& handle, 
-                              BlockContents* result, ibv_mr* contents) {
+                              BlockContents* result, ibv_mr* contents, int level) {
   // poll the read work
   int poll_num = 1;
   ibv_wc* wc = new ibv_wc[poll_num]();
@@ -293,10 +297,10 @@ Status ReadDataBlockCallback(const ReadOptions& options, const BlockHandle& hand
   result->data = Slice();
   Status s = Status::OK();
   size_t n = static_cast<size_t>(handle.size());
+  size_t buf_len = rdma_mg->name_to_chunksize.at(DataChunk);
+  char* data = new char[buf_len];
 
-  char* data = new char[rdma_mg->name_to_chunksize.at(DataChunk)];
-
-  memcpy(data, contents->addr, rdma_mg->name_to_chunksize.at(DataChunk));
+  memcpy(data, contents->addr + level * buf_len, buf_len);
 
   if (options.verify_checksums) {
     const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));

@@ -148,8 +148,13 @@ class Version {
     VersionSet* vset;
     Status s;
     bool found;
-    AsyncCallbackPipe* pipe;
+    AsyncCallbackPipe pipe;
     // static bool Match(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
+  };
+
+  struct StateLevelUnit{
+    State* s;
+    std::shared_ptr<RemoteMemTableMetaData> f;
   };
 
   State StateCopy(State s_ori);
@@ -157,7 +162,7 @@ class Version {
   static bool MatchNormal(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   State* MatchAsync(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   static bool MatchAsync_temp(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f);
-  static bool MatchCallback(State* state, std::shared_ptr<RemoteMemTableMetaData> f);
+  static bool MatchCallback(State* state, int level, std::shared_ptr<RemoteMemTableMetaData> f);
   void MatchRequestSend(void* arg, int level, std::shared_ptr<RemoteMemTableMetaData> f, std::string* buf);
 //  std::shared_ptr<Subversion> subversion;
 

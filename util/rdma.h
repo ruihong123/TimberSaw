@@ -32,6 +32,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "db/dbformat.h"
 #include "port/port_posix.h"
 #include "util/Resource_Printer_Plan.h"
 #include "util/thread_local.h"
@@ -389,6 +390,9 @@ class RDMA_Manager {
   int RDMA_Read(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
                 std::string qp_type, size_t send_flag, int poll_num,
                 uint8_t target_node_id);
+  int RDMA_Read_level(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
+                std::string qp_type, size_t send_flag, int poll_num,
+                uint8_t target_node_id, int level);
   int RDMA_Write(ibv_mr* remote_mr, ibv_mr* local_mr, size_t msg_size,
                  std::string qp_type, size_t send_flag, int poll_num,
                  uint8_t target_node_id);

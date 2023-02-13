@@ -118,8 +118,8 @@ class TimberSaw_EXPORT Table {
 
   static Iterator* BlockReader(void*, const ReadOptions&, const Slice&);
   // static Iterator* BlockReaderAsync(void*, const ReadOptions&, const Slice&); 
-  static Version::AsyncCallbackPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&);
-  static Iterator* BlockReaderCallback(void*, const ReadOptions&, const Slice&,
+  static Version::AsyncCallbackPipe BlockReaderAsync(void*, const ReadOptions&, const Slice&, int level);
+  static Iterator* BlockReaderCallback(void*, const ReadOptions&, int level, const Slice&,
                                       Version::AsyncCallbackPipe* pipe);
   explicit Table(Rep* rep) : rep(rep) {}
 
@@ -129,10 +129,10 @@ class TimberSaw_EXPORT Table {
   Status InternalGet(const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k,
                                            const Slice& v));
-  Version::AsyncCallbackPipe InternalGetAsync (const ReadOptions&, const Slice& key, void* arg);
+  Version::AsyncCallbackPipe InternalGetAsync (const ReadOptions&, const Slice& key, int level, void* arg);
   Status InternalGetCallback (const ReadOptions&, const Slice& key, void* arg,
                      void (*handle_result)(void* arg, const Slice& k, const Slice& v),
-                            Version::AsyncCallbackPipe* pipe);
+                            Version::AsyncCallbackPipe* pipe, int level);
   void ReadMeta(const Footer& footer);
   void ReadFilter();
 
