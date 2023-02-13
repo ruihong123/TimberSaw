@@ -91,6 +91,9 @@ static double FLAGS_compression_ratio = 0.5;
 // Print histogram of operation timings
 static bool FLAGS_histogram = false;
 
+// print throughput for every 2 MIllion batch
+static bool FLAGS_batchprint = false;
+
 // Count the number of string comparisons performed
 static bool FLAGS_comparisons = false;
 
@@ -295,11 +298,16 @@ class Stats {
   int done_;
   int next_report_;
   int64_t bytes_;
+  int64_t batch_bytes_;
+
   double last_op_finish_;
   Histogram hist_;
   std::string message_;
-
+  std::atomic<unsigned int> batch_done_;
+  std::atomic<double> last_batch_finish;
  public:
+
+
   Stats() { Start(); }
 
   void Start() {
@@ -309,7 +317,7 @@ class Stats {
     bytes_ = 0;
     seconds_ = 0;
     message_.clear();
-    start_ = finish_ = last_op_finish_ = g_env->NowMicros();
+    start_ = finish_ = last_op_finish_ = last_batch_finish = g_env->NowMicros();
   }
 
   void Merge(const Stats& other) {
@@ -322,6 +330,20 @@ class Stats {
 
     // Just keep the messages from one thread
     if (message_.empty()) message_ = other.message_;
+  }
+  void Merge_batch(Stats& other) {
+    // Merge should be thread safe and clear the batch every call, we need to pass another
+    // argument for a central stat.
+    batch_done_ += other.batch_done_.load();
+    other.batch_done_.store(0);
+//    done_ += other.done_;
+//    bytes_ += other.bytes_;
+//    seconds_ += other.seconds_;
+//    if (other.start_ < start_) start_ = other.start_;
+//    if (other.finish_ > finish_) finish_ = other.finish_;
+
+    // Just keep the messages from one thread
+//    if (message_.empty()) message_ = other.message_;
   }
 
   void Stop() {
@@ -344,6 +366,7 @@ class Stats {
     }
 
     done_++;
+    batch_done_.fetch_add(1);
     if (done_ >= next_report_) {
       if (next_report_ < 1000)
         next_report_ += 100;
@@ -361,6 +384,27 @@ class Stats {
         next_report_ += 100000;
       std::fprintf(stderr, "... finished %d ops%30s\r", done_, "");
       std::fflush(stderr);
+
+//      if (FLAGS_batchprint && done_%2000000 == 0){
+//        // print the throughput since last time
+//        double now = g_env->NowMicros();
+//        double elapsed = (now - last_batch_finish) * 1e-6;
+//        std::string extra;
+//        if (bytes_ > 0) {
+//          // Rate is computed on actual elapsed time, not the sum of per-thread
+//          // elapsed times.
+//
+//          char rate[100];
+//          std::snprintf(rate, sizeof(rate), "%6.1f MB/s",
+//                        (bytes_ / 1048576.0) / elapsed);
+//          extra = rate;
+//        }
+//        AppendWithSpace(&extra, message_);
+//
+//        std::fprintf(stdout, "%-12s: %8.3f micros/op; %ld ops/sec;%s%s\n",
+//                     name.ToString().c_str(), seconds_ * 1e6 / done_, (long)(done_/elapsed),
+//                     (extra.empty() ? "" : " "), extra.c_str());
+//      }
     }
   }
   void FinishedMultipleOp(int num) {
@@ -376,6 +420,8 @@ class Stats {
     }
 
     done_ = done_ + num;
+    batch_done_.fetch_add(1);
+
     if (done_ >= next_report_) {
       if (next_report_ < 1000)
         next_report_ += 100;
@@ -424,6 +470,32 @@ class Stats {
                    hist_.ToString().c_str());
     }
     std::fflush(stdout);
+  }
+  void Report_Batch(const Slice& name, int thread_num, FILE* file) {
+    // Pretend at least one op was done in case we are running a benchmark
+    // that does not call FinishedSingleOp().
+    if ( batch_done_< 1) batch_done_ = 1;
+    double now = g_env->NowMicros();
+    double elapsed = (now - last_batch_finish) * 1e-6;
+    last_batch_finish = now;
+//    std::string extra;
+//    if (bytes_ > 0) {
+//      // Rate is computed on actual elapsed time, not the sum of per-thread
+//      // elapsed times.
+//
+//      char rate[100];
+//      std::snprintf(rate, sizeof(rate), "%6.1f MB/s",
+//                    (bytes_ / 1048576.0) / elapsed);
+//      extra = rate;
+//    }
+//    AppendWithSpace(&extra, message_);
+
+    std::fprintf(file, "Batch throughput %-12s: %8.3f micros/op; %ld ops/sec;, time stamp is %f\n",
+                 name.ToString().c_str(), elapsed*thread_num * 1e6 / batch_done_, (long)(batch_done_/elapsed), now);
+
+    std::fflush(file);
+    batch_done_.store(0);
+
   }
 };
 
@@ -807,6 +879,19 @@ class Benchmark {
       }
     }
   }
+  void print_throuput_every_1s(ThreadArg* arg, int n, Stats* batch_print_stat,
+                               SharedState* shared_state, int thread_num) {
+    batch_print_stat->Start();
+    FILE * file = fopen("throughput_batch_print.txt", "a");
+    while (shared_state->num_done!=thread_num){
+      sleep(1);
+      for (int i = 0; i < n; i++) {
+        batch_print_stat->Merge_batch(arg[i].thread->stats);
+      }
+      batch_print_stat->Report_Batch("batch througput", n, file);
+    }
+    fclose(file);
+  }
 
   void RunBenchmark(int n, Slice name,
                     void (Benchmark::*method)(ThreadState*)) {
@@ -848,6 +933,12 @@ class Benchmark {
       printf("start front-end threads\n");
       g_env->StartThread(ThreadBody, &arg[i]);
     }
+    std::thread* t_print = nullptr;
+    if (FLAGS_batchprint){
+      Stats batch_stat;
+      t_print = new std::thread(&Benchmark::print_throuput_every_1s, this, arg, n, &batch_stat, &shared, n);
+
+    }
 
     shared.mu.Lock();
     while (shared.num_initialized < n) {
@@ -863,7 +954,10 @@ class Benchmark {
       shared.cv.Wait();
     }
     shared.mu.Unlock();
-
+    if (FLAGS_batchprint){
+      t_print->join();
+      delete t_print;
+    }
     for (int i = 1; i < n; i++) {
       arg[0].thread->stats.Merge(arg[i].thread->stats);
     }
@@ -1559,6 +1653,9 @@ int main(int argc, char** argv) {
     } else if (sscanf(argv[i], "--histogram=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_histogram = n;
+    } else if (sscanf(argv[i], "--batchprint=%d%c", &n, &junk) == 1 &&
+               (n == 0 || n == 1)) {
+      FLAGS_batchprint = n;
     } else if (sscanf(argv[i], "--comparisons=%d%c", &n, &junk) == 1 &&
                (n == 0 || n == 1)) {
       FLAGS_comparisons = n;
