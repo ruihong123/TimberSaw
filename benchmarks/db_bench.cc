@@ -491,7 +491,7 @@ class Stats {
 //    AppendWithSpace(&extra, message_);
 
     std::fprintf(file, "Batch throughput %-12s: %8.3f micros/op; %ld ops/sec;, time stamp is %f\n",
-                 name.ToString().c_str(), elapsed*thread_num * 1e6 / batch_done_, (long)(batch_done_/elapsed), now);
+                 name.ToString().c_str(), elapsed*(thread_num-1) * 1e6 / batch_done_, (long)(batch_done_/elapsed), now-start_);
 
     std::fflush(file);
     batch_done_.store(0);
@@ -503,6 +503,9 @@ class Stats {
 struct SharedState {
   port::Mutex mu;
   port::CondVar cv GUARDED_BY(mu);
+  port::Mutex mu_1;
+  port::CondVar cv_1 GUARDED_BY(mu_1);
+  bool batch_ready = false;
   int total GUARDED_BY(mu);
 
   // Each thread goes through the following states:
@@ -512,11 +515,11 @@ struct SharedState {
   //    (4) done
 
   int num_initialized GUARDED_BY(mu);
-  int num_done GUARDED_BY(mu);
+  std::atomic<int> num_done;
   bool start GUARDED_BY(mu);
 
   SharedState(int total)
-      : cv(&mu), total(total), num_initialized(0), num_done(0), start(false) {}
+      : cv(&mu), cv_1(&mu_1), total(total), num_initialized(0), num_done(0), start(false) {}
 };
 
 // Per-thread state for concurrent executions of the same benchmark.
@@ -793,6 +796,9 @@ class Benchmark {
       } else if (name == Slice("readwhilewriting")) {
         num_threads++;  // Add extra thread for writing
         method = &Benchmark::ReadWhileWriting;
+      } else if (name == Slice("readwhilewriting_fixednum")) {
+        num_threads++;  // Add extra thread for writing
+        method = &Benchmark::ReadWhileWriting_fixnum;
       } else if (name == Slice("compact")) {
         method = &Benchmark::Compact;
       } else if (name == Slice("crc32c")) {
@@ -873,22 +879,29 @@ class Benchmark {
 
     {
       MutexLock l(&shared->mu);
-      shared->num_done++;
+      shared->num_done.fetch_add(1);
       if (shared->num_done >= shared->total) {
         shared->cv.SignalAll();
       }
     }
   }
   void print_throuput_every_1s(ThreadArg* arg, int n, Stats* batch_print_stat,
-                               SharedState* shared_state, int thread_num) {
+                               SharedState* shared_state, int thread_num,
+                               Slice name) {
     batch_print_stat->Start();
     FILE * file = fopen("throughput_batch_print.txt", "a");
     while (shared_state->num_done!=thread_num){
-      sleep(1);
+      shared_state->mu_1.Lock();
+      while (!shared_state->batch_ready) {
+        shared_state->cv_1.Wait();
+      }
+      shared_state->batch_ready = false;
+
       for (int i = 0; i < n; i++) {
         batch_print_stat->Merge_batch(arg[i].thread->stats);
       }
-      batch_print_stat->Report_Batch("batch througput", n, file);
+      batch_print_stat->Report_Batch(name, n, file);
+      shared_state->mu_1.Unlock();
     }
     fclose(file);
   }
@@ -936,7 +949,7 @@ class Benchmark {
     std::thread* t_print = nullptr;
     if (FLAGS_batchprint){
       Stats batch_stat;
-      t_print = new std::thread(&Benchmark::print_throuput_every_1s, this, arg, n, &batch_stat, &shared, n);
+      t_print = new std::thread(&Benchmark::print_throuput_every_1s, this, arg, n, &batch_stat, &shared, n, name);
 
     }
 
@@ -1577,7 +1590,10 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
     } else {
       // Special thread that keeps writing until other threads are done.
       RandomGenerator gen;
-      KeyBuffer key;
+//      KeyBuffer key;
+      std::unique_ptr<const char[]> key_guard;
+
+      Slice key = AllocateKey(&key_guard);
       while (true) {
         {
           MutexLock l(&thread->shared->mu);
@@ -1588,14 +1604,115 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
         }
 
         const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);
-        key.Set(k);
+//        key.Set(k);
+        GenerateKeyFromInt(k, &key);
         Status s =
-            db_->Put(write_options_, key.slice(), gen.Generate(value_size_));
+            db_->Put(write_options_, key, gen.Generate(value_size_));
         if (!s.ok()) {
           std::fprintf(stderr, "put error: %s\n", s.ToString().c_str());
           std::exit(1);
         }
       }
+
+      // Do not count any of the preceding work/delay in stats.
+      thread->stats.Start();
+    }
+  }
+
+  void ReadWhileWriting_fixnum(ThreadState* thread) {
+    if (thread->tid > 0) {
+      ReadOptions options;
+      //TODO(ruihong): specify the table_cache option.
+      std::string value;
+      int found = 0;
+      //    KeyBuffer key;
+      std::unique_ptr<const char[]> key_guard;
+      Slice key = AllocateKey(&key_guard);
+      while (thread->shared->num_done.load() == 0) {
+
+        //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
+        const int k = thread->rand.Next()%(FLAGS_num);
+        //
+        //            key.Set(k);
+        GenerateKeyFromInt(k, &key);
+        //      if (db_->Get(options, key.slice(), &value).ok()) {
+        //        found++;
+        //      }
+        if (db_->Get(options, key, &value).ok()) {
+          found++;
+        }
+        thread->stats.FinishedSingleOp();
+      }
+      char msg[100];
+      std::snprintf(msg, sizeof(msg), "(%d of %d found)", found, num_);
+      thread->stats.AddMessage(msg);
+    } else {
+      // Special thread that keeps writing until other threads are done.
+      RandomGenerator gen;
+      //      KeyBuffer key;
+      std::unique_ptr<const char[]> key_guard;
+      FILE * file = fopen("throughput_batch_print.txt", "a");
+
+      Slice key = AllocateKey(&key_guard);
+      for (int i = 0; i < num_ ; i++) {
+//        {
+//          MutexLock l(&thread->shared->mu);
+//          if (thread->shared->num_done + 1 >= thread->shared->num_initialized) {
+//            // Other threads have finished
+//            break;
+//          }
+//        }
+
+        const int k = thread->rand.Uniform(FLAGS_num);
+        //        key.Set(k);
+        GenerateKeyFromInt(k, &key);
+        Status s =
+            db_->Put(write_options_, key, gen.Generate(value_size_));
+        if (!s.ok()) {
+          std::fprintf(stderr, "put error: %s\n", s.ToString().c_str());
+          std::exit(1);
+        }
+        if (i%4000000 == 0){
+          MutexLock l(&thread->shared->mu_1);
+          thread->shared->batch_ready= true;
+          thread->shared->cv_1.Signal();
+          printf("current finished put ops is %d\n", i);
+
+
+        }
+      }
+      //TODO: pure deletion has bug because the pure deletion makes SSTable only contain keys
+      // without any deltion. the index block will be extremely large.
+
+      // Deletion state.
+//      for (int i = 0; i < num_ ; i++) {
+//        //        {
+//        //          MutexLock l(&thread->shared->mu);
+//        //          if (thread->shared->num_done + 1 >= thread->shared->num_initialized) {
+//        //            // Other threads have finished
+//        //            break;
+//        //          }
+//        //        }
+//
+//        const int k = thread->rand.Uniform(FLAGS_num);
+//        //        key.Set(k);
+//        GenerateKeyFromInt(k, &key);
+//        Status s =
+//            db_->Delete(write_options_, key);
+//        if (!s.ok()) {
+//          std::fprintf(stderr, "delete error: %s\n", s.ToString().c_str());
+//          std::exit(1);
+//        }
+//        if (i%4000000 == 0){
+//          MutexLock l(&thread->shared->mu_1);
+//          thread->shared->batch_ready= true;
+//          thread->shared->cv_1.Signal();
+//          printf("current finished delete ops is %d\n", i);
+//
+//
+//        }
+//      }
+      fclose(file);
 
       // Do not count any of the preceding work/delay in stats.
       thread->stats.Start();

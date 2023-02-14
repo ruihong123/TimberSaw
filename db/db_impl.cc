@@ -1678,10 +1678,22 @@ bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
   }
   double real_A_after_Factor = static_cast<double>(real_A_space)*level_factor;
   if (real_A_after_Factor <= TABLE_TYPE_ADJUST_THRESHOLD){
+    //smoothie the converting , otherwise the converting becomes suddenly and intensively
     if ((std::rand()%10)/10.0 < (TABLE_TYPE_ADJUST_THRESHOLD - real_A_after_Factor)/TABLE_TYPE_ADJUST_THRESHOLD){
 //          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
       return false;
+    }else{
+      return true;
     }
+    // return false;
+  }else{
+    if ((std::rand()%10)/10.0 < (real_A_after_Factor - TABLE_TYPE_ADJUST_THRESHOLD)/TABLE_TYPE_ADJUST_THRESHOLD){
+      //          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+      return true;
+    }else{
+      return false;
+    }
+    // return true;
   }
   return true;
 //  if ( real_A_space> 512ull*1024ull*1024ull){
