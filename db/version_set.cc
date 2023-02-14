@@ -531,37 +531,40 @@ void Version::ForEachOverlappingAsync(Slice user_key, Slice internal_key, void* 
   }
 
   // Search other levels.
-  std::map<int, State*> state_map;
+  std::shared_ptr<RemoteMemTableMetaData> f;
+  std::map<int, StateLevelUnit> state_map;
+  StateLevelUnit s_unit;
   for (int level = 1; level < config::kNumLevels; level++) {
     size_t num_files = levels_[level].size();
     if (num_files == 0) continue;
 
     // Binary search to find earliest index whose largest key >= internal_key.
+    // StateLevelUnit s_unit = (StateLevelUnit*)malloc(sizeof(StateLevelUnit));
     uint32_t index = FindFile(vset_->icmp_, levels_[level], internal_key);
     if (index < num_files) {
-      std::shared_ptr<RemoteMemTableMetaData> f = levels_[level][index];
-      if (ucmp->Compare(user_key, f->smallest.user_key()) < 0) {
+      s_unit.f = levels_[level][index];
+      if (ucmp->Compare(user_key, s_unit.f->smallest.user_key()) < 0) {
         // All of "f" is past any data for user_key
+        // free(s_unit);
       } else {
 
-//        IF(RMDA ->TRY_POLL()){
-//
-//        }
-        // MALLOC NEW BUFFER
-        State* s = MatchAsync(arg, level, f);
-        auto not_found = MatchCallback(s, level, f);
-        if(!not_found)
-          return;
-        // state_map.insert({level, s});
+        State* s = MatchAsync(arg, level, s_unit.f);
+        // StateLevelUnit* s_unit = (StateLevelUnit*)malloc(sizeof(StateLevelUnit));
+        s_unit.s = s;
+        // s_unit->f = std::make_shared<RemoteMemTableMetaData>(*f);
+        state_map.insert({level, s_unit});
       }
+    } else{
+      // free(s_unit);
     }
   }
-  // auto map_iter = future_map.begin();
-  // while(map_iter != )
-  // for(auto iter = state_map.begin(); iter != state_map.end(); iter++){
-  //   auto s = iter->second;
-  //   return;
-  // }
+
+  for(auto iter = state_map.begin(); iter != state_map.end(); iter++){
+    auto s_unit = iter->second;
+    auto not_found = MatchCallback(s_unit.s, iter->first, s_unit.f);
+    if(!not_found)
+      return;
+  }
 
 }
 
@@ -650,6 +653,7 @@ Status Version::Get(const ReadOptions& options, const LookupKey& k,
 #ifndef ASYNC_READ
   ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);
 #else
+  printf("I am async\n");
   ForEachOverlappingAsync(state.saver.user_key, state.ikey, &state);
 #endif
   // ForEachOverlapping(state.saver.user_key, state.ikey, &state, &MatchNormal);

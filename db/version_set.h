@@ -155,6 +155,7 @@ class Version {
   struct StateLevelUnit{
     State* s;
     std::shared_ptr<RemoteMemTableMetaData> f;
+    // RemoteMemTableMetaData* f;
   };
 
   State StateCopy(State s_ori);
