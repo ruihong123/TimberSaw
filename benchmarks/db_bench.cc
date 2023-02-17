@@ -885,7 +885,7 @@ class Benchmark {
       }
     }
   }
-  void print_throuput_every_1s(ThreadArg* arg, int n, Stats* batch_print_stat,
+  void print_throuput_every_batch(ThreadArg* arg, int n, Stats* batch_print_stat,
                                SharedState* shared_state, int thread_num,
                                Slice name) {
     batch_print_stat->Start();
@@ -949,8 +949,8 @@ class Benchmark {
     std::thread* t_print = nullptr;
     if (FLAGS_batchprint){
       Stats batch_stat;
-      t_print = new std::thread(&Benchmark::print_throuput_every_1s, this, arg, n, &batch_stat, &shared, n, name);
-
+      t_print = new std::thread(&Benchmark::print_throuput_every_batch, this, arg, n, &batch_stat, &shared, n, name);
+      t_print->detach();
     }
 
     shared.mu.Lock();
@@ -967,10 +967,10 @@ class Benchmark {
       shared.cv.Wait();
     }
     shared.mu.Unlock();
-    if (FLAGS_batchprint){
-      t_print->join();
-      delete t_print;
-    }
+//    if (FLAGS_batchprint){
+//      t_print->join();
+//      delete t_print;
+//    }
     for (int i = 1; i < n; i++) {
       arg[0].thread->stats.Merge(arg[i].thread->stats);
     }

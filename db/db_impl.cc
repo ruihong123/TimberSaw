@@ -1569,7 +1569,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
-    if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 1.5){
+    if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 2){
 //      static_compute_achievable_parallelism + static_memory_achievable_parallelism
       // execution time is longer than a normal compaction task then use dynamic score
       // Strategy 1: predict the level 0 execution time by dynamical info.
@@ -1587,8 +1587,8 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 
       // We may still use the dynamic available core number here because, the frontend reader and writer can eat up the CPU resources,
       // static core numbers is too optimistic.
-//      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
-      final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
+      final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
+//      final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
 
       final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
 
@@ -1626,17 +1626,40 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // else if there is a higher mn utilization, then do the compaction in the compute node
 
     //TODO: if there is a level 0 compaction running at the remote side, try to make room, similar for the compute node side.
-    if (dynamic_remote_available_core > 0.8){
+    if (dynamic_remote_available_core > 0.2){
+      //A smaller threshold is good for 6 remote cores, but bad for 1 remote core.
 //      && !rdma_mg->remote_compaction_issued.at(shard_target_node_id)->load()
       // supposing the remote computing power is enough.
 //      if (dynamic_remote_available_core < 1.5){
 //        rdma_mg->remote_compaction_issued.at(shard_target_node_id)->store(true);
 //      }
-      return true;
-    }else if (dynamic_compute_available_core > 0.2 && !rdma_mg->local_compaction_issued.load() ){
+      if (dynamic_remote_available_core > 1){
+        return true;
+      }
+      if ((std::rand()%10)/10.0 < ((dynamic_remote_available_core-0.2)/0.8)){
+        return true;
+      }else{
+        return false;
+      }
+//      return true;
+    }else if (dynamic_compute_available_core > 0.5 && !rdma_mg->local_compaction_issued.load() ){
       // supposing the local computing power is enough.
       printf("dynamic remote available core is %f, dynamic local available core is %f\n",dynamic_remote_available_core, dynamic_compute_available_core);
-      rdma_mg->local_compaction_issued.store(true);
+//      if (dynamic_compute_available_core > 1){
+//        rdma_mg->local_compaction_issued.store(true);
+//
+//        return false;
+//      }
+//      //Issue the near data compaciton with probability
+//      if ((std::rand()%10)/10.0 < (1.0-dynamic_compute_available_core)/0.8){
+//        rdma_mg->local_compaction_issued.store(true);
+//
+//        return false;
+//      }else{
+//        usleep(compact->level()*500);
+//        goto retry;
+//      }
+        rdma_mg->local_compaction_issued.store(true);
       return false;
     }else{
       //if local computing power is not enough sleep for a while to avoid context switching overhead.

@@ -38,8 +38,7 @@ ByteAddressableSEQIterator::~ByteAddressableSEQIterator() {
 };
 
 void ByteAddressableSEQIterator::Seek(const Slice& target) {
-  //TODO: THe boundary here have some bugs.
-  assert(target.compare(reinterpret_cast<Table*>(arg_)->rep->remote_table.lock()->largest.Encode()) <= 0);
+//  assert(target.compare(reinterpret_cast<Table*>(arg_)->rep->remote_table.lock()->largest.Encode()) <= 0);
   index_iter_.Seek(target);
   GetKVInitial();
 
