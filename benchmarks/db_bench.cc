@@ -24,7 +24,7 @@
 #include "util/mutexlock.h"
 #include "util/random.h"
 #include "util/testutil.h"
-
+#define PRINT_BATCH 4000000
 // Comma-separated list of operations to run in the specified order
 //   Actual benchmarks:
 //      fillseq       -- write N values in sequential key order in async mode
@@ -303,10 +303,11 @@ class Stats {
   double last_op_finish_;
   Histogram hist_;
   std::string message_;
-  std::atomic<unsigned int> batch_done_;
-  std::atomic<double> last_batch_finish;
- public:
 
+ public:
+  std::atomic<unsigned int> batch_done_;
+  std::atomic<unsigned int> batch_found;
+  std::atomic<double> last_batch_finish;
 
   Stats() { Start(); }
 
@@ -336,6 +337,8 @@ class Stats {
     // argument for a central stat.
     batch_done_ += other.batch_done_.load();
     other.batch_done_.store(0);
+    batch_found += other.batch_found.load();
+    other.batch_found.store(0);
 //    done_ += other.done_;
 //    bytes_ += other.bytes_;
 //    seconds_ += other.seconds_;
@@ -476,8 +479,8 @@ class Stats {
     // that does not call FinishedSingleOp().
     if ( batch_done_< 1) batch_done_ = 1;
     double now = g_env->NowMicros();
-    double elapsed = (now - last_batch_finish) * 1e-6;
-    last_batch_finish = now;
+    double elapsed = (now - last_batch_finish.load()) * 1e-6;
+    last_batch_finish.store(now);
 //    std::string extra;
 //    if (bytes_ > 0) {
 //      // Rate is computed on actual elapsed time, not the sum of per-thread
@@ -490,12 +493,12 @@ class Stats {
 //    }
 //    AppendWithSpace(&extra, message_);
 
-    std::fprintf(file, "Batch throughput %-12s: %8.3f micros/op; %ld ops/sec;, time stamp is %f\n",
-                 name.ToString().c_str(), elapsed*(thread_num-1) * 1e6 / batch_done_, (long)(batch_done_/elapsed), now-start_);
+    std::fprintf(file, "Batch throughput %-12s: %8.3f micros/op; %ld ops/sec;, time stamp is %f, (%d of %d found)\n",
+                 name.ToString().c_str(), elapsed*(thread_num-1) * 1e6 / batch_done_, (long)(batch_done_/elapsed), now-start_, batch_found.load(), batch_done_.load());
 
     std::fflush(file);
     batch_done_.store(0);
-
+    batch_found.store(0);
   }
 };
 
@@ -1620,6 +1623,7 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
   }
 
   void ReadWhileWriting_fixnum(ThreadState* thread) {
+    static std::atomic<uint64_t> current_range = 0;
     if (thread->tid > 0) {
       ReadOptions options;
       //TODO(ruihong): specify the table_cache option.
@@ -1631,7 +1635,7 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
       while (thread->shared->num_done.load() == 0) {
 
         //      const int k = thread->rand.Uniform(FLAGS_num*FLAGS_threads);// make it uniform as write.
-        const int k = thread->rand.Next()%(FLAGS_num);
+        const int k = thread->rand.Next()%(current_range.load(std::memory_order_relaxed) + PRINT_BATCH);
         //
         //            key.Set(k);
         GenerateKeyFromInt(k, &key);
@@ -1639,7 +1643,7 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
         //        found++;
         //      }
         if (db_->Get(options, key, &value).ok()) {
-          found++;
+          thread->stats.batch_found.fetch_add(1);
         }
         thread->stats.FinishedSingleOp();
       }
@@ -1663,7 +1667,7 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
 //          }
 //        }
 
-        const int k = thread->rand.Uniform(FLAGS_num);
+        const int k = thread->rand.Uniform(PRINT_BATCH) + current_range.load(std::memory_order_relaxed);
         //        key.Set(k);
         GenerateKeyFromInt(k, &key);
         Status s =
@@ -1672,10 +1676,11 @@ GenerateKeyFromInt(thread->rand.Next() % (FLAGS_num * FLAGS_threads), &key);
           std::fprintf(stderr, "put error: %s\n", s.ToString().c_str());
           std::exit(1);
         }
-        if (i%4000000 == 0){
+        if (i%PRINT_BATCH == 0){
           MutexLock l(&thread->shared->mu_1);
           thread->shared->batch_ready= true;
           thread->shared->cv_1.Signal();
+          current_range.fetch_add(PRINT_BATCH);
           printf("current finished put ops is %d\n", i);
 
 

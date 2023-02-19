@@ -461,17 +461,17 @@ Status Table::InternalGet(const ReadOptions& options, const Slice& k, void* arg,
 #endif
       if (iiter->Valid()){
         //Early leave if the key does not match.
-//        ParsedInternalKey parsed_key;
-//        Saver* saver_ = reinterpret_cast<Saver*>(arg);
-//        if (!ParseInternalKey(iiter->key(), &parsed_key)) {
-//          // TOTHINK: may be the parse internal key is too slow?
-//          saver_->state = kCorrupt;
-//        } else {
-//          if (saver_->ucmp->Compare(parsed_key.user_key, saver_->user_key) !=0) {
-//            delete iiter;
-//            return s;
-//          }
-//        }
+        ParsedInternalKey parsed_key;
+        Saver* saver_ = reinterpret_cast<Saver*>(arg);
+        if (!ParseInternalKey(iiter->key(), &parsed_key)) {
+          // TOTHINK: may be the parse internal key is too slow?
+          saver_->state = kCorrupt;
+        } else {
+          if (saver_->ucmp->Compare(parsed_key.user_key, saver_->user_key) !=0) {
+            delete iiter;
+            return s;
+          }
+        }
         // if the key is what we want, fetch the value from the remote memory
         Slice handle = iiter->value();
         BlockHandle bhandle;

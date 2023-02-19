@@ -1687,7 +1687,7 @@ bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
   return true;
 #else
   if (print_counter.fetch_add(1) == 5){
-    printf("Cache utilization is %f\n", table_cache_->CheckUtilizaitonOfCache());
+//    printf("Cache utilization is %f\n", table_cache_->CheckUtilizaitonOfCache());
     print_counter.store(0);
   }
   size_t A_space = table_cache_->CheckAvailableSpace();
@@ -1696,29 +1696,44 @@ bool DBImpl::CheckByteaddressableOrNot(Compaction* compact) {
 //  size_t real_A_space = A_space >kNumShards*INDEX_BLOCK_BIG ? A_space - kNumShards*INDEX_BLOCK_BIG:0;
   size_t real_A_space = A_space;
   double level_factor = (static_cast<double>(config::kNumLevels)- static_cast<double>(compact->level()))/(static_cast<double>(config::kNumLevels));
-  if (static_cast<double>(A_space) < 2*TABLE_TYPE_ADJUST_THRESHOLD){
+
+  double real_A_after_Factor = static_cast<double>(real_A_space)*level_factor;
+  if (static_cast<double>(real_A_after_Factor) <= 0){
+    return false;
+  }
+  if (static_cast<double>(real_A_after_Factor) > TABLE_TYPE_ADJUST_THRESHOLD){
     return true;
   }
-  double real_A_after_Factor = static_cast<double>(real_A_space)*level_factor;
-  if (real_A_after_Factor <= TABLE_TYPE_ADJUST_THRESHOLD){
-    //smoothie the converting , otherwise the converting becomes suddenly and intensively
-    if ((std::rand()%10)/10.0 < (TABLE_TYPE_ADJUST_THRESHOLD - real_A_after_Factor)/TABLE_TYPE_ADJUST_THRESHOLD){
-//          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
-      return false;
-    }else{
-      return true;
-    }
-    // return false;
+
+  //smoothie the converting , otherwise the converting becomes suddenly and intensively
+  if ((std::rand()%10)/10.0 <= (TABLE_TYPE_ADJUST_THRESHOLD - real_A_after_Factor)/TABLE_TYPE_ADJUST_THRESHOLD){
+    //          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+    return false;
   }else{
-    if ((std::rand()%10)/10.0 < (real_A_after_Factor - TABLE_TYPE_ADJUST_THRESHOLD)/TABLE_TYPE_ADJUST_THRESHOLD){
-      //          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
-      return true;
-    }else{
-      return false;
-    }
-    // return true;
+    return true;
   }
+
+  assert(false);
   return true;
+//  if (real_A_after_Factor <= TABLE_TYPE_ADJUST_THRESHOLD){
+//    //smoothie the converting , otherwise the converting becomes suddenly and intensively
+//    if ((std::rand()%10)/10.0 <= (TABLE_TYPE_ADJUST_THRESHOLD - real_A_after_Factor)/TABLE_TYPE_ADJUST_THRESHOLD){
+////          printf("Judge as block based Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+//      return false;
+//    }else{
+//      return true;
+//    }
+//    // return false;
+//  }else{
+//    if ((std::rand()%10)/10.0 <= (real_A_after_Factor - TABLE_TYPE_ADJUST_THRESHOLD)/TABLE_TYPE_ADJUST_THRESHOLD){
+////                printf("Judge as byte_addressble Real A space is %zu, level factor is %f\n", real_A_space, level_factor);
+//      return true;
+//    }else{
+//      return false;
+//    }
+//    // return true;
+//  }
+//  return true;
 //  if ( real_A_space> 512ull*1024ull*1024ull){
 //    return true;
 //  }else if (static_cast<double>(real_A_space)*level_factor <= TABLE_TYPE_ADJUST_THRESHOLD){
