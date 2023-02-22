@@ -119,8 +119,8 @@ struct TimberSaw_EXPORT Options {
   // Number of open files that can be used by the DB.  You may need to
   // increase this if your database has a large working set (budget
   // one open file per 2MB of working set).
-//   int max_open_files = 10000000; //block based infinite
-  int max_open_files = 1082; // byte-addressable limited 682
+   int max_open_files = 10000000; //block based infinite
+//  int max_open_files = 1082; // byte-addressable limited 682
 #endif
 
 
