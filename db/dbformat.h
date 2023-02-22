@@ -30,7 +30,7 @@ static const int Immutable_FlushTrigger = 1;
 // Maximum number of unflushed immutable files 10 in 1-1,
 // 16 totally across shards in M-M (including memtable)
 // with 8 fixed shard per compute node this equals 2 or 1
-static const int Immutable_StopWritesTrigger = 8; // Default 0 shard should be 15, add memtable should be totally 16 (new 16 shards:2
+static const int Immutable_StopWritesTrigger = 15; // Default 0 shard should be 15, add memtable should be totally 16 (new 16 shards:2
 // Level-0 compaction is started when we hit this many files.
 static const int kL0_CompactionTrigger = 1;
 
