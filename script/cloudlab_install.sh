@@ -7,7 +7,7 @@ nshard="10"
 numa_node=("0" "1")
 port=$((10000+RANDOM%1000))
 github_repo="https://github.com/ruihong123/TimberSaw"
-gitbranch="different_block_types"
+gitbranch="adaptive_compaction"
 function run_bench() {
   communication_port=()
 #	memory_port=()
