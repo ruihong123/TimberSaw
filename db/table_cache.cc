@@ -116,6 +116,7 @@ Status TableCache::FindTable(
     hash_mtx[hash_value].lock();
     *handle = cache_->Lookup(key);
     if (*handle == nullptr) {
+      printf("Cache misses!!!!!!!!!!!!!!!!\n");
       Table* table = nullptr;
 //          printf("Did not find the table in the table_cache, file number is %lu \n ", Remote_memtable_meta->number);
       if (s.ok()) {
