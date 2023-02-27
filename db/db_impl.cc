@@ -1569,7 +1569,7 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
-    if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 4){
+    if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 1){
 //    if ((compact->num_input_files(0) + compact->num_input_files(1))/((static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0 > compact->num_input_files(1) ? compact->num_input_files(1): (static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0) <= 2){
 
 //      static_compute_achievable_parallelism + static_memory_achievable_parallelism
