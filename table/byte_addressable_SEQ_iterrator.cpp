@@ -11,7 +11,7 @@ namespace TimberSaw {
 //Note: the memory side KVReader should be passed as block function
 ByteAddressableSEQIterator::ByteAddressableSEQIterator(
     Iterator* index_iter, void* arg, const ReadOptions& options,
-    bool compute_side)
+    bool compute_side, uint8_t target_node_id)
     : compute_side_(compute_side),
 //      mr_addr(nullptr),
 //      kv_function_(kv_function),
@@ -19,7 +19,8 @@ ByteAddressableSEQIterator::ByteAddressableSEQIterator(
       options_(options),
       status_(Status::OK()),
       index_iter_(index_iter),
-      valid_(false) {
+      valid_(false),
+      target_node_id_(target_node_id){
     prefetched_mr = new ibv_mr{};
     Env::Default()->rdma_mg->Allocate_Local_RDMA_Slot(*prefetched_mr, FlushBuffer);
 }
@@ -202,7 +203,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_initial(size_t offset) {
       remote_mr.length = PREFETCH_GRANULARITY;
       local_mr.length = PREFETCH_GRANULARITY;
       rdma_mg->RDMA_Read(&remote_mr, &local_mr, PREFETCH_GRANULARITY,
-                         "read_local", IBV_SEND_SIGNALED, 1, 0);
+                         "read_local", IBV_SEND_SIGNALED, 1, target_node_id_);
 //      remote_mr_current.addr = (void*)((char*)remote_mr_current.addr + PREFETCH_GRANULARITY);
 //      remote_mr_current.length -= PREFETCH_GRANULARITY;
       cur_prefetch_status = offset + PREFETCH_GRANULARITY;
@@ -212,7 +213,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_initial(size_t offset) {
       remote_mr.length = remote_mr_current.length;
       local_mr.length = remote_mr_current.length;
       rdma_mg->RDMA_Read(&remote_mr, &local_mr, remote_mr_current.length,
-                         "read_local", IBV_SEND_SIGNALED, 1, 0);
+                         "read_local", IBV_SEND_SIGNALED, 1, target_node_id_);
 //      remote_mr_current.addr = nullptr;
 //      remote_mr_current.length = 0;
       cur_prefetch_status = offset + remote_mr_current.length;
@@ -271,7 +272,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
     remote_mr.length = PREFETCH_GRANULARITY;
     local_mr.length = PREFETCH_GRANULARITY;
     rdma_mg->RDMA_Read(&remote_mr, &local_mr, PREFETCH_GRANULARITY,
-                       "read_local", IBV_SEND_SIGNALED, 1, 0);
+                       "read_local", IBV_SEND_SIGNALED, 1, target_node_id_);
 //    remote_mr_current.addr = (void*)((char*)remote_mr_current.addr + PREFETCH_GRANULARITY);
 //    remote_mr_current.length -= PREFETCH_GRANULARITY;
     cur_prefetch_status += PREFETCH_GRANULARITY;
@@ -283,7 +284,7 @@ bool ByteAddressableSEQIterator::Fetch_next_buffer_middle() {
     rdma_mg->RDMA_Read(
         &remote_mr, &local_mr,
         remote_mr_current.length - PREFETCH_GRANULARITY * prefetch_counter,
-        "read_local", IBV_SEND_SIGNALED, 1, 0);
+        "read_local", IBV_SEND_SIGNALED, 1, target_node_id_);
 //    remote_mr_current.addr = nullptr;
 //    remote_mr_current.length = 0;
     cur_prefetch_status += remote_mr_current.length - PREFETCH_GRANULARITY*prefetch_counter;

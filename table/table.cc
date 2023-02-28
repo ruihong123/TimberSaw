@@ -169,7 +169,10 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
         start = std::chrono::high_resolution_clock::now();
 
 #endif
-        s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+        auto meta_ptr = table->rep->remote_table.lock();
+
+        s = ReadDataBlock(&meta_ptr->remote_data_mrs,
+                          options, handle, &contents, meta_ptr->shard_target_node_id);
 #ifdef PROCESSANALYSIS
         stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -186,7 +189,9 @@ Iterator* Table::BlockReader(void* arg, const ReadOptions& options,
       }
     } else {
 //      printf("NO table_cache found!!\n");
-      s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      auto meta_ptr = table->rep->remote_table.lock();
+      s = ReadDataBlock(&meta_ptr->remote_data_mrs,
+                        options, handle, &contents, meta_ptr->shard_target_node_id);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }
@@ -255,7 +260,8 @@ Iterator* Table::BlockReader_async(void* arg, const ReadOptions& options,
         start = std::chrono::high_resolution_clock::now();
 
 #endif
-        s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+        s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs,
+                          options, handle, &contents, 0);
 #ifdef PROCESSANALYSIS
         stop = std::chrono::high_resolution_clock::now();
         auto blockfetch_duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);
@@ -272,7 +278,8 @@ Iterator* Table::BlockReader_async(void* arg, const ReadOptions& options,
       }
     } else {
       //      printf("NO table_cache found!!\n");
-      s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs, options, handle, &contents);
+      s = ReadDataBlock(&table->rep->remote_table.lock()->remote_data_mrs,
+                        options, handle, &contents, 0);
       if (s.ok()) {
         block = new Block(contents, DataBlock);
       }
@@ -325,7 +332,7 @@ Iterator* Table::NewIterator(const ReadOptions& options) const {
 
     return new ByteAddressableSEQIterator(
         rep->index_block->NewIterator(rep->options.comparator),
-        const_cast<Table*>(this), options, true);
+        const_cast<Table*>(this), options, true, table_meta->shard_target_node_id);
 #else
     return new ByteAddressableRAIterator(
         rep->index_block->NewIterator(rep->options.comparator),

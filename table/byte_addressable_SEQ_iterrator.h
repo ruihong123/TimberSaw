@@ -22,7 +22,8 @@ typedef Slice (*KVFunction)(void*, const ReadOptions&, const Slice&);
 class ByteAddressableSEQIterator :public Iterator{
  public:
   ByteAddressableSEQIterator(Iterator* index_iter, void* arg,
-                             const ReadOptions& options, bool compute_side);
+                             const ReadOptions& options, bool compute_side,
+                             uint8_t target_node_id);
 
   ~ByteAddressableSEQIterator() override;
 
@@ -86,6 +87,7 @@ class ByteAddressableSEQIterator :public Iterator{
   int64_t num_entries=0;
 #endif
   bool valid_;
+  uint8_t target_node_id_;
 };
 }
 

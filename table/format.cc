@@ -104,8 +104,9 @@ bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 }
 //TODO: Make the block mr searching and creating outside this function, so that datablock is
 // the same as data index block and filter block.
-Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
-                 const BlockHandle& handle, BlockContents* result) {
+Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                     const ReadOptions& options, const BlockHandle& handle,
+                     BlockContents* result, uint8_t target_node_id) {
 
   //TODO: Make it use thread local read buffer rather than allocate one every time.
 //#ifdef GETANALYSIS
@@ -158,7 +159,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const Read
   auto start = std::chrono::high_resolution_clock::now();
 #endif
   rdma_mg->RDMA_Read(&remote_mr, contents, n + kBlockTrailerSize, "read_local",
-                     IBV_SEND_SIGNALED, 1, 0);
+                     IBV_SEND_SIGNALED, 1, target_node_id);
 #ifdef PROCESSANALYSIS
   auto stop = std::chrono::high_resolution_clock::now();
   auto duration = std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start);

@@ -733,7 +733,7 @@ void RDMA_Manager::remote_cpu_util_heart_beater_receiver(
 
 //    uint8_t check_byte = request->content.ive.check_byte;
   server_cpu_percent.at(target_node_id)->store(request->content.cpu_info.cpu_util);
-//  remote_compaction_issued.at(target_node_id)->store(false);
+//  remote_compaction_issued.at(target_node_id_)->store(false);
 //  DEBUG_arg("Recieve the cpu utilization %f\n", request->content.cpu_info.cpu_util);
   delete request;
 
@@ -1167,14 +1167,14 @@ void RDMA_Manager::Initialize_threadlocal_map(){
     dealloc_cv.at(FilterChunk)->insert({target_node_id, new std::condition_variable});
     dealloc_mr.at(FilterChunk)->insert({target_node_id, nullptr});
     top.at(FilterChunk)->insert({target_node_id,0});
-//    top.insert({target_node_id,0});
+//    top.insert({target_node_id_,0});
     mtx_imme_map.insert({target_node_id, new std::mutex});
     imm_gen_map.insert({target_node_id, new std::atomic<uint32_t>{0}});
     imme_data_map.insert({target_node_id, new  uint32_t{0}});
     byte_len_map.insert({target_node_id, new  uint32_t{0}});
     cv_imme_map.insert({target_node_id, new std::condition_variable});
     server_cpu_percent.insert({target_node_id, new std::atomic<double>(0)});
-//    remote_compaction_issued.insert({target_node_id, new std::atomic<bool>(false)});
+//    remote_compaction_issued.insert({target_node_id_, new std::atomic<bool>(false)});
   }
 
 

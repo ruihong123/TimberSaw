@@ -94,8 +94,9 @@ bool Find_prefetch_MR(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 
 // Read the block identified by "handle" from "file".  On failure
 // return non-OK.  On success fill *result and return OK.
-Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
-                 const BlockHandle& handle, BlockContents* result);
+Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
+                     const ReadOptions& options, const BlockHandle& handle,
+                     BlockContents* result, unsigned char target_node_id);
 Status ReadDataBlock_async(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
                      const BlockHandle& handle, BlockContents* result);
 Status ReadDataBlock_callback(std::map<uint32_t, ibv_mr*>* remote_data_blocks, const ReadOptions& options,
