@@ -107,7 +107,7 @@ RDMA_Manager::RDMA_Manager(config_t config, size_t remote_block_size)
 * Cleanup and deallocate all resources used for RDMA
 ******************************************************************************/
 RDMA_Manager::~RDMA_Manager() {
-  printf("CPU utilization is %Lf\n", rpter.getCurrentValue());
+  printf("RDMA_manager: CPU utilization is %Lf\n", rpter.getCurrentValue());
   if (!res->qp_map.empty())
     for (auto it = res->qp_map.begin(); it != res->qp_map.end(); it++) {
       if (ibv_destroy_qp(it->second)) {

@@ -353,7 +353,7 @@ DBImpl::~DBImpl() {
   printf("Cache entried used is %f\n", table_cache_->CheckUtilizaitonOfCache());
   WaitforAllbgtasks(false);
   //TODO: recycle all the
-
+//  env_->rdma_mg->Print_Remote_CPU_RPC(0);
 // No need to exit the background threads.
 //  env_->JoinAllThreads(true);
 //  Unpin_bg_pool_.JoinThreads(true);
@@ -1856,6 +1856,11 @@ void DBImpl::BackgroundCompaction(void* p) {
        DEBUG_arg("Trival compaction< level 0 file number is %d\n", c->num_input_files(0));
 //      } else if (options_.near_data_compaction && need_push_down) {
       } else if (need_push_down) {
+       // try to let the CPU print the average CPU utilizaiton when compaciotn is triggered.
+//       if (!compaction_start){
+//          env_->rdma_mg->Print_Remote_CPU_RPC(0);
+//          compaction_start = true;
+//       }
         auto start = std::chrono::high_resolution_clock::now();
 
         // The neardata compaction branch

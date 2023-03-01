@@ -1569,7 +1569,7 @@ Status Memory_Node_Keeper::InstallCompactionResultsToComputePreparation(
         rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_position],
                                             compute_node_id,
                                             client_ip);
-        printf("CPU utilization is %f\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
+        printf("RPC: CPU utilization is %f\n", TimberSaw::Memory_Node_Keeper::rdma_mg->rpter.getCurrentValue());
 
       } else {
         printf("corrupt message from client. %d\n", receive_msg_buf->command);
@@ -1785,6 +1785,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     std::thread CPU_utilization_heartbeat([&](){
       //backup the function arguments
       int print_counter = 0;
+      //TODO: REmember to recover the while loop and the continue code below.
       while (1){
         double cpu_util_percentage = rdma_mg->rpter.getCurrentValue();
         if (cpu_util_percentage <0){
