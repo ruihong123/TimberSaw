@@ -1971,6 +1971,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
           printf("The file for this ve_m is %lu\n", iter.second->number);
         }
 #endif
+        assert(target_node_id!=0);
         Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip, .target_node_id=target_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
         assert(Persistency_bg_pool_.queue_len_.load() == 0);
