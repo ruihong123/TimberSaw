@@ -1005,12 +1005,12 @@ void VersionSet::AppendVersion(Version* v) {
 }
 #ifdef WITHPERSISTENCE
 void VersionSet::Persistency_pin(VersionEdit* edit) {
+  assert(!edit->IsTrival());
   std::unique_lock<std::mutex> lck(pinner_mtx);
   for(auto iter : *edit->GetNewFiles()){
     persistent_pinner_.insert({iter.second->number, iter.second});
-//    printf("pin sstable %lu", iter.second->number);
+    //    printf("pin sstable %lu", iter.second->number);
   }
-
   assert(persistent_pinner_.size() <= 256);
 }
 void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
@@ -1053,7 +1053,9 @@ Status VersionSet::LogAndApply(VersionEdit* edit) {
   Version* v;
   v = new Version(this);
 #ifdef WITHPERSISTENCE
-  Persistency_pin(edit);
+  if (!edit->IsTrival()) {
+    Persistency_pin(edit);
+  }
 #endif
   //Build an empty version.
 //  if (remote_subversion_id == 0){

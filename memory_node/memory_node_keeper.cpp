@@ -420,7 +420,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   bool empty =  edit_merger->only_trival_change.empty();
   assert(edit_merger->GetNewFilesNum()>0);
   for(auto iter : *edit_merger->GetNewFiles()){
-
+    // Exclude the trival file from the unpin.
     if (!empty && edit_merger->only_trival_change.find(iter.second->number) !=
                       edit_merger->only_trival_change.end()){
       continue;
@@ -1954,7 +1954,8 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
       // unpin the sstables merged during the edit merge
       if (ve_merger.ready_to_upin_merged_file){
-      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip, target_node_id);
+        //Make sure merged_file_numbers does not contain trival move files!
+        UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip, target_node_id);
         ve_merger.ready_to_upin_merged_file = false;
         ve_merger.merged_file_numbers.clear();
       }
