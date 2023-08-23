@@ -2247,7 +2247,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
       }
       if (check_point_t_ready.load() == true){
         VersionEdit_Merger* ve_m = new VersionEdit_Merger(ve_merger);
-        Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
+        Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip, .target_node_id = target_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
         assert(Persistency_bg_pool_.queue_len_.load() == 0);
         Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
