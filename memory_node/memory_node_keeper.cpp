@@ -549,7 +549,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(
   rdma_mg->RDMA_Write(receive_pointer->buffer_large,
                       receive_pointer->rkey_large, &send_mr_large,
                       index * sizeof(uint64_t) + 1, client_ip,
-                      IBV_SEND_SIGNALED, 1, 0);
+                      IBV_SEND_SIGNALED, 1, target_node_id);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr_large.addr,Version_edit);
   rdma_mg->Deallocate_Local_RDMA_Slot(send_mr.addr,Message);
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
