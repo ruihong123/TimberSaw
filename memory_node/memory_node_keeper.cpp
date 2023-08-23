@@ -298,7 +298,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     // The version edit merger has merge enough edits, lets make those files durable.
     DEBUG("A work pesistent work request was executed--------------\n");
     assert(edit_merger->GetNewFilesNum()>0);
-    uint64_t thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
+//    uint64_t thread_number = edit_merger->GetNewFilesNum() - edit_merger->only_trival_change.size();
 #ifndef NDEBUG
     //assert all the file number in the only trival change list exist in the ve_merger
     // so that we can calculate the thread number correctly.
@@ -309,8 +309,8 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 //    if (!edit_merger->IsTrival()){
       DEBUG_arg("Persist the files&&&&&&&&&&&&&&&&&&&&&, file number is %zu\n", edit_merger->GetNewFiles()->size());
       //TODO: We also need to delete those file in edit_merger->deleted_files. Otherwise there will be disk space leak.
-      std::thread* threads = new std::thread[thread_number];
-      int i = 0;
+//      std::thread* threads = new std::thread[thread_number];
+//      int i = 0;
       for (const auto& iter : *edit_merger->GetNewFiles()) {
         // do not persist the sstable of trival move. Is the thread over-provisioned?
         if (edit_merger->only_trival_change.find(iter.first) == edit_merger->only_trival_change.end()){
@@ -318,16 +318,16 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
           PersistSSTable(iter.second);
 
 //          threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
-          i++;
+//          i++;
         }
         // Clean up the obsoleted files below.
 
       }
-      assert(i == thread_number);
-      for (int j = 0; j < thread_number; ++j) {
-        threads[j].join();
-      }
-      delete[] threads;
+//      assert(i == thread_number);
+//      for (int j = 0; j < thread_number; ++j) {
+//        threads[j].join();
+//      }
+//      delete[] threads;
 //    }
 
     // Initialize new descriptor log file if necessary by creating
