@@ -19,6 +19,7 @@ namespace TimberSaw {
 struct Arg_for_persistent{
   VersionEdit_Merger* edit_merger;
   std::string client_ip;
+  uint8_t target_node_id;
 };
 class Memory_Node_Keeper {
  public:
@@ -42,8 +43,12 @@ class Memory_Node_Keeper {
   void CleanupCompaction(CompactionState* compact);
   void PersistSSTables(void* arg);
   void PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> sstable_ptr);
-  void UnpinSSTables_RPC(VersionEdit_Merger* edit_merger, std::string& client_ip);
-  void UnpinSSTables_RPC(std::list<uint64_t>* merged_file_number, std::string& client_ip);
+  //WHen persist  a bunch of merged edit, unpin those deleted file in the merged edit.
+  void UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
+                         std::string& client_ip, uint8_t target_node_id);
+  //during the edit merge, unpin those merged files.
+  void UnpinSSTables_RPC(std::list<uint64_t>* merged_file_number,
+                         std::string& client_ip, uint8_t target_node_id);
   Status DoCompactionWork(CompactionState* compact, std::string& client_ip);
   void ProcessKeyValueCompaction(SubcompactionState* sub_compact);
   Status DoCompactionWorkWithSubcompaction(CompactionState* compact,

@@ -275,6 +275,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 
   VersionEdit_Merger* edit_merger = ((Arg_for_persistent*)arg)->edit_merger;
   std::string client_ip = ((Arg_for_persistent*)arg)->client_ip;
+  uint8_t target_node_id = ((Arg_for_persistent*)arg)->target_node_id;
 //  if(!ve_merger.merge_one_edit(edit_merger)){
 //    // NOt digesting enough edit, directly get the next edit.
 //
@@ -355,7 +356,7 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     check_point_t_ready.store(true);
 //    if (!edit_merger->IsTrival()){
       DEBUG("Unpin the SSTables *$$$$$$$$$$$$$$$$$$$\n");
-      UnpinSSTables_RPC(edit_merger, client_ip);
+      UnpinSSTables_RPC(edit_merger, client_ip, target_node_id);
 //    }
 //    ve_merger.Clear();
     delete edit_merger;
@@ -403,7 +404,8 @@ void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> 
 }
 
 void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
-                                          std::string& client_ip) {
+                                           std::string& client_ip,
+                                           uint8_t target_node_id) {
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr send_mr_large = {};
@@ -478,8 +480,9 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
   rdma_mg->Deallocate_Local_RDMA_Slot(receive_mr.addr,Message);
 }
 
-void Memory_Node_Keeper::UnpinSSTables_RPC(std::list<uint64_t>* merged_file_number,
-                                           std::string& client_ip) {
+void Memory_Node_Keeper::UnpinSSTables_RPC(
+    std::list<uint64_t>* merged_file_number, std::string& client_ip,
+    uint8_t target_node_id) {
   RDMA_Request* send_pointer;
   ibv_mr send_mr = {};
   ibv_mr send_mr_large = {};
@@ -1951,7 +1954,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
       // unpin the sstables merged during the edit merge
       if (ve_merger.ready_to_upin_merged_file){
-        UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+      UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip, target_node_id);
         ve_merger.ready_to_upin_merged_file = false;
         ve_merger.merged_file_numbers.clear();
       }
@@ -1968,7 +1971,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
           printf("The file for this ve_m is %lu\n", iter.second->number);
         }
 #endif
-        Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip};
+        Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip, .target_node_id=target_node_id};
         BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
         assert(Persistency_bg_pool_.queue_len_.load() == 0);
 
@@ -2237,7 +2240,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
       // unpin the sstables merged during the edit merge
       if (ve_merger.ready_to_upin_merged_file){
-        UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip);
+        UnpinSSTables_RPC(&ve_merger.merged_file_numbers, client_ip, target_node_id);
         ve_merger.ready_to_upin_merged_file = false;
         ve_merger.merged_file_numbers.clear();
       }

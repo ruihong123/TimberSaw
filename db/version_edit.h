@@ -4,8 +4,7 @@
 
 #ifndef STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 #define STORAGE_TimberSaw_DB_VERSION_EDIT_H_
-#define EDIT_MERGER_COUNT 64
-#define UNPIN_GRANULARITY 20
+
 #include <set>
 #include <utility>
 #include <vector>
