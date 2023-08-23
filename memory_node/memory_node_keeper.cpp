@@ -501,7 +501,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(
   DEBUG("Unpin RPC for merged files\n");
   for(auto iter : *merged_file_number){
 #ifndef NDEBUG
-    DEBUG_arg("Unpin file number is %lu, id 2 ****************\n", iter);
+//    DEBUG_arg("Unpin file number is %lu, id 2 ****************\n", iter);
     assert(ve_merger.debug_map.find(iter) == ve_merger.debug_map.end());
     ve_merger.debug_map.insert(iter);
 #endif
@@ -523,11 +523,11 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(
   asm volatile ("sfence\n" : : );
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
-  rdma_mg->post_send<RDMA_Request>(&send_mr, 0, client_ip);
+  rdma_mg->post_send<RDMA_Request>(&send_mr, target_node_id, client_ip);
   //TODO: Think of a better way to avoid deadlock and guarantee the same
   // sequence of verision edit between compute node and memory server.
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, client_ip, true, 0)){
+  if (rdma_mg->poll_completion(wc, 1, client_ip, true, target_node_id)){
     fprintf(stderr, "failed to poll send for remote memory register\n");
     return;
   }
