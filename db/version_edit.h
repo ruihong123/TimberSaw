@@ -5,7 +5,7 @@
 #ifndef STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 #define STORAGE_TimberSaw_DB_VERSION_EDIT_H_
 #define EDIT_MERGER_COUNT 64
-#define UNPIN_GRANULARITY 10
+#define UNPIN_GRANULARITY 20
 #include <set>
 #include <utility>
 #include <vector>
@@ -211,7 +211,7 @@ class VersionEdit {
 //    return std::get<0>(*deleted_files_.begin());
     return std::get<0>(*new_files_.begin()) - 1;
   }
-  uint8_t GetNodeID(){return target_node_id_;}
+//  uint8_t GetNodeID(){return target_node_id_;}
  private:
   friend class VersionSet;
   // level, file number, node_id

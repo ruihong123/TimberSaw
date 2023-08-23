@@ -194,6 +194,9 @@ DBImpl::DBImpl(const Options& raw_options, const std::string& dbname)
 #endif
 {
   printf("DBImpl start\n");
+#ifdef WITHPERSISTENCE
+  env_->rdma_mg->Set_DB_handler(this);
+#endif
 
 //  for(auto iter : options_.ShardInfo){
 //    versions_pool.insert({iter.first,
@@ -1835,8 +1838,10 @@ void DBImpl::BackgroundCompaction(void* p) {
           //trival move need to clear the UnderCompaction flag
           f->UnderCompaction = false;
           c->ReleaseInputs();
-#ifdef WITHPERSISTENCE        //different from normal compaction
-          Edit_sync_to_remote(c->edit(),&l_vs);
+#ifdef WITHPERSISTENCE
+          //different from normal compaction
+          // TODO: SSTable persistency for compaction on compute side is not available yet.
+          Edit_sync_to_remote(c->edit(), shard_target_node_id);
 #endif  
 //#ifndef WITHPERSISTENCE
 //          l_vs.unlock();
@@ -2309,7 +2314,7 @@ Status DBImpl::TryInstallMemtableFlushResults(
     // Install Superversion will also modify the version reference counter.
 
 #ifdef WITHPERSISTENCE
-    Edit_sync_to_remote(c->edit(),&lck);
+    Edit_sync_to_remote(edit, shard_target_node_id);
 #endif
 //#ifndef WITHPERSISTENCE
 //    lck.unlock();
@@ -2624,10 +2629,10 @@ void DBImpl::NearDataCompaction(Compaction* c) {
 //  }
   size_t new_file_size = edit.GetNewFilesNum();
   assert(new_file_size > 0);
-  uint64_t file_number_end = versions_->NewFileNumberBatch(new_file_size);
-  DEBUG_arg("new file number for end is %lu \n", file_number_end);
+  uint64_t file_number_start = versions_->NewFileNumberBatch(new_file_size);
+  DEBUG_arg("new file number for end is %lu \n", file_number_start);
   DEBUG_arg("Edit new file number is %lu\n", new_file_size);
-  edit.SetFileNumbers(file_number_end);
+  edit.SetFileNumbers(file_number_start);
   {
     std::unique_lock<std::mutex> sv_lck(superversion_memlist_mtx);
     // TODO: remove the version id argument because we no longer need it.
@@ -2642,12 +2647,13 @@ void DBImpl::NearDataCompaction(Compaction* c) {
   }
 
 #ifdef WITHPERSISTENCE
-  uint64_t* file_number_end_send_ptr = static_cast<uint64_t*>(send_mr.addr);
-  *file_number_end_send_ptr = file_number_end;
+  // Write back file number for the sst persistency.
+  uint64_t* file_number_start_send_ptr = static_cast<uint64_t*>(send_mr.addr);
+  *file_number_start_send_ptr = file_number_start;
   memset((char*)send_mr.addr + sizeof(uint64_t), 1, 1);
   rdma_mg->RDMA_Write(remote_prt, remote_rkey,
                            &send_mr, sizeof(uint64_t) + 1, "main",
-                           IBV_SEND_SIGNALED, 1);
+                           IBV_SEND_SIGNALED, 1, shard_target_node_id);
 
 #endif
     for(const auto& iter : *edit.GetDeletedFiles()){
@@ -2907,9 +2913,11 @@ void DBImpl::client_message_polling_and_handling_thread(std::string q_id) {
 #ifdef WITHPERSISTENCE
         } else if(receive_msg_buf->command == persist_unpin_) {
           //TODO: implement the persistent unpin dispatch machenism
-          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
+          rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter],
+                                              shard_target_node_id,
+                                              "main");
           auto start = std::chrono::high_resolution_clock::now();
-          Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main"};
+          Arg_for_handler* argforhandler = new Arg_for_handler{.request=receive_msg_buf,.client_ip = "main",.target_node_id=shard_target_node_id};
           BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforhandler};
           Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch, thread_pool_args);
           auto stop = std::chrono::high_resolution_clock::now();
@@ -2979,8 +2987,7 @@ void DBImpl::WaitForComputeMessageHandlingThread(uint8_t target_memory_id,
 //  Unpin_bg_pool_.SetBackgroundThreads(1);
 //
 //}
-void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
-                                 std::unique_lock<std::mutex>* version_mtx) {
+void DBImpl::Edit_sync_to_remote(VersionEdit* edit, uint8_t target_node_id) {
   //  std::unique_lock<std::shared_mutex> l(main_qp_mutex);
 //  auto start = std::chrono::high_resolution_clock::now();
   std::shared_ptr<RDMA_Manager> rdma_mg = env_->rdma_mg;
@@ -3040,7 +3047,7 @@ void DBImpl::Edit_sync_to_remote(VersionEdit* edit,
 //  version_mtx->unlock();
 
   ibv_wc wc[2] = {};
-  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, edit->GetNodeID())){
+  if (rdma_mg->poll_completion(wc, 1, std::string("main"), true, target_node_id)){
     fprintf(stderr, "failed to poll send for edit version edit sync\n");
     return;
   }
@@ -3192,6 +3199,7 @@ void DBImpl::SSTable_Unpin_Dispatch(void* thread_args) {
 void DBImpl::persistence_unpin_handler(void* arg) {
   RDMA_Request* request = ((Arg_for_handler*)arg)->request;
   std::string client_ip = ((Arg_for_handler*)arg)->client_ip;
+  uint8_t target_node_id = ((Arg_for_handler*)arg)->target_node_id;
   auto rdma_mg = env_->rdma_mg;
   ibv_mr send_mr;
   rdma_mg->Allocate_Local_RDMA_Slot(send_mr, Message);
@@ -3216,7 +3224,7 @@ void DBImpl::persistence_unpin_handler(void* arg) {
   asm volatile ("lfence\n" : : );
   asm volatile ("mfence\n" : : );
   rdma_mg->RDMA_Write(request->buffer, request->rkey,
-                      &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1);
+                      &send_mr, sizeof(RDMA_Reply),std::move(client_ip), IBV_SEND_SIGNALED,1, target_node_id);
   size_t counter = 0;
   while (*(unsigned char*)polling_byte != 1){
     _mm_clflush(polling_byte);

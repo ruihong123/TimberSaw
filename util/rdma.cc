@@ -3,6 +3,7 @@
 #include <numa.h>
 #include "TimberSaw/env.h"
 
+
 namespace TimberSaw {
 uint8_t RDMA_Manager::node_id = 1;
 #ifdef PROCESSANALYSIS
@@ -670,21 +671,22 @@ void RDMA_Manager::compute_message_handling_thread(std::string q_id, uint8_t sha
 #ifdef WITHPERSISTENCE
       } else if(receive_msg_buf->command == persist_unpin_) {
         // TODO: implement the persistent unpin dispatch machenism
-        rdma_mg->post_receive<RDMA_Request>(&recv_mr[buffer_counter], "main");
-        auto start = std::chrono::high_resolution_clock::now();
+        post_receive<RDMA_Request>(&recv_mr[buffer_counter], shard_target_node_id, "main");
+//        auto start = std::chrono::high_resolution_clock::now();
         Arg_for_handler* argforhandler = new Arg_for_handler{
-            .request = receive_msg_buf, .client_ip = "main"};
-        BGThreadMetadata* thread_pool_args =
-            new BGThreadMetadata{.db = this, .func_args = argforhandler};
-        Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch,
-                                thread_pool_args);
-        auto stop = std::chrono::high_resolution_clock::now();
-        auto duration =
-            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-        printf(
-            "unpin for %lu files time elapse is %ld",
-            (receive_msg_buf->content.psu.buffer_size - 1) / sizeof(uint64_t),
-            duration.count());
+            .request = receive_msg_buf, .client_ip = "main", .target_node_id=shard_target_node_id};
+//        BGThreadMetadata* thread_pool_args =
+//            new BGThreadMetadata{.db = , .func_args = argforhandler};
+        DB_handler->persistence_unpin_handler(argforhandler);
+//        Unpin_bg_pool_.Schedule(&DBImpl::SSTable_Unpin_Dispatch,
+//                                thread_pool_args);
+//        auto stop = std::chrono::high_resolution_clock::now();
+//        auto duration =
+//            std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
+//        printf(
+//            "unpin for %lu files time elapse is %ld",
+//            (receive_msg_buf->content.psu.buffer_size - 1) / sizeof(uint64_t),
+//            duration.count());
 #endif
       } else if(receive_msg_buf->command == cpu_utilization_heartbeat) {
         // handle the heartbeat, record the cpu utilization and core number of the remote memory

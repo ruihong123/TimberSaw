@@ -571,17 +571,21 @@ std::string VersionEdit::DebugString() const {
 void VersionEdit_Merger::merge_one_edit(VersionEdit* edit) {
 
   for (auto iter : *edit->GetDeletedFiles()){
-    if (std::get<1>(iter)==5){
-      printf("break here");
-    }
+//    if (std::get<1>(iter)==5){
+//      printf("break here");
+//    }
     //TODO: we need to consider when the version edit is out of order.
     if (new_files_.erase(std::get<1>(iter)) == 0) {
+
       deleted_files_.insert(iter);
+
       //if there is no file already and it is a trival change then this file do not
       // need to be unpin.
       if (edit->IsTrival()){
         only_trival_change.insert(std::get<1>(iter));
       }
+
+
     }else{
       DEBUG_arg("delete a file %lu to", std::get<1>(iter));
       //if this is a trival edit, the delted file will not trigger its unpin.

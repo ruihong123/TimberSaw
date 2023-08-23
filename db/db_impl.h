@@ -19,6 +19,7 @@
 
 #include "port/port.h"
 #include "port/thread_annotations.h"
+#include "util/RPC_Process.h"
 #include "util/mutexlock.h"
 
 #include "memtable_list.h"
@@ -78,7 +79,7 @@ struct SuperVersion {
 };
 // The structure for storing argument for thread pool.
 
-class DBImpl : public DB {
+class DBImpl : public DB, RPC_Process {
 
  public:
   DBImpl(const Options& options, const std::string& dbname);
@@ -241,8 +242,7 @@ class DBImpl : public DB {
 
   void NearDataCompaction(Compaction* c);
 //  void Communication_To_Home_Node();
-  void Edit_sync_to_remote(VersionEdit* edit,
-                           std::unique_lock<std::mutex>* version_mtx);
+  void Edit_sync_to_remote(VersionEdit* edit, uint8_t target_node_id);
   const Comparator* user_comparator() const {
     return internal_comparator_.user_comparator();
   }

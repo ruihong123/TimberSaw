@@ -91,7 +91,7 @@
 #endif
 //#define TIMEPRINT
 #define WITHMEMORYVERSIONSET
-//#define WITHPERSISTENCE
+#define WITHPERSISTENCE
 //#define PROCESSANALYSIS
 #define BYTEADDRESSABLE
 #define TABLE_STRATEGY 1 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive according to local cache size limit.

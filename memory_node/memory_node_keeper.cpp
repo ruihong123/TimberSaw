@@ -306,11 +306,12 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
     }
 #endif
 //    if (!edit_merger->IsTrival()){
-      DEBUG("Persist the files&&&&&&&&&&&&&&&&&&&&&\n");
+      DEBUG_arg("Persist the files&&&&&&&&&&&&&&&&&&&&&, file number is %zu\n", edit_merger->GetNewFiles()->size());
+      //TODO: We also need to delete those file in edit_merger->deleted_files.
       std::thread* threads = new std::thread[thread_number];
       int i = 0;
       for (auto iter : *edit_merger->GetNewFiles()) {
-        // do not persist the sstable of trival move
+        // do not persist the sstable of trival move. Is the thread overprovisioned?
         if (edit_merger->only_trival_change.find(iter.first) == edit_merger->only_trival_change.end()){
           threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
           i++;
@@ -2089,7 +2090,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //    asm volatile ("lfence\n" : : );
 //    asm volatile ("mfence\n" : : );
     rdma_mg->RDMA_Write(remote_prt, remote_rkey,
-                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1);
+                        &send_mr, sizeof(RDMA_Reply),client_ip, IBV_SEND_SIGNALED,1, target_node_id);
 #endif
 
 
@@ -2207,7 +2208,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //                             &large_send_mr, serilized_ve.size() + 1, client_ip,
 //                             IBV_SEND_SIGNALED, 1);
 #ifdef WITHPERSISTENCE
-    int counter = 0;
+    counter = 0;
     // polling the finishing bit for the file number transmission.
     while (*(unsigned char*)polling_byte_2 == 0){
       _mm_clflush(polling_byte_2);
@@ -2222,12 +2223,12 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
       counter++;
     }
-    uint64_t file_number_end = *(uint64_t*)recv_mr.addr;
-    assert(file_number_end >0);
-    compact->compaction->edit()->SetFileNumbers(file_number_end);
-    DEBUG_arg("file number end %lu", file_number_end);
-
-    VersionEdit* edit = new VersionEdit();
+    uint64_t file_number_start = *(uint64_t*)recv_mr.addr;
+    assert(file_number_start >0);
+    compact->compaction->edit()->SetFileNumbers(file_number_start);
+    DEBUG_arg("file number end %lu", file_number_start);
+    //The mem copy overhead below is unavoidable. because *compact->compaction will be delted
+    VersionEdit* edit = new VersionEdit(0);
     *edit = *compact->compaction->edit();
     {
       std::unique_lock<std::mutex> lck(merger_mtx);

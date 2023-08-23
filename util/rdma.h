@@ -35,11 +35,13 @@
 #include "port/port_posix.h"
 #include "util/Resource_Printer_Plan.h"
 #include "util/thread_local.h"
+#include "util/RPC_Process.h"
 
 //#include "Resource_Printer_Plan.h"
+#include "ThreadPool.h"
 #include "mutexlock.h"
 
-//#include <boost/lockfree/spsc_queue.hpp>
+// #include <boost/lockfree/spsc_queue.hpp>
 #define _mm_clflush(addr)\
 	asm volatile("clflush %0" : "+m" (*(volatile char *)(addr)))
 #if __BYTE_ORDER == __LITTLE_ENDIAN
@@ -441,6 +443,9 @@ class RDMA_Manager {
       std::map<void*, In_Use_Array*>& remote_mem_bitmap, ibv_mr* local_mr);
   //  void mem_pool_serialization
   bool poll_reply_buffer(RDMA_Reply* rdma_reply);
+  void Set_DB_handler(RPC_Process* DB_h){
+    DB_handler = DB_h;
+  }
   // TODO: Make all the variable more smart pointers.
   resources* res = nullptr;
   std::vector<ibv_mr*>
@@ -478,7 +483,7 @@ class RDMA_Manager {
   std::map<uint8_t, ThreadLocalPtr*> cq_local_read;
   std::map<uint8_t, ThreadLocalPtr*> local_read_qp_info;
   ThreadLocalPtr* read_buffer;
-
+  ThreadPool Unpin_bg_pool_;
 //  ThreadLocalPtr* qp_local_write_flush;
 //  ThreadLocalPtr* cq_local_write_flush;
 //  ThreadLocalPtr* local_write_flush_qp_info;
@@ -535,6 +540,9 @@ class RDMA_Manager {
   uint16_t local_compute_core_number;
   std::atomic<double> local_cpu_percent;
   std::atomic<bool> local_compaction_issued = false;
+  //TODO: If there are mulitple db instances, there will be mulitple DB_handler
+  // corresponding to different IDs.
+  RPC_Process* DB_handler;
 //  std::atomic<double> cache_util;
 //TODO(chuqing): add for count time, need a better calculator
 long int accumulated_time = 0;

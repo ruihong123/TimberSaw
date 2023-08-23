@@ -245,6 +245,8 @@ target_sources(TimberSaw
     "util/rdma.h"
     "util/Resource_Printer_Plan.h"
     "util/Resource_Printer_Plan.cpp"
+    "util/RPC_Process.cpp"
+    "util/RPC_Process.h"
     "util/thread_local.cc"
     "util/thread_local.h"
     "util/status.cc"
