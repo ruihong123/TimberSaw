@@ -308,15 +308,19 @@ void Memory_Node_Keeper::PersistSSTables(void* arg) {
 #endif
 //    if (!edit_merger->IsTrival()){
       DEBUG_arg("Persist the files&&&&&&&&&&&&&&&&&&&&&, file number is %zu\n", edit_merger->GetNewFiles()->size());
-      //TODO: We also need to delete those file in edit_merger->deleted_files.
+      //TODO: We also need to delete those file in edit_merger->deleted_files. Otherwise there will be disk space leak.
       std::thread* threads = new std::thread[thread_number];
       int i = 0;
       for (const auto& iter : *edit_merger->GetNewFiles()) {
-        // do not persist the sstable of trival move. Is the thread overprovisioned?
+        // do not persist the sstable of trival move. Is the thread over-provisioned?
         if (edit_merger->only_trival_change.find(iter.first) == edit_merger->only_trival_change.end()){
-          threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
+          // we do not need multiple threads for the checkpointing.
+          PersistSSTable(iter.second);
+
+//          threads[i]= std::thread(&Memory_Node_Keeper::PersistSSTable, this, iter.second);
           i++;
         }
+        // Clean up the obsoleted files below.
 
       }
       assert(i == thread_number);
@@ -426,7 +430,7 @@ void Memory_Node_Keeper::UnpinSSTables_RPC(VersionEdit_Merger* edit_merger,
       continue;
     }
 #ifndef NDEBUG
-    DEBUG_arg("Unpin file number is %lu, id 1 ****************\n", iter.second->number);
+//    DEBUG_arg("Unpin file number is %lu, id 1 ****************\n", iter.second->number);
     assert(edit_merger->debug_map.find(iter.second->number) == edit_merger->debug_map.end());
     edit_merger->debug_map.insert(iter.second->number);
 #endif
