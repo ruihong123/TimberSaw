@@ -1717,16 +1717,17 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(request->content.mem_size));
       }
+      send_pointer->content.mr = *mr;
     }else{
       rdma_mg->RM_reach_limit = true;
-      mr->addr = reinterpret_cast<void*>(1);
+      send_pointer->content.mr.addr = reinterpret_cast<void*>(1);
     }
 
 //      printf("Now the Remote memory regularated by compute node is %zu GB",
 //             rdma_mg->local_mem_pool.size());
   }
 
-  send_pointer->content.mr = *mr;
+
   send_pointer->received = true;
 
   rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
