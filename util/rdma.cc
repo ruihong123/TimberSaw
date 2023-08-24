@@ -3131,7 +3131,8 @@ retry:
   }
 #ifdef WITHPERSISTENCE
   printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
-  if (RM_reach_limit){
+  //TODO: we set a hard limit for the remote memory size (Only applicable to "Remote compaction only")
+  if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >=5 || RM_reach_limit){
 
     mem_read_lock.unlock();
     usleep(10);
