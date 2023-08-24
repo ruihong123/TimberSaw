@@ -118,6 +118,7 @@ class Memory_Node_Keeper {
                     O_TRUNC | O_WRONLY | O_CREAT | kOpenBaseFlags, 0644);
     if (fd < 0) {
       *result = nullptr;
+      assert(false);
       return PosixError(filename, errno);
     }
 
