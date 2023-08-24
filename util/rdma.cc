@@ -2934,7 +2934,7 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id,
   printf("Remote memory registeration, size: %zu\n", size);
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
   printf("polled reply buffer\n");
-#ifdef WITHPERSISTENCE
+#if defined(WITHPERSISTENCE) && defined(BOUNDEDMEM)
   if (receive_pointer->content.mr.addr == reinterpret_cast<void*>(1)){
     RM_reach_limit = true;
     Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
@@ -3103,7 +3103,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
     }
     mem_write_lock.unlock();
   }
-#ifdef WITHPERSISTENCE
+#if defined(WITHPERSISTENCE) && defined(BOUNDEDMEM)
 retry:
 #endif
   std::shared_lock<std::shared_mutex> mem_read_lock(remote_mem_mutex);
@@ -3129,7 +3129,7 @@ retry:
     } else
       ptr++;
   }
-#ifdef WITHPERSISTENCE
+#if defined(WITHPERSISTENCE) && defined(BOUNDEDMEM)
 //  printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
   //TODO: we set a hard limit for the remote memory size (Only applicable to "Remote compaction only")
   if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >=100 || RM_reach_limit){
@@ -3154,7 +3154,7 @@ retry:
     remote_mr.length = name_to_chunksize.at(c_type);
   }else{
     Remote_Memory_Register(1 * 1024 * 1024 * 1024ull, target_node_id, c_type);
-#ifdef WITHPERSISTENCE
+#if defined(WITHPERSISTENCE) && defined(BOUNDEDMEM)
     if (RM_reach_limit){
       mem_write_lock.unlock();
       goto retry;
@@ -3226,7 +3226,7 @@ retry:
     } else
       ptr++;
   }
-#ifdef WITHPERSISTENCE
+#if defined(WITHPERSISTENCE) && defined(BOUNDEDMEM)
   //  printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
   //TODO: we set a hard limit for the remote memory size (Only applicable to "Remote compaction only")
   if (total_assigned_memory_size /(1024.0L*1024.0L*1024.0L) > 100){

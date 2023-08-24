@@ -1708,7 +1708,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   ibv_mr* mr = nullptr;
   char* buff;
-#ifdef WITHPERSISTENCE
+#if defined(WITHPERSISTENCE) && defined(BOUNDEDMEM)
   {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
     assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
