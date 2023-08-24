@@ -3089,6 +3089,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
                                              Chunk_type c_type) {
   // If the Remote buffer is empty, register one from the remote memory.
   //  remote_mr = new ibv_mr;
+  // TODO: Make the code below thread safe.
   if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->empty()) {
     // this lock is to prevent the system register too much remote memory at the
     // begginning.

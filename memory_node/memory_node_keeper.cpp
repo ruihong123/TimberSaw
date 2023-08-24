@@ -1716,10 +1716,10 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
                                           No_Use_Default_chunk)) {
         fprintf(stderr, "memory registering failed by size of 0x%x\n",
                 static_cast<unsigned>(request->content.mem_size));
-      }else{
-        rdma_mg->RM_reach_limit = true;
-        mr->addr = reinterpret_cast<void*>(1);
       }
+    }else{
+      rdma_mg->RM_reach_limit = true;
+      mr->addr = reinterpret_cast<void*>(1);
     }
 
 //      printf("Now the Remote memory regularated by compute node is %zu GB",
