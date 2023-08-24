@@ -3094,6 +3094,7 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
     }
     mem_write_lock.unlock();
   }
+retry:
   std::shared_lock<std::shared_mutex> mem_read_lock(remote_mem_mutex);
   auto ptr = Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->begin();
 
@@ -3118,9 +3119,15 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
       ptr++;
   }
   mem_read_lock.unlock();
+#ifdef WITHPERSISTENCE
+  if (Remote_Mem_Bitmap.size() >= 100){
+    usleep(10);
+    goto retry;
+  }
+#endif
   // If not find remote buffers are all used, allocate another remote memory region.
   std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
-  Remote_Memory_Register(1 * 1024 * 1024 * 1024, target_node_id, c_type);
+  Remote_Memory_Register(1 * 1024 * 1024 * 1024ull, target_node_id, c_type);
   //  fs_meta_save();
   ibv_mr* mr_last;
   mr_last = remote_mem_pool.back();
