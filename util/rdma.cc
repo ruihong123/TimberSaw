@@ -3130,7 +3130,7 @@ retry:
       ptr++;
   }
 #ifdef WITHPERSISTENCE
-  printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
+//  printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
   //TODO: we set a hard limit for the remote memory size (Only applicable to "Remote compaction only")
   if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >=5 || RM_reach_limit){
 
@@ -3184,6 +3184,7 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
                                             Chunk_type pool_name) {
   // allocate the RDMA slot is seperate into two situation, read and write.
   size_t chunk_size;
+retry:
   std::shared_lock<std::shared_mutex> mem_read_lock(local_mem_mutex);
   chunk_size = name_to_chunksize.at(pool_name);
   if (name_to_mem_pool.at(pool_name).empty()) {
@@ -3225,6 +3226,16 @@ void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
     } else
       ptr++;
   }
+#ifdef WITHPERSISTENCE
+  //  printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
+  //TODO: we set a hard limit for the remote memory size (Only applicable to "Remote compaction only")
+  if (total_assigned_memory_size /(1024.0L*1024.0L*1024.0L) > 100){
+
+    mem_read_lock.unlock();
+    usleep(10);
+    goto retry;
+  }
+#endif
   mem_read_lock.unlock();
   // if not find available Local block buffer then allocate a new buffer. then
   // pick up one buffer from the new Local memory region.
