@@ -106,7 +106,8 @@
 #define TABLE_TYPE_ADJUST_THRESHOLD (256.00*1024.00*1024.00)
 #define EDIT_MERGER_COUNT 64
 #define UNPIN_GRANULARITY 20
-
+#define CHECKPOINT_TYPE 0 // 0 no edit merger, 1 with edit merger.
+#define LOG_TYPE 1 // 0 redo log, 1 aggregated log (command log)
 
 //#define BLOOMANALYSIS
 #include "port/thread_annotations.h"

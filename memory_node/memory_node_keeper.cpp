@@ -1952,6 +1952,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 //  versions_->LogAndApply(version_edit, &lck);
   //Merge the version edit below.
 #ifdef WITHPERSISTENCE
+#if CHECKPOINT_TYPE==1
     {
       std::unique_lock<std::mutex> lck(merger_mtx);
       ve_merger.merge_one_edit(version_edit);
@@ -1990,6 +1991,21 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
     }
 
 
+
+#else
+  {
+    VersionEdit_Merger* ve_m = new VersionEdit_Merger();
+    ve_m->merge_one_edit(version_edit);
+    Arg_for_persistent* argforpersistence = new Arg_for_persistent{.edit_merger=ve_m,.client_ip = client_ip, .target_node_id=target_node_id};
+    BGThreadMetadata* thread_pool_args = new BGThreadMetadata{.db = this, .func_args = argforpersistence};
+    printf("The bg persistentency queue lenth is %u", Persistency_bg_pool_.queue_len_.load());
+
+    Persistency_bg_pool_.Schedule(Persistence_Dispatch, thread_pool_args);
+    //        ve_merger.Clear();
+//    check_point_t_ready.store(false);
+
+  }
+#endif
 #endif
 //  lck.unlock();
 //  MaybeScheduleCompaction(client_ip);
