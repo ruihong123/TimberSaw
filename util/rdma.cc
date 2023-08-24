@@ -2934,6 +2934,12 @@ bool RDMA_Manager::Remote_Memory_Register(size_t size, uint8_t target_node_id,
   printf("Remote memory registeration, size: %zu\n", size);
   poll_reply_buffer(receive_pointer); // poll the receive for 2 entires
   printf("polled reply buffer\n");
+  if (receive_pointer->content.mr.addr == reinterpret_cast<void*>(1)){
+    RM_reach_limit = true;
+    Deallocate_Local_RDMA_Slot(send_mr.addr, Message);
+    Deallocate_Local_RDMA_Slot(receive_mr.addr, Message);
+    return true;
+  }
   auto* temp_pointer = new ibv_mr();
   // Memory leak?, No, the ibv_mr pointer will be push to the remote mem pool,
   // Please remember to delete it when diregistering mem region from the remote memory
@@ -3094,7 +3100,9 @@ void RDMA_Manager::Allocate_Remote_RDMA_Slot(ibv_mr& remote_mr,
     }
     mem_write_lock.unlock();
   }
+#ifdef WITHPERSISTENCE
 retry:
+#endif
   std::shared_lock<std::shared_mutex> mem_read_lock(remote_mem_mutex);
   auto ptr = Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->begin();
 
@@ -3119,8 +3127,8 @@ retry:
       ptr++;
   }
 #ifdef WITHPERSISTENCE
-  printf("map size is %zu",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
-  if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >= 100){
+  printf("map size is %zu\n",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
+  if (RM_reach_limit){
 
     mem_read_lock.unlock();
     usleep(10);
@@ -3142,6 +3150,12 @@ retry:
     remote_mr.length = name_to_chunksize.at(c_type);
   }else{
     Remote_Memory_Register(1 * 1024 * 1024 * 1024ull, target_node_id, c_type);
+#ifdef WITHPERSISTENCE
+    if (RM_reach_limit){
+      mem_write_lock.unlock();
+      goto retry;
+    }
+#endif
     //  fs_meta_save();
     //  ibv_mr* mr_last;
     ibv_mr* mr_last = remote_mem_pool.back();

@@ -456,6 +456,9 @@ class RDMA_Manager {
   std::list<ibv_mr*> pre_allocated_pool;
 //  std::map<void*, In_Use_Array*>* Remote_Mem_Bitmap;
   std::map<Chunk_type, std::map<uint8_t, std::map<void*, In_Use_Array*>*>*> Remote_Mem_Bitmap;
+#ifdef WITHPERSISTENCE
+  bool RM_reach_limit = false;
+#endif
   std::map<uint8_t, std::map<void*, In_Use_Array*>*> Remote_Mem_Bitmap_filter_blocks;
   uint64_t total_assigned_memory_size;
   //  std::shared_mutex remote_pool_mutex;
