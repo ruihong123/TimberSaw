@@ -3120,7 +3120,7 @@ retry:
   }
   mem_read_lock.unlock();
 #ifdef WITHPERSISTENCE
-  if (Remote_Mem_Bitmap.size() >= 100){
+  if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >= 100){
     usleep(10);
     goto retry;
   }
