@@ -123,7 +123,7 @@ class Memory_Node_Keeper {
     }
 
     *result = new PosixWritableFile(filename, fd);
-    printf("file object is %p", *result);
+//    printf("file object is %p", *result);
     return Status::OK();
   }
 
