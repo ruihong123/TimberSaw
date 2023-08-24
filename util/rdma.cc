@@ -3119,7 +3119,9 @@ retry:
       ptr++;
   }
 #ifdef WITHPERSISTENCE
+  printf("map size is %zu",Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() );
   if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >= 100){
+
     mem_read_lock.unlock();
     usleep(10);
     goto retry;
