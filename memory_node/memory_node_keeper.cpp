@@ -376,6 +376,7 @@ void Memory_Node_Keeper::PersistSSTable(std::shared_ptr<RemoteMemTableMetaData> 
                           sstable_ptr->remote_filter_mrs.size();
   uint32_t* barrier_arr = new uint32_t[barrier_size];
   Status s = NewWritableFile(fname, &f);
+  assert(f);
   uint32_t offset = 0;
   uint32_t chunk_index = 0;
   for(auto chunk : sstable_ptr->remote_data_mrs){
