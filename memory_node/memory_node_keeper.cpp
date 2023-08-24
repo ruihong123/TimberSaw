@@ -1708,6 +1708,7 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
   ibv_mr* mr = nullptr;
   char* buff;
+#ifdef WITHPERSISTENCE
   {
     std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
     assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
@@ -1729,6 +1730,22 @@ int Memory_Node_Keeper::server_sock_connect(const char* servername, int port) {
 
 
   send_pointer->received = true;
+#else
+  {
+    std::unique_lock<std::shared_mutex> lck(rdma_mg->local_mem_mutex);
+    assert(request->content.mem_size = 1024*1024*1024); // Preallocation requrie memory is 1GB
+      if (!rdma_mg->Local_Memory_Register(&buff, &mr, request->content.mem_size,
+                                          No_Use_Default_chunk)) {
+        fprintf(stderr, "memory registering failed by size of 0x%x\n",
+                static_cast<unsigned>(request->content.mem_size));
+      }
+    //      printf("Now the Remote memory regularated by compute node is %zu GB",
+    //             rdma_mg->local_mem_pool.size());
+  }
+
+  send_pointer->content.mr = *mr;
+  send_pointer->received = true;
+#endif
 
   rdma_mg->RDMA_Write(request->buffer, request->rkey, &send_mr,
                       sizeof(RDMA_Reply), client_ip, IBV_SEND_SIGNALED, 1, target_node_id);
