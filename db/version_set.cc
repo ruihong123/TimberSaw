@@ -1011,11 +1011,11 @@ void VersionSet::Persistency_pin(VersionEdit* edit) {
     persistent_pinner_.insert({iter.second->number, iter.second});
     //    printf("pin sstable %lu", iter.second->number);
   }
-  //TODO: It seems that even with version edit merger, the checkpointing can not
+  // It seems that even with version edit merger, the checkpointing can not
   // catch up with the speed of insertion. Thus, there would be large amout of SSTable left in
   // Remote memory.
 
-  assert(persistent_pinner_.size() <= 1200);
+//  assert(persistent_pinner_.size() <= 1200);
 }
 void VersionSet::Persistency_unpin(uint64_t* array, size_t size){
   std::unique_lock<std::mutex> lck(pinner_mtx);

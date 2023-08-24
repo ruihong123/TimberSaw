@@ -3118,32 +3118,46 @@ retry:
     } else
       ptr++;
   }
-  mem_read_lock.unlock();
 #ifdef WITHPERSISTENCE
   if (Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->size() >= 100){
+    mem_read_lock.unlock();
     usleep(10);
     goto retry;
   }
 #endif
+  mem_read_lock.unlock();
+  //TODO: change the logic below as it was in the local memory allocation. first check whether the last
+  // memory chuck was used up then allocate a new memory from the remote side
+
   // If not find remote buffers are all used, allocate another remote memory region.
   std::unique_lock<std::shared_mutex> mem_write_lock(remote_mem_mutex);
-  Remote_Memory_Register(1 * 1024 * 1024 * 1024ull, target_node_id, c_type);
-  //  fs_meta_save();
-  ibv_mr* mr_last;
-  mr_last = remote_mem_pool.back();
-  int sst_index = Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->at(mr_last->addr)->allocate_memory_slot();
-  assert(sst_index >= 0);
-  mem_write_lock.unlock();
+  auto last_element = --Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->end();
+  int sst_index = last_element->second->allocate_memory_slot();
+  if (sst_index>=0){
+    remote_mr = *((last_element->second)->get_mr_ori());
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
+                                        sst_index * name_to_chunksize.at(c_type));
+    remote_mr.length = name_to_chunksize.at(c_type);
+  }else{
+    Remote_Memory_Register(1 * 1024 * 1024 * 1024ull, target_node_id, c_type);
+    //  fs_meta_save();
+    //  ibv_mr* mr_last;
+    ibv_mr* mr_last = remote_mem_pool.back();
+    sst_index = Remote_Mem_Bitmap.at(c_type)->at(target_node_id)->at(mr_last->addr)->allocate_memory_slot();
+    assert(sst_index >= 0);
+    mem_write_lock.unlock();
 
-  //  sst_meta->mr = new ibv_mr();
-  remote_mr = *(mr_last);
-  remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
-                                       sst_index * name_to_chunksize.at(c_type));
-  remote_mr.length = name_to_chunksize.at(c_type);
-  //    remote_data_mrs->fname = file_name;
-  //    remote_data_mrs->map_pointer = mr_last;
-//  DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
-  return;
+    //  sst_meta->mr = new ibv_mr();
+    remote_mr = *(mr_last);
+    remote_mr.addr = static_cast<void*>(static_cast<char*>(remote_mr.addr) +
+                                        sst_index * name_to_chunksize.at(c_type));
+    remote_mr.length = name_to_chunksize.at(c_type);
+    //    remote_data_mrs->fname = file_name;
+    //    remote_data_mrs->map_pointer = mr_last;
+    //  DEBUG_arg("Allocate Remote pointer %p",  remote_mr.addr);
+    return;
+  }
+
 }
 // A function try to allocate RDMA registered local memory
 void RDMA_Manager::Allocate_Local_RDMA_Slot(ibv_mr& mr_input,
