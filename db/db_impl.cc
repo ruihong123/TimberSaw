@@ -4187,14 +4187,14 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
     assert(sequence <= mem->Getlargest_seq_supposed() && sequence >= mem->GetFirstseq());
     status = WriteBatchInternal::InsertInto(updates, mem);
     mem->increase_seq_count(kv_num);
-#if LOG_TYPE == 0
+#if defined(LOG_TYPE) && LOG_TYPE == 0
     std::unique_lock<std::mutex> l(log_mtx);
     status = log_->AddRecord(WriteBatchInternal::Contents(updates));
     if (put_counter.fetch_add(1)%REDO_LOG_PER_TXN == 0){
       status = logfile_->Sync();
     }
 #endif
-#if LOG_TYPE == 1
+#if defined(LOG_TYPE) && LOG_TYPE == 1
     WriteBatch batch;
     // supppose the command is 72Bytes long, and every command have 10 updates.
     char key[8];

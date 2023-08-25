@@ -78,9 +78,11 @@ struct SuperVersion {
   autovector<MemTable*> to_delete;
 };
 // The structure for storing argument for thread pool.
-
+#ifdef WITHPERSISTENCE
 class DBImpl : public DB, RPC_Process {
-
+#else
+class DBImpl : public DB{
+#endif
  public:
   DBImpl(const Options& options, const std::string& dbname);
   DBImpl(const Options& raw_options, const std::string& dbname,
