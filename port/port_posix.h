@@ -108,10 +108,10 @@
 #define EDIT_MERGER_COUNT 64
 #define UNPIN_GRANULARITY 20
 
-//#define WITHPERSISTENCE
-//#define BOUNDEDMEM
-//#define CHECKPOINT_TYPE 1 // 0 no edit merger, 1 with edit merger.
-//#define LOG_TYPE 1 // 0 redo log, 1 aggregated log (command log), 3 no log
+#define WITHPERSISTENCE
+#define BOUNDEDMEM
+#define CHECKPOINT_TYPE 0 // 0 no edit merger, 1 with edit merger.
+#define LOG_TYPE 0 // 0 redo log, 1 aggregated log (command log), 3 no log
 //#define REDO_LOG_PER_TXN 10
 
 //#define BLOOMANALYSIS
