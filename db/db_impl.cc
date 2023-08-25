@@ -4194,6 +4194,18 @@ Status DBImpl::Write(const WriteOptions& options, WriteBatch* updates) {
       status = logfile_->Sync();
     }
 #endif
+#if LOG_TYPE == 1
+    WriteBatch batch;
+    // supppose the command is 72Bytes long, and every command have 10 updates.
+    char key[8];
+    char value[64];
+    batch.Put(key, value);
+    if (put_counter.fetch_add(1)%REDO_LOG_PER_TXN == 0){
+      std::unique_lock<std::mutex> l(log_mtx);
+      status = log_->AddRecord(WriteBatchInternal::Contents(&batch));
+      status = logfile_->Sync();
+    }
+#endif
   }else{
     printf("Weird status not OK");
     assert(0==1);
