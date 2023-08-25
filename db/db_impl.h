@@ -303,6 +303,8 @@ class DBImpl : public DB, RPC_Process {
   WritableFile* logfile_;
   uint64_t logfile_number_;
   log::Writer* log_;
+  std::mutex log_mtx;
+  std::atomic<size_t> put_counter = 0;
   uint32_t seed_;  // For sampling.
 
   // Queue of writers.
