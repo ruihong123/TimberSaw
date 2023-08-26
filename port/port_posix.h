@@ -111,7 +111,7 @@
 
 #define WITHPERSISTENCE
 #define BOUNDEDMEM
-#define CHECKPOINT_TYPE 1 // 0 no edit merger, 1 with edit merger.
+#define CHECKPOINT_TYPE 0 // 0 no edit merger, 1 with edit merger.
 #define LOG_TYPE 1 // 0 redo log, 1 aggregated log (command log), 3 no log
 
 
