@@ -584,7 +584,8 @@ class Compaction {
   Compaction(const Options* options);
 #ifdef CHECK_COMPACTION_TIME
   bool small_compaction = false;
-  double CPU_util_At_Moment = 0;
+  double Local_CPU_util_At_Moment = 0;
+  double Remote_CPU_util_At_Moment = 0;
   double dynamic_remote_available_core = 0;
   double dynamic_local_available_core = 0;
 #endif

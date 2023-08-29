@@ -1576,7 +1576,8 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
 //    if ((compact->num_input_files(0) + compact->num_input_files(1))/((static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0 > compact->num_input_files(1) ? compact->num_input_files(1): (static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0) <= 2){
 #ifdef CHECK_COMPACTION_TIME
       compact->small_compaction = true;
-      compact->CPU_util_At_Moment = LocalCPU_utilization;
+      compact->Local_CPU_util_At_Moment = LocalCPU_utilization;
+      compact->Remote_CPU_util_At_Moment = RemoteCPU_utilization;
       compact->dynamic_remote_available_core = dynamic_remote_available_core;
       compact->dynamic_local_available_core = dynamic_compute_available_core;
 #endif
@@ -1881,7 +1882,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           printf("[Remote Memory]level %d compaction first level file number %d, "
               "second level file number %d time elapse %ld, CPU_util_snap %f, available core snap %f\n",
                  c->level(), c->num_input_files(0), c->num_input_files(1), duration.count(),
-              c->CPU_util_At_Moment, c->dynamic_remote_available_core);
+              c->Remote_CPU_util_At_Moment, c->dynamic_remote_available_core);
         }
 #endif
 
@@ -1919,9 +1920,11 @@ void DBImpl::BackgroundCompaction(void* p) {
 #ifdef CHECK_COMPACTION_TIME
         if (c->small_compaction) {
           printf(
-              "[Compute] level %d compaction first level file number %d, second level file number %d time elapse %ld\n",
+              "[Compute] level %d compaction first level file number %d, "
+              "second level file number %d time elapse %ld, CPU_util_snap %f, "
+              "available core snap %f\n",
               c->level(), c->num_input_files(0), c->num_input_files(1),
-              duration.count());
+              duration.count(), c->Local_CPU_util_At_Moment, c->dynamic_local_available_core);
         }
 #endif
 //        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
