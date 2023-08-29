@@ -582,7 +582,12 @@ class Compaction {
   std::vector<uint64_t>* GetSizes();
   uint64_t GetFileSizesForLevel(int level);
   Compaction(const Options* options);
-
+#ifdef CHECK_COMPACTION_TIME
+  bool small_compaction = false;
+  double CPU_util_At_Moment = 0;
+  double dynamic_remote_available_core = 0;
+  double dynamic_local_available_core = 0;
+#endif
  private:
   friend class Version;
   friend class VersionSet;

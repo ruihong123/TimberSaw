@@ -97,7 +97,8 @@
 #define TABLE_STRATEGY 1 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive according to local cache size limit.
 #define TABLE_CACHE_SCALING_FACTOR 8
 #define USESEQITERATOR
-#define NEARDATACOMPACTION 1 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
+#define NEARDATACOMPACTION 2 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
+#define CHECK_COMPACTION_TIME
 #define PERFECT_THREAD_NUMBER_FOR_BGTHREADS
 //#define ASYNC_READ
 //#define GETANALYSIS
@@ -109,10 +110,10 @@
 #define UNPIN_GRANULARITY 20
 #define REDO_LOG_PER_TXN 10
 
-#define WITHPERSISTENCE
-#define BOUNDEDMEM
-#define CHECKPOINT_TYPE 1 // 0 no edit merger, 1 with edit merger.
-#define LOG_TYPE 0 // 0 redo log, 1 aggregated log (command log), 3 no log
+//#define WITHPERSISTENCE
+//#define BOUNDEDMEM
+//#define CHECKPOINT_TYPE 1 // 0 no edit merger, 1 with edit merger.
+//#define LOG_TYPE 0 // 0 redo log, 1 aggregated log (command log), 3 no log
 
 
 //#define BLOOMANALYSIS

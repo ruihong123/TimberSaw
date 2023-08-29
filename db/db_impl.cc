@@ -1574,7 +1574,12 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
     if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 4){
 //    if ((compact->num_input_files(0) + compact->num_input_files(1))/((static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0 > compact->num_input_files(1) ? compact->num_input_files(1): (static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0) <= 2){
-
+#ifdef CHECK_COMPACTION_TIME
+      compact->small_compaction = true;
+      compact->CPU_util_At_Moment = LocalCPU_utilization;
+      compact->dynamic_remote_available_core = dynamic_remote_available_core;
+      compact->dynamic_local_available_core = dynamic_compute_available_core;
+#endif
 //      static_compute_achievable_parallelism + static_memory_achievable_parallelism
       // execution time is longer than a normal compaction task then use dynamic score
       // Strategy 1: predict the level 0 execution time by dynamical info.
@@ -1594,7 +1599,6 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
       // static core numbers is too optimistic.
       final_estimated_time_compute = 1.0/ static_compute_achievable_parallelism;
 //      final_estimated_time_compute = 1.0/(dynamic_compute_available_core >  task_parallelism? task_parallelism: dynamic_compute_available_core);
-
       final_estimated_time_memory = 1.0*8.0/(17.0* static_memory_achievable_parallelism);
 
     }
@@ -1608,7 +1612,6 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
              (compact->num_input_files(0) + compact->num_input_files(0))/
                  (static_compute_achievable_parallelism + static_memory_achievable_parallelism),
              LocalCPU_utilization, RemoteCPU_utilization);
-
       rdma_mg->local_compaction_issued.store(true);
       return false;
     }else{
@@ -1873,9 +1876,14 @@ void DBImpl::BackgroundCompaction(void* p) {
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //        if (c->level() == 0){
-//        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
-//          printf("[Remote Memory]level %d compaction first level file number %d, second level file number %d time elapse %ld\n",
-//                c->level(), c->num_input_files(0), c->num_input_files(1), duration.count());
+#ifdef CHECK_COMPACTION_TIME
+        if (c->small_compaction){
+          printf("[Remote Memory]level %d compaction first level file number %d, "
+              "second level file number %d time elapse %ld, CPU_util_snap %f, available core snap %f\n",
+                 c->level(), c->num_input_files(0), c->num_input_files(1), duration.count(),
+              c->CPU_util_At_Moment, c->dynamic_remote_available_core);
+        }
+#endif
 
 //        }
 //        MaybeScheduleFlushOrCompaction();
@@ -1908,9 +1916,14 @@ void DBImpl::BackgroundCompaction(void* p) {
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //        if (c->level() == 0) {
+#ifdef CHECK_COMPACTION_TIME
+        if (c->small_compaction) {
           printf(
               "[Compute] level %d compaction first level file number %d, second level file number %d time elapse %ld\n",
-              c->level(), c->num_input_files(0), c->num_input_files(1), duration.count());
+              c->level(), c->num_input_files(0), c->num_input_files(1),
+              duration.count());
+        }
+#endif
 //        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
 //          printf(
 //              "[Compute] level 0 compaction first level file size %lu, second level file size %lu time elapse %ld\n",

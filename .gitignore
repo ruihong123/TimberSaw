@@ -11,6 +11,7 @@ release/
 debug/
 out/
 /cmake-build-debug/include/
+myignorefile
 
 # some useless things 
 demo*
