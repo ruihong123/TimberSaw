@@ -736,7 +736,7 @@ void RDMA_Manager::remote_cpu_util_heart_beater_receiver(
 //    uint8_t check_byte = request->content.ive.check_byte;
   server_cpu_percent.at(target_node_id)->store(request->content.cpu_info.cpu_util);
 //  remote_compaction_issued.at(target_node_id_)->store(false);
-  printf("Recieve the cpu utilization %f\n", request->content.cpu_info.cpu_util);
+  DEBUG_arg("Recieve the cpu utilization %f\n", request->content.cpu_info.cpu_util);
   delete request;
 
 }
