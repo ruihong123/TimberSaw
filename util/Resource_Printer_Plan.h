@@ -46,5 +46,11 @@ class Resource_Printer_PlanB {
   double getCurrentValue();
   std::string getCurrentHost();
 };
-
+//create a function which continue to burn CPU cycles.
+void burnCPU(){
+        int i = 0;
+        while(true){
+        i++;
+        }
+};
 #endif  // TIMBERSAW_RESOURCE_PRINTER_PLAN_H
