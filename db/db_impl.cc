@@ -1887,7 +1887,7 @@ void DBImpl::BackgroundCompaction(void* p) {
           total_size_in_MB = total_size/1024/1024;
           printf("[Remote Memory]level %d compaction first level file number %d, "
               "second level file number %d time elapse %ld, CPU_util_snap %f, available core snap %f"
-              "Total data size in MB is  !%lu\n",
+              "Total data size in MB is !%lu\n",
                  c->level(), c->num_input_files(0), c->num_input_files(1), duration.count(),
               c->Remote_CPU_util_At_Moment, c->dynamic_remote_available_core, total_size_in_MB);
         }
