@@ -1879,11 +1879,17 @@ void DBImpl::BackgroundCompaction(void* p) {
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //        if (c->level() == 0){
 #ifdef CHECK_COMPACTION_TIME
+
         if (c->small_compaction){
+          uint64_t total_size = 0;
+          uint64_t total_size_in_MB = 0;
+          total_size = c->Total_data_size();
+          total_size_in_MB = total_size/1024/1024;
           printf("[Remote Memory]level %d compaction first level file number %d, "
-              "second level file number %d time elapse %ld, CPU_util_snap %f, available core snap %f\n",
+              "second level file number %d time elapse %ld, CPU_util_snap %f, available core snap %f"
+              "Total data size in MB is  !%lu\n",
                  c->level(), c->num_input_files(0), c->num_input_files(1), duration.count(),
-              c->Remote_CPU_util_At_Moment, c->dynamic_remote_available_core);
+              c->Remote_CPU_util_At_Moment, c->dynamic_remote_available_core, total_size_in_MB);
         }
 #endif
 
@@ -1919,13 +1925,18 @@ void DBImpl::BackgroundCompaction(void* p) {
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
 //        if (c->level() == 0) {
 #ifdef CHECK_COMPACTION_TIME
+
         if (c->small_compaction) {
+          uint64_t total_size = 0;
+          uint64_t total_size_in_MB = 0;
+          total_size = c->Total_data_size();
+          total_size_in_MB = total_size/1024/1024;
           printf(
               "[Compute] level %d compaction first level file number %d, "
               "second level file number %d time elapse %ld, CPU_util_snap %f, "
-              "available core snap %f\n",
+              "available core snap %f, Total data size in MB is %lu\n",
               c->level(), c->num_input_files(0), c->num_input_files(1),
-              duration.count(), c->Local_CPU_util_At_Moment, c->dynamic_local_available_core);
+              duration.count(), c->Local_CPU_util_At_Moment, c->dynamic_local_available_core, total_size_in_MB);
         }
 #endif
 //        if (c->num_input_files(0) == 1 && c->num_input_files(1) == 1) {
