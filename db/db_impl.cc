@@ -1571,16 +1571,23 @@ bool DBImpl::CheckWhetherPushDownorNot(Compaction* compact) {
     // node is better, because there could be more parallelism be explored.
     double final_estimated_time_compute = 0.0;
     double final_estimated_time_memory = 0.0;
+#ifdef CHECK_COMPACTION_TIME
+//    compact->small_compaction = true;
+    compact->Local_CPU_util_At_Moment = LocalCPU_utilization;
+    compact->Remote_CPU_util_At_Moment = RemoteCPU_utilization;
+    compact->dynamic_remote_available_core = dynamic_remote_available_core;
+    compact->dynamic_local_available_core = dynamic_compute_available_core;
+#endif
     // calculate the estimated execution time by static core number if it last long, use static score, if last not longer than 10 file compaction, then use dynamic score.
 //    if ((compact->num_input_files(0) + compact->num_input_files(1))/(static_memory_achievable_parallelism > compact->num_input_files(1) ? compact->num_input_files(1): static_memory_achievable_parallelism) <= 4){
       if ((compact->num_input_files(0) + compact->num_input_files(1))<30){
 //    if ((compact->num_input_files(0) + compact->num_input_files(1))/((static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0 > compact->num_input_files(1) ? compact->num_input_files(1): (static_memory_achievable_parallelism + static_compute_achievable_parallelism)/2.0) <= 2){
 #ifdef CHECK_COMPACTION_TIME
       compact->small_compaction = true;
-      compact->Local_CPU_util_At_Moment = LocalCPU_utilization;
-      compact->Remote_CPU_util_At_Moment = RemoteCPU_utilization;
-      compact->dynamic_remote_available_core = dynamic_remote_available_core;
-      compact->dynamic_local_available_core = dynamic_compute_available_core;
+//      compact->Local_CPU_util_At_Moment = LocalCPU_utilization;
+//      compact->Remote_CPU_util_At_Moment = RemoteCPU_utilization;
+//      compact->dynamic_remote_available_core = dynamic_remote_available_core;
+//      compact->dynamic_local_available_core = dynamic_compute_available_core;
 #endif
 //      static_compute_achievable_parallelism + static_memory_achievable_parallelism
       // execution time is longer than a normal compaction task then use dynamic score
@@ -1880,7 +1887,7 @@ void DBImpl::BackgroundCompaction(void* p) {
 //        if (c->level() == 0){
 #ifdef CHECK_COMPACTION_TIME
 
-        if (c->small_compaction){
+//        if (c->small_compaction){
           uint64_t total_size = 0;
           uint64_t total_size_in_MB = 0;
           total_size = c->Total_data_size();
@@ -1890,7 +1897,7 @@ void DBImpl::BackgroundCompaction(void* p) {
               "Total data size in MB is !%lu\n",
                  c->level(), c->num_input_files(0), c->num_input_files(1), duration.count(),
               c->Remote_CPU_util_At_Moment, c->dynamic_remote_available_core, total_size_in_MB);
-        }
+//        }
 #endif
 
 //        }
