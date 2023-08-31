@@ -1884,8 +1884,8 @@ void DBImpl::BackgroundCompaction(void* p) {
         NearDataCompaction(c);
         auto stop = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
-//        if (c->level() == 0){
 #ifdef CHECK_COMPACTION_TIME
+        if (c->level() == 0){
 
 //        if (c->small_compaction){
           uint64_t total_size = 0;
@@ -1897,7 +1897,7 @@ void DBImpl::BackgroundCompaction(void* p) {
               "Total data size in MB is !%lu\n",
                  c->level(), c->num_input_files(0), c->num_input_files(1), duration.count(),
               c->Remote_CPU_util_At_Moment, c->dynamic_remote_available_core, total_size_in_MB);
-//        }
+        }
 #endif
 
 //        }
