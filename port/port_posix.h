@@ -110,6 +110,15 @@
 #define UNPIN_GRANULARITY 20
 #define REDO_LOG_PER_TXN 10
 
+// Define to 1 if you have Google Snappy.
+#if !defined(HAVE_SNAPPY)
+#define HAVE_SNAPPY 1
+#endif  // !defined(HAVE_SNAPPY)
+
+#if HAVE_SNAPPY
+#include <snappy.h>
+#endif  // HAVE_SNAPPY
+
 //#define WITHPERSISTENCE
 //#define BOUNDEDMEM
 //#define CHECKPOINT_TYPE 1 // 0 no edit merger, 1 with edit merger.
@@ -208,6 +217,7 @@ inline bool Snappy_Compress(const char* input, size_t length,
   output->resize(outlen);
   return true;
 #else
+
   // Silence compiler warnings about unused arguments.
   (void)input;
   (void)length;

@@ -40,6 +40,8 @@ check_include_file("unistd.h" HAVE_UNISTD_H)
 include(CheckLibraryExists)
 check_library_exists(crc32c crc32c_value "" HAVE_CRC32C)
 check_library_exists(snappy snappy_compress "" HAVE_SNAPPY)
+message(STATUS "Have snappy ? ${HAVE_SNAPPY}")
+
 #check_library_exists(tcmalloc malloc "" HAVE_TCMALLOC)
 # disable tcmalloc when we want to enable the fsantinize=address
 
