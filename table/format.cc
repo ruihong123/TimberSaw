@@ -195,11 +195,12 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
     case kSnappyCompression: {
       size_t ulength = 0;
       if (!port::Snappy_GetUncompressedLength(buf, n, &ulength)) {
+        assert(false);
         return Status::Corruption("corrupted compressed block contents");
       }
       char* ubuf = new char[ulength];
       if (!port::Snappy_Uncompress(buf, n, ubuf)) {
-//        delete[] buf;
+        assert(false);
         delete[] ubuf;
         return Status::Corruption("corrupted compressed block contents");
       }
