@@ -125,12 +125,7 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
   assert(n + kBlockTrailerSize <= rdma_mg->name_to_chunksize.at(DataChunk));
   ibv_mr* contents;
   ibv_mr remote_mr = {};
-//#ifndef NDEBUG
-//  ibv_wc wc;
-//  int check_poll_number =
-//      rdma_mg->try_poll_completions(&wc, 1, "read_local");
-//  assert( check_poll_number == 0);
-//#endif
+
 
 //  if (){
 
@@ -146,7 +141,6 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
 #ifdef GETANALYSIS
   start1 = std::chrono::high_resolution_clock::now();
 #endif
-//    rdma_mg->Allocate_Local_RDMA_Slot(contents, DataChunk);
   //Need to fix here
     contents = rdma_mg->Get_local_read_mr();
 #ifdef GETANALYSIS
@@ -167,30 +161,16 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
   RDMA_Manager::RDMAReadTimeElapseSum.fetch_add(duration.count());
   RDMA_Manager::ReadCount.fetch_add(1);
 #endif
-    //
-//  }else{
-//    s = Status::Corruption("Remote memtable out of buffer");
-//  }
-//#ifndef NDEBUG
-//  usleep(100);
-//  check_poll_number = rdma_mg->try_poll_completions(&wc,1);
-//  assert( check_poll_number == 0);
-//#endif
-  // Check the crc of the type and the block contents
-//#ifdef GETANALYSIS
-//  auto start = std::chrono::high_resolution_clock::now();
-//#endif
   // create a new buffer and copy to the new buffer. However, there could still
   // be a contention at the c++ allocator.
-  char* data = new char[rdma_mg->name_to_chunksize.at(DataChunk)];
+  char* buf = (char*)contents->addr;
 
-  memcpy(data, contents->addr, rdma_mg->name_to_chunksize.at(DataChunk));
 //  printf("/Create buffer for cache, start addr %p, length %lu content is %s\n", data, n, data+1);
 
 //  const char* data = static_cast<char*>(contents->addr);  // Pointer to where Read put the data
   if (options.verify_checksums) {
-    const uint32_t crc = crc32c::Unmask(DecodeFixed32(data + n + 1));
-    const uint32_t actual = crc32c::Value(data, n + 1);
+    const uint32_t crc = crc32c::Unmask(DecodeFixed32(buf + n + 1));
+    const uint32_t actual = crc32c::Value(buf, n + 1);
     if (actual != crc) {
 //      delete[] buf;
       DEBUG("Data block Checksum mismatch\n");
@@ -200,35 +180,35 @@ Status ReadDataBlock(std::map<uint32_t, ibv_mr*>* remote_data_blocks,
     }
   }
 //  printf("data[n] is %c\n", data[n]);
-  switch (data[n]) {
-    case kNoCompression:
-        result->data = Slice(data, n);
-//        result->heap_allocated = false;
-//        result->cachable = false;  // Do not double-table_cache
+  switch (buf[n]) {
+    case kNoCompression: {
+      char* data = new char[rdma_mg->name_to_chunksize.at(DataChunk)];
+      memcpy(data, contents->addr, rdma_mg->name_to_chunksize.at(DataChunk));
 
+      result->data = Slice(data, n);
+      //        result->heap_allocated = false;
+      //        result->cachable = false;  // Do not double-table_cache
 
       // Ok
-        break;
-//    case kSnappyCompression: {
-//      size_t ulength = 0;
-//      if (!port::Snappy_GetUncompressedLength(data, n, &ulength)) {
-//        rdma_mg->Deallocate_Local_RDMA_Slot(data, "DataBlock")
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
-//      char* ubuf = new char[ulength];
-//      if (!port::Snappy_Uncompress(data, n, ubuf)) {
+      break;
+    }
+    case kSnappyCompression: {
+      size_t ulength = 0;
+      if (!port::Snappy_GetUncompressedLength(buf, n, &ulength)) {
+        return Status::Corruption("corrupted compressed block contents");
+      }
+      char* ubuf = new char[ulength];
+      if (!port::Snappy_Uncompress(buf, n, ubuf)) {
 //        delete[] buf;
-////        delete[] ubuf;
-//        return Status::Corruption("corrupted compressed block contents");
-//      }
+        delete[] ubuf;
+        return Status::Corruption("corrupted compressed block contents");
+      }
 //      delete[] buf;
-//      result->data = Slice(ubuf, ulength);
-//      result->heap_allocated = true;
-//      result->cachable = true;
-//      break;
-//    }
+      result->data = Slice(ubuf, ulength);
+      break;
+    }
     default:
-      assert(data[n] != kNoCompression);
+      assert(buf[n] != kNoCompression);
       assert(false);
 //      rdma_mg->Deallocate_Local_RDMA_Slot(static_cast<void*>(const_cast<char *>(data)), DataChunk);
       DEBUG("Data block illegal compression type\n");

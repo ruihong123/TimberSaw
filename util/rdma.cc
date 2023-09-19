@@ -820,10 +820,10 @@ void RDMA_Manager::ConnectQPThroughSocket(std::string qp_type, int socket_fd,
 //  //    local_read_qp_info->Reset(remote_con_data);
 //  else if(qp_type == "write_local_compact")
 //    ((QP_Info_Map*)local_write_compact_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
-////    local_write_compact_qp_info->Reset(remote_con_data);
+////    local_write_compact_qp_info->Reset_Buffer(remote_con_data);
 //  else if(qp_type == "write_local_flush")
 //    ((QP_Info_Map*)local_write_flush_qp_info->Get())->insert({shard_target_node_id, remote_con_data});
-////    local_write_flush_qp_info->Reset(remote_con_data);
+////    local_write_flush_qp_info->Reset_Buffer(remote_con_data);
 //  else
     res->qp_main_connection_info.insert({target_node_id,remote_con_data});
   l.unlock();

@@ -54,6 +54,15 @@ void BlockBuilder::Reset_Forward() {
   finished_ = false;
   last_key_.clear();
 }
+
+void BlockBuilder::Reset_Buffer(char* data, size_t size) {
+  buffer.Reset(data, size);
+//  restarts_.clear();
+//  restarts_.push_back(0);  // First restart point is at offset 0
+//  counter_ = 0;
+//  finished_ = false;
+//  last_key_.clear();
+}
 void BlockBuilder::Move_buffer(const char* p) { buffer.Reset(p,0);
 }
 size_t BlockBuilder::CurrentSizeEstimate() const {

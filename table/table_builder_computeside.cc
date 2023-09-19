@@ -263,50 +263,52 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
   Rep* r = rep_;
   block->Finish();
 
-  Slice* raw = &(r->data_block->buffer);
-  assert(*(r->data_block->buffer.data() + 4)!= 'U' && *(r->data_block->buffer.data() + 4)!= 'V');
-  Slice* block_contents;
+  Slice raw = (r->data_block->buffer);
+//  assert(*(r->data_block->buffer.data() + 4)!= 'U' && *(r->data_block->buffer.data() + 4)!= 'V');
+  Slice block_contents;
 //  CompressionType compressiontype = r->options.compression;
   //TOTHINK: temporally disable the compression, because it can increase the latency but it could
   // increase the available bandwidth. THis part depends on whether the in-memory write can catch
   // up with the high RDMA bandwidth.
   switch (compressiontype) {
-    case kNoCompression:
+    case kNoCompression: {
       block_contents = raw;
       break;
-
-//    case kSnappyCompression: {
-//      std::string* compressed = &r->compressed_output;
-//      if (port::Snappy_Compress(raw->data(), raw->size(), compressed) &&
-//          compressed->size() < raw->size() - (raw->size() / 8u)) {
-//        block_contents = *compressed;
-//        memcpy(block_contents.data);
-//      } else {
-//        // Snappy not supported, or compressed less than 12.5%, so just
-//        // store uncompressed form
-//        block_contents = raw;
-//        compressiontype = kNoCompression;
-//      }
-//      break;
-//    }
+    }
+    case kSnappyCompression: {
+      std::string* compressed = &r->compressed_output;
+      if (port::Snappy_Compress(raw.data(), raw.size(), compressed) &&
+          compressed->size() < raw.size() - (raw.size() / 8u)) {
+        memcpy((void*)r->data_block->buffer.data(), (void*)compressed->data(), compressed->size());
+        block->Reset_Buffer(const_cast<char*>(r->data_block->buffer.data()),
+                            compressed->size());
+        block_contents = r->data_block->buffer;
+      } else {
+        // Snappy not supported, or compressed less than 12.5%, so just
+        // store uncompressed form
+        block_contents = raw;
+        compressiontype = kNoCompression;
+      }
+      break;
+    }
   }
 //#ifndef NDEBUG
 //  if (r->offset == 72100)
 //    printf("mark!!\n");
 //#endif
   handle->set_offset(r->offset);// This is the offset of the begginning of this block.
-  handle->set_size(block_contents->size());
-  assert(block_contents->size() <= r->options.block_size - kBlockTrailerSize);
+  handle->set_size(block_contents.size());
+  assert(block_contents.size() <= r->options.block_size - kBlockTrailerSize);
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
     trailer[0] = compressiontype;
-    uint32_t crc = crc32c::Value(block_contents->data(), block_contents->size());
+    uint32_t crc = crc32c::Value(block_contents.data(), block_contents.size());
     crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
     EncodeFixed32(trailer + 1, crc32c::Mask(crc));
-    block_contents->append(trailer, kBlockTrailerSize);
+    block_contents.append(trailer, kBlockTrailerSize);
     // block_type == 0 means data block
     if (r->status.ok()) {
-      r->offset += block_contents->size();
+      r->offset += block_contents.size();
 //      DEBUG_arg("Offset is %lu", r->offset);
       assert(r->offset - r->offset_last_flushed <= r->local_data_mr[0]->length);
     }

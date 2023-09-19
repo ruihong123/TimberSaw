@@ -23,6 +23,8 @@ class BlockBuilder {
 
   // Reset the contents as if the BlockBuilder was just constructed.
   void Reset_Forward();
+  void Reset_Buffer(char* data, size_t size);
+
   // move the buffer locate at a different place
   void Move_buffer(const char* p);
   // REQUIRES: Finish() has not been called since the last call to Reset().
