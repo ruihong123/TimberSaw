@@ -330,6 +330,7 @@ void TableBuilder_ComputeSide::FinishDataIndexBlock(BlockBuilder* block,
 
   Slice* raw = &(r->index_block->buffer);
   Slice* block_contents;
+  compressiontype = kNoCompression;
   switch (compressiontype) {
     case kNoCompression:
       block_contents = raw;
@@ -384,6 +385,7 @@ void TableBuilder_ComputeSide::FinishFilterBlock(FullFilterBlockBuilder* block, 
   Slice* raw = &(r->filter_block->result);
   assert(raw->size()!=0);
   Slice* block_contents;
+  compressiontype = kNoCompression;
   switch (compressiontype) {
     case kNoCompression:
       block_contents = raw;
