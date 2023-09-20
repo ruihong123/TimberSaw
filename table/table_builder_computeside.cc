@@ -286,6 +286,7 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
       } else {
         // Snappy not supported, or compressed less than 12.5%, so just
         // store uncompressed form
+        assert(false);
         block_contents = raw;
         compressiontype = kNoCompression;
       }
@@ -302,6 +303,7 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
   if (r->status.ok()) {
     char trailer[kBlockTrailerSize];
     trailer[0] = compressiontype;
+    assert(compressiontype == kNoCompression || compressiontype == kSnappyCompression);
     uint32_t crc = crc32c::Value(block_contents.data(), block_contents.size());
     crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
     EncodeFixed32(trailer + 1, crc32c::Mask(crc));
