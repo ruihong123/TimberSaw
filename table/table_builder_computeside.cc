@@ -317,10 +317,10 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
   }
   r->compressed_output.clear();
   if (r->offset < 8192){
-    char* buf =
-        const_cast<char*>(block_contents.data() + block_contents.size() - 8);
+    unsigned char* buf =
+        (unsigned char*)(block_contents.data() + block_contents.size() - 8);
     assert(buf[3 ] == 1);
-    printf("data content around the compression type : %02x %02x %02x %02x %02x %02x %02x %02x\n", buf[0], buf[1], buf[2], buf[3], buf[4],
+    printf("data content around the compression type : %u %u %u %u %u %u %u %u\n", buf[0], buf[1], buf[2], buf[3], buf[4],
            buf[5], buf[6], buf[7]);
   }
   block->Reset_Forward();
