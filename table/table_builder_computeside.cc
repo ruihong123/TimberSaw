@@ -320,8 +320,8 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
     unsigned char* buf =
         (unsigned char*)(block_contents.data() + block_contents.size() - 8);
     assert(buf[3 ] == 1);
-    printf("data content around the compression type : %u %u %u %u %u %u %u %u\n", buf[0], buf[1], buf[2], buf[3], buf[4],
-           buf[5], buf[6], buf[7]);
+    printf("data content around the compression type : %u %u %u %u %u %u %u %u, length is %zu\n", buf[0], buf[1], buf[2], buf[3], buf[4],
+           buf[5], buf[6], buf[7], block_contents.size() - 5);
   }
   block->Reset_Forward();
 }
