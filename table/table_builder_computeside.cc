@@ -308,7 +308,6 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
     crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
     EncodeFixed32(trailer + 1, crc32c::Mask(crc));
     block_contents.append(trailer, kBlockTrailerSize);
-    assert()
     // block_type == 0 means data block
     if (r->status.ok()) {
       r->offset += block_contents.size();
