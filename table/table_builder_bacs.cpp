@@ -614,7 +614,7 @@ Status TableBuilder_BACS::Finish() {
 //    }
     size_t msg_size;
     FinishDataIndexBlock(r->index_block, &index_block_handle,
-                         r->options.compression, msg_size);
+                         kNoCompression, msg_size);
     FlushDataIndex(msg_size);
 //    printf("Index block size is %zu", msg_size);
   }
