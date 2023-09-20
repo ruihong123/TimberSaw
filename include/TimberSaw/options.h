@@ -26,6 +26,7 @@ class Snapshot;
 #define INDEX_BLOCK_BIG (7*1024*1024ULL)
 #define INDEX_BLOCK_SMALL (384*1024ULL)
 #define FILTER_BLOCK  (256*1024ULL)
+#define FILTER_BLOCK_COMPRESSION  (3*1024*1024ULL)
 //static size_t RDMA_WRITE_BLOCK = 1*1024*1024;
 // DB contents are stored in a set of blocks, each of which holds a
 // sequence of key,value pairs.  Each block may be compressed before

@@ -16,7 +16,13 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
                                      INDEX_BLOCK_BIG *16);
     env->rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL,
                                      INDEX_BLOCK_SMALL *128);
-    env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, FILTER_BLOCK*128);
+    if (compression != kNoCompression) {
+      env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK_COMPRESSION, FILTER_BLOCK_COMPRESSION*128);
+
+    }else{
+      env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, FILTER_BLOCK*128);
+
+    }
     env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, RDMA_WRITE_BLOCK*16);
 //    env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
 //    env->rdma_mg->Mempool_initialize(std::string("Prefetch"),
