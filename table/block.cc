@@ -71,6 +71,10 @@ Block::~Block() {
     if (type_ == Block_On_Memory_Side){
       return;
     }
+    if (type_ == Block_On_Memory_Side_Compressed){
+      delete[] data_;
+      return;
+    }
     printf("Not found in the RDMA mem pool");
   }
 }

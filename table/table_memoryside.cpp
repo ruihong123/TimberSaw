@@ -12,6 +12,7 @@
 #include "TimberSaw/filter_policy.h"
 #include "TimberSaw/options.h"
 
+
 #include "table/block.h"
 #include "table/filter_block.h"
 #include "table/format.h"
@@ -153,6 +154,7 @@ Table_Memory_Side::~Table_Memory_Side() { delete rep; }
 
 // Convert an index iterator value (i.e., an encoded BlockHandle)
 // into an iterator over the contents of the corresponding block.
+//TODO: Support compressed block.
 Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
                                          const Slice& index_value) {
   Table_Memory_Side* table = reinterpret_cast<Table_Memory_Side*>(arg);
@@ -171,7 +173,47 @@ Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
     //The function below is correct, because the handle content the block without crc.
     Find_Local_MR(&table->rep->remote_table->remote_data_mrs, handle,
                   contents.data);
-    block = new Block(contents, Block_On_Memory_Side);
+
+    //TODO: support compressed block.
+    auto n = contents.data.size();
+    char* buf = (char*)contents.data.data();
+    if (options.verify_checksums) {
+      const uint32_t crc = crc32c::Unmask(DecodeFixed32(buf + n + 1));
+      const uint32_t actual = crc32c::Value(buf, n + 1);
+      if (actual != crc) {
+        //      delete[] buf;
+        DEBUG("Data block Checksum mismatch\n");
+        assert(false);
+        s = Status::Corruption("block checksum mismatch");
+        return nullptr;
+      }
+    }
+    switch (buf[n]) {
+        case kNoCompression: {
+          block = new Block(contents, Block_On_Memory_Side);
+
+          break;
+        }
+        case kSnappyCompression: {
+          size_t ulength = 0;
+          if (!port::Snappy_GetUncompressedLength(buf, n, &ulength)) {
+            assert(false);
+          }
+          char* ubuf = new char[ulength];
+          if (!port::Snappy_Uncompress(buf, n, ubuf)) {
+            assert(false);
+            delete[] ubuf;
+          }
+          contents.data.Reset(ubuf, ulength);
+          block = new Block(contents, Block_On_Memory_Side_Compressed);
+          break;
+        }
+        default:
+          assert(buf[n] != kNoCompression);
+          assert(false);
+          DEBUG("Data block illegal compression type\n");
+    }
+
   }
 
   Iterator* iter;
