@@ -33,7 +33,7 @@ Block::Block(const BlockContents& contents, BlockType type)
       restart_offset_ = size_ - (1 + NumRestarts()) * sizeof(uint32_t);
     }
   }
-  if (type == Block_On_Memory_Side){
+  if (type == Block_On_Memory_Side || type == Block_On_Memory_Side_Compressed){
     rdma_mg_ = Memory_Node_Keeper::rdma_mg;
   }else{
     rdma_mg_ = Env::Default()->rdma_mg;
