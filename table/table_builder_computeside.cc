@@ -308,6 +308,7 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
     crc = crc32c::Extend(crc, trailer, 1);  // Extend crc to cover block compressiontype
     EncodeFixed32(trailer + 1, crc32c::Mask(crc));
     block_contents.append(trailer, kBlockTrailerSize);
+    assert()
     // block_type == 0 means data block
     if (r->status.ok()) {
       r->offset += block_contents.size();
@@ -318,8 +319,9 @@ void TableBuilder_ComputeSide::FinishDataBlock(BlockBuilder* block, BlockHandle*
   r->compressed_output.clear();
   if (r->offset < 8192){
     char* buf =
-        const_cast<char*>(block_contents.data() + block_contents.size() - 4);
-    printf("data content around the compression type : %d %d %d %d %d %d %d %d\n", buf[0], buf[1], buf[2], buf[3], buf[4],
+        const_cast<char*>(block_contents.data() + block_contents.size() - 8);
+    assert(buf[3 ] == 1);
+    printf("data content around the compression type : %u %u %u %u %u %u %u %u\n", buf[0], buf[1], buf[2], buf[3], buf[4],
            buf[5], buf[6], buf[7]);
   }
   block->Reset_Forward();
