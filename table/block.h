@@ -338,7 +338,7 @@ class Block::Iter : public Iterator {
       }else{
         key_.TrimAppend(shared, p, non_shared);
       }
-      assert(key_.Size() != 26);
+//      assert(key_.Size() != 26);
 
     //      key_.SetKey(Slice(p, non_shared));
     //      auto stop = std::chrono::high_resolution_clock::now();
