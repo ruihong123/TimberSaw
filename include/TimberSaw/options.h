@@ -144,7 +144,7 @@ struct TimberSaw_EXPORT Options {
   // Number of keys between restart points for delta encoding of keys.
   // This parameter can be changed dynamically.  Most clients should
   // leave this parameter alone.
-  int block_restart_interval = 8;
+  int block_restart_interval = 1;
 
   // TimberSaw will write up to this amount of bytes to a file before
   // switching to a new one.
@@ -171,7 +171,7 @@ struct TimberSaw_EXPORT Options {
   // worth switching to kNoCompression.  Even if the input data is
   // incompressible, the kSnappyCompression implementation will
   // efficiently detect that and will switch to uncompressed mode.
-  CompressionType compression = kSnappyCompression;
+  CompressionType compression = kNoCompression;
 
   // EXPERIMENTAL: If true, append to existing MANIFEST and log files
   // when a database is opened.  This can significantly speed up open.
