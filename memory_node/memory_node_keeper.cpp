@@ -607,112 +607,224 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
   std::string current_user_key;
   bool has_current_user_key = false;
   SequenceNumber last_sequence_for_key = kMaxSequenceNumber;
-  Slice key;
-  assert(input->Valid());
+  // No compression can avoid a data copy in the while loop during the compaction
+  switch (opts->compression) {
+    case kNoCompression:{
+
+      Slice key;
+      assert(input->Valid());
 #ifndef NDEBUG
-  printf("first key is %s", input->key().ToString().c_str());
+      printf("first key is %s", input->key().ToString().c_str());
 #endif
-  while (input->Valid()) {
-    key = input->key();
-    assert(key.data()[0] == 0);
-    //    assert(key.data()[0] == '0');
-    //We do not need to check whether the output file have too much overlap with level n + 2.
-    // If there is a lot of overlap subcompaction can be triggered.
-    //compact->compaction->ShouldStopBefore(key) &&
-//    if (compact->builder != nullptr) {
-//      status = FinishCompactionOutputFile(compact, input);
-//      if (!status.ok()) {
-//        break;
-//      }
-//    }
-    // key merged below!!!
-    // Handle key/value, add to state, etc.
-    bool drop = false;
-    if (!ParseInternalKey(key, &ikey)) {
-      // Do not hide error keys
-      current_user_key.clear();
-      has_current_user_key = false;
-      last_sequence_for_key = kMaxSequenceNumber;
-    } else {
-      if (!has_current_user_key){
-        //TODO: can we avoid the data copy here, can we set two buffers in block and make
-        // the old user key not be garbage collected so that the old Slice can be
-        // directly used here.
-        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
-        has_current_user_key = true;
-      }
-      else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
-        // First occurrence of this user key
-        current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
-        //        has_current_user_key = true;
-        //        last_sequence_for_key = kMaxSequenceNumber;
-        // this will result in the key not drop, next if will always be false because of
-        // the last_sequence_for_key.
-      }else{
-        drop = true;
-      }
-    }
-#ifndef NDEBUG
-    number_of_key++;
-#endif
-    if (!drop) {
-      // Open output file if necessary
-      if (compact->builder == nullptr) {
-        status = OpenCompactionOutputFile(compact);
-        if (!status.ok()) {
-          break;
+      while (input->Valid()) {
+        key = input->key();
+        assert(key.data()[0] == 0);
+        //    assert(key.data()[0] == '0');
+        //We do not need to check whether the output file have too much overlap with level n + 2.
+        // If there is a lot of overlap subcompaction can be triggered.
+        //compact->compaction->ShouldStopBefore(key) &&
+        //    if (compact->builder != nullptr) {
+        //      status = FinishCompactionOutputFile(compact, input);
+        //      if (!status.ok()) {
+        //        break;
+        //      }
+        //    }
+        // key merged below!!!
+        // Handle key/value, add to state, etc.
+        bool drop = false;
+        if (!ParseInternalKey(key, &ikey)) {
+          // Do not hide error keys
+          current_user_key.clear();
+          has_current_user_key = false;
+          last_sequence_for_key = kMaxSequenceNumber;
+        } else {
+          if (!has_current_user_key){
+            //TODO: can we avoid the data copy here, can we set two buffers in block and make
+            // the old user key not be garbage collected so that the old Slice can be
+            // directly used here.
+            current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+            has_current_user_key = true;
+          }
+          else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
+            // First occurrence of this user key
+            current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+            //        has_current_user_key = true;
+            //        last_sequence_for_key = kMaxSequenceNumber;
+            // this will result in the key not drop, next if will always be false because of
+            // the last_sequence_for_key.
+          }else{
+            drop = true;
+          }
         }
-      }
-      if (compact->builder->NumEntries() == 0) {
-        compact->current_output()->smallest.DecodeFrom(key);
+#ifndef NDEBUG
+        number_of_key++;
+#endif
+        if (!drop) {
+          // Open output file if necessary
+          if (compact->builder == nullptr) {
+            status = OpenCompactionOutputFile(compact);
+            if (!status.ok()) {
+              break;
+            }
+          }
+          if (compact->builder->NumEntries() == 0) {
+            compact->current_output()->smallest.DecodeFrom(key);
+          }
+#ifndef NDEBUG
+          Not_drop_counter++;
+#endif
+          compact->builder->Add(key, input->value());
+          //      assert(key.data()[0] == '0');
+          // Close output file if it is big enough
+          if (compact->builder->FileSize() >=
+              compact->compaction->MaxOutputFileSize()) {
+            //        assert(key.data()[0] == '0');
+            compact->current_output()->largest.DecodeFrom(key);
+            status = FinishCompactionOutputFile(compact, input);
+            if (!status.ok()) {
+              break;
+            }
+          }
+        }
+        //    assert(key.data()[0] == '0');
+        //    input->Next();
+        //    if(*key.data() != 0){
+        //      printf("break here");
+        //    }
+        input->Next();
+        //    if(*key.data() != 0){
+        //      printf("break here");
+        //    }
+        //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
+        // be invalid also.
+        //    assert(key.data()[0] == '0');
       }
 #ifndef NDEBUG
-      Not_drop_counter++;
+      printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
+             Not_drop_counter);
 #endif
-      compact->builder->Add(key, input->value());
-      //      assert(key.data()[0] == '0');
-      // Close output file if it is big enough
-      if (compact->builder->FileSize() >=
-      compact->compaction->MaxOutputFileSize()) {
-        //        assert(key.data()[0] == '0');
+      //  assert(key.data()[0] == '0');
+      //  if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
+      //    status = Status::IOError("Deleting DB during compaction");
+      //  }
+      if (status.ok() && compact->builder != nullptr) {
+        //    assert(key.data()[0] == '0');
         compact->current_output()->largest.DecodeFrom(key);
+        assert(compact->current_output()->largest.user_key().data()[0] == 0);
         status = FinishCompactionOutputFile(compact, input);
-        if (!status.ok()) {
-          break;
-        }
       }
+      break;
     }
-    //    assert(key.data()[0] == '0');
-//    input->Next();
-//    if(*key.data() != 0){
-//      printf("break here");
-//    }
-    input->Next();
-//    if(*key.data() != 0){
-//      printf("break here");
-//    }
-    //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
-    // be invalid also.
-    //    assert(key.data()[0] == '0');
-  }
-  //  reinterpret_cast<TimberSaw::MergingIterator>
-  // You can not call prev here because the iterator is not valid any more
-  //  input->Prev();
-  //  assert(input->Valid());
+
+
+    case kSnappyCompression:{
+      std::string key;
+      assert(input->Valid());
 #ifndef NDEBUG
-printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
-       Not_drop_counter);
+      printf("first key is %s", input->key().ToString().c_str());
 #endif
-  //  assert(key.data()[0] == '0');
-//  if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
-//    status = Status::IOError("Deleting DB during compaction");
-//  }
-  if (status.ok() && compact->builder != nullptr) {
-    //    assert(key.data()[0] == '0');
-    compact->current_output()->largest.DecodeFrom(key);
-    assert(compact->current_output()->largest.user_key().data()[0] == 0);
-    status = FinishCompactionOutputFile(compact, input);
+      while (input->Valid()) {
+        key = input->key().ToString();
+        assert(key.data()[0] == 0);
+        //    assert(key.data()[0] == '0');
+        //We do not need to check whether the output file have too much overlap with level n + 2.
+        // If there is a lot of overlap subcompaction can be triggered.
+        //compact->compaction->ShouldStopBefore(key) &&
+        //    if (compact->builder != nullptr) {
+        //      status = FinishCompactionOutputFile(compact, input);
+        //      if (!status.ok()) {
+        //        break;
+        //      }
+        //    }
+        // key merged below!!!
+        // Handle key/value, add to state, etc.
+        bool drop = false;
+        if (!ParseInternalKey(key, &ikey)) {
+          // Do not hide error keys
+          current_user_key.clear();
+          has_current_user_key = false;
+          last_sequence_for_key = kMaxSequenceNumber;
+        } else {
+          if (!has_current_user_key){
+            //TODO: can we avoid the data copy here, can we set two buffers in block and make
+            // the old user key not be garbage collected so that the old Slice can be
+            // directly used here.
+            current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+            has_current_user_key = true;
+          }
+          else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
+            // First occurrence of this user key
+            current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
+            //        has_current_user_key = true;
+            //        last_sequence_for_key = kMaxSequenceNumber;
+            // this will result in the key not drop, next if will always be false because of
+            // the last_sequence_for_key.
+          }else{
+            drop = true;
+          }
+        }
+#ifndef NDEBUG
+        number_of_key++;
+#endif
+        if (!drop) {
+          // Open output file if necessary
+          if (compact->builder == nullptr) {
+            status = OpenCompactionOutputFile(compact);
+            if (!status.ok()) {
+              break;
+            }
+          }
+          if (compact->builder->NumEntries() == 0) {
+            compact->current_output()->smallest.DecodeFrom(key);
+          }
+#ifndef NDEBUG
+          Not_drop_counter++;
+#endif
+          compact->builder->Add(key, input->value());
+          //      assert(key.data()[0] == '0');
+          // Close output file if it is big enough
+          if (compact->builder->FileSize() >=
+              compact->compaction->MaxOutputFileSize()) {
+            //        assert(key.data()[0] == '0');
+            compact->current_output()->largest.DecodeFrom(key);
+            status = FinishCompactionOutputFile(compact, input);
+            if (!status.ok()) {
+              break;
+            }
+          }
+        }
+        //    assert(key.data()[0] == '0');
+        //    input->Next();
+        //    if(*key.data() != 0){
+        //      printf("break here");
+        //    }
+        input->Next();
+        //    if(*key.data() != 0){
+        //      printf("break here");
+        //    }
+        //NOTE(ruihong): When the level iterator is invalid it will be deleted and then the key will
+        // be invalid also.
+        //    assert(key.data()[0] == '0');
+      }
+#ifndef NDEBUG
+      printf("For compaction, Total number of key touched is %d, KV left is %d\n", number_of_key,
+             Not_drop_counter);
+#endif
+      //  assert(key.data()[0] == '0');
+      //  if (status.ok() && shutting_down_.load(std::memory_order_acquire)) {
+      //    status = Status::IOError("Deleting DB during compaction");
+      //  }
+      if (status.ok() && compact->builder != nullptr) {
+        //    assert(key.data()[0] == '0');
+        compact->current_output()->largest.DecodeFrom(key);
+        assert(compact->current_output()->largest.user_key().data()[0] == 0);
+        status = FinishCompactionOutputFile(compact, input);
+      }
+      break;
+    }
   }
+
+
   if (status.ok()) {
     status = input->status();
   }
@@ -720,33 +832,6 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
   input = nullptr;
 
   CompactionStats stats;
-//  stats.micros = env_->NowMicros() - start_micros - imm_micros;
-//  for (int which = 0; which < 2; which++) {
-//    for (int i = 0; i < compact->compaction->num_input_files(which); i++) {
-//      stats.bytes_read += compact->compaction->input(which, i)->file_size;
-//    }
-//  }
-//  for (size_t i = 0; i < compact->outputs.size(); i++) {
-//    stats.bytes_written += compact->outputs[i].file_size;
-//  }
-  // TODO: we can remove this lock.
-//  undefine_mutex.Lock();
-//  stats_[compact->compaction->level() + 1].Add(stats);
-
-//  if (status.ok()) {
-////    std::unique_lock<std::mutex> l(versions_mtx, std::defer_lock);
-//    status = InstallCompactionResults(compact, client_ip);
-////    InstallSuperVersion();
-//  }
-//  undefine_mutex.Unlock();
-//  if (!status.ok()) {
-//    RecordBackgroundError(status);
-//  }
-//  VersionSet::LevelSummaryStorage tmp;
-//  Log(options_.info_log, "compacted to: %s", versions_->LevelSummary(&tmp));
-  // NOtifying all the waiting threads.
-//  write_stall_cv.notify_all();
-//  Versionset_Sync_To_Compute(VersionEdit* ve);
   return status;
 }
 Status Memory_Node_Keeper::DoCompactionWorkWithSubcompaction(
