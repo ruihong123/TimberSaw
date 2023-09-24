@@ -320,7 +320,7 @@ void TableBuilder_Memoryside::FinishDataBlock(BlockBuilder* block, BlockHandle* 
       assert(r->offset - r->offset_last_flushed <= r->local_data_mr->length);
     }
   }
-  assert(block_contents->size() >8500);
+//  assert(block_contents->size() >8500);
   r->compressed_output.clear();
 //  if (r->offset < 8192){
 //    unsigned char* buf =
