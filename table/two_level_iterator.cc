@@ -68,8 +68,8 @@ void TwoLevelIterator::Next() {
     if (num_entries > 0) {
       assert(static_cast<Block::Iter*>(data_iter_.iter())->Compare(key(), Slice(last_key)) >= 0);
     }
-    num_entries++;
     last_key = key().ToString();
+    num_entries++;
   }
 #endif
 }
@@ -160,7 +160,11 @@ TwoLevelFileIterator::TwoLevelFileIterator(Version::LevelFileNumIterator* index_
       arg_(arg),
       options_(options),
       index_iter_(index_iter),
-      data_iter_(nullptr) {}
+      data_iter_(nullptr) {
+#ifndef NDEBUG
+  comparator = BytewiseComparator();
+#endif
+}
 
 TwoLevelFileIterator::~TwoLevelFileIterator() {
     DEBUG_arg("TWOLevelFileIterator destructing, this pointer is %p\n", this);
@@ -208,6 +212,15 @@ void TwoLevelFileIterator::Next() {
   assert(Valid());
   data_iter_.Next();
   SkipEmptyDataBlocksForward();
+#ifndef NDEBUG
+  if (Valid()){
+    if (num_entries > 0) {
+      assert(comparator->Compare(key(), Slice(last_key)) >= 0);
+    }
+    last_key = key().ToString();
+    num_entries++;
+  }
+#endif
 }
 
 void TwoLevelFileIterator::Prev() {

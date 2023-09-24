@@ -640,8 +640,7 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
         has_current_user_key = true;
       }
-      else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) !=
-      0) {
+      else if(user_comparator()->Compare(ikey.user_key, Slice(current_user_key)) != 0) {
         // First occurrence of this user key
         current_user_key.assign(ikey.user_key.data(), ikey.user_key.size());
         //        has_current_user_key = true;
