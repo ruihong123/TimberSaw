@@ -47,11 +47,14 @@ TimberSaw::Memory_Node_Keeper::Memory_Node_Keeper(bool use_sub_compaction,
     rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     if (opts->compression != kNoCompression) {
       rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK_COMPRESSION, 0);
+      rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL, 0);
+
     }else{
       rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, 0);
+      rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL, 0);
+
     }
     rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK_BIG, 0);
-    rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL, 0);
 
 //    rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
     //TODO: actually we don't need Prefetch buffer.

@@ -14,14 +14,15 @@ Options::Options() : comparator(BytewiseComparator()), env(Env::Default()) {
     std::unique_lock<std::shared_mutex> lck(env->rdma_mg->local_mem_mutex);
     env->rdma_mg->Mempool_initialize(IndexChunk, INDEX_BLOCK_BIG,
                                      INDEX_BLOCK_BIG *16);
-    env->rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL,
-                                     INDEX_BLOCK_SMALL *128);
+
     if (compression != kNoCompression) {
       env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK_COMPRESSION, FILTER_BLOCK_COMPRESSION*128);
-
+      env->rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL,
+                                       INDEX_BLOCK_SMALL *128);
     }else{
       env->rdma_mg->Mempool_initialize(FilterChunk, FILTER_BLOCK, FILTER_BLOCK*128);
-
+      env->rdma_mg->Mempool_initialize(IndexChunk_Small, INDEX_BLOCK_SMALL,
+                                       INDEX_BLOCK_SMALL *128);
     }
     env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, RDMA_WRITE_BLOCK*16);
 //    env->rdma_mg->Mempool_initialize(FlushBuffer, RDMA_WRITE_BLOCK, 0);
