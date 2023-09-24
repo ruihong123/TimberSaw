@@ -20,6 +20,7 @@ Block::Block(const BlockContents& contents, BlockType type)
       size_(contents.data.size()),
       RDMA_Regiested(true),
       type_(type) {
+  assert(size_< 8192);
   if (size_ < sizeof(uint32_t)) {
     size_ = 0;  // Error marker
   } else {
