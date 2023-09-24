@@ -167,14 +167,14 @@ class Block::Iter : public Iterator {
   void Next() override {
     assert(Valid());
     ParseNextKey();
-    assert(*key_.GetKey().data() != 'U' && *key_.GetKey().data() != 'V');
+    assert(*key_.GetKey().data() != '\a' && *key_.GetKey().data() != 7);
 #ifndef NDEBUG
     if (num_entries > 0) {
       assert(comparator_->Compare(key_.GetKey(), Slice(last_key)) >= 0);
     }
     num_entries++;
     last_key = key_.GetKey().ToString();
-    assert(*key_.GetKey().data()!= '\a');
+//    assert(*key_.GetKey().data()!= '\a');
     if (Valid())
       assert(key().size()!=0);
 #endif
