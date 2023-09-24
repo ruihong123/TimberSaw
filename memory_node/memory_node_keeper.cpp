@@ -614,7 +614,7 @@ Status Memory_Node_Keeper::DoCompactionWork(CompactionState* compact,
 #endif
   while (input->Valid()) {
     key = input->key();
-    assert(key.data()[0] == '0');
+    assert(key.data()[0] == 0);
     //    assert(key.data()[0] == '0');
     //We do not need to check whether the output file have too much overlap with level n + 2.
     // If there is a lot of overlap subcompaction can be triggered.
