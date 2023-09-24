@@ -25,6 +25,7 @@ class Snapshot;
 
 #define INDEX_BLOCK_BIG (7*1024*1024ULL)
 #define INDEX_BLOCK_SMALL (384*1024ULL)
+#define INDEX_BLOCK_SMALL_COMPRESSION (384*1024ULL)
 #define FILTER_BLOCK  (256*1024ULL)
 #define FILTER_BLOCK_COMPRESSION  (3*1024*1024ULL)
 //static size_t RDMA_WRITE_BLOCK = 1*1024*1024;
@@ -143,7 +144,7 @@ struct TimberSaw_EXPORT Options {
   // Number of keys between restart points for delta encoding of keys.
   // This parameter can be changed dynamically.  Most clients should
   // leave this parameter alone.
-  int block_restart_interval = 8;
+  int block_restart_interval = 1;
 
   // TimberSaw will write up to this amount of bytes to a file before
   // switching to a new one.
