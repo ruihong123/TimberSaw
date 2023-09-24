@@ -21,7 +21,7 @@ Block::Block(const BlockContents& contents, BlockType type)
       RDMA_Regiested(true),
       type_(type) {
 #ifndef NDEBUG
-  if (type_!= IndexBlock && type_!=IndexBlock_Small && type_!=FilterBlock)
+  if (type_ == Block_On_Memory_Side_Compressed)
     assert(size_< 8192);
 #endif
   if (size_ < sizeof(uint32_t)) {
