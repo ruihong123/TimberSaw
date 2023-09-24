@@ -94,7 +94,7 @@
 
 //#define PROCESSANALYSIS
 #define BYTEADDRESSABLE
-#define TABLE_STRATEGY 0 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive according to local cache size limit.
+#define TABLE_STRATEGY 1 // 0 PURE block based, 1 pure byte-addressable, 2 adaptive according to local cache size limit.
 #define TABLE_CACHE_SCALING_FACTOR 8
 #define USESEQITERATOR
 #define NEARDATACOMPACTION 1 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
