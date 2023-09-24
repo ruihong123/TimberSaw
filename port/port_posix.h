@@ -98,7 +98,7 @@
 #define TABLE_CACHE_SCALING_FACTOR 8
 #define USESEQITERATOR
 #define NEARDATACOMPACTION 1 // 0  no near data compaction, 1 always near data compaction, 2 adaptive
-#define CHECK_COMPACTION_TIME
+//#define CHECK_COMPACTION_TIME
 #define PERFECT_THREAD_NUMBER_FOR_BGTHREADS
 //#define ASYNC_READ
 //#define GETANALYSIS
