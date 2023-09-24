@@ -199,7 +199,6 @@ Iterator* Table_Memory_Side::BlockReader(void* arg, const ReadOptions& options,
           if (!port::Snappy_GetUncompressedLength(buf, n, &ulength)) {
             assert(false);
           }
-          assert(ulength >8500);
           char* ubuf = new char[ulength];
           if (!port::Snappy_Uncompress(buf, n, ubuf)) {
             assert(false);

@@ -33,7 +33,6 @@ Block::Block(const BlockContents& contents, BlockType type)
       restart_offset_ = size_ - (1 + NumRestarts()) * sizeof(uint32_t);
     }
   }
-  assert(size_ > 8500);
   if (type == Block_On_Memory_Side || type == Block_On_Memory_Side_Compressed){
     rdma_mg_ = Memory_Node_Keeper::rdma_mg;
   }else{

@@ -276,6 +276,7 @@ class Block::Iter : public Iterator {
     SeekToRestartPoint(0);
     ParseNextKey();
     assert(key().size()!=0);
+    assert(*(key().data()+14) == '0');
   }
 
   void SeekToLast() override {
