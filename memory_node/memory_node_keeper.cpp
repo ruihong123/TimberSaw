@@ -709,6 +709,7 @@ printf("For compaction, Total number of key touched is %d, KV left is %d\n", num
   if (status.ok() && compact->builder != nullptr) {
     //    assert(key.data()[0] == '0');
     compact->current_output()->largest.DecodeFrom(key);
+    assert(compact->current_output()->largest.user_key().data()[0] == '0');
     status = FinishCompactionOutputFile(compact, input);
   }
   if (status.ok()) {
